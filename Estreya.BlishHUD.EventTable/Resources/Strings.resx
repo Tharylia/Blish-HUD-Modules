@@ -1,0 +1,788 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="BaseSettingsView_AddingColorsToColorPicker" xml:space="preserve">
+    <value>Adding Colors to ColorPicker...</value>
+  </data>
+  <data name="BaseSettingsView_LoadingColorPicker" xml:space="preserve">
+    <value>Loading ColorPicker...</value>
+  </data>
+  <data name="BaseSettingsView_LoadingColors" xml:space="preserve">
+    <value>Loading Colors...</value>
+  </data>
+  <data name="event-auricBasin-battleInTarir" xml:space="preserve">
+    <value>Battle in Tarir</value>
+  </data>
+  <data name="event-auricBasin-defendingTarir" xml:space="preserve">
+    <value>Defending Tarir</value>
+  </data>
+  <data name="event-auricBasin-trailByFire" xml:space="preserve">
+    <value>Trial by Fire</value>
+  </data>
+  <data name="event-bjoraMarches-drakkar" xml:space="preserve">
+    <value>Drakkar, the Ice Dragon's Champion</value>
+  </data>
+  <data name="event-bjoraMarches-stormsOfWinter" xml:space="preserve">
+    <value>Storms of Winter</value>
+  </data>
+  <data name="event-canthaDayNight-dawn" xml:space="preserve">
+    <value>Cantha: Dawn</value>
+  </data>
+  <data name="event-canthaDayNight-day" xml:space="preserve">
+    <value>Cantha: Day</value>
+  </data>
+  <data name="event-canthaDayNight-dusk" xml:space="preserve">
+    <value>Cantha: Dusk</value>
+  </data>
+  <data name="event-canthaDayNight-night" xml:space="preserve">
+    <value>Cantha: Night</value>
+  </data>
+  <data name="event-crystalOasis-casinoBlitz" xml:space="preserve">
+    <value>Casino Blitz</value>
+  </data>
+  <data name="event-crystalOasis-choyaPinata" xml:space="preserve">
+    <value>Choya Pinata</value>
+  </data>
+  <data name="event-dayNightCycle-dawn" xml:space="preserve">
+    <value>Dawn</value>
+  </data>
+  <data name="event-dayNightCycle-day" xml:space="preserve">
+    <value>Day</value>
+  </data>
+  <data name="event-dayNightCycle-dusk" xml:space="preserve">
+    <value>Dusk</value>
+  </data>
+  <data name="event-dayNightCycle-night" xml:space="preserve">
+    <value>Night</value>
+  </data>
+  <data name="event-desertHighland-theSearchForBuriedTreasure" xml:space="preserve">
+    <value>The Search for Buried Treasure</value>
+  </data>
+  <data name="event-desolation-jununduRising" xml:space="preserve">
+    <value>Junundu Rising</value>
+  </data>
+  <data name="event-desolation-mawsOfTorment" xml:space="preserve">
+    <value>Maws of Torment</value>
+  </data>
+  <data name="event-dragonBash-dredgehauntCliffs" xml:space="preserve">
+    <value>Dredgehaunt Cliffs</value>
+  </data>
+  <data name="event-dragonBash-lornarsPass" xml:space="preserve">
+    <value>Lornar's Pass</value>
+  </data>
+  <data name="event-dragonBash-snowdenDrifts" xml:space="preserve">
+    <value>Snowden Drifts</value>
+  </data>
+  <data name="event-dragonBash-wayfarerFoothills" xml:space="preserve">
+    <value>Wayfarer Foothills</value>
+  </data>
+  <data name="event-dragonsEnd-jadeMaw" xml:space="preserve">
+    <value>Jade Maw</value>
+  </data>
+  <data name="event-dragonsEnd-preparations" xml:space="preserve">
+    <value>Preparations</value>
+  </data>
+  <data name="event-dragonsEnd-theBattleForTheJadeSea" xml:space="preserve">
+    <value>The Battle for the Jade Sea</value>
+  </data>
+  <data name="event-dragonStand-advancingOnTheBlightingTowers" xml:space="preserve">
+    <value>Advancing on the Blighting Towers</value>
+  </data>
+  <data name="event-dryTop-crashSite" xml:space="preserve">
+    <value>Crash Site</value>
+  </data>
+  <data name="event-dryTop-sandstorm" xml:space="preserve">
+    <value>Sandstorm</value>
+  </data>
+  <data name="event-elonRiverlands-doppelganger" xml:space="preserve">
+    <value>Doppelganger</value>
+  </data>
+  <data name="event-elonRiverlands-thePathToAscension" xml:space="preserve">
+    <value>The Path to Ascension</value>
+  </data>
+  <data name="event-eotn-dragonstorm" xml:space="preserve">
+    <value>Dragonstorm</value>
+  </data>
+  <data name="event-eotn-twistedMarionette" xml:space="preserve">
+    <value>The Twisted Marionette</value>
+  </data>
+  <data name="event-festivalOfTheFourWinds-dolyakRace" xml:space="preserve">
+    <value>Dolyak Race</value>
+  </data>
+  <data name="event-festivalOfTheFourWinds-skimmerRace" xml:space="preserve">
+    <value>Skimmer Race</value>
+  </data>
+  <data name="event-festivalOfTheFourWinds-treasureHunt" xml:space="preserve">
+    <value>Treasure Hunt</value>
+  </data>
+  <data name="event-grothmar-concert" xml:space="preserve">
+    <value>A Concert for the Ages</value>
+  </data>
+  <data name="event-grothmar-doomloreShrine" xml:space="preserve">
+    <value>The Haunting of Doomlore Shrine</value>
+  </data>
+  <data name="event-grothmar-oozePit" xml:space="preserve">
+    <value>The Ooze Pit Trials</value>
+  </data>
+  <data name="event-grothmar-sacredFlame" xml:space="preserve">
+    <value>Ceremony of the Sacred Flame</value>
+  </data>
+  <data name="event-halloween-madKingSays" xml:space="preserve">
+    <value>Your Mad King says...</value>
+  </data>
+  <data name="event-istan-palawadan" xml:space="preserve">
+    <value>Palawadan, Jewel of Istan</value>
+  </data>
+  <data name="event-jahai-dangerousPrey" xml:space="preserve">
+    <value>Dangerous Prey</value>
+  </data>
+  <data name="event-jahai-deathBrandedShatterer" xml:space="preserve">
+    <value>Death-Branded Shatterer</value>
+  </data>
+  <data name="event-lakeDoric-newLoamhurst" xml:space="preserve">
+    <value>New Loamhurst</value>
+  </data>
+  <data name="event-lakeDoric-noransHomestead" xml:space="preserve">
+    <value>Noran's Homestead</value>
+  </data>
+  <data name="event-lakeDoric-saidrasHaven" xml:space="preserve">
+    <value>Saidra's Haven</value>
+  </data>
+  <data name="event-leyLineAnomaly-llaGF" xml:space="preserve">
+    <value>Ley-Line Anomaly (Gendarran Fields)</value>
+  </data>
+  <data name="event-leyLineAnomaly-llaIM" xml:space="preserve">
+    <value>Ley-Line Anomaly (Iron Marches)</value>
+  </data>
+  <data name="event-leyLineAnomaly-llaTF" xml:space="preserve">
+    <value>Ley-Line Anomaly (Timberline Falls)</value>
+  </data>
+  <data name="event-newKainengCity-kainengBlackout" xml:space="preserve">
+    <value>Kaineng Blackout</value>
+  </data>
+  <data name="event-pvpTournaments-balthazarsBrawl" xml:space="preserve">
+    <value>Balthazar's Brawl</value>
+  </data>
+  <data name="event-pvpTournaments-grenthsGame" xml:space="preserve">
+    <value>Grenth's Game</value>
+  </data>
+  <data name="event-pvpTournaments-lyssasLegions" xml:space="preserve">
+    <value>Lyssa's Legions</value>
+  </data>
+  <data name="event-pvpTournaments-melandrusMatchup" xml:space="preserve">
+    <value>Melandru's Matchup</value>
+  </data>
+  <data name="event-seitungProvince-aetherbladeAssault" xml:space="preserve">
+    <value>Aetherblade Assault</value>
+  </data>
+  <data name="event-serverReset-serverReset" xml:space="preserve">
+    <value>Server Reset</value>
+  </data>
+  <data name="event-tangledDepth-chakGerent" xml:space="preserve">
+    <value>Chak Gerent</value>
+  </data>
+  <data name="event-theEchovaldWilds-aspenwood" xml:space="preserve">
+    <value>Aspenwood</value>
+  </data>
+  <data name="event-theEchovaldWilds-gangWar" xml:space="preserve">
+    <value>Gang War</value>
+  </data>
+  <data name="event-thunderheadPeaks-theOilFloes" xml:space="preserve">
+    <value>The Oil Floes</value>
+  </data>
+  <data name="event-thunderheadPeaks-thunderheadKeep" xml:space="preserve">
+    <value>Thunderhead Keep</value>
+  </data>
+  <data name="event-vabbi-forgedWithFire" xml:space="preserve">
+    <value>Forged with Fire</value>
+  </data>
+  <data name="event-vabbi-serpentsIre" xml:space="preserve">
+    <value>Serpents' Ire</value>
+  </data>
+  <data name="event-verdantBrink-nightAndTheEnemy" xml:space="preserve">
+    <value>Night and the Enemy</value>
+  </data>
+  <data name="event-verdantBrink-nightBosses" xml:space="preserve">
+    <value>Night Bosses</value>
+  </data>
+  <data name="event-verdantBrink-securingVerdantBrink" xml:space="preserve">
+    <value>Securing Verdant Brink</value>
+  </data>
+  <data name="event-worldBosses-clawOfJormag" xml:space="preserve">
+    <value>Claw of Jormag</value>
+  </data>
+  <data name="event-worldBosses-fireElemental" xml:space="preserve">
+    <value>Fire Elemental</value>
+  </data>
+  <data name="event-worldBosses-golemMarkII" xml:space="preserve">
+    <value>Inquest Golem Mark II</value>
+  </data>
+  <data name="event-worldBosses-greatJungleWurm" xml:space="preserve">
+    <value>Great Jungle Wurm</value>
+  </data>
+  <data name="event-worldBosses-megadestoryer" xml:space="preserve">
+    <value>Megadestroyer</value>
+  </data>
+  <data name="event-worldBosses-modniirUlgoth" xml:space="preserve">
+    <value>Modniir Ulgoth</value>
+  </data>
+  <data name="event-worldBosses-shadowBehemoth" xml:space="preserve">
+    <value>Shadow Behemoth</value>
+  </data>
+  <data name="event-worldBosses-svanirShamanChief" xml:space="preserve">
+    <value>Svanir Shaman Chief</value>
+  </data>
+  <data name="event-worldBosses-taidha" xml:space="preserve">
+    <value>Admiral Taidha Covington</value>
+  </data>
+  <data name="event-worldBosses-theShatterer" xml:space="preserve">
+    <value>The Shatterer</value>
+  </data>
+  <data name="event-worldBossesHardcore-evolvedJungleWurm" xml:space="preserve">
+    <value>Evolved Jungle Wurm</value>
+  </data>
+  <data name="event-worldBossesHardcore-karkaQueen" xml:space="preserve">
+    <value>Karka Queen</value>
+  </data>
+  <data name="event-worldBossesHardcore-tequatl" xml:space="preserve">
+    <value>Tequatl the Sunless</value>
+  </data>
+  <data name="eventCategory-auricBasin" xml:space="preserve">
+    <value>Auric Basin</value>
+  </data>
+  <data name="eventCategory-bjoraMarches" xml:space="preserve">
+    <value>Bjora Marches</value>
+  </data>
+  <data name="eventCategory-canthaDayNight" xml:space="preserve">
+    <value>Cantha: Day-Night Cycle</value>
+  </data>
+  <data name="eventCategory-crystalOasis" xml:space="preserve">
+    <value>Crystal Oasis</value>
+  </data>
+  <data name="eventCategory-dayNightCycle" xml:space="preserve">
+    <value>Day-Night Cycle</value>
+  </data>
+  <data name="eventCategory-desertHighland" xml:space="preserve">
+    <value>Desert Highland</value>
+  </data>
+  <data name="eventCategory-desolation" xml:space="preserve">
+    <value>The Desolation</value>
+  </data>
+  <data name="eventCategory-dragonBash" xml:space="preserve">
+    <value>Dragon Bash</value>
+  </data>
+  <data name="eventCategory-dragonsEnd" xml:space="preserve">
+    <value>Dragon's End</value>
+  </data>
+  <data name="eventCategory-dragonStand" xml:space="preserve">
+    <value>Dragon Stand</value>
+  </data>
+  <data name="eventCategory-dryTop" xml:space="preserve">
+    <value>Dry Top</value>
+  </data>
+  <data name="eventCategory-elonRiverlands" xml:space="preserve">
+    <value>Elon Riverlands</value>
+  </data>
+  <data name="eventCategory-eotn" xml:space="preserve">
+    <value>Eye of the North</value>
+  </data>
+  <data name="eventCategory-festivalOfTheFourWinds" xml:space="preserve">
+    <value>Festival of the Four Winds</value>
+  </data>
+  <data name="eventCategory-grothmar" xml:space="preserve">
+    <value>Grothmar Valley</value>
+  </data>
+  <data name="eventCategory-halloween" xml:space="preserve">
+    <value>Halloween</value>
+  </data>
+  <data name="eventCategory-istan" xml:space="preserve">
+    <value>Domain of Istan</value>
+  </data>
+  <data name="eventCategory-jahai" xml:space="preserve">
+    <value>Jahai Bluffs</value>
+  </data>
+  <data name="eventCategory-lakeDoric" xml:space="preserve">
+    <value>Lake Doric</value>
+  </data>
+  <data name="eventCategory-leyLineAnomaly" xml:space="preserve">
+    <value>Ley Line Anomaly</value>
+  </data>
+  <data name="eventCategory-newKainengCity" xml:space="preserve">
+    <value>New Kaineng City</value>
+  </data>
+  <data name="eventCategory-pvpTournaments" xml:space="preserve">
+    <value>PvP Automated Tournaments</value>
+  </data>
+  <data name="eventCategory-seitungProvince" xml:space="preserve">
+    <value>Seitung Province</value>
+  </data>
+  <data name="eventCategory-serverReset" xml:space="preserve">
+    <value>Server Reset</value>
+  </data>
+  <data name="eventCategory-tangledDepth" xml:space="preserve">
+    <value>Tangled Depth</value>
+  </data>
+  <data name="eventCategory-theEchovaldWilds" xml:space="preserve">
+    <value>The Echovald Wilds</value>
+  </data>
+  <data name="eventCategory-thunderheadPeaks" xml:space="preserve">
+    <value>Thunderhead Peaks</value>
+  </data>
+  <data name="eventCategory-vabbi" xml:space="preserve">
+    <value>Vabbi</value>
+  </data>
+  <data name="eventCategory-verdantBrink" xml:space="preserve">
+    <value>Verdant Brink</value>
+  </data>
+  <data name="eventCategory-worldBosses" xml:space="preserve">
+    <value>World Bosses</value>
+  </data>
+  <data name="eventCategory-worldBossesHardcore" xml:space="preserve">
+    <value>Hard World Bosses</value>
+  </data>
+  <data name="EventSettingsView_CurrentVersion_Title" xml:space="preserve">
+    <value>Current Version</value>
+  </data>
+  <data name="EventSettingsView_CurrentVersion_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="EventSettingsView_NewestVersion_Title" xml:space="preserve">
+    <value>Newest Version</value>
+  </data>
+  <data name="EventSettingsView_NewestVersion_Unknown" xml:space="preserve">
+    <value>Unknown</value>
+  </data>
+  <data name="EventSettingsView_ReloadEvents_Success" xml:space="preserve">
+    <value>Events reloaded!</value>
+  </data>
+  <data name="EventSettingsView_ReloadEvents_Title" xml:space="preserve">
+    <value>Reload Events</value>
+  </data>
+  <data name="EventSettingsView_ResetEventStates_Success" xml:space="preserve">
+    <value>Event states cleared!</value>
+  </data>
+  <data name="EventSettingsView_ResetEventStates_Title" xml:space="preserve">
+    <value>Reset event states</value>
+  </data>
+  <data name="EventSettingsView_UpdateEventFile_Success" xml:space="preserve">
+    <value>Successfully updated!</value>
+  </data>
+  <data name="EventSettingsView_UpdateEventFile_Title" xml:space="preserve">
+    <value>Update Event File</value>
+  </data>
+  <data name="Event_CopyWaypoint" xml:space="preserve">
+    <value>Copy Waypoint</value>
+  </data>
+  <data name="Event_Disable" xml:space="preserve">
+    <value>Disable</value>
+  </data>
+  <data name="Event_HideCategory" xml:space="preserve">
+    <value>Hide Category</value>
+  </data>
+  <data name="Event_HideEvent" xml:space="preserve">
+    <value>Hide Event</value>
+  </data>
+  <data name="Event_NoWaypointFound" xml:space="preserve">
+    <value>No Waypoint found!</value>
+  </data>
+  <data name="Event_OpenWiki" xml:space="preserve">
+    <value>Open Wiki</value>
+  </data>
+  <data name="Event_Tooltip_FinishedSince" xml:space="preserve">
+    <value>Finished since</value>
+  </data>
+  <data name="Event_Tooltip_Remaining" xml:space="preserve">
+    <value>Remaining</value>
+  </data>
+  <data name="Event_Tooltip_StartsAt" xml:space="preserve">
+    <value>Starts at</value>
+  </data>
+  <data name="Event_Tooltip_StartsIn" xml:space="preserve">
+    <value>Starts in</value>
+  </data>
+  <data name="Event_WaypointCopied" xml:space="preserve">
+    <value>Waypoint copied to clipboard!</value>
+  </data>
+  <data name="ManageEventsView_AllEvents" xml:space="preserve">
+    <value>All Events</value>
+  </data>
+  <data name="ManageEventsView_CheckAll" xml:space="preserve">
+    <value>Check all</value>
+  </data>
+  <data name="ManageEventsView_EventCategories_Title" xml:space="preserve">
+    <value>Event Categories</value>
+  </data>
+  <data name="ManageEventsView_SearchBox_Placeholder" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="ManageEventsView_UncheckAll" xml:space="preserve">
+    <value>Uncheck all</value>
+  </data>
+  <data name="ManageEventsView_Waypoint_Description" xml:space="preserve">
+    <value>Click to copy waypoint</value>
+  </data>
+  <data name="ManageEventsView_Waypoint_Title" xml:space="preserve">
+    <value>Waypoint</value>
+  </data>
+  <data name="ManageEventsView_Wiki_Description" xml:space="preserve">
+    <value>Click to open wiki</value>
+  </data>
+  <data name="ManageEventsView_Wiki_Title" xml:space="preserve">
+    <value>Wiki</value>
+  </data>
+  <data name="ReorderEventsView_Reset" xml:space="preserve">
+    <value>Reset</value>
+  </data>
+  <data name="ReorderEventsView_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="ReorderEventsView_Save_Success" xml:space="preserve">
+    <value>Successful reordered categories!</value>
+  </data>
+  <data name="SettingsView_OpenSettings" xml:space="preserve">
+    <value>Open Settings</value>
+  </data>
+  <data name="SettingsWindow_EventSettings_Title" xml:space="preserve">
+    <value>Event Settings</value>
+  </data>
+  <data name="SettingsWindow_GeneralSettings_Title" xml:space="preserve">
+    <value>General Settings</value>
+  </data>
+  <data name="SettingsWindow_GraphicSettings_Title" xml:space="preserve">
+    <value>Graphic Settings</value>
+  </data>
+  <data name="SettingsWindow_ManageEvents_Title" xml:space="preserve">
+    <value>Manage Events</value>
+  </data>
+  <data name="SettingsWindow_ReorderSettings_Title" xml:space="preserve">
+    <value>Reorder</value>
+  </data>
+  <data name="SettingsWindow_Subtitle" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SettingsWindow_Title" xml:space="preserve">
+    <value>Event Table</value>
+  </data>
+  <data name="Setting_AutomaticallyUpdateEventFile_Description" xml:space="preserve">
+    <value>Whether the event table should automatically update the exported event file to the newest version.</value>
+  </data>
+  <data name="Setting_AutomaticallyUpdateEventFile_Name" xml:space="preserve">
+    <value>Automatically Update Event File</value>
+  </data>
+  <data name="Setting_BackgroundColorOpacity_Description" xml:space="preserve">
+    <value>Defines the opacity of the background.</value>
+  </data>
+  <data name="Setting_BackgroundColorOpacity_Name" xml:space="preserve">
+    <value>Background Color Opacity</value>
+  </data>
+  <data name="Setting_BackgroundColor_Description" xml:space="preserve">
+    <value>Defines the background color.</value>
+  </data>
+  <data name="Setting_BackgroundColor_Name" xml:space="preserve">
+    <value>Background Color</value>
+  </data>
+  <data name="Setting_BuildDirection_Description" xml:space="preserve">
+    <value>Whether the event table should be build from the top or the bottom.</value>
+  </data>
+  <data name="Setting_BuildDirection_Name" xml:space="preserve">
+    <value>Build Direction</value>
+  </data>
+  <data name="Setting_DebugEnabled_Description" xml:space="preserve">
+    <value>Whether the event table should be running in debug mode.</value>
+  </data>
+  <data name="Setting_DebugEnabled_Name" xml:space="preserve">
+    <value>Debug Enabled</value>
+  </data>
+  <data name="Setting_DirectlyTeleportToWaypoint_Description" xml:space="preserve">
+    <value>Whether the event table should directly teleport to the selected waypoint after navigating to it.</value>
+  </data>
+  <data name="Setting_DirectlyTeleportToWaypoint_Title" xml:space="preserve">
+    <value>Directly Teleport to Waypoint</value>
+  </data>
+  <data name="Setting_DrawEventBorder_Description" xml:space="preserve">
+    <value>Whether the events should have a small border.</value>
+  </data>
+  <data name="Setting_DrawEventBorder_Name" xml:space="preserve">
+    <value>Draw Event Border</value>
+  </data>
+  <data name="Setting_EventCompletedAction_Description" xml:space="preserve">
+    <value>Defines the action when an event has been completed.</value>
+  </data>
+  <data name="Setting_EventCompletedAction_Name" xml:space="preserve">
+    <value>Event Completed Action</value>
+  </data>
+  <data name="Setting_EventFontSize_Description" xml:space="preserve">
+    <value>Defines the size of the font used for events.</value>
+  </data>
+  <data name="Setting_EventFontSize_Name" xml:space="preserve">
+    <value>Event Font Size</value>
+  </data>
+  <data name="Setting_EventHeight_Description" xml:space="preserve">
+    <value>Defines the height of a single event row.</value>
+  </data>
+  <data name="Setting_EventHeight_Name" xml:space="preserve">
+    <value>Event Height</value>
+  </data>
+  <data name="Setting_EventHistorySplit_Description" xml:space="preserve">
+    <value>Defines how much history the timespan should contain.</value>
+  </data>
+  <data name="Setting_EventHistorySplit_Name" xml:space="preserve">
+    <value>Event History Split</value>
+  </data>
+  <data name="Setting_EventTimeSpan_Description" xml:space="preserve">
+    <value>The timespan the event table should cover (in minutes).</value>
+  </data>
+  <data name="Setting_EventTimeSpan_Name" xml:space="preserve">
+    <value>Event Timespan</value>
+  </data>
+  <data name="Setting_EventTimeSpan_Validation_NoDouble" xml:space="preserve">
+    <value>Event Timespan '{0}' no real number.</value>
+  </data>
+  <data name="Setting_EventTimeSpan_Validation_OverLimit" xml:space="preserve">
+    <value>Event Timespan is bigger than {0} minutes. Cap at {0} for performance reasons.</value>
+  </data>
+  <data name="Setting_FillerTextColor_Description" xml:space="preserve">
+    <value>Defines the text color of filler events.</value>
+  </data>
+  <data name="Setting_FillerTextColor_Name" xml:space="preserve">
+    <value>Filler Text Color</value>
+  </data>
+  <data name="Setting_GlobalEnabledHotkey_Description" xml:space="preserve">
+    <value>The keybinding which will toggle the event table.</value>
+  </data>
+  <data name="Setting_GlobalEnabledHotkey_Name" xml:space="preserve">
+    <value>Event Table Hotkey</value>
+  </data>
+  <data name="Setting_GlobalEnabled_Description" xml:space="preserve">
+    <value>Whether the event table should be displayed.</value>
+  </data>
+  <data name="Setting_GlobalEnabled_Name" xml:space="preserve">
+    <value>Event Table Enabled</value>
+  </data>
+  <data name="Setting_HandleLeftClick_Description" xml:space="preserve">
+    <value>Whether the event table should execute the specified action on left click.</value>
+  </data>
+  <data name="Setting_HandleLeftClick_Name" xml:space="preserve">
+    <value>Handle Left Click</value>
+  </data>
+  <data name="Setting_HideInCombat_Description" xml:space="preserve">
+    <value>Whether the event table should hide when the player is in combat.</value>
+  </data>
+  <data name="Setting_HideInCombat_Name" xml:space="preserve">
+    <value>Hide in Combat</value>
+  </data>
+  <data name="Setting_HideOnMap_Description" xml:space="preserve">
+    <value>Whether the event table should hide when the map is open.</value>
+  </data>
+  <data name="Setting_HideOnMap_Name" xml:space="preserve">
+    <value>Hide on open Map</value>
+  </data>
+  <data name="Setting_HideOnMissingMumbleTicks_Description" xml:space="preserve">
+    <value>Whether the event table should hide when cutscenes are played.</value>
+  </data>
+  <data name="Setting_HideOnMissingMumbleTicks_Name" xml:space="preserve">
+    <value>Hide on Cutscenes</value>
+  </data>
+  <data name="Setting_LeftClickAction_Description" xml:space="preserve">
+    <value>Specifies the action, which is executed on left clicks.</value>
+  </data>
+  <data name="Setting_LeftClickAction_Title" xml:space="preserve">
+    <value>Left Click Action</value>
+  </data>
+  <data name="Setting_LocationX_Description" xml:space="preserve">
+    <value>Where the event table should be displayed on the X axis.</value>
+  </data>
+  <data name="Setting_LocationX_Name" xml:space="preserve">
+    <value>Location X</value>
+  </data>
+  <data name="Setting_LocationY_Description" xml:space="preserve">
+    <value>Where the event table should be displayed on the Y axis.</value>
+  </data>
+  <data name="Setting_LocationY_Name" xml:space="preserve">
+    <value>Location Y</value>
+  </data>
+  <data name="Setting_Opacity_Description" xml:space="preserve">
+    <value>Defines the opacity of the event table.</value>
+  </data>
+  <data name="Setting_Opacity_Name" xml:space="preserve">
+    <value>Opacity</value>
+  </data>
+  <data name="Setting_RefreshRateDelay_Description" xml:space="preserve">
+    <value>Defines the delay for refreshing the event table drawings.
+Min: {0}ms
+Max: {1}ms</value>
+  </data>
+  <data name="Setting_RefreshRateDelay_Title" xml:space="preserve">
+    <value>Refresh Rate Delay</value>
+  </data>
+  <data name="Setting_RegisterCornerIcon_Description" xml:space="preserve">
+    <value>Whether the event table should add it's own corner icon to access settings.</value>
+  </data>
+  <data name="Setting_RegisterCornerIcon_Name" xml:space="preserve">
+    <value>Register Corner Icon</value>
+  </data>
+  <data name="Setting_ShowContextMenuOnClick_Description" xml:space="preserve">
+    <value>Whether the event table should show a context menu if an event has been right clicked.</value>
+  </data>
+  <data name="Setting_ShowContextMenuOnClick_Name" xml:space="preserve">
+    <value>Show Context Menu</value>
+  </data>
+  <data name="Setting_ShowTooltips_Description" xml:space="preserve">
+    <value>Whether the event table should display event information on hover.</value>
+  </data>
+  <data name="Setting_ShowTooltips_Name" xml:space="preserve">
+    <value>Show Tooltips</value>
+  </data>
+  <data name="Setting_TextColor_Description" xml:space="preserve">
+    <value>Defines the text color of events.</value>
+  </data>
+  <data name="Setting_TextColor_Name" xml:space="preserve">
+    <value>Text Color</value>
+  </data>
+  <data name="Setting_TooltipTimeMode_Description" xml:space="preserve">
+    <value>Defines the mode in which the tooltip times are displayed.</value>
+  </data>
+  <data name="Setting_TooltipTimeMode_Name" xml:space="preserve">
+    <value>Tooltip Time Mode</value>
+  </data>
+  <data name="Setting_UseEventTranslation_Description" xml:space="preserve">
+    <value>Whether the event table should use the build in translation for events. Needs reload.</value>
+  </data>
+  <data name="Setting_UseEventTranslation_Name" xml:space="preserve">
+    <value>Use Event Translation</value>
+  </data>
+  <data name="Setting_UseFillerEventNames_Description" xml:space="preserve">
+    <value>Whether the event fillers should have names.</value>
+  </data>
+  <data name="Setting_UseFillerEventNames_Name" xml:space="preserve">
+    <value>Use Filler Event Names</value>
+  </data>
+  <data name="Setting_UseFiller_Description" xml:space="preserve">
+    <value>Whether the event table should fill empty spaces with filler events.</value>
+  </data>
+  <data name="Setting_UseFiller_Name" xml:space="preserve">
+    <value>Use Filler Events</value>
+  </data>
+  <data name="Setting_Width_Description" xml:space="preserve">
+    <value>The width of the event table.</value>
+  </data>
+  <data name="Setting_Width_Name" xml:space="preserve">
+    <value>Width</value>
+  </data>
+</root>

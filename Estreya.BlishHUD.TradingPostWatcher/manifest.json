@@ -1,0 +1,31 @@
+{
+  "name": "Trading Post Watcher",
+  "version": "0.1.0-alpha.4",
+  "namespace": "estreya.bh.tradingPostWatcher",
+  "package": "Estreya.BlishHUD.TradingPostWatcher.dll",
+  "manifest_version": 1,
+  "description": "",
+  "dependencies": {
+    "bh.blishhud": ">=0.11.7"
+  },
+  "url": "https://github.com/Tharylia/Blish-HUD-Trading-Post-Watcher",
+  "contributors": [
+    {
+      "name": "Estreya",
+      "username": "Dominik.8620"
+    }
+  ],
+  "directories": ["tradingpost"],
+  "actions": [],
+  "enabled_without_gw2": false,
+  "api_permissions": {
+    "account": {
+      "optional": false,
+      "details": "Needed to fetch tradingpost."
+    },
+    "tradingpost": {
+      "optional": false,
+      "details": "Needed to fetch tradingpost."
+    }
+  }
+}
