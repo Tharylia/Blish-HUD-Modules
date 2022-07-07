@@ -1,5 +1,6 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.Controls;
 
+using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.ScrollingCombatText.Models;
@@ -13,17 +14,18 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 
 public class ScrollingTextArea : Container
 {
+    private static readonly Logger Logger = Logger.GetLogger<ScrollingTextArea>();
+
     private readonly Gw2ApiManager _apiManager;
     private readonly SkillState _skillState;
     private readonly BitmapFont _font;
     private readonly int _eventHeight;
 
-    private readonly AsyncLock _eventLock = new AsyncLock();
-
-    private static readonly Collection<ScrollingTextAreaEvent> _activeEvents = new Collection<ScrollingTextAreaEvent>();
+    private readonly SynchronizedCollection<ScrollingTextAreaEvent> _activeEvents = new SynchronizedCollection<ScrollingTextAreaEvent>();
 
     public ScrollingTextAreaConfiguration Configuration { get; }
 
@@ -48,49 +50,92 @@ public class ScrollingTextArea : Container
             return;
         }
 
+        //var rnd = new Random();
+
         ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, this._font)
         {
             Parent = this,
             Width = this.Width,
             Height = this._eventHeight,
-            BackgroundColor = Color.Red,
-            Opacity = 0f
+            TextColor = Color.Black,
+            Opacity = 0f,
+            //BackgroundColor = new Color(rnd.Next(0, 256), rnd.Next(0, 256), rnd.Next(0, 256))
         };
 
         scrollingTextAreaEvent.Disposed += this.ScrollingTextAreaEvent_Disposed;
 
-        using (_eventLock.Lock())
-        {
-            foreach (ScrollingTextAreaEvent activeEvent in _activeEvents)
-            {
-                if (activeEvent.Top < scrollingTextAreaEvent.Bottom)
-                {
-                    var targetTop = activeEvent.Top + this._eventHeight;
-                    activeEvent.Top = targetTop;
-                }
-            }
+        _activeEvents.Add(scrollingTextAreaEvent);
 
-            Debug.WriteLine($"{DateTime.Now.ToLongTimeString()}: Adding event to area '{this.Configuration.Name}'");
+        scrollingTextAreaEvent.Show();
+    }
 
-            _activeEvents.Add(scrollingTextAreaEvent);
-            scrollingTextAreaEvent.Show();
-        }
+    private float GetNow()
+    {
+        return (float)DateTime.UtcNow.TimeOfDay.TotalMilliseconds;
+    }
+
+    private float GetActualScrollspeed()
+    {
+        return this.Configuration.ScrollSpeed / 3;
     }
 
     public override void UpdateContainer(GameTime gameTime)
     {
-        List<ScrollingTextAreaEvent> activeEvents = new List<ScrollingTextAreaEvent>();
+        ScrollingTextAreaEvent[] activeEvents = null;
 
-        using (_eventLock.Lock())
+        try
         {
-            activeEvents.AddRange(_activeEvents);
+            activeEvents = _activeEvents.ToArray();
+        }
+        catch (Exception ex)
+        {
+            Logger.Debug(ex, "SynchronizedCollection not being thread safe.");
         }
 
-        var now = DateTime.UtcNow.TimeOfDay.TotalMilliseconds;
+        if (activeEvents == null || activeEvents.Length == 0)
+        {
+            return;
+        }
+
+        var now = this.GetNow();
+        var actualScrollspeed = this.GetActualScrollspeed();
+
+        if (activeEvents.Length >= 2)
+        {
+            var activeEventsReversed = activeEvents.Reverse();
+            var newestEvent = activeEventsReversed.ElementAt(0);
+
+            ScrollingTextAreaEvent lastChecked = newestEvent;
+            foreach (ScrollingTextAreaEvent activeEvent in activeEventsReversed.Skip(1)) // Skip newest
+            {
+                if (lastChecked.Bottom > activeEvent.Top)
+                {
+                    var distance = this.DistanceToTime(now, this.GetActualScrollspeed(), lastChecked.Bottom - activeEvent.Top);
+                    //Logger.Debug($"LastChecked.Bottom > ActiveEvent.Top: {lastChecked.Bottom} > {activeEvent.Top} -> Distance: {distance}");
+                    activeEvent.Time -= distance;
+                }
+
+                lastChecked = activeEvent;
+            }
+        }
+
+        //foreach (ScrollingTextAreaEvent activeEvent in activeEventsReversed.Skip(1)) // Skip newest
+        //{
+        //    if (movedOne || activeEvent.Top < newestEvent.Bottom)
+        //    {
+        //        movedOne = true; // Move all following events as well.
+        //        if (activeEvent.Top < lastChecked.Bottom)
+        //        {
+        //            activeEvent.Time -= this.DistanceToTime(now, this.GetActualScrollspeed(), lastChecked.Bottom - activeEvent.Top);
+        //        }
+        //    }
+
+        //    lastChecked = activeEvent;
+        //}
 
         foreach (ScrollingTextAreaEvent activeEvent in activeEvents)
         {
-            float animatedHeight = (float)(now - activeEvent.Time) * this.Configuration.ScrollSpeed;
+            float animatedHeight = (float)(now - activeEvent.Time) * actualScrollspeed;
             float percentage = animatedHeight / this.Height;
             float fadeLength = 0.2f;
 
@@ -99,9 +144,6 @@ public class ScrollingTextArea : Container
                 activeEvent.Dispose();
                 continue;
             }
-            //else if (percentage > 1f - fadeLength)
-            //{
-            //}
 
             var alpha = 1 - (percentage - 1f + fadeLength) / fadeLength;
             activeEvent.Opacity = alpha;
@@ -125,17 +167,29 @@ public class ScrollingTextArea : Container
             pos.Y += animatedHeight;
 
             activeEvent.Location = new Point((int)pos.X, (int)pos.Y);
-
-            //_ = activeEvent.Move(new Point((int)pos.X, (int)pos.Y)).OnComplete(() =>
-            //{
-            //    if (activeEvent.Top > this.Bottom)
-            //    {
-            //        activeEvent.Hide();
-            //    }
-            //});
         }
 
-        //Debug.WriteLine($"{DateTime.Now.ToLongTimeString()}: Update events in area '{this.Configuration.Name}'");
+        var activeEventsReversed2 = activeEvents.Reverse();
+
+        if (activeEventsReversed2.Count() > 1)
+        {
+            ScrollingTextAreaEvent lastChecked = activeEventsReversed2.First();
+            foreach (ScrollingTextAreaEvent activeEvent in activeEventsReversed2.Skip(1))
+            {
+                if (lastChecked.Bottom > activeEvent.Top)
+                {
+                    //Logger.Info($"Some event still stuck inside each other: {activeEvent.ToString()}");
+                }
+
+                lastChecked = activeEvent;
+            }
+        }
+    }
+
+    private float DistanceToTime(float timeNow, float actualScrollspeed, float distance)
+    {
+        var x = timeNow - (distance - (timeNow * actualScrollspeed)) / -actualScrollspeed;
+        return x;
     }
 
     private bool CheckConfiguration(Shared.Models.ArcDPS.CombatEvent combatEvent)
@@ -159,11 +213,6 @@ public class ScrollingTextArea : Container
 
         scrollingTextAreaEvent.Disposed -= this.ScrollingTextAreaEvent_Disposed;
 
-        Debug.WriteLine($"{DateTime.Now.ToLongTimeString()}: Removing event of area '{this.Configuration.Name}'");
-        using (_eventLock.Lock())
-        {
-            Debug.WriteLine($"{DateTime.Now.ToLongTimeString()}: Removed event of area '{this.Configuration.Name}'");
-            _activeEvents.Remove(scrollingTextAreaEvent);
-        }
+        _activeEvents.Remove(scrollingTextAreaEvent);
     }
 }

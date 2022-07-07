@@ -19,7 +19,7 @@ public class SkillState : APIState<Skill>
 {
     private static readonly Logger Logger = Logger.GetLogger<SkillState>();
     private const string BASE_FOLDER_STRUCTURE = "skills";
-    private const string FILE_NAME = "skills.txt";
+    private const string FILE_NAME = "skills.json";
     private const string LAST_UPDATED_FILE_NAME = "last_updated.txt";
 
     private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
@@ -28,6 +28,19 @@ public class SkillState : APIState<Skill>
     private readonly string _baseFolderPath;
 
     private string FullPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
+
+    private Dictionary<int, (string Name, string RenderUrl)> _remappedSkills = new Dictionary<int, (string Name, string RenderUrl)>()
+    {
+        { 736, ("Bleeding", "79FF0046A5F9ADA3B4C4EC19ADB4CB124D5F0021/102848") }, //Bleeding
+	    { 737,  ("Burning", "B47BF5803FED2718D7474EAF9617629AD068EE10/102849"  )}, //Burning
+	    { 723,  ("Poison", "559B0AF9FB5E1243D2649FAAE660CCB338AACC19/102840"  )}, //Poison
+	    { 861, ("Confusion",  "289AA0A4644F0E044DED3D3F39CED958E1DDFF53/102880"  )}, //Confusion
+	    { 873,  ("Retaliation", "27F233F7D4CE4E9EFE040E3D665B7B0643557B6E/102883"  )}, //Retaliation
+	    { 19426, ("Torment",  "10BABF2708CA3575730AC662A2E72EC292565B08/598887")  }, //Torment
+	    { 718, ("Regeneration", "F69996772B9E18FD18AD0AABAB25D7E3FC42F261/102835" ) }, //Regeneration
+	    { 17495,("Regeneration",   "F69996772B9E18FD18AD0AABAB25D7E3FC42F261/102835" ) }, //Regeneration
+	    { 17674, ("Regeneration",  "F69996772B9E18FD18AD0AABAB25D7E3FC42F261/102835" ) } //Regeneration
+    };
 
     public SkillState(Gw2ApiManager apiManager, IconState iconState, string baseFolderPath) : base(apiManager, updateInterval: Timeout.InfiniteTimeSpan, awaitLoad: false)
     {
@@ -82,6 +95,8 @@ public class SkillState : APIState<Skill>
                         var content = await FileUtil.ReadStringAsync(filePath);
                         var skills = JsonConvert.DeserializeObject<List<Skill>>(content);
 
+                        await this.LoadSkillIcons(skills);
+
                         using (await this._apiObjectListLock.LockAsync())
                         {
                             this.APIObjectList.AddRange(skills);
@@ -117,14 +132,43 @@ public class SkillState : APIState<Skill>
     protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager)
     {
         var skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync();
-
         var skills = skillResponse.Select(skill => Skill.FromAPISkill(skill)).ToList();
 
-        var skillLoadTasks = skills.Select(skill => skill.LoadTexture(this._iconState));
+        var traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync();
+        skills.Concat(traitResponse.Select(trait => Skill.FromAPITrait(trait)));
 
-        await Task.WhenAll(skillLoadTasks);
+        var traitSkills = traitResponse.SelectMany(trait => trait.Skills).Where(skill => skill != null);
+        skills.Concat(traitSkills.Select(traitSkill => Skill.FromAPITraitSkill(traitSkill)));
+
+        foreach (var remappedSkill in this._remappedSkills)
+        {
+            skills.Add(new Skill()
+            {
+                Id = remappedSkill.Key,
+                Name = remappedSkill.Value.Name
+            });
+        }
+
+        await this.LoadSkillIcons(skills);
 
         return skills.ToList();
+    }
+
+    private async Task LoadSkillIcons(List<Skill> skills)
+    {
+        var skillLoadTasks = skills.Select(skill =>
+        {
+            string iconUrl = null;
+
+            if (this._remappedSkills.ContainsKey(skill.Id))
+            {
+                iconUrl = IconState.RENDER_API_URL + this._remappedSkills[skill.Id].RenderUrl;
+            }
+
+            return skill.LoadTexture(this._iconState, iconUrl);
+        });
+
+        await Task.WhenAll(skillLoadTasks);
     }
 
     protected override async Task Save()
@@ -165,7 +209,15 @@ public class SkillState : APIState<Skill>
         {
             IEnumerable<Skill> foundSkills = this.APIObjectList.Where(skill => skill.Id == id);
 
-            return foundSkills.Any() ? foundSkills.First() : null;
+            if (foundSkills.Any())
+            {
+                return foundSkills.First();
+            }
+            else
+            {
+                Logger.Debug($"Tried fetching a skill by id \"{id}\" which does not exist.");
+                return null;
+            }
         }
     }
 }

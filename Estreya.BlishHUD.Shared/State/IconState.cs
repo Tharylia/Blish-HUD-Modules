@@ -17,6 +17,9 @@ using System.Threading.Tasks;
 public class IconState : ManagedState
 {
     private static readonly Logger Logger = Logger.GetLogger<IconState>();
+
+    public const string RENDER_API_URL = "https://render.guildwars2.com/file/";
+
     private const string FOLDER_NAME = "images";
     private static TimeSpan _saveInterval = TimeSpan.FromMinutes(2);
 
@@ -178,43 +181,12 @@ public class IconState : ManagedState
                 }));
 
                 await Task.WhenAll(loadTasks);
-            }catch(Exception ex)
+            }
+            catch (Exception ex)
             {
                 Logger.Warn(ex, "Failed preloading textures:");
             }
-
-            /*foreach (string filePath in filePaths)
-            {
-                try
-                {
-                    FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
-
-                    if (fileStream.Length == 0)
-                    {
-                        Logger.Warn("Image is empty: {0}", filePath);
-                        continue;
-                    }
-
-                    AsyncTexture2D asyncTexture = new AsyncTexture2D(ContentService.Textures.Pixel);
-
-                    GameService.Graphics.QueueMainThreadRender(device =>
-                    {
-                        Texture2D texture = TextureUtil.FromStreamPremultiplied(device, fileStream);
-                        fileStream.Dispose();
-                        asyncTexture.SwapTexture(texture);
-                    });
-
-                    string fileName = FileUtil.SanitizeFileName(System.IO.Path.GetFileNameWithoutExtension(filePath));
-                    this.HandleAsyncTextureSwap(asyncTexture, fileName);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn(ex, "Failed preloading texture \"{1}\": {0}", filePath);
-                }
-            }*/
         }
-
-        return;
     }
 
     private void HandleAsyncTextureSwap(AsyncTexture2D asyncTexture2D, string identifier)
@@ -279,9 +251,13 @@ public class IconState : ManagedState
                     try
                     {
                         AsyncTexture2D asyncTexture = GameService.Content.GetRenderServiceTexture(identifier);
-                        this.HandleAsyncTextureSwap(asyncTexture, sanitizedIdentifier);
 
-                        icon = asyncTexture;
+                        if (asyncTexture != null)
+                        {
+                            this.HandleAsyncTextureSwap(asyncTexture, sanitizedIdentifier);
+                            icon = asyncTexture;
+                        }
+
                     }
                     catch (Exception ex)
                     {

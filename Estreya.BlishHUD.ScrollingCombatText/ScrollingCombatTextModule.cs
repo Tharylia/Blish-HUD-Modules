@@ -57,44 +57,71 @@
             {
                 switch (eventArgs.Name)
                 {
-                    case nameof(this.ModuleSettings.Width):
-                        //this.Drawer.UpdateSize(this.ModuleSettings.Width.Value, -1);
-                        break;
-                    case nameof(this.ModuleSettings.GlobalEnabled):
-                        this.ToggleContainer(this.ModuleSettings.GlobalEnabled.Value);
-                        break;
-                    case nameof(this.ModuleSettings.BackgroundColor):
-                    case nameof(this.ModuleSettings.BackgroundColorOpacity):
-                        //this.Drawer.UpdateBackgroundColor();
+                    case nameof(this.ModuleSettings.GlobalDrawerVisible):
+                        this.ToggleContainers(this.ModuleSettings.GlobalDrawerVisible.Value);
                         break;
                     default:
                         break;
                 }
             };
 
-            var area = new ScrollingTextArea(new Models.ScrollingTextAreaConfiguration()
+            var powerArea = new ScrollingTextArea(new Models.ScrollingTextAreaConfiguration()
             {
-                Name = "Test",
+                Name = "Power",
                 Location = new Point(100,100),
                 Size = new Point(500,300),
-                ScrollSpeed= 0.5f,
-                Curve = Models.ScrollingTextAreaCurve.Left
+                ScrollSpeed = 0.3f,
+                EventHeight = 32,
+                Curve = Models.ScrollingTextAreaCurve.Straight,
+                Types= new List<Shared.Models.ArcDPS.CombatEventType>() { Shared.Models.ArcDPS.CombatEventType.PHYSICAL, Shared.Models.ArcDPS.CombatEventType.CRIT}
             }, this.Gw2ApiManager, this.SkillState, this.Font)
             {
                 BackgroundColor = Color.LightBlue,
                 Parent = GameService.Graphics.SpriteScreen
             };
 
-            this._areas.Add(area);
+            var condiArea = new ScrollingTextArea(new Models.ScrollingTextAreaConfiguration()
+            {
+                Name = "Condi",
+                Location = new Point(600, 100),
+                Size = new Point(500, 300),
+                ScrollSpeed = 0.3f,
+                EventHeight = 32,
+                Curve = Models.ScrollingTextAreaCurve.Straight,
+                Types = new List<Shared.Models.ArcDPS.CombatEventType>() { Shared.Models.ArcDPS.CombatEventType.BLEEDING, Shared.Models.ArcDPS.CombatEventType.BURNING, Shared.Models.ArcDPS.CombatEventType.POISON, Shared.Models.ArcDPS.CombatEventType.TORMENT, Shared.Models.ArcDPS.CombatEventType.CONFUSION, Shared.Models.ArcDPS.CombatEventType.DOT }
+            }, this.Gw2ApiManager, this.SkillState, this.Font)
+            {
+                BackgroundColor = Color.OrangeRed,
+                Parent = GameService.Graphics.SpriteScreen
+            };
 
+            var healArea = new ScrollingTextArea(new Models.ScrollingTextAreaConfiguration()
+            {
+                Name = "Condi",
+                Location = new Point(1100, 100),
+                Size = new Point(500, 300),
+                ScrollSpeed = 0.3f,
+                EventHeight = 32,
+                Curve = Models.ScrollingTextAreaCurve.Straight,
+                Types = new List<Shared.Models.ArcDPS.CombatEventType>() { Shared.Models.ArcDPS.CombatEventType.HOT, Shared.Models.ArcDPS.CombatEventType.HEAL }
+            }, this.Gw2ApiManager, this.SkillState, this.Font)
+            {
+                BackgroundColor = Color.LightGreen,
+                Parent = GameService.Graphics.SpriteScreen
+            };
+
+            this._areas.Add(powerArea);
+            this._areas.Add(condiArea);
+            this._areas.Add(healArea);
+
+                    var ev = JsonConvert.DeserializeObject<Blish_HUD.ArcDps.Models.CombatEvent>("{\"Ev\":{\"Time\":2901217,\"SrcAgent\":2000,\"DstAgent\":2510,\"Value\":-98,\"BuffDmg\":0,\"OverStackValue\":0,\"SkillId\":9122,\"SrcInstId\":6563,\"DstInstId\":4895,\"SrcMasterInstId\":0,\"DstMasterInstId\":0,\"Iff\":1,\"Buff\":false,\"Result\":0,\"IsActivation\":0,\"IsBuffRemove\":0,\"IsNinety\":true,\"IsFifty\":false,\"IsMoving\":false,\"IsStateChange\":0,\"IsFlanking\":true,\"IsShields\":false,\"IsOffCycle\":false,\"Pad61\":0,\"Pad62\":0,\"Pad63\":0,\"Pad64\":0},\"Src\":{\"Name\":\"Asyna Estreya\",\"Id\":2000,\"Profession\":1,\"Elite\":62,\"Self\":1,\"Team\":1863},\"Dst\":{\"Name\":\"Golden Moa\",\"Id\":2510,\"Profession\":4947,\"Elite\":4294967295,\"Self\":0,\"Team\":855},\"Category\":0,\"Type\":1,\"Skill\":{\"Id\":9122,\"Name\":\"Bolt of Wrath\",\"Description\":\"Fire a bolt that damages foes.\",\"Icon\":{\"Url\":null},\"Specialization\":null,\"ChatLink\":\"[&BqIjAAA=]\",\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"WeaponType\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"Professions\":[\"Guardian\"],\"Slot\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"DualAttunement\":null,\"Flags\":[{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null}],\"Facts\":[{\"Text\":\"Range\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null},{\"Text\":\"Damage\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null}],\"TraitedFacts\":null,\"Categories\":null,\"SubSkills\":null,\"Attunement\":null,\"Cost\":null,\"DualWield\":null,\"FlipSkill\":51660,\"Initiative\":null,\"NextChain\":null,\"PrevChain\":null,\"TransformSkills\":null,\"BundleSkills\":null,\"ToolbeltSkill\":null,\"HttpResponseInfo\":null},\"SkillTexture\":null}");
             GameService.Input.Keyboard.KeyPressed += (s, e) =>
             {
                 if (e.EventType != Blish_HUD.Input.KeyboardEventType.KeyDown) return;
+                if (GameService.Input.Keyboard.TextFieldIsActive()) return;
 
                 if (e.Key == Microsoft.Xna.Framework.Input.Keys.U)
                 {
-                    var ev = JsonConvert.DeserializeObject<Blish_HUD.ArcDps.Models.CombatEvent>("{\"Ev\":{\"Time\":2901217,\"SrcAgent\":2000,\"DstAgent\":2510,\"Value\":-98,\"BuffDmg\":0,\"OverStackValue\":0,\"SkillId\":9122,\"SrcInstId\":6563,\"DstInstId\":4895,\"SrcMasterInstId\":0,\"DstMasterInstId\":0,\"Iff\":1,\"Buff\":false,\"Result\":0,\"IsActivation\":0,\"IsBuffRemove\":0,\"IsNinety\":true,\"IsFifty\":false,\"IsMoving\":false,\"IsStateChange\":0,\"IsFlanking\":true,\"IsShields\":false,\"IsOffCycle\":false,\"Pad61\":0,\"Pad62\":0,\"Pad63\":0,\"Pad64\":0},\"Src\":{\"Name\":\"Asyna Estreya\",\"Id\":2000,\"Profession\":1,\"Elite\":62,\"Self\":1,\"Team\":1863},\"Dst\":{\"Name\":\"Golden Moa\",\"Id\":2510,\"Profession\":4947,\"Elite\":4294967295,\"Self\":0,\"Team\":855},\"Category\":0,\"Type\":1,\"Skill\":{\"Id\":9122,\"Name\":\"Bolt of Wrath\",\"Description\":\"Fire a bolt that damages foes.\",\"Icon\":{\"Url\":null},\"Specialization\":null,\"ChatLink\":\"[&BqIjAAA=]\",\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"WeaponType\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"Professions\":[\"Guardian\"],\"Slot\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"DualAttunement\":null,\"Flags\":[{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null}],\"Facts\":[{\"Text\":\"Range\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null},{\"Text\":\"Damage\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null}],\"TraitedFacts\":null,\"Categories\":null,\"SubSkills\":null,\"Attunement\":null,\"Cost\":null,\"DualWield\":null,\"FlipSkill\":51660,\"Initiative\":null,\"NextChain\":null,\"PrevChain\":null,\"TransformSkills\":null,\"BundleSkills\":null,\"ToolbeltSkill\":null,\"HttpResponseInfo\":null},\"SkillTexture\":null}");
-
                     this.ArcDPSState?.SimulateCombatEvent(new Blish_HUD.ArcDps.RawCombatEventArgs(ev, Blish_HUD.ArcDps.RawCombatEventArgs.CombatEventType.Local));
                 }
             };
@@ -121,37 +148,31 @@
             return states;
         }
 
-        private void ToggleContainer(bool show)
+        private void ToggleContainers(bool show)
         {
-            //if (this.Drawer == null)
-            //{
-            //    return;
-            //}
 
-            //if (!this.ModuleSettings.GlobalEnabled.Value)
-            //{
-            //    if (this.Drawer.Visible)
-            //    {
-            //        this.Drawer.Hide();
-            //    }
+            if (!this.ModuleSettings.GlobalDrawerVisible.Value)
+            {
+                show = false;
+            }
 
-            //    return;
-            //}
-
-            //if (show)
-            //{
-            //    if (!this.Drawer.Visible)
-            //    {
-            //        this.Drawer.Show();
-            //    }
-            //}
-            //else
-            //{
-            //    if (this.Drawer.Visible)
-            //    {
-            //        this.Drawer.Hide();
-            //    }
-            //}
+            this._areas.ForEach(area =>
+            {
+                if (show)
+                {
+                    if (!area.Visible)
+                    {
+                        area.Show();
+                    }
+                }
+                else
+                {
+                    if (area.Visible)
+                    {
+                        area.Hide();
+                    }
+                }
+            });
         }
 
         protected override void OnModuleLoaded(EventArgs e)
@@ -159,9 +180,9 @@
             // Base handler must be called
             base.OnModuleLoaded(e);
 
-            if (this.ModuleSettings.GlobalEnabled.Value)
+            if (this.ModuleSettings.GlobalDrawerVisible.Value)
             {
-                this.ToggleContainer(true);
+                this.ToggleContainers(true);
             }
         }
 
@@ -177,7 +198,7 @@
         {
             base.Update(gameTime);
 
-            this.ToggleContainer(this.ShowUI);
+            this.ToggleContainers(this.ShowUI);
 
             //this.Drawer.UpdatePosition(this.ModuleSettings.LocationX.Value, this.ModuleSettings.LocationY.Value); // Handle windows resize
 

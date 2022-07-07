@@ -3,24 +3,68 @@
 using Blish_HUD;
 using Blish_HUD._Extensions;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models;
-using Estreya.BlishHUD.Shared.Utils;
+using Estreya.BlishHUD.Shared.Models.Drawers;
 using Glide;
-using Humanizer;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Extended;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class TradingPostWatcherDrawer : FlowPanel
 {
     private bool _currentVisibilityDirection = false;
     private Tween _currentVisibilityAnimation { get; set; }
+
+    public DrawerConfiguration Configuration { get; private set; }
+
+    public TradingPostWatcherDrawer(DrawerConfiguration configuration)
+    {
+        this.Configuration = configuration;
+
+        this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color>(null, this.Configuration.BackgroundColor.Value));
+        this.Opacity_SettingChanged(this, new ValueChangedEventArgs<float>(0f, this.Configuration.Opacity.Value));
+
+        this.Configuration.BackgroundColor.SettingChanged += this.BackgroundColor_SettingChanged;
+        this.Configuration.Opacity.SettingChanged += this.Opacity_SettingChanged;
+        this.Configuration.Location.X.SettingChanged += this.Location_X_SettingChanged;
+        this.Configuration.Location.Y.SettingChanged += this.Location_Y_SettingChanged;
+        this.Configuration.Size.X.SettingChanged += this.Size_X_SettingChanged;
+        this.Configuration.Size.Y.SettingChanged += this.Size_Y_SettingChanged;
+    }
+    private void Size_Y_SettingChanged(object sender, ValueChangedEventArgs<int> e)
+    {
+        this.Size = new Point(this.Size.X, e.NewValue);
+    }
+
+    private void Size_X_SettingChanged(object sender, ValueChangedEventArgs<int> e)
+    {
+        this.Size = new Point(e.NewValue, this.Size.Y);
+    }
+
+    private void Location_Y_SettingChanged(object sender, ValueChangedEventArgs<int> e)
+    {
+        this.Location = new Point(this.Location.X, e.NewValue);
+    }
+
+    private void Location_X_SettingChanged(object sender, ValueChangedEventArgs<int> e)
+    {
+        this.Location = new Point(e.NewValue, this.Location.Y);
+    }
+
+    private void Opacity_SettingChanged(object sender, ValueChangedEventArgs<float> e)
+    {
+        this.Opacity = e.NewValue;
+    }
+
+    private void BackgroundColor_SettingChanged(object sender, ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color> e)
+    {
+        Color backgroundColor = Color.Transparent;
+
+        if (e.NewValue != null && e.NewValue.Id != 1)
+        {
+            backgroundColor = e.NewValue.Cloth.ToXnaColor();
+        }
+
+        this.BackgroundColor = backgroundColor;
+    }
 
     public new bool Visible
     {
@@ -83,17 +127,6 @@ public class TradingPostWatcherDrawer : FlowPanel
         });
     }
 
-    public void UpdateBackgroundColor()
-    {
-        Color backgroundColor = Color.Transparent;
-        if (TradingPostWatcherModule.ModuleInstance.ModuleSettings.BackgroundColor.Value != null && TradingPostWatcherModule.ModuleInstance.ModuleSettings.BackgroundColor.Value.Id != 1)
-        {
-            backgroundColor = TradingPostWatcherModule.ModuleInstance.ModuleSettings.BackgroundColor.Value.Cloth.ToXnaColor();
-        }
-
-        this.BackgroundColor = backgroundColor * TradingPostWatcherModule.ModuleInstance.ModuleSettings.BackgroundColorOpacity.Value;
-    }
-
     public void UpdateSize(int width, int height, bool overrideHeight = false)
     {
         if (height == -1)
@@ -106,7 +139,7 @@ public class TradingPostWatcherDrawer : FlowPanel
 
     public void UpdatePosition(int x, int y)
     {
-        bool buildFromBottom = TradingPostWatcherModule.ModuleInstance.ModuleSettings.BuildDirection.Value == BuildDirection.Bottom;
+        bool buildFromBottom = this.Configuration.BuildDirection.Value == BuildDirection.Bottom;
 
         this.Location = buildFromBottom ? new Point(x, y - this.Height) : new Point(x, y);
     }

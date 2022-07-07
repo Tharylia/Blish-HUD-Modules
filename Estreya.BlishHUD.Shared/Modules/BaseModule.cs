@@ -173,11 +173,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 this.States.Add(this.AccountState);
             }
 
-            if (configurations.Icons)
-            {
-                this.IconState = new IconState(this.ContentsManager, directoryPath);
-                this.States.Add(this.IconState);
-            }
+            this.IconState = new IconState(this.ContentsManager, directoryPath);
+            this.States.Add(this.IconState);
 
             if (configurations.TradingPost)
             {
@@ -221,16 +218,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
             if (configurations.Skills)
             {
-                if (configurations.Icons)
-                {
-                    this.SkillState = new SkillState(this.Gw2ApiManager, this.IconState, directoryPath);
-                    this.States.Add(this.SkillState);
-                }
-                else
-                {
-                    Logger.Debug($"{typeof(SkillState).Name} is not available because {typeof(IconState).Name} is deactivated.");
-                    configurations.Skills = false;
-                }
+                this.SkillState = new SkillState(this.Gw2ApiManager, this.IconState, directoryPath);
+                this.States.Add(this.SkillState);
             }
 
             if (configurations.ArcDPS)

@@ -13,16 +13,16 @@
 
         protected override void BuildView(Panel parent)
         {
-            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.LocationX);
-            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.LocationY);
-            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.Width);
+            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.Location.X);
+            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.Location.Y);
+            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.Size.X);
 
             this.RenderEmptyLine(parent);
 
-            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.FontSize);
-            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.Opacity);
-            this.RenderColorSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.BackgroundColor);
-            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.BackgroundColorOpacity);
+            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.FontSize);
+            _ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.Opacity);
+            this.RenderColorSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.BackgroundColor);
+            //_ = this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.BackgroundColorOpacity);
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)

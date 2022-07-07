@@ -5,6 +5,7 @@
     using Blish_HUD.Modules;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.Shared.Helpers;
+    using Estreya.BlishHUD.Shared.Models.Drawers;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
@@ -31,6 +32,8 @@
 
         private TradingPostWatcherDrawer Drawer { get; set; }
 
+        internal DrawerConfiguration DrawerConfiguration { get; set; }
+
         internal DateTime DateTimeNow => DateTime.Now;
 
         #region States
@@ -42,16 +45,14 @@
 
         protected override void Initialize()
         {
-            this.Drawer = new TradingPostWatcherDrawer()
+            this.Drawer = new TradingPostWatcherDrawer(this.DrawerConfiguration)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Opacity = 0f,
                 Visible = false,
                 FlowDirection = ControlFlowDirection.SingleTopToBottom,
-                HeightSizingMode = SizingMode.AutoSize,
+                HeightSizingMode = SizingMode.AutoSize
             };
-
-            this.Drawer.UpdateBackgroundColor();
 
             GameService.Overlay.UserLocaleChanged += (s, e) =>
             {
@@ -66,15 +67,8 @@
             {
                 switch (eventArgs.Name)
                 {
-                    case nameof(this.ModuleSettings.Width):
-                        this.Drawer.UpdateSize(this.ModuleSettings.Width.Value, -1);
-                        break;
-                    case nameof(this.ModuleSettings.GlobalEnabled):
-                        this.ToggleContainer(this.ModuleSettings.GlobalEnabled.Value);
-                        break;
-                    case nameof(this.ModuleSettings.BackgroundColor):
-                    case nameof(this.ModuleSettings.BackgroundColorOpacity):
-                        this.Drawer.UpdateBackgroundColor();
+                    case nameof(this.ModuleSettings.GlobalDrawerVisible):
+                        this.ToggleContainer(this.ModuleSettings.GlobalDrawerVisible.Value);
                         break;
                     case nameof(this.ModuleSettings.MaxTransactions):
                     case nameof(this.ModuleSettings.ShowBuyTransactions):
@@ -126,7 +120,7 @@
             {
                 this.Logger.Debug("Add new transaction: {0}", transaction);
                 new Controls.Transaction(transaction,
-                    () => this.ModuleSettings.Opacity.Value,
+                    () => this.DrawerConfiguration.Opacity.Value,
                     () => this.ModuleSettings.ShowPrice.Value,
                     () => this.ModuleSettings.ShowPriceAsTotal.Value,
                     () => this.ModuleSettings.ShowRemaining.Value,
@@ -174,7 +168,7 @@
                 return;
             }
 
-            if (!this.ModuleSettings.GlobalEnabled.Value)
+            if (!this.ModuleSettings.GlobalDrawerVisible.Value)
             {
                 if (this.Drawer.Visible)
                 {
@@ -205,10 +199,10 @@
             // Base handler must be called
             base.OnModuleLoaded(e);
 
-            this.Drawer.UpdatePosition(this.ModuleSettings.LocationX.Value, this.ModuleSettings.LocationY.Value);
-            this.Drawer.UpdateSize(this.ModuleSettings.Width.Value, -1);
+            this.Drawer.UpdatePosition(this.DrawerConfiguration.Location.X.Value, this.DrawerConfiguration.Location.Y.Value);
+            this.Drawer.UpdateSize(this.DrawerConfiguration.Size.X.Value, -1);
 
-            if (this.ModuleSettings.GlobalEnabled.Value)
+            if (this.ModuleSettings.GlobalDrawerVisible.Value)
             {
                 this.ToggleContainer(true);
             }
@@ -252,9 +246,9 @@
 
             this.ToggleContainer(this.ShowUI);
 
-            this.Drawer.UpdatePosition(this.ModuleSettings.LocationX.Value, this.ModuleSettings.LocationY.Value); // Handle windows resize
+            this.Drawer.UpdatePosition(this.DrawerConfiguration.Location.X.Value, this.DrawerConfiguration.Location.Y.Value); // Handle windows resize
 
-            this.ModuleSettings.CheckDrawerSizeAndPosition(this.Drawer.Width, this.Drawer.Height);
+            this.ModuleSettings.CheckDrawerSizeAndPosition(this.DrawerConfiguration, this.Drawer.Width, this.Drawer.Height);
         }
 
         /// <inheritdoc />
@@ -284,7 +278,11 @@
 
         protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
         {
-            return new ModuleSettings(settings);
+            var moduleSettings = new ModuleSettings(settings);
+
+            this.DrawerConfiguration = moduleSettings.AddDrawer("currentTransactions");
+
+            return moduleSettings;
         }
 
         protected override string GetDirectoryName()
@@ -294,7 +292,11 @@
 
         protected override void ConfigureStates(StateConfigurations configurations)
         {
-            throw new NotImplementedException();
+            configurations.Skills = false;
+            configurations.Worldbosses = false;
+            configurations.Mapchests = false;
+            configurations.ArcDPS = false;
+            configurations.PointOfInterests = false;
         }
     }
 }

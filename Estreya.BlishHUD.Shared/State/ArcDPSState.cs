@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 public class ArcDPSState : ManagedState
 {
     private SkillState _skillState;
-
     private Dictionary<uint, uint> RemappedSkills = new Dictionary<uint, uint>();
 
     public event EventHandler<CombatEvent> AreaCombatEvent;
@@ -68,8 +67,6 @@ public class ArcDPSState : ManagedState
         {
             return;
         }
-
-        Debug.WriteLine($"Received combat log for {rawCombatEventArgs.EventType}");
 
         try
         {
@@ -263,7 +260,16 @@ public class ArcDPSState : ManagedState
 
                     if (category.HasValue)
                     {
-                        CombatEvent combatEvent = new CombatEvent(ev, src, dst, category.Value, type, this._skillState);
+                        CombatEvent combatEvent = new CombatEvent(ev, src, dst, category.Value, type)
+                        {
+                            Skill = _skillState.GetById((int)ev.SkillId),
+                        };
+
+                        if (combatEvent.Skill == null)
+                        {
+                            Logger.Debug($"Failed to fetch skill \"{ev.SkillId}\". ArcDPS reports: {skillName}");
+                        }
+
                         this.EmitEvent(combatEvent, rawCombatEventArgs.EventType);
                     }
                 }
@@ -278,7 +284,7 @@ public class ArcDPSState : ManagedState
         }
         catch (Exception ex)
         {
-            Debug.WriteLine(ex.Message);
+            Logger.Error(ex, "Failed parsing combat event:");
         }
     }
 
@@ -294,14 +300,21 @@ public class ArcDPSState : ManagedState
 
     private void EmitEvent(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)
     {
-        switch (scope)
+        try
         {
-            case RawCombatEventArgs.CombatEventType.Area:
-                this.AreaCombatEvent?.Invoke(this, combatEvent);
-                break;
-            case RawCombatEventArgs.CombatEventType.Local:
-                this.LocalCombatEvent?.Invoke(this, combatEvent);
-                break;
+            switch (scope)
+            {
+                case RawCombatEventArgs.CombatEventType.Area:
+                    this.AreaCombatEvent?.Invoke(this, combatEvent);
+                    break;
+                case RawCombatEventArgs.CombatEventType.Local:
+                    this.LocalCombatEvent?.Invoke(this, combatEvent);
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"Failed emit event:");
         }
     }
 }

@@ -205,7 +205,7 @@ public abstract class APIState<T> : ManagedState
     /// Waits until the first or current fetch is completed.
     /// </summary>
     /// <returns></returns>
-    public async Task WaitAsync(bool waitForFirstFetch = true)
+    public async Task<bool> WaitAsync(bool waitForFirstFetch = true)
     {
         if (this._fetchTask == null)
         {
@@ -214,7 +214,7 @@ public abstract class APIState<T> : ManagedState
             if (!waitForFirstFetch)
             {
                 this.Logger.Debug("Not waiting for first fetch.");
-                return;
+                return true;
             }
 
             int waitMs = 100;
@@ -230,13 +230,13 @@ public abstract class APIState<T> : ManagedState
                 if (counter > maxCounter)
                 {
                     this.Logger.Debug("First fetch did not complete after {0} tries. ({1} minutes)", counter, counter * waitMs / 1000 / 60);
-                    return;
+                    return false;
                 }
             }
         }
 
         await this._fetchTask;
-
+        return true;
     }
 
     protected override async Task Load()

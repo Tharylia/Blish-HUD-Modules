@@ -15,8 +15,8 @@
 
         protected override void BuildView(Panel parent)
         {
-            this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.GlobalEnabled);
-            this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.GlobalEnabledHotkey);
+            this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.GlobalDrawerVisible);
+            this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.GlobalDrawerVisibleHotkey);
             this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.RegisterCornerIcon);
 
             this.RenderEmptyLine(parent);
@@ -27,9 +27,9 @@
             this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideInWvW);
             this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideInPvP);
 
-            this.RenderEmptyLine(parent);
+            //this.RenderEmptyLine(parent);
 
-            this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.BuildDirection);
+            //this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.BuildDirection);
 
         }
 

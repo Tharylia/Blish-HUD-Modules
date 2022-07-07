@@ -4,30 +4,33 @@ using Blish_HUD.ArcDps.Models;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
 using Estreya.BlishHUD.Shared.State;
 using Microsoft.Xna.Framework.Graphics;
+using System;
 using System.Collections.Generic;
 
 public class CombatEvent
 {
-    private readonly SkillState _skillState;
+    public Ev Ev { get; private set; }
+    public Ag Src { get; private set; }
 
-    public Ev Ev { get; }
-    public Ag Src { get; }
-
-    public Ag Dst { get; }
+    public Ag Dst { get; private set; }
     public CombatEventCategory Category { get; }
     public CombatEventType Type { get; }
-    public Skill Skill { get; private set; }
-    public Texture2D SkillTexture { get; private set; }
+    public Skill Skill { get; set; }
 
-    public CombatEvent(Ev ev, Ag src, Ag dst, CombatEventCategory category, CombatEventType type, SkillState skillState)
+    public CombatEvent(Ev ev, Ag src, Ag dst, CombatEventCategory category, CombatEventType type)
     {
         this.Ev = ev;
         this.Src = src;
         this.Dst = dst;
         this.Category = category;
         this.Type = type;
-        this._skillState = skillState;
+    }
 
-        this.Skill = this._skillState.GetById((int)this.Ev.SkillId);
+    public void Dispose()
+    {
+        this.Ev = null;
+        this.Src = null;
+        this.Dst = null;
+        this.Skill = null; // Don't dispose as its held by skill state
     }
 }

@@ -134,7 +134,7 @@
 
         private List<EventCategory> _eventCategories = new List<EventCategory>();
 
-        public List<EventCategory> EventCategories => this._eventCategories.Where(ec => !ec.IsDisabled).ToList();
+        public List<EventCategory> EventCategories => this._eventCategories;
 
         #region States
         private readonly AsyncLock _stateLock = new AsyncLock();
