@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.TradingPostWatcher.Controls;
+﻿namespace Estreya.BlishHUD.Shared.Controls;
 
 using Microsoft.Xna.Framework;
 using System;

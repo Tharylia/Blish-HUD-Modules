@@ -2,6 +2,7 @@
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.Helpers;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
 using Estreya.BlishHUD.Shared.Utils;
@@ -29,7 +30,16 @@ public class SkillState : APIState<Skill>
 
     private string FullPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
 
-    private Dictionary<int, (string Name, string RenderUrl)> _remappedSkills = new Dictionary<int, (string Name, string RenderUrl)>()
+    private Dictionary<int, int> _remappedSkillIds = new Dictionary<int, int>()
+    {
+        { 43485, 42297}, // Manifest Sand Shade
+        {59601,1947 }, // Big Boomer
+        {49084,1877 },// Impact Savant
+        {54935,29921 }, // Shredder Gyro
+        {1377,1512 } // Shoot
+    };
+
+    private Dictionary<int, (string Name, string RenderUrl)> _remappedSkillTextures = new Dictionary<int, (string Name, string RenderUrl)>()
     {
         { 736, ("Bleeding", "79FF0046A5F9ADA3B4C4EC19ADB4CB124D5F0021/102848") }, //Bleeding
 	    { 737,  ("Burning", "B47BF5803FED2718D7474EAF9617629AD068EE10/102849"  )}, //Burning
@@ -95,6 +105,10 @@ public class SkillState : APIState<Skill>
                         var content = await FileUtil.ReadStringAsync(filePath);
                         var skills = JsonConvert.DeserializeObject<List<Skill>>(content);
 
+                        this.RemapSkillIds(skills);
+
+                        this.RemapSkillTextures(skills);
+
                         await this.LoadSkillIcons(skills);
 
                         using (await this._apiObjectListLock.LockAsync())
@@ -135,23 +149,59 @@ public class SkillState : APIState<Skill>
         var skills = skillResponse.Select(skill => Skill.FromAPISkill(skill)).ToList();
 
         var traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync();
-        skills.Concat(traitResponse.Select(trait => Skill.FromAPITrait(trait)));
+        skills = skills.Concat(traitResponse.Select(trait => Skill.FromAPITrait(trait))).ToList();
 
-        var traitSkills = traitResponse.SelectMany(trait => trait.Skills).Where(skill => skill != null);
-        skills.Concat(traitSkills.Select(traitSkill => Skill.FromAPITraitSkill(traitSkill)));
+        var traitSkills = traitResponse.Where(trait => trait.Skills != null).SelectMany(trait => trait.Skills);
+        skills = skills.Concat(traitSkills.Select(traitSkill => Skill.FromAPITraitSkill(traitSkill))).ToList();
 
-        foreach (var remappedSkill in this._remappedSkills)
-        {
-            skills.Add(new Skill()
-            {
-                Id = remappedSkill.Key,
-                Name = remappedSkill.Value.Name
-            });
-        }
+        // Mount skills are not resolveable against v2/skills
+        //var mountResponse = await apiManager.Gw2ApiClient.V2.Mounts.Types.AllAsync();
+        //var mountSkills = mountResponse.SelectMany(mount => mount.Skills);
+        //skills = skills.Concat(mountSkills).ToList();
+
+        this.RemapSkillIds(skills);
+
+        this.RemapSkillTextures(skills);
 
         await this.LoadSkillIcons(skills);
 
         return skills.ToList();
+    }
+
+    private void RemapSkillIds(List<Skill> skills)
+    {
+        foreach (var remappedSkillId in this._remappedSkillIds)
+        {
+            var skillsToRemap = skills.Where(skill => skill.Id == remappedSkillId.Key).ToList();
+
+            var skillToInsert = skills.FirstOrDefault(skill => skill.Id == remappedSkillId.Value);
+            if (skillToInsert == null)
+            {
+                continue;
+            }
+
+            skillToInsert = skillToInsert.Copy();
+            skillToInsert.Id = remappedSkillId.Key;
+
+            skillsToRemap.ForEach(skillToRemap => skills.Remove(skillToRemap));
+
+            skills.Add(skillToInsert);
+        }
+    }
+
+    private void RemapSkillTextures(List<Skill> skills)
+    {
+        foreach (var remappedSkillTexture in this._remappedSkillTextures)
+        {
+            if (!skills.Exists(skill => skill.Id == remappedSkillTexture.Key))
+            {
+                skills.Add(new Skill()
+                {
+                    Id = remappedSkillTexture.Key,
+                    Name = remappedSkillTexture.Value.Name
+                });
+            }
+        }
     }
 
     private async Task LoadSkillIcons(List<Skill> skills)
@@ -160,9 +210,9 @@ public class SkillState : APIState<Skill>
         {
             string iconUrl = null;
 
-            if (this._remappedSkills.ContainsKey(skill.Id))
+            if (this._remappedSkillTextures.ContainsKey(skill.Id))
             {
-                iconUrl = IconState.RENDER_API_URL + this._remappedSkills[skill.Id].RenderUrl;
+                iconUrl = IconState.RENDER_API_URL + this._remappedSkillTextures[skill.Id].RenderUrl;
             }
 
             return skill.LoadTexture(this._iconState, iconUrl);
@@ -197,9 +247,16 @@ public class SkillState : APIState<Skill>
     {
         using (this._apiObjectListLock.Lock())
         {
-            IEnumerable<Skill> foundSkills = this.APIObjectList.Where(skill => skill.Name == name);
+            foreach (Skill skill in this.APIObjectList)
+            {
+                if (skill.Name == name)
+                {
+                    return skill;
+                }
+            }
 
-            return foundSkills.Any() ? foundSkills.First() : null;
+            Logger.Debug($"Tried fetching a skill by name \"{name}\" which does not exist.");
+            return null;
         }
     }
 
@@ -207,17 +264,16 @@ public class SkillState : APIState<Skill>
     {
         using (this._apiObjectListLock.Lock())
         {
-            IEnumerable<Skill> foundSkills = this.APIObjectList.Where(skill => skill.Id == id);
+            foreach (Skill skill in this.APIObjectList)
+            {
+                if (skill.Id == id)
+                {
+                    return skill;
+                }
+            }
 
-            if (foundSkills.Any())
-            {
-                return foundSkills.First();
-            }
-            else
-            {
-                Logger.Debug($"Tried fetching a skill by id \"{id}\" which does not exist.");
-                return null;
-            }
+            Logger.Debug($"Tried fetching a skill by id \"{id}\" which does not exist.");
+            return null;
         }
     }
 }

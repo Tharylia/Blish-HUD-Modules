@@ -12,7 +12,6 @@ using System.Threading.Tasks;
 public class ArcDPSState : ManagedState
 {
     private SkillState _skillState;
-    private Dictionary<uint, uint> RemappedSkills = new Dictionary<uint, uint>();
 
     public event EventHandler<CombatEvent> AreaCombatEvent;
     public event EventHandler<CombatEvent> LocalCombatEvent;
@@ -227,14 +226,6 @@ public class ArcDPSState : ManagedState
                     }
                 }
 
-                if (types.Count > 0)
-                {
-                    uint skillId = this.RemapSkillID(ev.SkillId);
-                    ev = new Blish_HUD.ArcDps.Models.Ev(ev.Time, ev.SrcAgent, ev.DstAgent, ev.Value, ev.BuffDmg, ev.OverStackValue, skillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
-                         ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
-
-                }
-
                 foreach (CombatEventType type in types)
                 {
                     if (src.Self == 1/* && (!Options::get()->outgoingOnlyToTarget || dst.Id == targetAgentId)*/)
@@ -286,16 +277,6 @@ public class ArcDPSState : ManagedState
         {
             Logger.Error(ex, "Failed parsing combat event:");
         }
-    }
-
-    private uint RemapSkillID(uint skillId)
-    {
-        if (!this.RemappedSkills.ContainsKey(skillId))
-        {
-            return skillId;
-        }
-
-        return this.RemappedSkills[skillId];
     }
 
     private void EmitEvent(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)

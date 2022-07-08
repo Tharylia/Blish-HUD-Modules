@@ -5,6 +5,8 @@
     using Blish_HUD.Modules;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.ScrollingCombatText.Controls;
+    using Estreya.BlishHUD.ScrollingCombatText.Models;
+    using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
     using Estreya.BlishHUD.Shared.Modules;
@@ -30,7 +32,7 @@
 
         internal DateTime DateTimeNow => DateTime.Now;
 
-        private List<ScrollingTextArea> _areas = new List<ScrollingTextArea>();
+        private Dictionary<string, ScrollingTextArea> _areas = new Dictionary<string, ScrollingTextArea>();
 
         #region States
         #endregion
@@ -65,6 +67,7 @@
                 }
             };
 
+            /*
             var powerArea = new ScrollingTextArea(new Models.ScrollingTextAreaConfiguration()
             {
                 Name = "Power",
@@ -113,8 +116,14 @@
             this._areas.Add(powerArea);
             this._areas.Add(condiArea);
             this._areas.Add(healArea);
+            */
 
-                    var ev = JsonConvert.DeserializeObject<Blish_HUD.ArcDps.Models.CombatEvent>("{\"Ev\":{\"Time\":2901217,\"SrcAgent\":2000,\"DstAgent\":2510,\"Value\":-98,\"BuffDmg\":0,\"OverStackValue\":0,\"SkillId\":9122,\"SrcInstId\":6563,\"DstInstId\":4895,\"SrcMasterInstId\":0,\"DstMasterInstId\":0,\"Iff\":1,\"Buff\":false,\"Result\":0,\"IsActivation\":0,\"IsBuffRemove\":0,\"IsNinety\":true,\"IsFifty\":false,\"IsMoving\":false,\"IsStateChange\":0,\"IsFlanking\":true,\"IsShields\":false,\"IsOffCycle\":false,\"Pad61\":0,\"Pad62\":0,\"Pad63\":0,\"Pad64\":0},\"Src\":{\"Name\":\"Asyna Estreya\",\"Id\":2000,\"Profession\":1,\"Elite\":62,\"Self\":1,\"Team\":1863},\"Dst\":{\"Name\":\"Golden Moa\",\"Id\":2510,\"Profession\":4947,\"Elite\":4294967295,\"Self\":0,\"Team\":855},\"Category\":0,\"Type\":1,\"Skill\":{\"Id\":9122,\"Name\":\"Bolt of Wrath\",\"Description\":\"Fire a bolt that damages foes.\",\"Icon\":{\"Url\":null},\"Specialization\":null,\"ChatLink\":\"[&BqIjAAA=]\",\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"WeaponType\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"Professions\":[\"Guardian\"],\"Slot\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"DualAttunement\":null,\"Flags\":[{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null}],\"Facts\":[{\"Text\":\"Range\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null},{\"Text\":\"Damage\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null}],\"TraitedFacts\":null,\"Categories\":null,\"SubSkills\":null,\"Attunement\":null,\"Cost\":null,\"DualWield\":null,\"FlipSkill\":51660,\"Initiative\":null,\"NextChain\":null,\"PrevChain\":null,\"TransformSkills\":null,\"BundleSkills\":null,\"ToolbeltSkill\":null,\"HttpResponseInfo\":null},\"SkillTexture\":null}");
+            foreach (string areaName in this.ModuleSettings.ScrollingAreaNames.Value)
+            {
+                this.AddArea(this.ModuleSettings.AddDrawer(areaName));
+            }
+
+            var ev = JsonConvert.DeserializeObject<Blish_HUD.ArcDps.Models.CombatEvent>("{\"Ev\":{\"Time\":2901217,\"SrcAgent\":2000,\"DstAgent\":2510,\"Value\":-98,\"BuffDmg\":0,\"OverStackValue\":0,\"SkillId\":9122,\"SrcInstId\":6563,\"DstInstId\":4895,\"SrcMasterInstId\":0,\"DstMasterInstId\":0,\"Iff\":1,\"Buff\":false,\"Result\":0,\"IsActivation\":0,\"IsBuffRemove\":0,\"IsNinety\":true,\"IsFifty\":false,\"IsMoving\":false,\"IsStateChange\":0,\"IsFlanking\":true,\"IsShields\":false,\"IsOffCycle\":false,\"Pad61\":0,\"Pad62\":0,\"Pad63\":0,\"Pad64\":0},\"Src\":{\"Name\":\"Asyna Estreya\",\"Id\":2000,\"Profession\":1,\"Elite\":62,\"Self\":1,\"Team\":1863},\"Dst\":{\"Name\":\"Golden Moa\",\"Id\":2510,\"Profession\":4947,\"Elite\":4294967295,\"Self\":0,\"Team\":855},\"Category\":0,\"Type\":1,\"Skill\":{\"Id\":9122,\"Name\":\"Bolt of Wrath\",\"Description\":\"Fire a bolt that damages foes.\",\"Icon\":{\"Url\":null},\"Specialization\":null,\"ChatLink\":\"[&BqIjAAA=]\",\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"WeaponType\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"Professions\":[\"Guardian\"],\"Slot\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"DualAttunement\":null,\"Flags\":[{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null}],\"Facts\":[{\"Text\":\"Range\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null},{\"Text\":\"Damage\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null}],\"TraitedFacts\":null,\"Categories\":null,\"SubSkills\":null,\"Attunement\":null,\"Cost\":null,\"DualWield\":null,\"FlipSkill\":51660,\"Initiative\":null,\"NextChain\":null,\"PrevChain\":null,\"TransformSkills\":null,\"BundleSkills\":null,\"ToolbeltSkill\":null,\"HttpResponseInfo\":null},\"SkillTexture\":null}");
             GameService.Input.Keyboard.KeyPressed += (s, e) =>
             {
                 if (e.EventType != Blish_HUD.Input.KeyboardEventType.KeyDown) return;
@@ -134,10 +143,12 @@
 
         private void ArcDPSState_LocalCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
         {
-            foreach(var area in this._areas)
+            foreach (var area in this._areas.Values)
             {
-                area.AddCombatEvent(e);
+                area.AddCombatEvent(new Shared.Models.ArcDPS.CombatEvent(e.Ev, e.Src, e.Dst, e.Category, e.Type) { Skill = e.Skill });
             }
+
+            e.Dispose();
         }
 
         protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
@@ -156,7 +167,7 @@
                 show = false;
             }
 
-            this._areas.ForEach(area =>
+            this._areas.Values.ToList().ForEach(area =>
             {
                 if (show)
                 {
@@ -188,10 +199,44 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156736"), () => new UI.Views.Settings.GeneralSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GeneralSettings_Title));
-            //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"images\tradingpost.png"), () => new UI.Views.Settings.TransactionSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
-            //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"images\graphics_settings.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GraphicSettings_Title));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156736"), () => new UI.Views.Settings.GeneralSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General Settings"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"textures\graphics_settings.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
+            var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration)) { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color };
+            areaSettingsView.AddArea += (s, e) =>
+            {
+                this.AddArea(e);
+            };
 
+            areaSettingsView.RemoveArea += (s, e) =>
+            {
+                this.RemoveArea(e);
+            };
+
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"textures\scrolling_combat_text.png"), () => areaSettingsView, "SCT Area Settings"));
+
+        }
+
+        private void AddArea(ScrollingTextAreaConfiguration configuration)
+        {
+            if (!this.ModuleSettings.ScrollingAreaNames.Value.Contains(configuration.Name))
+            {
+                this.ModuleSettings.ScrollingAreaNames.Value = new List<string>(this.ModuleSettings.ScrollingAreaNames.Value) { configuration.Name };
+            }
+
+            this._areas.Add(configuration.Name, new ScrollingTextArea(configuration)
+            {
+                Parent = GameService.Graphics.SpriteScreen
+            });
+        }
+
+        private void RemoveArea(ScrollingTextAreaConfiguration configuration)
+        {
+            this.ModuleSettings.ScrollingAreaNames.Value = new List<string>(this.ModuleSettings.ScrollingAreaNames.Value.Where(areaName => areaName != configuration.Name));
+
+            this._areas[configuration.Name]?.Dispose();
+            this._areas.Remove(configuration.Name);
+
+            this.ModuleSettings.RemoveDrawer(configuration.Name);
         }
 
         protected override void Update(GameTime gameTime)
@@ -202,7 +247,10 @@
 
             //this.Drawer.UpdatePosition(this.ModuleSettings.LocationX.Value, this.ModuleSettings.LocationY.Value); // Handle windows resize
 
-            //this.ModuleSettings.CheckDrawerSizeAndPosition(this.Drawer.Width, this.Drawer.Height);
+            foreach (var area in this._areas.Values)
+            {
+                this.ModuleSettings.CheckDrawerSizeAndPosition(area.Configuration);
+            }
         }
 
         /// <inheritdoc />
@@ -216,10 +264,12 @@
 
             this.Logger.Debug("Unload drawer.");
 
-            foreach (var area in this._areas)
+            foreach (var area in this._areas.Values)
             {
                 area.Dispose();
             }
+
+            _areas.Clear();
 
             this.Logger.Debug("Unloaded drawer.");
 
@@ -229,7 +279,10 @@
 
         protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
         {
-            return new ModuleSettings(settings);
+            var moduleSettings = new ModuleSettings(settings);
+
+
+            return moduleSettings;
         }
 
         protected override string GetDirectoryName()

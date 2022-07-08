@@ -66,7 +66,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected bool Debug => false;
 #endif
 
-    protected bool ShowUI { get; private set; }
+    protected bool ShowUI { get; private set; } = true;
 
     public TSettings ModuleSettings { get; private set; }
 

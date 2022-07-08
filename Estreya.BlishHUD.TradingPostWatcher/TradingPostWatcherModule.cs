@@ -248,7 +248,7 @@
 
             this.Drawer.UpdatePosition(this.DrawerConfiguration.Location.X.Value, this.DrawerConfiguration.Location.Y.Value); // Handle windows resize
 
-            this.ModuleSettings.CheckDrawerSizeAndPosition(this.DrawerConfiguration, this.Drawer.Width, this.Drawer.Height);
+            this.ModuleSettings.CheckDrawerSizeAndPosition(this.DrawerConfiguration);
         }
 
         /// <inheritdoc />

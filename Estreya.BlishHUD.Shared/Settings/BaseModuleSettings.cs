@@ -231,16 +231,28 @@
             return configuration;
         }
 
-        public void CheckDrawerSizeAndPosition(DrawerConfiguration configuration, int currentWidth, int currentHeight)
+        public void RemoveDrawer(string name)
+        {
+            this.DrawerSettings.UndefineSetting($"{name}-locationX");
+            this.DrawerSettings.UndefineSetting($"{name}-locationY");
+            this.DrawerSettings.UndefineSetting($"{name}-width");
+            this.DrawerSettings.UndefineSetting($"{name}-height");
+            this.DrawerSettings.UndefineSetting($"{name}-buildDirection");
+            this.DrawerSettings.UndefineSetting($"{name}-opacity");
+            this.DrawerSettings.UndefineSetting($"{name}-backgroundColor");
+            this.DrawerSettings.UndefineSetting($"{name}-fontSize");
+        }
+
+        public void CheckDrawerSizeAndPosition(DrawerConfiguration configuration)
         {
             bool buildFromBottom = configuration.BuildDirection.Value == BuildDirection.Bottom;
             int maxResX = (int)(GameService.Graphics.Resolution.X / GameService.Graphics.UIScaleMultiplier);
             int maxResY = (int)(GameService.Graphics.Resolution.Y / GameService.Graphics.UIScaleMultiplier);
 
             int minLocationX = 0;
-            int maxLocationX = maxResX - currentWidth;
-            int minLocationY = buildFromBottom ? currentHeight : 0;
-            int maxLocationY = buildFromBottom ? maxResY : maxResY - currentHeight;
+            int maxLocationX = maxResX - configuration.Size.X.Value;
+            int minLocationY = buildFromBottom ? configuration.Size.Y.Value : 0;
+            int maxLocationY = buildFromBottom ? maxResY : maxResY - configuration.Size.Y.Value;
             int minWidth = 0;
             int maxWidth = maxResX - configuration.Location.X.Value;
             int minHeight = 0;

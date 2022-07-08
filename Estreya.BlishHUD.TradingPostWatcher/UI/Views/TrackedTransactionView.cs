@@ -43,7 +43,7 @@ public class TrackedTransactionView : BaseView
         trackedOverviewPanel.Location = new Point(bounds.X, bounds.Y);
         trackedOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X, bounds.Height - StandardButton.STANDARD_CONTROL_HEIGHT);
 
-        var trackedOverviewMenu = new Controls.Menu
+        var trackedOverviewMenu = new Shared.Controls.Menu
         {
             Parent = trackedOverviewPanel,
             WidthSizingMode = SizingMode.Fill

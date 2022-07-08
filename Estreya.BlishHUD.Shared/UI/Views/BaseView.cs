@@ -302,7 +302,7 @@ public abstract class BaseView : View
         return button;
     }
 
-    protected void RenderLabel(Panel parent, string title, string value = null, Color? textColorTitle = null, Color? textColorValue = null)
+    protected Label RenderLabel(Panel parent, string title, string value = null, Color? textColorTitle = null, Color? textColorValue = null)
     {
         Panel panel = this.GetPanel(parent);
 
@@ -314,11 +314,15 @@ public abstract class BaseView : View
             Label valueLabel = this.GetLabel(panel, value);
             valueLabel.Left = titleLabel.Right + CONTROL_X_SPACING;
             valueLabel.TextColor = textColorValue ?? valueLabel.TextColor;
+            return valueLabel;
         }
         else
         {
             titleLabel.AutoSizeWidth = true;
         }
+
+        return null;
+
     }
 
     private void RegisterErrorPanel(Container parent)
