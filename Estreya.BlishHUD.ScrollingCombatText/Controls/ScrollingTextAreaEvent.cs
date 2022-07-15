@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.Controls;
 
 using Blish_HUD.Controls;
+using Estreya.BlishHUD.ScrollingCombatText.Models;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
@@ -15,14 +16,16 @@ public class ScrollingTextAreaEvent : RenderTargetControl
     private const int IMAGE_SIZE = 32;
     private BitmapFont _font;
     private Shared.Models.ArcDPS.CombatEvent _combatEvent;
+    private CombatEventFormatRule _formatRule;
 
     public double Time { get; set; } = DateTime.UtcNow.TimeOfDay.TotalMilliseconds;
 
     public Color TextColor { get; set; } = Color.White;
 
-    public ScrollingTextAreaEvent(Shared.Models.ArcDPS.CombatEvent combatEvent, BitmapFont font)
+    public ScrollingTextAreaEvent(Shared.Models.ArcDPS.CombatEvent combatEvent, CombatEventFormatRule formatRule,  BitmapFont font)
     {
         this._combatEvent = combatEvent;
+        this._formatRule = formatRule;
         this._font = font;
     }
 
@@ -41,6 +44,8 @@ public class ScrollingTextAreaEvent : RenderTargetControl
             int x = imageRectangle.Right + 10;
             int maxWidth = this.Width - x;
 
+            maxWidth = MathHelper.Clamp(maxWidth, 0, (this.Parent?.Width ?? int.MaxValue) - this.Location.X);
+
             RectangleF textRectangle = new RectangleF(x, 0,
                 maxWidth,
                 this.Height);
@@ -49,30 +54,26 @@ public class ScrollingTextAreaEvent : RenderTargetControl
         }
     }
 
-    protected override void DisposeControl()
+    protected override void InternalDispose()
     {
         this._font = null;
         this._combatEvent?.Dispose();
         this._combatEvent = null;
+        this._formatRule = null;
     }
 
     public override string ToString()
     {
         if (this._combatEvent == null)
         {
-            return string.Empty;
+            return "Unknown combat event";
         }
 
-        int value = 0;
-
-        if (this._combatEvent?.Ev != null)
+        if (this._formatRule == null)
         {
-            value = this._combatEvent.Ev.Buff ? this._combatEvent.Ev.BuffDmg : this._combatEvent.Ev.Value;
+            return "Unknown format rule";
         }
 
-        string categoryText = this._combatEvent?.Category.Humanize() ?? "Unknown";
-        string typeText = this._combatEvent?.Type.Humanize() ?? "Unknown";
-
-        return $"{categoryText}: {this._combatEvent?.Skill?.Name ?? typeText} ({typeText}): {value}";
+        return this._formatRule.FormatEvent(_combatEvent);
     }
 }

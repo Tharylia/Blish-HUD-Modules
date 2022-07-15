@@ -208,6 +208,7 @@
             opacity.SetRange(0f, 1f);
             var backgroundColor = this.DrawerSettings.DefineSetting($"{name}-backgroundColor", this.DefaultGW2Color, () => "Background Color", () => "The background color of the drawer.");
             var fontSize = this.DrawerSettings.DefineSetting($"{name}-fontSize", ContentService.FontSize.Size16, () => "Font Size", () => "The font size of the drawer.");
+            var textColor = this.DrawerSettings.DefineSetting($"{name}-textColor", this.DefaultGW2Color, () => "Text Color", () => "The text color of the drawer.");
 
             DrawerConfiguration configuration = new DrawerConfiguration()
             {
@@ -225,7 +226,8 @@
                 BuildDirection = buildDirection,
                 Opacity = opacity,
                 BackgroundColor = backgroundColor,
-                FontSize = fontSize
+                FontSize = fontSize,
+                TextColor = textColor
             };
 
             return configuration;
@@ -241,6 +243,7 @@
             this.DrawerSettings.UndefineSetting($"{name}-opacity");
             this.DrawerSettings.UndefineSetting($"{name}-backgroundColor");
             this.DrawerSettings.UndefineSetting($"{name}-fontSize");
+            this.DrawerSettings.UndefineSetting($"{name}-textColor");
         }
 
         public void CheckDrawerSizeAndPosition(DrawerConfiguration configuration)

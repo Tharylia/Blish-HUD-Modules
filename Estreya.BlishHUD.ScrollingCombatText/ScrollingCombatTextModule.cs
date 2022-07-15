@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText
 {
     using Blish_HUD;
+    using Blish_HUD.Content;
     using Blish_HUD.Controls;
     using Blish_HUD.Modules;
     using Blish_HUD.Settings;
@@ -53,7 +54,7 @@
             await base.LoadAsync();
 
             // Wait for skills to be loaded.
-            await this.SkillState.WaitAsync();
+            //await this.SkillState.WaitAsync();
 
             this.ModuleSettings.ModuleSettingsChanged += (sender, eventArgs) =>
             {
@@ -67,62 +68,12 @@
                 }
             };
 
-            /*
-            var powerArea = new ScrollingTextArea(new Models.ScrollingTextAreaConfiguration()
-            {
-                Name = "Power",
-                Location = new Point(100,100),
-                Size = new Point(500,300),
-                ScrollSpeed = 0.3f,
-                EventHeight = 32,
-                Curve = Models.ScrollingTextAreaCurve.Straight,
-                Types= new List<Shared.Models.ArcDPS.CombatEventType>() { Shared.Models.ArcDPS.CombatEventType.PHYSICAL, Shared.Models.ArcDPS.CombatEventType.CRIT}
-            }, this.Gw2ApiManager, this.SkillState, this.Font)
-            {
-                BackgroundColor = Color.LightBlue,
-                Parent = GameService.Graphics.SpriteScreen
-            };
-
-            var condiArea = new ScrollingTextArea(new Models.ScrollingTextAreaConfiguration()
-            {
-                Name = "Condi",
-                Location = new Point(600, 100),
-                Size = new Point(500, 300),
-                ScrollSpeed = 0.3f,
-                EventHeight = 32,
-                Curve = Models.ScrollingTextAreaCurve.Straight,
-                Types = new List<Shared.Models.ArcDPS.CombatEventType>() { Shared.Models.ArcDPS.CombatEventType.BLEEDING, Shared.Models.ArcDPS.CombatEventType.BURNING, Shared.Models.ArcDPS.CombatEventType.POISON, Shared.Models.ArcDPS.CombatEventType.TORMENT, Shared.Models.ArcDPS.CombatEventType.CONFUSION, Shared.Models.ArcDPS.CombatEventType.DOT }
-            }, this.Gw2ApiManager, this.SkillState, this.Font)
-            {
-                BackgroundColor = Color.OrangeRed,
-                Parent = GameService.Graphics.SpriteScreen
-            };
-
-            var healArea = new ScrollingTextArea(new Models.ScrollingTextAreaConfiguration()
-            {
-                Name = "Condi",
-                Location = new Point(1100, 100),
-                Size = new Point(500, 300),
-                ScrollSpeed = 0.3f,
-                EventHeight = 32,
-                Curve = Models.ScrollingTextAreaCurve.Straight,
-                Types = new List<Shared.Models.ArcDPS.CombatEventType>() { Shared.Models.ArcDPS.CombatEventType.HOT, Shared.Models.ArcDPS.CombatEventType.HEAL }
-            }, this.Gw2ApiManager, this.SkillState, this.Font)
-            {
-                BackgroundColor = Color.LightGreen,
-                Parent = GameService.Graphics.SpriteScreen
-            };
-
-            this._areas.Add(powerArea);
-            this._areas.Add(condiArea);
-            this._areas.Add(healArea);
-            */
-
             foreach (string areaName in this.ModuleSettings.ScrollingAreaNames.Value)
             {
                 this.AddArea(this.ModuleSettings.AddDrawer(areaName));
             }
 
+#if DEBUG
             var ev = JsonConvert.DeserializeObject<Blish_HUD.ArcDps.Models.CombatEvent>("{\"Ev\":{\"Time\":2901217,\"SrcAgent\":2000,\"DstAgent\":2510,\"Value\":-98,\"BuffDmg\":0,\"OverStackValue\":0,\"SkillId\":9122,\"SrcInstId\":6563,\"DstInstId\":4895,\"SrcMasterInstId\":0,\"DstMasterInstId\":0,\"Iff\":1,\"Buff\":false,\"Result\":0,\"IsActivation\":0,\"IsBuffRemove\":0,\"IsNinety\":true,\"IsFifty\":false,\"IsMoving\":false,\"IsStateChange\":0,\"IsFlanking\":true,\"IsShields\":false,\"IsOffCycle\":false,\"Pad61\":0,\"Pad62\":0,\"Pad63\":0,\"Pad64\":0},\"Src\":{\"Name\":\"Asyna Estreya\",\"Id\":2000,\"Profession\":1,\"Elite\":62,\"Self\":1,\"Team\":1863},\"Dst\":{\"Name\":\"Golden Moa\",\"Id\":2510,\"Profession\":4947,\"Elite\":4294967295,\"Self\":0,\"Team\":855},\"Category\":0,\"Type\":1,\"Skill\":{\"Id\":9122,\"Name\":\"Bolt of Wrath\",\"Description\":\"Fire a bolt that damages foes.\",\"Icon\":{\"Url\":null},\"Specialization\":null,\"ChatLink\":\"[&BqIjAAA=]\",\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"WeaponType\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"Professions\":[\"Guardian\"],\"Slot\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"DualAttunement\":null,\"Flags\":[{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null}],\"Facts\":[{\"Text\":\"Range\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null},{\"Text\":\"Damage\",\"Icon\":{\"Url\":null},\"Type\":{\"IsUnknown\":true,\"Value\":0,\"RawValue\":null},\"RequiresTrait\":null,\"Overrides\":null}],\"TraitedFacts\":null,\"Categories\":null,\"SubSkills\":null,\"Attunement\":null,\"Cost\":null,\"DualWield\":null,\"FlipSkill\":51660,\"Initiative\":null,\"NextChain\":null,\"PrevChain\":null,\"TransformSkills\":null,\"BundleSkills\":null,\"ToolbeltSkill\":null,\"HttpResponseInfo\":null},\"SkillTexture\":null}");
             GameService.Input.Keyboard.KeyPressed += (s, e) =>
             {
@@ -134,6 +85,7 @@
                     this.ArcDPSState?.SimulateCombatEvent(new Blish_HUD.ArcDps.RawCombatEventArgs(ev, Blish_HUD.ArcDps.RawCombatEventArgs.CombatEventType.Local));
                 }
             };
+#endif
         }
 
         protected override void HandleDefaultStates()
@@ -141,7 +93,7 @@
             this.ArcDPSState.LocalCombatEvent += this.ArcDPSState_LocalCombatEvent;
         }
 
-        private void ArcDPSState_LocalCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
+        private Task ArcDPSState_LocalCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
         {
             foreach (var area in this._areas.Values)
             {
@@ -149,12 +101,13 @@
             }
 
             e.Dispose();
+
+            return Task.CompletedTask;
         }
 
         protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
         {
             Collection<ManagedState> states = new Collection<ManagedState>();
-
 
             return states;
         }
@@ -197,10 +150,20 @@
             }
         }
 
+        protected override AsyncTexture2D GetEmblem()
+        {
+            return this.IconState?.GetIcon("156030.png"); // 156135 (32x32)
+        }
+
+        protected override AsyncTexture2D GetCornerIcon()
+        {
+            return this.IconState?.GetIcon("156742.png");
+        }
+
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156736"), () => new UI.Views.Settings.GeneralSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General Settings"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"textures\graphics_settings.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General Settings"));
+            //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
             var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration)) { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
@@ -212,8 +175,7 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"textures\scrolling_combat_text.png"), () => areaSettingsView, "SCT Area Settings"));
-
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156742.png"), () => areaSettingsView, "SCT Area Settings"));
         }
 
         private void AddArea(ScrollingTextAreaConfiguration configuration)

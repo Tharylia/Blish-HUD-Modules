@@ -3,18 +3,25 @@
 using Blish_HUD;
 using Blish_HUD.ArcDps;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
+using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
+using Estreya.BlishHUD.Shared.Threading.Events;
+using Humanizer;
 using Microsoft.Xna.Framework;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Threading.Tasks;
 
 public class ArcDPSState : ManagedState
 {
     private SkillState _skillState;
 
-    public event EventHandler<CombatEvent> AreaCombatEvent;
-    public event EventHandler<CombatEvent> LocalCombatEvent;
+    private ConcurrentQueue<RawCombatEventArgs> _combatEventQueue;
+
+    public event AsyncEventHandler<CombatEvent> AreaCombatEvent;
+    public event AsyncEventHandler<CombatEvent> LocalCombatEvent;
 
     public ArcDPSState(SkillState skillState) : base(saveInterval: -1)
     {
@@ -23,12 +30,17 @@ public class ArcDPSState : ManagedState
 
     public override Task Clear()
     {
+        _combatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
+
         return Task.CompletedTask;
     }
 
     protected override Task Initialize()
     {
+        _combatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
+
         GameService.ArcDps.RawCombatEvent += this.ArcDps_RawCombatEvent;
+
         return Task.CompletedTask;
     }
 
@@ -41,9 +53,16 @@ public class ArcDPSState : ManagedState
     {
         GameService.ArcDps.RawCombatEvent -= this.ArcDps_RawCombatEvent;
         this._skillState = null;
+        this._combatEventQueue = null;
     }
 
-    protected override void InternalUpdate(GameTime gameTime) { }
+    protected override void InternalUpdate(GameTime gameTime)
+    {
+        while (this._combatEventQueue.TryDequeue(out RawCombatEventArgs eventData))
+        {
+            this.ParseCombatEvent(eventData);
+        }
+    }
 
     protected override Task Load()
     {
@@ -62,6 +81,18 @@ public class ArcDPSState : ManagedState
 
     private void ArcDps_RawCombatEvent(object _, RawCombatEventArgs rawCombatEventArgs)
     {
+        try
+        {
+            this._combatEventQueue.Enqueue(rawCombatEventArgs);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed adding combat event to queue.");
+        }
+    }
+
+    private void ParseCombatEvent(RawCombatEventArgs rawCombatEventArgs)
+    {
         if (!this.Running)
         {
             return;
@@ -77,7 +108,6 @@ public class ArcDPSState : ManagedState
             uint selfInstID = 0;
             ulong targetAgentId = 0;
             List<CombatEventType> types = new List<CombatEventType>();
-            CombatEventCategory? category = null;
 
             /* combat event. skillname may be null. non-null skillname will remain static until module is unloaded. refer to evtc notes for complete detail */
             if (ev != null)
@@ -128,6 +158,8 @@ public class ArcDPSState : ManagedState
 
                 if (ev.Buff)
                 {
+                    bool buffAdded = ev.IsBuffRemove == ArcDpsEnums.BuffRemove.None;
+
                     if (ev.BuffDmg > 0)
                     {
                         if (ev.OverStackValue != 0)
@@ -153,18 +185,39 @@ public class ArcDPSState : ManagedState
 
                             types.Add(CombatEventType.SHIELD_REMOVE);
                         }
+
                         if (ev.BuffDmg < 0)
                         {
                             switch (ev.SkillId)
                             {
+                                case 723: types.Add(CombatEventType.POISON); break;
                                 case 736: types.Add(CombatEventType.BLEEDING); break;
                                 case 737: types.Add(CombatEventType.BURNING); break;
-                                case 723: types.Add(CombatEventType.POISON); break;
                                 case 861: types.Add(CombatEventType.CONFUSION); break;
                                 case 873: types.Add(CombatEventType.RETALIATION); break;
                                 case 19426: types.Add(CombatEventType.TORMENT); break;
                                 default: types.Add(CombatEventType.DOT); break;
                             }
+                        }
+                    }
+                    else
+                    {
+                        // Buff Dmg == 0
+                        switch (ev.SkillId)
+                        {
+                            case 717: types.Add(CombatEventType.PROTECTION); break;
+                            case 718: types.Add(CombatEventType.REGENERATION); break;
+                            case 719: types.Add(CombatEventType.SWIFTNESS); break;
+                            case 725: types.Add(CombatEventType.FURY); break;
+                            case 726: types.Add(CombatEventType.VIGOR); break;
+                            case 740: types.Add(CombatEventType.MIGHT); break;
+                            case 743: types.Add(CombatEventType.AEGIS); break;
+                            case 873: types.Add(CombatEventType.RESOLUTION); break;
+                            case 1122: types.Add(CombatEventType.STABILITY); break;
+                            case 1187: types.Add(CombatEventType.QUICKNESS); break;
+                            case 26980: types.Add(CombatEventType.RESISTENCE); break;
+                            case 30328: types.Add(CombatEventType.ALACRITY); break;
+                            default: types.Add(CombatEventType.BUFF); break;
                         }
                     }
                 }
@@ -195,7 +248,7 @@ public class ArcDPSState : ManagedState
 
                             types.Add(CombatEventType.SHIELD_REMOVE);
                         }
-                        if (ev.OverStackValue <= 0 || ev.Value < 0)
+                        if (ev.OverStackValue < 0 || ev.Value < 0)
                         {
                             switch (ev.Result)
                             {
@@ -226,40 +279,54 @@ public class ArcDPSState : ManagedState
                     }
                 }
 
+                if (types.Count == 0) types.Add(CombatEventType.NONE);
+
+                Skill skill = null;
+                if (types.Count > 0)
+                {
+                    skill = _skillState.GetById((int)ev.SkillId);
+
+                    if (skill == null)
+                    {
+                        Logger.Debug($"Failed to fetch skill \"{ev.SkillId}\". ArcDPS reports: {skillName}");
+                        _ = _skillState._missingSkillsFromAPIReportedByArcDPS.TryAdd((int)ev.SkillId, skillName);
+                    }
+                    else
+                    {
+                        _ = _skillState._missingSkillsFromAPIReportedByArcDPS.TryRemove((int)ev.SkillId, out var unused);
+                    }
+                }
+
                 foreach (CombatEventType type in types)
                 {
+                    List<CombatEventCategory> categories = new List<CombatEventCategory>();
                     if (src.Self == 1/* && (!Options::get()->outgoingOnlyToTarget || dst.Id == targetAgentId)*/)
                     {
                         if (/*!Options::get()->selfMessageOnlyIncoming || */dst.Self != 1)
                         {
-                            category = CombatEventCategory.PLAYER_OUT;
+                            categories.Add(CombatEventCategory.PLAYER_OUT);
                         }
                     }
                     else if (ev.SrcMasterInstId == selfInstID && (/*!Options::get()->outgoingOnlyToTarget || */dst.Id == targetAgentId))
                     {
-                        category = CombatEventCategory.PET_OUT;
+                        categories.Add(CombatEventCategory.PET_OUT);
                     }
 
                     if (dst.Self == 1)
                     {
-                        category = CombatEventCategory.PLAYER_IN;
+                        categories.Add(CombatEventCategory.PLAYER_IN);
                     }
                     else if (ev.DstMasterInstId == selfInstID)
                     {
-                        category = CombatEventCategory.PET_IN;
+                        categories.Add(CombatEventCategory.PET_IN);
                     }
 
-                    if (category.HasValue)
+                    foreach(CombatEventCategory category in categories)
                     {
-                        CombatEvent combatEvent = new CombatEvent(ev, src, dst, category.Value, type)
+                        CombatEvent combatEvent = new CombatEvent(ev, src, dst, category, type)
                         {
-                            Skill = _skillState.GetById((int)ev.SkillId),
+                            Skill = skill,
                         };
-
-                        if (combatEvent.Skill == null)
-                        {
-                            Logger.Debug($"Failed to fetch skill \"{ev.SkillId}\". ArcDPS reports: {skillName}");
-                        }
 
                         this.EmitEvent(combatEvent, rawCombatEventArgs.EventType);
                     }
@@ -286,10 +353,12 @@ public class ArcDPSState : ManagedState
             switch (scope)
             {
                 case RawCombatEventArgs.CombatEventType.Area:
-                    this.AreaCombatEvent?.Invoke(this, combatEvent);
+                    // Fire task and don't worry about it.
+                    _ = this.AreaCombatEvent?.Invoke(this, combatEvent);
                     break;
                 case RawCombatEventArgs.CombatEventType.Local:
-                    this.LocalCombatEvent?.Invoke(this, combatEvent);
+                    // Fire task and don't worry about it.
+                    _ = this.LocalCombatEvent?.Invoke(this, combatEvent);
                     break;
             }
         }

@@ -14,7 +14,9 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -141,9 +143,6 @@ public class AreaSettingsView : BaseSettingsView
 
                 ScrollingTextAreaConfiguration configuration = ScrollingCombatTextModule.ModuleInstance.ModuleSettings.AddDrawer(name);
 
-                configuration.Categories.Value = new List<Shared.Models.ArcDPS.CombatEventCategory>(configuration.Categories.Value) { Shared.Models.ArcDPS.CombatEventCategory.PLAYER_OUT, Shared.Models.ArcDPS.CombatEventCategory.PLAYER_IN, Shared.Models.ArcDPS.CombatEventCategory.PET_OUT, Shared.Models.ArcDPS.CombatEventCategory.PET_IN };
-                configuration.Types.Value = new List<Shared.Models.ArcDPS.CombatEventType>((CombatEventType[])Enum.GetValues(typeof(CombatEventType)));
-
                 var menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
                 {
@@ -198,9 +197,10 @@ public class AreaSettingsView : BaseSettingsView
             Left = areaName.Left,
             Top = areaName.Bottom + 50,
             Parent = this._areaPanel,
-            HeightSizingMode = SizingMode.AutoSize,
-            WidthSizingMode = SizingMode.AutoSize,
-            FlowDirection = ControlFlowDirection.SingleTopToBottom
+            HeightSizingMode = SizingMode.Fill,
+            WidthSizingMode = SizingMode.Fill,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            CanScroll = true
         };
 
         this.RenderSetting(settingsPanel, areaConfiguration.Location.X);
@@ -228,6 +228,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderSetting(settingsPanel, areaConfiguration.FontSize);
+        this.RenderColorSetting(settingsPanel, areaConfiguration.TextColor);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -307,7 +308,10 @@ public class AreaSettingsView : BaseSettingsView
 
         foreach (var type in (CombatEventType[])Enum.GetValues(typeof(CombatEventType)))
         {
-            typeSelect.Items.Add(type.Humanize());
+            if (!new CombatEventType[] { CombatEventType.BUFF, CombatEventType.MIGHT, CombatEventType.FURY, CombatEventType.REGENERATION, CombatEventType.PROTECTION, CombatEventType.QUICKNESS, CombatEventType.ALACRITY, CombatEventType.VIGOR, CombatEventType.STABILITY, CombatEventType.AEGIS, CombatEventType.SWIFTNESS, CombatEventType.RESISTENCE, CombatEventType.STEALTH, CombatEventType.SUPERSPEED, CombatEventType.RESOLUTION }.Contains(type))
+            {
+                typeSelect.Items.Add(type.Humanize());
+            }
         }
 
         typeSelect.SelectedItem = areaConfiguration.Types.Value.FirstOrDefault().Humanize();
@@ -335,6 +339,57 @@ public class AreaSettingsView : BaseSettingsView
         });
         removeTypeButton.Left = addTypeButton.Right + 5;
         removeTypeButton.Top = addTypeButton.Top;
+        #endregion
+
+        this.RenderEmptyLine(settingsPanel);
+
+        #region Format Rules
+        var formatRulesLabel = this.RenderLabel(settingsPanel, "Format Rules");
+        formatRulesLabel.AutoSizeWidth = false;
+        formatRulesLabel.Width = panelBounds.Width - 50;
+        formatRulesLabel.HorizontalAlignment = HorizontalAlignment.Center;
+
+        this.RenderEmptyLine(settingsPanel);
+
+        var formatRulesPanel = new FlowPanel()
+        {
+            Parent = settingsPanel,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            HeightSizingMode = SizingMode.AutoSize,
+            WidthSizingMode = SizingMode.AutoSize
+        };
+
+        foreach (var formatRule in areaConfiguration.FormatRules.Value)
+        {
+            var formatRulePanel = this.GetPanel(formatRulesPanel);
+
+            var formatRuleCategory = formatRule.Category;
+            var formatRuleType = formatRule.Type;
+            var formatRuleLabel = this.GetLabel(formatRulePanel, $"{formatRuleCategory} - {formatRuleType}");
+
+            var formatRuleText = new TextBox()
+            {
+                Parent = formatRulePanel,
+                Font = GameService.Content.DefaultFont18,
+                Left = formatRuleLabel.Right,
+                PlaceholderText = "Format",
+                Text = formatRule.Format,
+                BasicTooltipText = formatRule.GetType().GetProperty(nameof(formatRule.Format)).GetCustomAttribute< DescriptionAttribute>()?.Description
+            };
+
+            formatRuleText.Width = panelBounds.Width - formatRuleText.Left - 50;
+
+            formatRuleText.TextChanged += (s, e) =>
+            {
+                var valueChangeArgs = e as ValueChangedEventArgs<string>;
+
+                formatRule.Format = valueChangeArgs.NewValue;
+
+                areaConfiguration.FormatRules.Value = new List<CombatEventFormatRule>(areaConfiguration.FormatRules.Value);
+            };
+
+            this.RenderEmptyLine(formatRulesPanel, 2);
+        }
         #endregion
 
 

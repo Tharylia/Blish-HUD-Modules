@@ -24,7 +24,6 @@
 
             this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideOnMissingMumbleTicks);
             this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideOnOpenMap);
-            this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInCombat);
             this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInWvW);
             this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInPvP);
 

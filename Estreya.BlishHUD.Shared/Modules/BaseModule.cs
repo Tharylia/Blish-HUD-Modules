@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.Shared.Modules;
 
 using Blish_HUD;
+using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Blish_HUD.Modules;
@@ -164,7 +165,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         using (await this._stateLock.LockAsync())
         {
-            var configurations = new StateConfigurations();
+            StateConfigurations configurations = new StateConfigurations();
             this.ConfigureStates(configurations);
 
             if (configurations.Account)
@@ -191,7 +192,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
                 else
                 {
-                    Logger.Debug($"{typeof(WorldbossState).Name} is not available because {typeof(AccountState).Name} is deactivated.");
+                    this.Logger.Debug($"{typeof(WorldbossState).Name} is not available because {typeof(AccountState).Name} is deactivated.");
                     configurations.Worldbosses = false;
                 }
             }
@@ -205,7 +206,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
                 else
                 {
-                    Logger.Debug($"{typeof(MapchestState).Name} is not available because {typeof(AccountState).Name} is deactivated.");
+                    this.Logger.Debug($"{typeof(MapchestState).Name} is not available because {typeof(AccountState).Name} is deactivated.");
                     configurations.Mapchests = false;
                 }
             }
@@ -231,7 +232,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
                 else
                 {
-                    Logger.Debug($"{typeof(ArcDPSState).Name} is not available because {typeof(SkillState).Name} is deactivated.");
+                    this.Logger.Debug($"{typeof(ArcDPSState).Name} is not available because {typeof(SkillState).Name} is deactivated.");
                     configurations.ArcDPS = false;
                 }
             }
@@ -281,7 +282,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected abstract void HandleDefaultStates();
 
-    protected virtual Collection<ManagedState> GetAdditionalStates(string directoryPath) => new Collection<ManagedState>();
+    protected virtual Collection<ManagedState> GetAdditionalStates(string directoryPath)
+    {
+        return new Collection<ManagedState>();
+    }
 
     private void HandleCornerIcon(bool show)
     {
@@ -290,7 +294,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             this.CornerIcon = new CornerIcon()
             {
                 IconName = this.Name,
-                Icon = this.ContentsManager.GetTexture(@"textures\corner_icon.png"),
+                Icon = this.GetCornerIcon(),
             };
 
             this.CornerIcon.Click += (s, ea) =>
@@ -323,7 +327,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Start building settings window.");
 
-        Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png", false);
+        Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
 
         Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
         int contentRegionPaddingY = settingsWindowSize.Y - 15;
@@ -334,11 +338,24 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             Parent = GameService.Graphics.SpriteScreen,
             Title = this.Name,
-            Emblem = this.IconState.GetIcon(@"textures\emblem.png"),
             Subtitle = Strings.SettingsWindow_Subtitle,
             SavesPosition = true,
             Id = $"{this.GetType().Name}_6bd04be4-dc19-4914-a2c3-8160ce76818b"
         };
+
+        AsyncTexture2D emblem = this.GetEmblem();
+
+        if (emblem.HasSwapped)
+        {
+            this.SettingsWindow.Emblem = emblem;
+        }
+        else
+        {
+            emblem.TextureSwapped += (s, e) =>
+            {
+                this.SettingsWindow.Emblem = e.NewValue;
+            };
+        }
 
         //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"images\tradingpost.png"), () =>
         //{
@@ -372,13 +389,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         if (this.Debug)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"155052"), () => new UI.Views.Settings.StateSettingsView(this.States) { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Debug"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("155052.png"), () => new UI.Views.Settings.StateSettingsView(this.States) { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Debug"));
         }
 
         this.Logger.Debug("Finished building settings window.");
 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
     }
+
+    protected abstract AsyncTexture2D GetEmblem();
+
+    protected abstract AsyncTexture2D GetCornerIcon();
 
     protected virtual void OnSettingWindowBuild(TabbedWindow2 settingWindow)
     {

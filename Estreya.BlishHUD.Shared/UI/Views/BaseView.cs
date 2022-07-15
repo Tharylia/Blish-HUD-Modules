@@ -128,7 +128,7 @@ public abstract class BaseView : View
 
     protected abstract void DoBuild(Panel parent);
 
-    protected void RenderEmptyLine(Panel parent)
+    protected void RenderEmptyLine(Panel parent, int height = 25)
     {
         ViewContainer settingContainer = new ViewContainer()
         {
@@ -137,7 +137,7 @@ public abstract class BaseView : View
             Parent = parent
         };
 
-        settingContainer.Show(new EmptyLineView(25));
+        settingContainer.Show(new EmptyLineView(height));
     }
 
     protected Panel RenderProperty<TObject, TProperty>(Panel parent, TObject obj, Expression<Func<TObject, TProperty>> expression, Func<TObject, bool> isEnabled, (float Min, float Max)? range = null, string title = null, string description = null, int width = -1)
@@ -321,7 +321,7 @@ public abstract class BaseView : View
             titleLabel.AutoSizeWidth = true;
         }
 
-        return null;
+        return titleLabel;
 
     }
 

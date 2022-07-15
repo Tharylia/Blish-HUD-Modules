@@ -3,13 +3,7 @@
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.Models.Drawers;
-using Microsoft.Xna.Framework;
-using MonoGame.Extended;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class ScrollingTextAreaConfiguration : DrawerConfiguration
 {
@@ -22,4 +16,6 @@ public class ScrollingTextAreaConfiguration : DrawerConfiguration
     public SettingEntry<float> ScrollSpeed { get; init; }
 
     public SettingEntry<ScrollingTextAreaCurve> Curve { get; init; }
+
+    public SettingEntry<List<CombatEventFormatRule>> FormatRules { get; init; }
 }

@@ -114,13 +114,15 @@ public abstract class RenderTargetControl : Control
 
             if (this._renderTarget == null)
             {
+                using var ctx = GameService.Graphics.LendGraphicsDeviceContext();
+
                 this._renderTarget = new RenderTarget2D(
-                GameService.Graphics.GraphicsDevice,
+                ctx.GraphicsDevice,
                 width,
                 height,
                 false,
-                GameService.Graphics.GraphicsDevice.PresentationParameters.BackBufferFormat,
-                GameService.Graphics.GraphicsDevice.PresentationParameters.DepthStencilFormat,
+                ctx.GraphicsDevice.PresentationParameters.BackBufferFormat,
+                ctx.GraphicsDevice.PresentationParameters.DepthStencilFormat,
                 1,
                 RenderTargetUsage.PreserveContents);
 
@@ -129,7 +131,7 @@ public abstract class RenderTargetControl : Control
         }
     }
 
-    protected override void DisposeControl()
+    protected sealed override void DisposeControl()
     {
         using (this._renderTargetLock.Lock())
         {
@@ -141,5 +143,8 @@ public abstract class RenderTargetControl : Control
         }
 
         base.DisposeControl();
+        this.InternalDispose();
     }
+
+    protected virtual void InternalDispose() { /* NOOP */ }
 }

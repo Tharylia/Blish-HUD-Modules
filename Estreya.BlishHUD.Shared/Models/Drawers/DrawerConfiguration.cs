@@ -23,5 +23,7 @@ public class DrawerConfiguration
 
     public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> BackgroundColor { get; init; }
 
+    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> TextColor { get; init; }
+
     public SettingEntry<FontSize> FontSize { get; init; }
 }

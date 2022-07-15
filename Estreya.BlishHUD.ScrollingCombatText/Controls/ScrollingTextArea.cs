@@ -23,6 +23,7 @@ public class ScrollingTextArea : Container
 
     private readonly BitmapFont _font;
     private int _eventHeight;
+    private Color _textColor;
 
     private readonly SynchronizedCollection<ScrollingTextAreaEvent> _activeEvents = new SynchronizedCollection<ScrollingTextAreaEvent>();
 
@@ -43,12 +44,26 @@ public class ScrollingTextArea : Container
         this.Configuration.Opacity.SettingChanged += this.Opacity_SettingChanged;
         this.Configuration.BackgroundColor.SettingChanged += this.BackgroundColor_SettingChanged;
         this.Configuration.EventHeight.SettingChanged += this.EventHeight_SettingChanged;
+        this.Configuration.TextColor.SettingChanged += this.TextColor_SettingChanged;
 
         this.Location_SettingChanged(this, null);
         this.Size_SettingChanged(this, null);
         this.Opacity_SettingChanged(this, new ValueChangedEventArgs<float>(0f, this.Configuration.Opacity.Value));
         this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color>(null, this.Configuration.BackgroundColor.Value));
         this.EventHeight_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.EventHeight.Value));
+        this.TextColor_SettingChanged(this, new ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color>(null, this.Configuration.TextColor.Value));
+    }
+
+    private void TextColor_SettingChanged(object sender, ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color> e)
+    {
+        Color textColor = Color.Black;
+
+        if (e.NewValue != null && e.NewValue.Id != 1)
+        {
+            textColor = e.NewValue.Cloth.ToXnaColor();
+        }
+
+        this._textColor = textColor;
     }
 
     private void EventHeight_SettingChanged(object sender, ValueChangedEventArgs<int> e)
@@ -90,12 +105,14 @@ public class ScrollingTextArea : Container
             return;
         }
 
-        ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, this._font)
+        var rule = this.Configuration.FormatRules.Value.Find(rule => rule.Category == combatEvent.Category && rule.Type == combatEvent.Type);
+
+        ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, this._font)
         {
             Parent = this,
             Width = this.Width,
             Height = this._eventHeight,
-            TextColor = Color.Black,
+            TextColor = this._textColor,
             Opacity = 0f,
         };
 
@@ -174,6 +191,7 @@ public class ScrollingTextArea : Container
                     break;
                 case ScrollingTextAreaCurve.Right:
                     x += this.Width * (1 - (2 * percentage - 1) * (2 * percentage - 1));
+                    activeEvent.Visible = x < this.Width * 0.90;
                     break;
                 case ScrollingTextAreaCurve.Straight:
                     break;

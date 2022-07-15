@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.TradingPostWatcher
 {
     using Blish_HUD;
+    using Blish_HUD.Content;
     using Blish_HUD.Controls;
     using Blish_HUD.Modules;
     using Blish_HUD.Settings;
@@ -208,9 +209,19 @@
             }
         }
 
+        protected override AsyncTexture2D GetEmblem()
+        {
+            return this.IconState?.GetIcon("102495.png");
+        }
+
+        protected override AsyncTexture2D GetCornerIcon()
+        {
+            return this.IconState?.GetIcon("255379.png");
+        }
+
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"textures\tradingpost.png"), () =>
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () =>
             {
                 UI.Views.TrackedTransactionView trackedTransactionView = new UI.Views.TrackedTransactionView(this.TrackedTransactionState.TrackedTransactions)
                 {
@@ -234,9 +245,9 @@
                 return trackedTransactionView;
             }, "Tracked Transactions"));
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156736"), () => new UI.Views.Settings.GeneralSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GeneralSettings_Title));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"textures\tradingpost.png"), () => new UI.Views.Settings.TransactionSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"textures\graphics_settings.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GraphicSettings_Title));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GeneralSettings_Title));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GraphicSettings_Title));
 
         }
 

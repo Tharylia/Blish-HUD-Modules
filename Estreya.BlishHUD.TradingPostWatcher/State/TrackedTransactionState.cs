@@ -15,8 +15,6 @@ using System.Threading.Tasks;
 
 public class TrackedTransactionState : APIState<TrackedTransaction>
 {
-    private static readonly Logger Logger = Logger.GetLogger<TrackedTransactionState>();
-
     private const string FOLDER_NAME = "tracked";
     private const string FILE_NAME = "transactions.txt";
     private const string COLUMN_SPLIT = "<-->";

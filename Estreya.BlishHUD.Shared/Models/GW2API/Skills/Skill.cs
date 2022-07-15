@@ -250,13 +250,11 @@ public class Skill : IDisposable
         this.IconTexture = null;
     }
 
-    public async Task LoadTexture(IconState iconState, string iconUrlOverwrite = null)
+    public async Task LoadTexture(IconState iconState)
     {
-        iconUrlOverwrite ??= this.Icon;
-
-        if (!string.IsNullOrWhiteSpace(iconUrlOverwrite))
+        if (!string.IsNullOrWhiteSpace(this.Icon))
         {
-            this.IconTexture = await iconState.GetIconAsync(iconUrlOverwrite);
+            this.IconTexture = await iconState.GetIconAsync(this.Icon);
         }
     }
 }
