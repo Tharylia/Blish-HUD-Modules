@@ -13,6 +13,8 @@ public class DrawerConfiguration
 {
     public string Name { get; init; }
 
+    public SettingEntry<bool> Enabled { get; init; }
+
     public DrawerLocation Location { get; init; }
 
     public DrawerSize Size { get; init; }

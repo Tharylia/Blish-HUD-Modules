@@ -53,6 +53,8 @@
         {
             await base.LoadAsync();
 
+            this.ArcDPSState.ArcDPSServiceStopped += this.ArcDPSState_ArcDPSServiceStopped;
+
             // Wait for skills to be loaded.
             //await this.SkillState.WaitAsync();
 
@@ -88,6 +90,11 @@
 #endif
         }
 
+        private void ArcDPSState_ArcDPSServiceStopped(object sender, EventArgs e)
+        {
+            ScreenNotification.ShowNotification("ArcDPS Service stopped!", ScreenNotification.NotificationType.Error,duration: 10);
+        }
+
         protected override void HandleDefaultStates()
         {
             this.ArcDPSState.LocalCombatEvent += this.ArcDPSState_LocalCombatEvent;
@@ -97,7 +104,7 @@
         {
             foreach (var area in this._areas.Values)
             {
-                area.AddCombatEvent(new Shared.Models.ArcDPS.CombatEvent(e.Ev, e.Src, e.Dst, e.Category, e.Type) { Skill = e.Skill });
+                area.AddCombatEvent(new Shared.Models.ArcDPS.CombatEvent(e.Ev, e.Src, e.Dst, e.Category, e.Type,e.Group) { Skill = e.Skill });
             }
 
             e.Dispose();
@@ -122,7 +129,10 @@
 
             this._areas.Values.ToList().ForEach(area =>
             {
-                if (show)
+                // Don't show if disabled.
+                var showArea = show && area.Enabled;
+
+                if (showArea)
                 {
                     if (!area.Visible)
                     {
@@ -185,10 +195,12 @@
                 this.ModuleSettings.ScrollingAreaNames.Value = new List<string>(this.ModuleSettings.ScrollingAreaNames.Value) { configuration.Name };
             }
 
-            this._areas.Add(configuration.Name, new ScrollingTextArea(configuration)
+            var area = new ScrollingTextArea(configuration)
             {
                 Parent = GameService.Graphics.SpriteScreen
-            });
+            };
+
+            this._areas.Add(configuration.Name, area);
         }
 
         private void RemoveArea(ScrollingTextAreaConfiguration configuration)
@@ -196,7 +208,7 @@
             this.ModuleSettings.ScrollingAreaNames.Value = new List<string>(this.ModuleSettings.ScrollingAreaNames.Value.Where(areaName => areaName != configuration.Name));
 
             this._areas[configuration.Name]?.Dispose();
-            this._areas.Remove(configuration.Name);
+            _ = this._areas.Remove(configuration.Name);
 
             this.ModuleSettings.RemoveDrawer(configuration.Name);
         }
@@ -207,8 +219,6 @@
 
             this.ToggleContainers(this.ShowUI);
 
-            //this.Drawer.UpdatePosition(this.ModuleSettings.LocationX.Value, this.ModuleSettings.LocationY.Value); // Handle windows resize
-
             foreach (var area in this._areas.Values)
             {
                 this.ModuleSettings.CheckDrawerSizeAndPosition(area.Configuration);
@@ -218,12 +228,6 @@
         /// <inheritdoc />
         protected override void Unload()
         {
-            this.Logger.Debug("Unload base.");
-
-            base.Unload();
-
-            this.Logger.Debug("Unloaded base.");
-
             this.Logger.Debug("Unload drawer.");
 
             foreach (var area in this._areas.Values)
@@ -236,7 +240,14 @@
             this.Logger.Debug("Unloaded drawer.");
 
             this.Logger.Debug("Unloading states...");
+            this.ArcDPSState.ArcDPSServiceStopped -= this.ArcDPSState_ArcDPSServiceStopped;
             this.Logger.Debug("Finished unloading states.");
+
+            this.Logger.Debug("Unload base.");
+
+            base.Unload();
+
+            this.Logger.Debug("Unloaded base.");
         }
 
         protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)

@@ -12,6 +12,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 public class Skill : IDisposable
@@ -250,11 +251,11 @@ public class Skill : IDisposable
         this.IconTexture = null;
     }
 
-    public async Task LoadTexture(IconState iconState)
+    public async Task LoadTexture(IconState iconState, CancellationToken cancellationToken)
     {
         if (!string.IsNullOrWhiteSpace(this.Icon))
         {
-            this.IconTexture = await iconState.GetIconAsync(this.Icon);
+            this.IconTexture = await iconState.GetIconAsync(this.Icon, cancellationToken);
         }
     }
 }

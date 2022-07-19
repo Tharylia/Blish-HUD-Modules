@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.Models;
 
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
+using Gw2Sharp.WebApi.V2.Models;
 using HandlebarsDotNet;
 using Humanizer;
 using System;
@@ -9,12 +10,15 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static Blish_HUD.ContentService;
 
 public class CombatEventFormatRule
 {
     public CombatEventCategory Category { get; init; }
 
     public CombatEventType Type { get; init; }
+
+    public string Name => $"{this.Category.Humanize()} - {this.Type.Humanize()}";
 
     [Description(
         "Supports the following attributes:\n\n" +
@@ -34,6 +38,10 @@ public class CombatEventFormatRule
         "{{destination.team}} = The team id of the destination entity.\n" +
         "{{value}} = The dmg/buff value of the event.")]
     public string Format { get; set; }
+
+    public FontSize FontSize { get; set; }
+
+    public Color TextColor { get; set; }
 
     public string FormatEvent(CombatEvent combatEvent)
     {
@@ -69,19 +77,19 @@ public class CombatEventFormatRule
             type,
             source = new 
             {
-                id = combatEvent.Src.Id,
-                name = combatEvent.Src.Name,
-                profession = combatEvent.Src.Profession,
-                elite = combatEvent.Src.Elite,
-                team = combatEvent.Src.Team
+                id = combatEvent.Src?.Id ?? 0,
+                name = combatEvent.Src?.Name ?? "Unknown",
+                profession = combatEvent.Src?.Profession ?? 0,
+                elite = combatEvent.Src?.Elite ?? 0,
+                team = combatEvent.Src?.Team ?? 0
             },
             destination = new
             {
-                id = combatEvent.Dst.Id,
-                name = combatEvent.Dst.Name,
-                profession = combatEvent.Dst.Profession,
-                elite = combatEvent.Dst.Elite,
-                team = combatEvent.Dst.Team
+                id = combatEvent.Dst?.Id ?? 0,
+                name = combatEvent.Dst?.Name ?? "Unknown",
+                profession = combatEvent.Dst?.Profession ?? 0,
+                elite = combatEvent.Dst?.Elite ?? 0,
+                team = combatEvent.Dst?.Team ?? 0
             },
             skill = new
             {

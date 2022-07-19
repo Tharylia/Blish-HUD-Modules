@@ -5,6 +5,7 @@
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public abstract class ManagedState : IDisposable
@@ -14,6 +15,8 @@
         private readonly int _saveInterval;
 
         private readonly AsyncRef<double> _lastSaved = 0;
+
+        protected CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
 
         public bool Running { get; private set; } = false;
         public bool AwaitLoad { get; }
@@ -129,6 +132,8 @@
             }
 
             Logger.Debug("Unloading state.");
+
+            this.CancellationTokenSource?.Cancel();
 
             this.InternalUnload();
         }

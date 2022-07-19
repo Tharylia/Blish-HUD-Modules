@@ -7,6 +7,7 @@ using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Helpers;
 using Estreya.BlishHUD.Shared.Resources;
 using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.UI.Views.Controls;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
@@ -87,6 +88,9 @@ public abstract class BaseView : View
             {
                 Location = new Point(10, 10),
                 Parent = ColorPickerPanel,
+                HeightSizingMode = SizingMode.AutoSize,
+                WidthSizingMode = SizingMode.AutoSize,
+                CanScroll = true,
                 Visible = true
             };
 
@@ -302,27 +306,80 @@ public abstract class BaseView : View
         return button;
     }
 
-    protected Label RenderLabel(Panel parent, string title, string value = null, Color? textColorTitle = null, Color? textColorValue = null)
+    protected (Label TitleLabel, Label ValueLabel) RenderLabel(Panel parent, string title, string value = null, Color? textColorTitle = null, Color? textColorValue = null)
     {
         Panel panel = this.GetPanel(parent);
 
         Label titleLabel = this.GetLabel(panel, title);
         titleLabel.TextColor = textColorTitle ?? titleLabel.TextColor;
 
+        Label valueLabel = null;
+
         if (value != null)
         {
-            Label valueLabel = this.GetLabel(panel, value);
+            valueLabel = this.GetLabel(panel, value);
             valueLabel.Left = titleLabel.Right + CONTROL_X_SPACING;
             valueLabel.TextColor = textColorValue ?? valueLabel.TextColor;
-            return valueLabel;
         }
         else
         {
             titleLabel.AutoSizeWidth = true;
         }
 
-        return titleLabel;
+        return (titleLabel,valueLabel);
 
+    }
+
+    protected ColorBox RenderColor(Panel parent, Gw2Sharp.WebApi.V2.Models.Color defaultColor, string identifierKey, Action<Gw2Sharp.WebApi.V2.Models.Color> onChange)
+    {
+        Panel panel = this.GetPanel(parent);
+
+        ColorBox colorBox = new ColorBox()
+        {
+            Location = new Point(0, 0),
+            Parent = panel,
+            Color = defaultColor
+        };
+
+        colorBox.LeftMouseButtonPressed += (s, e) =>
+        {
+            ColorPickerPanel.Parent = parent;
+            ColorPickerPanel.HeightSizingMode = SizingMode.Fill;
+            ColorPickerPanel.WidthSizingMode = SizingMode.Fill;
+            //ColorPickerPanel.Size = new Point(panel.Width - 30, 850);
+
+            // Hack to get lineup right
+            Gw2Sharp.WebApi.V2.Models.Color tempColor = new Gw2Sharp.WebApi.V2.Models.Color()
+            {
+                Id = int.MaxValue,
+                Name = "temp"
+            };
+
+            ColorPicker.RecalculateLayout();
+            ColorPicker.Colors.Add(tempColor);
+            ColorPicker.Colors.Remove(tempColor);
+            ColorPicker.RecalculateLayout();
+
+            ColorPickerPanel.Visible = !ColorPickerPanel.Visible;
+            this.SelectedColorSetting = identifierKey;
+        };
+
+        ColorPicker.SelectedColorChanged += (sender, eArgs) =>
+        {
+            if (this.SelectedColorSetting != identifierKey)
+            {
+                return;
+            }
+
+            Gw2Sharp.WebApi.V2.Models.Color selectedColor = ColorPicker.SelectedColor;
+
+            onChange?.Invoke(selectedColor);
+            ColorPickerPanel.Visible = false;
+            ColorPickerPanel.Parent = null;
+            colorBox.Color = selectedColor;
+        };
+
+        return colorBox;
     }
 
     private void RegisterErrorPanel(Container parent)

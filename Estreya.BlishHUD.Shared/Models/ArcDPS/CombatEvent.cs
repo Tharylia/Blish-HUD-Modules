@@ -15,15 +15,17 @@ public class CombatEvent
     public Ag Dst { get; private set; }
     public CombatEventCategory Category { get; }
     public CombatEventType Type { get; }
+    public CombatEventGroup Group { get; }
     public Skill Skill { get; set; }
 
-    public CombatEvent(Ev ev, Ag src, Ag dst, CombatEventCategory category, CombatEventType type)
+    public CombatEvent(Ev ev, Ag src, Ag dst, CombatEventCategory category, CombatEventType type, CombatEventGroup group)
     {
         this.Ev = ev;
         this.Src = src;
         this.Dst = dst;
         this.Category = category;
         this.Type = type;
+        this.Group = group;
     }
 
     public void Dispose()

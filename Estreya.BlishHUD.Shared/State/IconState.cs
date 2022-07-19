@@ -13,6 +13,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 
 public class IconState : ManagedState
@@ -85,13 +86,16 @@ public class IconState : ManagedState
 
     protected override void InternalUpdate(GameTime gameTime) { }
 
-    protected override async Task Load()
+    protected override Task Load()
     {
-        await this.LoadImages();
+        return Task.CompletedTask;
+        //await this.LoadImages();
     }
 
-    protected override async Task Save()
+    protected override Task Save()
     {
+        return Task.CompletedTask;
+        /*
         Logger.Debug("Save loaded textures to filesystem.");
 
         if (!Directory.Exists(this.Path))
@@ -139,6 +143,7 @@ public class IconState : ManagedState
                 }
             }
         }
+        */
     }
 
     private Task LoadImages()
@@ -235,7 +240,7 @@ public class IconState : ManagedState
         using (this._textureLock.Lock())
         {
             AsyncTexture2D icon = null;
-            string sanitizedIdentifier = null;
+            //string sanitizedIdentifier = null;
             foreach (IconSource source in iconSources)
             {
                 var sourceIdentifier = this.ParseIdentifierBySource(identifier, source);
@@ -245,12 +250,14 @@ public class IconState : ManagedState
                     continue;
                 }
 
+                /*
                 sanitizedIdentifier = FileUtil.SanitizeFileName(System.IO.Path.ChangeExtension(sourceIdentifier, null));
 
                 if (this._loadedTextures.ContainsKey(sanitizedIdentifier))
                 {
                     return this._loadedTextures[sanitizedIdentifier];
                 }
+                */
 
                 try
                 {
@@ -294,17 +301,17 @@ public class IconState : ManagedState
 
             //this.HandleAsyncTextureSwap(icon, sanitizedIdentifier);
 
-            this._loadedTextures.Add(sanitizedIdentifier, icon);
+            //this._loadedTextures.Add(sanitizedIdentifier, icon);
             return icon;
         }
     }
 
-    public Task<AsyncTexture2D> GetIconAsync(string identifier)
+    public Task<AsyncTexture2D> GetIconAsync(string identifier, CancellationToken cancellationToken)
     {
         return Task.Run(() =>
         {
             return this.GetIcon(identifier);
-        });
+        }, cancellationToken);
     }
 
     public override Task Clear() => Task.CompletedTask;

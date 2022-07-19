@@ -1,9 +1,7 @@
 ﻿namespace Estreya.BlishHUD.Shared.State;
 
-using Blish_HUD;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
@@ -153,7 +151,7 @@ public class SkillState : APIState<Skill>
             if (Directory.Exists(this.FullPath))
             {
                 // TEST
-                var missingSkillPath = Path.Combine(this.FullPath, "missingSkills.json");
+                string missingSkillPath = Path.Combine(this.FullPath, "missingSkills.json");
                 if (File.Exists(missingSkillPath))
                 {
                     this._missingSkillsFromAPIReportedByArcDPS = JsonConvert.DeserializeObject<ConcurrentDictionary<int, string>>(await FileUtil.ReadStringAsync(missingSkillPath));
@@ -171,7 +169,7 @@ public class SkillState : APIState<Skill>
                 string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
                 if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
                 {
-                    Logger.Debug("Failed parsing last updated.");
+                    this.Logger.Debug("Failed parsing last updated.");
                 }
                 else
                 {
@@ -220,20 +218,20 @@ public class SkillState : APIState<Skill>
                 await this.Save();
             }
 
-            Logger.Debug("Loaded {0} skills.", this.APIObjectList.Count);
+            this.Logger.Debug("Loaded {0} skills.", this.APIObjectList.Count);
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex, "Failed loading skills:");
+            this.Logger.Warn(ex, "Failed loading skills:");
         }
     }
 
     protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager)
     {
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync();
+        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync(this.CancellationTokenSource.Token);
         List<Skill> skills = skillResponse.Select(skill => Skill.FromAPISkill(skill)).ToList();
 
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync();
+        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync(this.CancellationTokenSource.Token);
         skills = skills.Concat(traitResponse.Select(trait => Skill.FromAPITrait(trait))).ToList();
 
         IEnumerable<Gw2Sharp.WebApi.V2.Models.TraitSkill> traitSkills = traitResponse.Where(trait => trait.Skills != null).SelectMany(trait => trait.Skills);
@@ -294,7 +292,7 @@ public class SkillState : APIState<Skill>
     {
         IEnumerable<Task> skillLoadTasks = skills.Select(skill =>
         {
-            return skill.LoadTexture(this._iconState);
+            return skill.LoadTexture(this._iconState, this.CancellationTokenSource.Token);
         });
 
         await Task.WhenAll(skillLoadTasks);
@@ -323,11 +321,11 @@ public class SkillState : APIState<Skill>
         {
 
             // TEST
-            var missingSkillPath = Path.Combine(this.FullPath, "missingSkills.json");
+            string missingSkillPath = Path.Combine(this.FullPath, "missingSkills.json");
 
             await FileUtil.WriteStringAsync(missingSkillPath, JsonConvert.SerializeObject(this._missingSkillsFromAPIReportedByArcDPS.OrderBy(skill => skill.Value).ToDictionary(skill => skill.Key, skill => skill.Value), Formatting.Indented));
             // Test
-        }, gameTime, 10000, _lastSaveMissingSkill);
+        }, gameTime, 60000, this._lastSaveMissingSkill);
     }
 
     private async Task CreateLastUpdatedFile()
@@ -337,7 +335,10 @@ public class SkillState : APIState<Skill>
 
     public Skill GetByName(string name)
     {
-        if (this.Loading) return null;
+        if (this.Loading)
+        {
+            return null;
+        }
 
         using (this._apiObjectListLock.Lock())
         {
@@ -355,7 +356,10 @@ public class SkillState : APIState<Skill>
 
     public Skill GetById(int id)
     {
-        if (this.Loading) return null;
+        if (this.Loading)
+        {
+            return null;
+        }
 
         using (this._apiObjectListLock.Lock())
         {

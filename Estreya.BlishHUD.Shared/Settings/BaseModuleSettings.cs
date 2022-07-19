@@ -194,6 +194,8 @@
             int maxHeight = 1080;
             int maxWidth = 1920;
 
+            var enabled = this.DrawerSettings.DefineSetting($"{name}-enabled", true, () => "Enabled", () => "Whether the drawer is enabled.");
+
             var locationX = this.DrawerSettings.DefineSetting($"{name}-locationX", (int)(maxWidth * 0.1), () => Strings.Setting_LocationX_Name, () => Strings.Setting_LocationX_Description);
             locationX.SetRange(0, maxWidth);
             var locationY = this.DrawerSettings.DefineSetting($"{name}-locationY", (int)(maxHeight * 0.1), () => Strings.Setting_LocationY_Name, () => Strings.Setting_LocationY_Description);
@@ -213,6 +215,7 @@
             DrawerConfiguration configuration = new DrawerConfiguration()
             {
                 Name = name,
+                Enabled = enabled,
                 Location = new DrawerLocation()
                 {
                     X = locationX,
@@ -235,6 +238,7 @@
 
         public void RemoveDrawer(string name)
         {
+            this.DrawerSettings.UndefineSetting($"{name}-enabled");
             this.DrawerSettings.UndefineSetting($"{name}-locationX");
             this.DrawerSettings.UndefineSetting($"{name}-locationY");
             this.DrawerSettings.UndefineSetting($"{name}-width");

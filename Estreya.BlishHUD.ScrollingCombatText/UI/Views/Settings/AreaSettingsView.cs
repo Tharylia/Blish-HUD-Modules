@@ -19,6 +19,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using static Blish_HUD.ContentService;
 
 public class AreaSettingsView : BaseSettingsView
 {
@@ -50,7 +51,7 @@ public class AreaSettingsView : BaseSettingsView
 
         parent = newParent;
 
-        var bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - PADDING_X * 2, parent.ContentRegion.Height - PADDING_Y * 2);
+        var bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - PADDING_X, parent.ContentRegion.Height - PADDING_Y * 2);
 
         var areaOverviewPanel = this.GetPanel(parent);
         areaOverviewPanel.ShowBorder = true;
@@ -58,7 +59,7 @@ public class AreaSettingsView : BaseSettingsView
         areaOverviewPanel.HeightSizingMode = SizingMode.Standard;
         areaOverviewPanel.WidthSizingMode = SizingMode.Standard;
         areaOverviewPanel.Location = new Point(bounds.X, bounds.Y);
-        areaOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X, bounds.Height - StandardButton.STANDARD_CONTROL_HEIGHT);
+        areaOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X - 75, bounds.Height - StandardButton.STANDARD_CONTROL_HEIGHT);
 
         var areaOverviewMenu = new Shared.Controls.Menu
         {
@@ -84,7 +85,7 @@ public class AreaSettingsView : BaseSettingsView
         }
 
         var x = areaOverviewPanel.Right + Panel.MenuStandard.PanelOffset.X;
-        var areaPanelBounds = new Rectangle(x, bounds.Y, bounds.Width -  x, bounds.Height);
+        var areaPanelBounds = new Rectangle(x, bounds.Y, bounds.Width - x, bounds.Height);
 
         this._menuItems.ToList().ForEach(menuItem =>
         {
@@ -168,7 +169,7 @@ public class AreaSettingsView : BaseSettingsView
         cancelButton.Right = saveButton.Left - 10;
         cancelButton.Bottom = panelBounds.Bottom - 20;
 
-        areaName.Width = (panelBounds.Right - 20) - areaName.Left ;
+        areaName.Width = (panelBounds.Right - 20) - areaName.Left;
     }
 
     private void BuildEditPanel(Panel parent, Rectangle bounds, MenuItem menuItem, ScrollingTextAreaConfiguration areaConfiguration)
@@ -180,7 +181,7 @@ public class AreaSettingsView : BaseSettingsView
 
         this.CreateAreaPanel(parent, bounds);
 
-        var panelBounds = this._areaPanel.ContentRegion;
+        var panelBounds = new Rectangle(this._areaPanel.ContentRegion.Location, new Point(this._areaPanel.ContentRegion.Size.X - 50, this._areaPanel.ContentRegion.Size.Y));
 
         Label areaName = new Label()
         {
@@ -203,6 +204,10 @@ public class AreaSettingsView : BaseSettingsView
             CanScroll = true
         };
 
+        this.RenderSetting(settingsPanel, areaConfiguration.Enabled);
+
+        this.RenderEmptyLine(settingsPanel);
+
         this.RenderSetting(settingsPanel, areaConfiguration.Location.X);
         this.RenderSetting(settingsPanel, areaConfiguration.Location.Y);
 
@@ -219,179 +224,128 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
+        this.RenderColorSetting(settingsPanel, areaConfiguration.BackgroundColor);
         this.RenderSetting(settingsPanel, areaConfiguration.Opacity);
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderColorSetting(settingsPanel, areaConfiguration.BackgroundColor);
-
-        this.RenderEmptyLine(settingsPanel);
-
-        this.RenderSetting(settingsPanel, areaConfiguration.FontSize);
-        this.RenderColorSetting(settingsPanel, areaConfiguration.TextColor);
-
-        this.RenderEmptyLine(settingsPanel);
-
-        Action<Label> resizeLabelToText = (label) =>
-        {
-            label.AutoSizeHeight = false;
-            var height = (int)label.Font.MeasureString(label.Text).Height;
-            if (height <= 0)
-            {
-                height = label.Font.LineHeight;
-            }
-
-            label.Height = height;
-        };
-
         #region Categories
         var categoryPanel = this.GetPanel(settingsPanel);
 
-        Func<ScrollingTextAreaConfiguration, string> getCategoriesAsString = (configuration) => configuration.Categories.Value.Select(category => category.Humanize()).DefaultIfEmpty("----").Aggregate((a, b) => $"{a}, {b}");
-       
+        var categoriesLabel = this.RenderLabel(categoryPanel, "Categories").TitleLabel;
+        categoriesLabel.AutoSizeWidth = false;
+        categoriesLabel.Width = panelBounds.Width;
+        categoriesLabel.HorizontalAlignment = HorizontalAlignment.Center;
 
-        var currentCategoriesLabel = this.RenderLabel(categoryPanel, "Categories", getCategoriesAsString.Invoke(areaConfiguration));
-        currentCategoriesLabel.WrapText = true;
-
-        Dropdown categorySelect = new Dropdown()
+        var categorySelectPanel = new FlowPanel()
         {
             Parent = categoryPanel,
-            Top = currentCategoriesLabel.Bottom + 5
+            Top = categoriesLabel.Bottom + 20,
+            ControlPadding = new Vector2(20, 0),
+            FlowDirection = ControlFlowDirection.LeftToRight,
+            Width = panelBounds.Width,
+            HeightSizingMode = SizingMode.AutoSize
         };
-
-        foreach (var category in (CombatEventCategory[])Enum.GetValues(typeof(CombatEventCategory)))
-        {
-            categorySelect.Items.Add(category.Humanize());
-        }
-
-        categorySelect.SelectedItem = areaConfiguration.Categories.Value.FirstOrDefault().Humanize();
-
-        var addCategoryButton = this.RenderButton(categoryPanel, "Add", () =>
-        {
-            var newCategory = ((CombatEventCategory[])Enum.GetValues(typeof(CombatEventCategory))).First(category => category.Humanize() == categorySelect.SelectedItem);
-            if (!areaConfiguration.Categories.Value.Contains(newCategory))
-            {
-                areaConfiguration.Categories.Value = new List<CombatEventCategory>(areaConfiguration.Categories.Value) { newCategory };
-                currentCategoriesLabel.Text = getCategoriesAsString.Invoke(areaConfiguration);
-            }
-            else
-            {
-                this.ShowError("Category already added.");
-            }
-        });
-        addCategoryButton.Left = categorySelect.Right + 5;
-        addCategoryButton.Top = categorySelect.Top;
-
-        var removeCategoryButton = this.RenderButton(categoryPanel, "Remove", () =>
-        {
-            areaConfiguration.Categories.Value = new List<CombatEventCategory>(areaConfiguration.Categories.Value.Where(category => category.Humanize() != categorySelect.SelectedItem));
-            currentCategoriesLabel.Text = getCategoriesAsString.Invoke(areaConfiguration);
-        });
-        removeCategoryButton.Left = addCategoryButton.Right + 5;
-        removeCategoryButton.Top = addCategoryButton.Top;
         #endregion
+
+        this.RenderEmptyLine(settingsPanel);
 
         #region Types
         var typePanel = this.GetPanel(settingsPanel);
 
-        Func<ScrollingTextAreaConfiguration, string> getTypesAsString = (configuration) => configuration.Types.Value.Select(type => type.Humanize()).DefaultIfEmpty("----").Aggregate((a, b) => $"{a}, {b}");
+        var typesLabel = this.RenderLabel(typePanel, "Types").TitleLabel;
+        typesLabel.AutoSizeWidth = false;
+        typesLabel.Width = panelBounds.Width;
+        typesLabel.HorizontalAlignment = HorizontalAlignment.Center;
 
-
-        var currentTypesLabel = this.RenderLabel(typePanel, "Types", getTypesAsString.Invoke(areaConfiguration));
-        currentTypesLabel.WrapText = true;
-
-        Dropdown typeSelect = new Dropdown()
+        var typeSelectPanel = new FlowPanel()
         {
             Parent = typePanel,
-            Top = currentTypesLabel.Bottom + 5
+            Top = typesLabel.Bottom + 20,
+            ControlPadding = new Vector2(20, 0),
+            FlowDirection = ControlFlowDirection.LeftToRight,
+            Width = panelBounds.Width,
+            HeightSizingMode = SizingMode.AutoSize
         };
-
-        foreach (var type in (CombatEventType[])Enum.GetValues(typeof(CombatEventType)))
-        {
-            if (!new CombatEventType[] { CombatEventType.BUFF, CombatEventType.MIGHT, CombatEventType.FURY, CombatEventType.REGENERATION, CombatEventType.PROTECTION, CombatEventType.QUICKNESS, CombatEventType.ALACRITY, CombatEventType.VIGOR, CombatEventType.STABILITY, CombatEventType.AEGIS, CombatEventType.SWIFTNESS, CombatEventType.RESISTENCE, CombatEventType.STEALTH, CombatEventType.SUPERSPEED, CombatEventType.RESOLUTION }.Contains(type))
-            {
-                typeSelect.Items.Add(type.Humanize());
-            }
-        }
-
-        typeSelect.SelectedItem = areaConfiguration.Types.Value.FirstOrDefault().Humanize();
-
-        var addTypeButton = this.RenderButton(typePanel, "Add", () =>
-        {
-            var newType = ((CombatEventType[])Enum.GetValues(typeof(CombatEventType))).First(type => type.Humanize() == typeSelect.SelectedItem);
-            if (!areaConfiguration.Types.Value.Contains(newType))
-            {
-                areaConfiguration.Types.Value = new List<CombatEventType>(areaConfiguration.Types.Value) { newType };
-                currentTypesLabel.Text = getTypesAsString.Invoke(areaConfiguration);
-            }
-            else
-            {
-                this.ShowError("Type already added.");
-            }
-        });
-        addTypeButton.Left = typeSelect.Right + 5;
-        addTypeButton.Top = typeSelect.Top;
-
-        var removeTypeButton = this.RenderButton(typePanel, "Remove", () =>
-        {
-            areaConfiguration.Types.Value = new List<CombatEventType>(areaConfiguration.Types.Value.Where(type => type.Humanize() != typeSelect.SelectedItem));
-            currentTypesLabel.Text = getTypesAsString.Invoke(areaConfiguration);
-        });
-        removeTypeButton.Left = addTypeButton.Right + 5;
-        removeTypeButton.Top = addTypeButton.Top;
         #endregion
 
         this.RenderEmptyLine(settingsPanel);
 
         #region Format Rules
-        var formatRulesLabel = this.RenderLabel(settingsPanel, "Format Rules");
+        var formatRulesLabel = this.RenderLabel(settingsPanel, "Format Rules").TitleLabel;
         formatRulesLabel.AutoSizeWidth = false;
-        formatRulesLabel.Width = panelBounds.Width - 50;
+        formatRulesLabel.Width = panelBounds.Width;
         formatRulesLabel.HorizontalAlignment = HorizontalAlignment.Center;
 
         this.RenderEmptyLine(settingsPanel);
 
-        var formatRulesPanel = new FlowPanel()
+        var formatRulesPanel = this.GetPanel(settingsPanel);
+
+        #region Add Category Checkboxes
+        foreach (var category in (CombatEventCategory[])Enum.GetValues(typeof(CombatEventCategory)))
         {
-            Parent = settingsPanel,
-            FlowDirection = ControlFlowDirection.SingleTopToBottom,
-            HeightSizingMode = SizingMode.AutoSize,
-            WidthSizingMode = SizingMode.AutoSize
-        };
-
-        foreach (var formatRule in areaConfiguration.FormatRules.Value)
-        {
-            var formatRulePanel = this.GetPanel(formatRulesPanel);
-
-            var formatRuleCategory = formatRule.Category;
-            var formatRuleType = formatRule.Type;
-            var formatRuleLabel = this.GetLabel(formatRulePanel, $"{formatRuleCategory} - {formatRuleType}");
-
-            var formatRuleText = new TextBox()
+            var categoryCheckbox = new Checkbox()
             {
-                Parent = formatRulePanel,
-                Font = GameService.Content.DefaultFont18,
-                Left = formatRuleLabel.Right,
-                PlaceholderText = "Format",
-                Text = formatRule.Format,
-                BasicTooltipText = formatRule.GetType().GetProperty(nameof(formatRule.Format)).GetCustomAttribute< DescriptionAttribute>()?.Description
+                Parent = categorySelectPanel,
+                Text = category.Humanize(),
+                Checked = areaConfiguration.Categories.Value.Contains(category)
             };
 
-            formatRuleText.Width = panelBounds.Width - formatRuleText.Left - 50;
-
-            formatRuleText.TextChanged += (s, e) =>
+            categoryCheckbox.CheckedChanged += (s, e) =>
             {
-                var valueChangeArgs = e as ValueChangedEventArgs<string>;
+                var value = ((CombatEventCategory[])Enum.GetValues(typeof(CombatEventCategory))).ToList().Find(category => category.Humanize() == categoryCheckbox.Text);
+                if (categoryCheckbox.Checked)
+                {
+                    areaConfiguration.Categories.Value = new List<CombatEventCategory>(areaConfiguration.Categories.Value) { value };
+                }
+                else
+                {
+                    areaConfiguration.Categories.Value = new List<CombatEventCategory>(areaConfiguration.Categories.Value.Where(category => category != value));
+                }
 
-                formatRule.Format = valueChangeArgs.NewValue;
-
-                areaConfiguration.FormatRules.Value = new List<CombatEventFormatRule>(areaConfiguration.FormatRules.Value);
+                this.BuildFormatRulesArea(formatRulesPanel, panelBounds, areaConfiguration);
             };
-
-            this.RenderEmptyLine(formatRulesPanel, 2);
         }
+
+        categorySelectPanel.RecalculateLayout();
         #endregion
 
+        #region Add Types Checkboxes
+        foreach (var type in (CombatEventType[])Enum.GetValues(typeof(CombatEventType)))
+        {
+            if (new CombatEventType[] { CombatEventType.NONE, CombatEventType.BUFF, CombatEventType.MIGHT, CombatEventType.FURY, CombatEventType.REGENERATION, CombatEventType.PROTECTION, CombatEventType.QUICKNESS, CombatEventType.ALACRITY, CombatEventType.VIGOR, CombatEventType.STABILITY, CombatEventType.AEGIS, CombatEventType.SWIFTNESS, CombatEventType.RESISTENCE, CombatEventType.STEALTH, CombatEventType.SUPERSPEED, CombatEventType.RESOLUTION }.Contains(type))
+            {
+                continue;
+            }
+
+            var typeCheckbox = new Checkbox()
+            {
+                Parent = typeSelectPanel,
+                Text = type.Humanize(),
+                Checked = areaConfiguration.Types.Value.Contains(type)
+            };
+
+            typeCheckbox.CheckedChanged += (s, e) =>
+            {
+                var value = ((CombatEventType[])Enum.GetValues(typeof(CombatEventType))).ToList().Find(category => category.Humanize() == typeCheckbox.Text);
+                if (typeCheckbox.Checked)
+                {
+                    areaConfiguration.Types.Value = new List<CombatEventType>(areaConfiguration.Types.Value) { value };
+                }
+                else
+                {
+                    areaConfiguration.Types.Value = new List<CombatEventType>(areaConfiguration.Types.Value.Where(type => type != value));
+                }
+
+                this.BuildFormatRulesArea(formatRulesPanel, panelBounds, areaConfiguration);
+            };
+        }
+
+        typeSelectPanel.RecalculateLayout();
+        #endregion
+
+        this.BuildFormatRulesArea(formatRulesPanel, panelBounds, areaConfiguration);
+        #endregion
 
         var removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
         {
@@ -403,42 +357,135 @@ public class AreaSettingsView : BaseSettingsView
         });
 
         removeButton.Top = areaName.Top;
-        removeButton.Right = panelBounds.Right - 20;
+        removeButton.Right = panelBounds.Right;
 
-        areaName.Width = removeButton.Left - 20 - panelBounds.Left;
+        areaName.Width = removeButton.Left - areaName.Left;
+    }
 
+    private void BuildFormatRulesArea(Panel parent, Rectangle bounds, ScrollingTextAreaConfiguration areaConfiguration)
+    {
+        parent.ClearChildren();
 
-        //StandardButton saveButton = this.RenderButton(this._areaPanel, "Save", () =>
-        //{
-        //    try
-        //    {
-        //        var name = areaName.Text;
+        var currentFormatRules = areaConfiguration.FormatRules.Value.Where(rule => areaConfiguration.Categories.Value.Contains(rule.Category) && areaConfiguration.Types.Value.Contains(rule.Type)).ToList();
 
-        //        if (this._areaConfiguration.Any(configuration => configuration.Name == name && configuration.GetHashCode() != areaConfiguration.GetHashCode()))
-        //        {
-        //            this.ShowError("Name already used");
-        //            return;
-        //        }
+        if (currentFormatRules.Count == 0)
+        {
+            return;
+        }
 
-        //        areaConfiguration.Name = name;
-        //        areaConfiguration.WishPrice = GW2Utils.ToCoins(int.Parse(goldInput.Text), int.Parse(silverInput.Text), int.Parse(copperInput.Text));
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        this.ShowError(ex.Message);
-        //    }
-        //});
-        //saveButton.Right = panelBounds.Right - 20;
-        //saveButton.Bottom = panelBounds.Bottom - 20;
+        Action changedAction = () => areaConfiguration.FormatRules.Value = new List<CombatEventFormatRule>(areaConfiguration.FormatRules.Value);
 
-        //StandardButton cancelButton = this.RenderButton(this._areaPanel, "Cancel", () =>
-        //{
-        //    this.ClearAreaPanel();
-        //});
-        //cancelButton.Right = saveButton.Left - 10;
-        //cancelButton.Bottom = panelBounds.Bottom - 20;
+        var formatRulesMenuPanel = this.GetPanel(parent);
+        formatRulesMenuPanel.ShowBorder = true;
+        var formatRulesMenu = new Shared.Controls.Menu()
+        {
+            Parent = formatRulesMenuPanel,
+            Width = Panel.MenuStandard.Size.X
+        };
 
-        areaName.Width = removeButton.Left - 20 - areaName.Left;
+        Rectangle formatRuleAreaBounds = new Rectangle(formatRulesMenu.Right + Panel.MenuStandard.PanelOffset.X, formatRulesMenu.Top, bounds.Width - formatRulesMenu.Right - Panel.MenuStandard.PanelOffset.X, 600);
+
+        Panel formatRuleArea = new Panel()
+        {
+            Parent = parent,
+            Location = formatRuleAreaBounds.Location,
+            Size = formatRuleAreaBounds.Size
+        };
+
+        foreach (var formatRule in currentFormatRules)
+        {
+            var formatRuleMenuItem = formatRulesMenu.AddMenuItem(formatRule.Name);
+
+            formatRuleMenuItem.Click += (s, e) =>
+            {
+                formatRuleArea.ClearChildren();
+                this.BuildFormatRuleArea(formatRuleArea, formatRuleAreaBounds, formatRule, changedAction);
+            };
+        }
+    }
+
+    private void BuildFormatRuleArea(Panel parent, Rectangle bounds, CombatEventFormatRule formatRule, Action changedAction)
+    {
+        Label formatName = new Label()
+        {
+            Parent = parent,
+            Font = GameService.Content.DefaultFont18,
+            AutoSizeHeight = true,
+            Text = formatRule.Name,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+
+        formatName.Width = bounds.Width;
+
+        var formatRuleTextLabel = this.RenderLabel(parent, "Format").TitleLabel;
+        formatRuleTextLabel.Location = new Point(0, formatName.Bottom + 20);
+
+        var formatRuleText = new TextBox
+        {
+            Parent = parent,
+            Location = new Point(formatRuleTextLabel.Right + 20, formatRuleTextLabel.Top),
+            Font = GameService.Content.DefaultFont18,
+            PlaceholderText = "Format",
+            Text = formatRule.Format,
+            BasicTooltipText = formatRule.GetType().GetProperty(nameof(formatRule.Format)).GetCustomAttribute<DescriptionAttribute>()?.Description,
+        };
+
+        formatRuleText.Width = bounds.Width  - formatRuleText.Left;
+
+        formatRuleText.TextChanged += (s, e) =>
+        {
+            var valueChangeArgs = e as ValueChangedEventArgs<string>;
+
+            formatRule.Format = valueChangeArgs.NewValue;
+
+            changedAction?.Invoke();
+        };
+
+        var formatRuleTextSizeSelectLabel = this.RenderLabel(parent, "Text Size").TitleLabel;
+        formatRuleTextSizeSelectLabel.Location = new Point(0, formatRuleTextLabel.Bottom + 20);
+
+        if (formatRule.FontSize == 0)
+        {
+            formatRule.FontSize = ContentService.FontSize.Size16; // Default to something
+            changedAction?.Invoke();
+        }
+
+        var formatRuleTextSizeSelect = new Dropdown()
+        {
+            Parent = parent,
+            Location = new Point(formatRuleTextSizeSelectLabel.Right + 20, formatRuleTextSizeSelectLabel.Top),
+            SelectedItem = formatRule.FontSize.Humanize()
+        };
+
+        formatRuleTextSizeSelect.Width = bounds.Width - formatRuleTextSizeSelect.Left;
+
+        var formatRuleFontSizeOptions = (FontSize[])Enum.GetValues(typeof(FontSize));
+
+        foreach (var formatRuleFontSizeOption in formatRuleFontSizeOptions)
+        {
+            formatRuleTextSizeSelect.Items.Add(formatRuleFontSizeOption.Humanize());
+        }
+
+        formatRuleTextSizeSelect.ValueChanged += (s, e) =>
+        {
+            formatRule.FontSize = ((FontSize[])Enum.GetValues(typeof(FontSize))).ToList().Find(fontSize => fontSize.Humanize() == e.CurrentValue);
+            changedAction?.Invoke();
+        };
+
+        var colorLabel = this.RenderLabel(parent, "Text Color").TitleLabel;
+        colorLabel.Location = new Point(0, formatRuleTextSizeSelectLabel.Bottom + 20);
+
+        if (formatRule.TextColor == null)
+        {
+            formatRule.TextColor = this.DefaultColor;
+        }
+
+        var colorBox = this.RenderColor(parent, formatRule.TextColor, formatRule.Name, changedColor =>
+        {
+            formatRule.TextColor = changedColor;
+            changedAction?.Invoke();
+        });
+        colorBox.Location = new Point(colorLabel.Right + 20, colorLabel.Top);
     }
 
     private void ClearAreaPanel()
