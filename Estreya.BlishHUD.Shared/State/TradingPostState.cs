@@ -17,10 +17,8 @@ public class TradingPostState : APIState<CurrentTransaction>
 
     public event EventHandler TransactionsUpdated;
 
-    public TradingPostState(Gw2ApiManager apiManager) :
-        base(apiManager,
-        new List<TokenPermission>() { TokenPermission.Account, TokenPermission.Tradingpost },
-        updateInterval: TimeSpan.FromMinutes(2))
+    public TradingPostState(APIStateConfiguration configuration, Gw2ApiManager apiManager) :
+        base(apiManager, configuration)
     {
         this.Updated += this.TradingPostState_TransactionsUpdated;
     }

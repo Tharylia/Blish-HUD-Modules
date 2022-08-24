@@ -20,6 +20,7 @@ public class SkillState : APIState<Skill>
 {
     private const string BASE_FOLDER_STRUCTURE = "skills";
     private const string FILE_NAME = "skills.json";
+    private const string MISSING_SKILL_FILE_NAME = "missingSkills.json";
     private const string LAST_UPDATED_FILE_NAME = "last_updated.txt";
 
     private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
@@ -29,7 +30,7 @@ public class SkillState : APIState<Skill>
 
     private AsyncRef<double> _lastSaveMissingSkill = new AsyncRef<double>(0);
 
-    private string FullPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
+    private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
 
     private static readonly Dictionary<int, int> _remappedSkillIds = new Dictionary<int, int>()
     {
@@ -127,7 +128,7 @@ public class SkillState : APIState<Skill>
 
     public ConcurrentDictionary<int, string> _missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, string>();
 
-    public SkillState(Gw2ApiManager apiManager, IconState iconState, string baseFolderPath) : base(apiManager, updateInterval: Timeout.InfiniteTimeSpan, awaitLoad: false)
+    public SkillState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IconState iconState, string baseFolderPath) : base(apiManager, configuration)
     {
         this._iconState = iconState;
         this._baseFolderPath = baseFolderPath;
@@ -146,76 +147,44 @@ public class SkillState : APIState<Skill>
     {
         try
         {
-            bool loadFromApi = false;
+            // TEST
+            await this.LoadMissingSkills();
+            // TEST
 
-            if (Directory.Exists(this.FullPath))
-            {
-                // TEST
-                string missingSkillPath = Path.Combine(this.FullPath, "missingSkills.json");
-                if (File.Exists(missingSkillPath))
-                {
-                    this._missingSkillsFromAPIReportedByArcDPS = JsonConvert.DeserializeObject<ConcurrentDictionary<int, string>>(await FileUtil.ReadStringAsync(missingSkillPath));
-                }
+            bool shouldLoadFiles = await this.ShouldLoadFiles();
 
-                // TEST
-                bool continueLoadingFiles = true;
-
-                string lastUpdatedFilePath = Path.Combine(this.FullPath, LAST_UPDATED_FILE_NAME);
-                if (!System.IO.File.Exists(lastUpdatedFilePath))
-                {
-                    await this.CreateLastUpdatedFile();
-                }
-
-                string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
-                if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
-                {
-                    this.Logger.Debug("Failed parsing last updated.");
-                }
-                else
-                {
-                    if (DateTime.UtcNow - new DateTime(lastUpdated.Ticks, DateTimeKind.Utc) > TimeSpan.FromDays(5))
-                    {
-                        continueLoadingFiles = false;
-                        loadFromApi = true;
-                    }
-                }
-
-                if (continueLoadingFiles)
-                {
-                    string filePath = Path.Combine(this.FullPath, FILE_NAME);
-                    if (File.Exists(filePath))
-                    {
-                        string content = await FileUtil.ReadStringAsync(filePath);
-                        List<Skill> skills = JsonConvert.DeserializeObject<List<Skill>>(content);
-
-                        this.AddMissingSkills(skills);
-
-                        this.RemapSkillIds(skills);
-
-                        await this.LoadSkillIcons(skills);
-
-                        using (await this._apiObjectListLock.LockAsync())
-                        {
-                            this.APIObjectList.AddRange(skills);
-                        }
-
-                        this._fetchTask = Task.CompletedTask;
-                    }
-                    else
-                    {
-                        loadFromApi = true;
-                    }
-                }
-            }
-            else
-            {
-                loadFromApi = true;
-            }
-
-            if (loadFromApi)
+            if (!shouldLoadFiles)
             {
                 await base.Load();
                 await this.Save();
+            }
+            else
+            {
+                try
+                {
+                    this.Loading = true;
+
+                    string filePath = Path.Combine(this.DirectoryPath, FILE_NAME);
+                    string content = await FileUtil.ReadStringAsync(filePath);
+                    List<Skill> skills = JsonConvert.DeserializeObject<List<Skill>>(content);
+
+                    this.AddMissingSkills(skills);
+
+                    this.RemapSkillIds(skills);
+
+                    await this.LoadSkillIcons(skills);
+
+                    using (await this._apiObjectListLock.LockAsync())
+                    {
+                        this.APIObjectList.AddRange(skills);
+                    }
+
+                    this._fetchTask = Task.CompletedTask;
+                }
+                finally
+                {
+                    this.Loading = false;
+                }
             }
 
             this.Logger.Debug("Loaded {0} skills.", this.APIObjectList.Count);
@@ -224,6 +193,34 @@ public class SkillState : APIState<Skill>
         {
             this.Logger.Warn(ex, "Failed loading skills:");
         }
+    }
+
+    private async Task<bool> ShouldLoadFiles()
+    {
+        var baseDirectoryExists = Directory.Exists(this.DirectoryPath);
+
+        if (!baseDirectoryExists) return false;
+
+        var skillFileExists = File.Exists(Path.Combine(this.DirectoryPath, FILE_NAME));
+
+        if (!skillFileExists) return false;
+
+        string lastUpdatedFilePath = Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME);
+        if (System.IO.File.Exists(lastUpdatedFilePath))
+        {
+            string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
+            if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
+            {
+                this.Logger.Debug("Failed parsing last updated.");
+                return false;
+            }
+            else
+            {
+                return DateTime.UtcNow - new DateTime(lastUpdated.Ticks, DateTimeKind.Utc) <= TimeSpan.FromDays(5);
+            }
+        }
+
+        return false;
     }
 
     protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager)
@@ -300,16 +297,16 @@ public class SkillState : APIState<Skill>
 
     protected override async Task Save()
     {
-        if (Directory.Exists(this.FullPath))
+        if (Directory.Exists(this.DirectoryPath))
         {
-            Directory.Delete(this.FullPath, true);
+            Directory.Delete(this.DirectoryPath, true);
         }
 
-        _ = Directory.CreateDirectory(this.FullPath);
+        _ = Directory.CreateDirectory(this.DirectoryPath);
 
         using (await this._apiObjectListLock.LockAsync())
         {
-            await FileUtil.WriteStringAsync(Path.Combine(this.FullPath, FILE_NAME), JsonConvert.SerializeObject(this.APIObjectList));
+            await FileUtil.WriteStringAsync(Path.Combine(this.DirectoryPath, FILE_NAME), JsonConvert.SerializeObject(this.APIObjectList));
         }
 
         await this.CreateLastUpdatedFile();
@@ -317,20 +314,28 @@ public class SkillState : APIState<Skill>
 
     protected override void InternalUpdate(GameTime gameTime)
     {
-        _ = UpdateUtil.UpdateAsync(async () =>
+        _ = UpdateUtil.UpdateAsync(this.SaveMissingSkills, gameTime, 60000, this._lastSaveMissingSkill);
+    }
+
+    private async Task SaveMissingSkills()
+    {
+        string missingSkillPath = Path.Combine(this.DirectoryPath, MISSING_SKILL_FILE_NAME);
+
+        await FileUtil.WriteStringAsync(missingSkillPath, JsonConvert.SerializeObject(this._missingSkillsFromAPIReportedByArcDPS.OrderBy(skill => skill.Value).ToDictionary(skill => skill.Key, skill => skill.Value), Formatting.Indented));
+    }
+
+    private async Task LoadMissingSkills()
+    {
+        string missingSkillPath = Path.Combine(this.DirectoryPath, MISSING_SKILL_FILE_NAME);
+        if (File.Exists(missingSkillPath))
         {
-
-            // TEST
-            string missingSkillPath = Path.Combine(this.FullPath, "missingSkills.json");
-
-            await FileUtil.WriteStringAsync(missingSkillPath, JsonConvert.SerializeObject(this._missingSkillsFromAPIReportedByArcDPS.OrderBy(skill => skill.Value).ToDictionary(skill => skill.Key, skill => skill.Value), Formatting.Indented));
-            // Test
-        }, gameTime, 60000, this._lastSaveMissingSkill);
+            this._missingSkillsFromAPIReportedByArcDPS = JsonConvert.DeserializeObject<ConcurrentDictionary<int, string>>(await FileUtil.ReadStringAsync(missingSkillPath));
+        }
     }
 
     private async Task CreateLastUpdatedFile()
     {
-        await FileUtil.WriteStringAsync(Path.Combine(this.FullPath, LAST_UPDATED_FILE_NAME), DateTime.UtcNow.ToString(DATE_TIME_FORMAT));
+        await FileUtil.WriteStringAsync(Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME), DateTime.UtcNow.ToString(DATE_TIME_FORMAT));
     }
 
     public Skill GetByName(string name)

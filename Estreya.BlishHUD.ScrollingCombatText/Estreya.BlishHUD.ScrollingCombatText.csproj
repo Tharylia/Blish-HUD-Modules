@@ -7,6 +7,8 @@
 		<LangVersion>latest</LangVersion>
 		<NeutralLanguage>en</NeutralLanguage>
 		<PlatformTarget>x64</PlatformTarget>
+		<SignAssembly>False</SignAssembly>
+		<AssemblyOriginatorKeyFile>C:\Workspaces\Visual Studio\Signing Key\key.snk</AssemblyOriginatorKeyFile>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -31,7 +33,7 @@
 		<PackageReference Include="BlishHUD" Version="0.11.8-ci.113">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="Gw2Sharp" Version="1.7.0">
+		<PackageReference Include="Gw2Sharp" Version="1.7.3">
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
 		<PackageReference Include="Handlebars.Net" Version="2.1.2" />

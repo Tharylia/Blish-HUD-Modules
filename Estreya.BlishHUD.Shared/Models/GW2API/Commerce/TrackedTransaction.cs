@@ -1,6 +1,5 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
 
-using Estreya.BlishHUD.Shared.UI.Views.Controls;
 using Humanizer;
 using System;
 using System.Collections.Generic;

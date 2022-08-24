@@ -18,19 +18,19 @@ using System.Threading.Tasks;
 
 public class PointOfInterestState : APIState<PointOfInterest>
 {
-    private static readonly Logger Logger = Logger.GetLogger<PointOfInterestState>();
     private const string BASE_FOLDER_STRUCTURE = "pois";
+    private const string FILE_NAME = "pois.json";
     private const string LAST_UPDATED_FILE_NAME = "last_updated.txt";
 
     private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
 
     private readonly string _baseFolderPath;
 
-    private string FullPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
+    private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
 
     // Don't await loading as this can take a long time.
 
-    public PointOfInterestState(Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, updateInterval: Timeout.InfiniteTimeSpan, awaitLoad: false) // Don't save in interval, must be manually triggered
+    public PointOfInterestState(APIStateConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
     {
         this._baseFolderPath = baseFolderPath;
     }
@@ -39,129 +39,75 @@ public class PointOfInterestState : APIState<PointOfInterest>
     {
         try
         {
-            bool loadFromApi = false;
+            bool shouldLoadFiles = await this.ShouldLoadFiles();
 
-            if (Directory.Exists(this.FullPath))
-            {
-                bool continueLoadingFiles = true;
-
-                string lastUpdatedFilePath = Path.Combine(this.FullPath, LAST_UPDATED_FILE_NAME);
-                if (!System.IO.File.Exists(lastUpdatedFilePath))
-                {
-                    await this.CreateLastUpdatedFile();
-                }
-
-                string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
-                if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
-                {
-                    Logger.Debug("Failed parsing last updated.");
-                }
-                else
-                {
-                    if (DateTime.UtcNow - new DateTime(lastUpdated.Ticks, DateTimeKind.Utc) > TimeSpan.FromDays(5))
-                    {
-                        continueLoadingFiles = false;
-                        loadFromApi = true;
-                    }
-                }
-
-                if (continueLoadingFiles)
-                {
-                    var dirs = Directory.GetDirectories(this.FullPath).ToList();
-
-                    string[] files = dirs.SelectMany(dir => Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories)).ToArray();
-
-                    if (files.Length > 0)
-                    {
-                        await this.LoadFromFiles(files);
-                    }
-                    else
-                    {
-                        loadFromApi = true;
-                    }
-                }
-            }
-            else
-            {
-                loadFromApi = true;
-            }
-
-            if (loadFromApi)
+            if (!shouldLoadFiles)
             {
                 await base.Load();
                 await this.Save();
             }
+            else
+            {
+                var filePath = Path.Combine(this.DirectoryPath, FILE_NAME);
+                var poiJson = await FileUtil.ReadStringAsync(filePath);
+                var pois = JsonConvert.DeserializeObject<List<PointOfInterest>>(poiJson);
+                using (await this._apiObjectListLock.LockAsync())
+                {
+                    this.APIObjectList.AddRange(pois);
+                }
+
+                this._fetchTask = Task.CompletedTask;
+            }
 
             Logger.Debug("Loaded {0} point of interests.", this.APIObjectList.Count);
-        }catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             Logger.Warn(ex, "Failed loading point of interests:");
         }
     }
 
-    private async Task LoadFromFiles(string[] files)
+    private async Task<bool> ShouldLoadFiles()
     {
-        List<Task<string>> loadTasks = files.ToList().Select(file =>
+        var baseDirectoryExists = Directory.Exists(this.DirectoryPath);
+
+        if (!baseDirectoryExists) return false;
+
+        var savedFileExists = System.IO.File.Exists(Path.Combine(this.DirectoryPath, FILE_NAME));
+
+        if (!savedFileExists) return false;
+
+        string lastUpdatedFilePath = Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME);
+        if (System.IO.File.Exists(lastUpdatedFilePath))
         {
-            if (!System.IO.File.Exists(file))
+            string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
+            if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
             {
-                Logger.Warn("Could not find file \"{0}\"", file);
-                return Task.FromResult((string)null);
+                this.Logger.Debug("Failed parsing last updated.");
+                return false;
             }
-
-            return FileUtil.ReadStringAsync(file);
-        }).ToList();
-
-        _ = await Task.WhenAll(loadTasks);
-
-        using (await this._apiObjectListLock.LockAsync())
-        {
-            foreach (Task<string> loadTask in loadTasks)
+            else
             {
-                string result = loadTask.Result;
-
-                if (string.IsNullOrWhiteSpace(result))
-                {
-                    continue;
-                }
-
-                try
-                {
-                    PointOfInterest poi = JsonConvert.DeserializeObject<PointOfInterest>(result);
-
-                    this.APIObjectList.Add(poi);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn(ex, "Could not parse poi: {0}", result.Replace("\n", "").Replace("\r", ""));
-                }
+                return DateTime.UtcNow - new DateTime(lastUpdated.Ticks, DateTimeKind.Utc) <= TimeSpan.FromDays(5);
             }
         }
+
+        return false;
     }
 
     protected override async Task Save()
     {
-        if (Directory.Exists(this.FullPath))
+        if (Directory.Exists(this.DirectoryPath))
         {
-            Directory.Delete(this.FullPath, true);
+            Directory.Delete(this.DirectoryPath, true);
         }
 
-        _ = Directory.CreateDirectory(this.FullPath);
+        _ = Directory.CreateDirectory(this.DirectoryPath);
 
         using (await this._apiObjectListLock.LockAsync())
         {
-            IEnumerable<Task> fileWriteTasks = this.APIObjectList.Select(poi =>
-            {
-                string landmarkPath = Path.Combine(this.FullPath, FileUtil.SanitizeFileName(poi.Continent.Name), FileUtil.SanitizeFileName(poi.Floor.Id.ToString()), FileUtil.SanitizeFileName(poi.Region.Name), FileUtil.SanitizeFileName(poi.Map.Name), FileUtil.SanitizeFileName(poi.Name) + ".txt");
-
-                _ = Directory.CreateDirectory(Path.GetDirectoryName(landmarkPath));
-
-                string landmarkData = JsonConvert.SerializeObject(poi, Formatting.Indented);
-
-                return FileUtil.WriteStringAsync(landmarkPath, landmarkData);
-            });
-
-            await Task.WhenAll(fileWriteTasks);
+            var poiJson = JsonConvert.SerializeObject(this.APIObjectList, Formatting.Indented);
+            await FileUtil.WriteStringAsync(Path.Combine(this.DirectoryPath, FILE_NAME), poiJson);
         }
 
         await this.CreateLastUpdatedFile();
@@ -169,16 +115,22 @@ public class PointOfInterestState : APIState<PointOfInterest>
 
     private async Task CreateLastUpdatedFile()
     {
-        await FileUtil.WriteStringAsync(Path.Combine(this.FullPath, LAST_UPDATED_FILE_NAME), DateTime.UtcNow.ToString(DATE_TIME_FORMAT));
+        await FileUtil.WriteStringAsync(Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME), DateTime.UtcNow.ToString(DATE_TIME_FORMAT));
     }
 
     public PointOfInterest GetPointOfInterest(string chatCode)
     {
         using (this._apiObjectListLock.Lock())
         {
-            IEnumerable<PointOfInterest> foundPointOfInterests = this.APIObjectList.Where(wp => wp.ChatLink == chatCode);
+            foreach (var poi in this.APIObjectList)
+            {
+                if (poi.ChatLink == chatCode)
+                {
+                    return poi;
+                }
+            }
 
-            return foundPointOfInterests.Any() ? foundPointOfInterests.First() : null;
+            return null;
         }
     }
 

@@ -303,11 +303,7 @@
 
         protected override void ConfigureStates(StateConfigurations configurations)
         {
-            configurations.Skills = false;
-            configurations.Worldbosses = false;
-            configurations.Mapchests = false;
-            configurations.ArcDPS = false;
-            configurations.PointOfInterests = false;
+            configurations.TradingPost.Enabled = true;
         }
     }
 }

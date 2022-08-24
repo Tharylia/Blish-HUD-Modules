@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 
 public class Skill : IDisposable
 {
+    public SkillCategory Category { get; init; }
 
     /// <summary>
     /// The skill id.
@@ -183,10 +184,11 @@ public class Skill : IDisposable
     {
         Skill newSkill = new Skill
         {
+            Category = SkillCategory.Skill,
             Id = skill.Id,
             Name = skill.Name,
             Description = skill.Description,
-            Icon = skill.Icon.Url?.AbsoluteUri,
+            Icon = skill.Icon?.Url?.AbsoluteUri,
             Specialization = skill.Specialization ?? 0,
             ChatLink = skill.ChatLink,
             Type = skill.Type?.IsUnknown ?? true ? SkillType.Unknown : skill.Type,
@@ -218,6 +220,7 @@ public class Skill : IDisposable
     {
         Skill newSkill = new Skill
         {
+            Category = SkillCategory.Trait,
             Id = trait.Id,
             Name = trait.Name,
             Description = trait.Description,
@@ -232,6 +235,7 @@ public class Skill : IDisposable
     {
         Skill newSkill = new Skill
         {
+            Category = SkillCategory.TraitSkill,
             Id = skill.Id,
             Name = skill.Name,
             Description = skill.Description,

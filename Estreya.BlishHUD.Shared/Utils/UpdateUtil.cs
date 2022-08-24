@@ -89,15 +89,14 @@
 
                 await call().ContinueWith(task =>
                 {
+                    Logger.Debug("Update function '{0}' finished running.", call.Method.Name);
+
+                    lastCheck.Value = 0;
                     lock (_asyncStateMonitor)
                     {
                         _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
                     }
                 });
-
-                Logger.Debug("Update function '{0}' finished running.", call.Method.Name);
-
-                lastCheck.Value = 0;
             }
         }
     }

@@ -20,9 +20,8 @@
         public event EventHandler<string> MapchestCompleted;
         public event EventHandler<string> MapchestRemoved;
 
-        public MapchestState(Gw2ApiManager apiManager, AccountState accountState) :
-            base(apiManager,
-                new List<TokenPermission> { TokenPermission.Account, TokenPermission.Progression })
+        public MapchestState(APIStateConfiguration configuration, Gw2ApiManager apiManager, AccountState accountState) :
+            base(apiManager, configuration)
         {
             this._accountState = accountState;
 

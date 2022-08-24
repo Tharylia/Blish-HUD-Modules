@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public enum CombatEventGroup
+public enum CombatEventState
 {
     NORMAL,
     ACTIVATION,

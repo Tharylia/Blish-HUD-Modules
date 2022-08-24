@@ -1,23 +1,18 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.UI.Views.Settings;
 
 using Blish_HUD;
-using Blish_HUD.Content;
 using Blish_HUD.Controls;
+using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.ScrollingCombatText.Models;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.Models.Drawers;
-using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
+using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
-using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
 
@@ -34,16 +29,16 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<ScrollingTextAreaConfiguration> AddArea;
     public event EventHandler<ScrollingTextAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration)
+    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
     }
 
     protected override void BuildView(Panel parent)
     {
-        this._areaConfigurations = _areaConfigurationFunc.Invoke().ToList();
+        this._areaConfigurations = this._areaConfigurationFunc.Invoke().ToList();
 
-        var newParent = this.GetPanel(parent.Parent);
+        Panel newParent = this.GetPanel(parent.Parent);
         newParent.Location = parent.Location;
         newParent.Size = parent.Size;
         newParent.HeightSizingMode = parent.HeightSizingMode;
@@ -51,9 +46,9 @@ public class AreaSettingsView : BaseSettingsView
 
         parent = newParent;
 
-        var bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - PADDING_X, parent.ContentRegion.Height - PADDING_Y * 2);
+        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - PADDING_X, parent.ContentRegion.Height - PADDING_Y * 2);
 
-        var areaOverviewPanel = this.GetPanel(parent);
+        Panel areaOverviewPanel = this.GetPanel(parent);
         areaOverviewPanel.ShowBorder = true;
         areaOverviewPanel.CanScroll = true;
         areaOverviewPanel.HeightSizingMode = SizingMode.Standard;
@@ -61,19 +56,22 @@ public class AreaSettingsView : BaseSettingsView
         areaOverviewPanel.Location = new Point(bounds.X, bounds.Y);
         areaOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X - 75, bounds.Height - StandardButton.STANDARD_CONTROL_HEIGHT);
 
-        var areaOverviewMenu = new Shared.Controls.Menu
+        Shared.Controls.Menu areaOverviewMenu = new Shared.Controls.Menu
         {
             Parent = areaOverviewPanel,
             WidthSizingMode = SizingMode.Fill
         };
 
-        foreach (var areaConfiguration in this._areaConfigurations)
+        foreach (ScrollingTextAreaConfiguration areaConfiguration in this._areaConfigurations)
         {
-            var itemName = areaConfiguration.Name;
+            string itemName = areaConfiguration.Name;
 
-            if (string.IsNullOrWhiteSpace(itemName)) continue;
+            if (string.IsNullOrWhiteSpace(itemName))
+            {
+                continue;
+            }
 
-            var menuItem = new MenuItem(itemName)
+            MenuItem menuItem = new MenuItem(itemName)
             {
                 Parent = areaOverviewMenu,
                 Text = itemName,
@@ -84,8 +82,8 @@ public class AreaSettingsView : BaseSettingsView
             this._menuItems.Add(itemName, menuItem);
         }
 
-        var x = areaOverviewPanel.Right + Panel.MenuStandard.PanelOffset.X;
-        var areaPanelBounds = new Rectangle(x, bounds.Y, bounds.Width - x, bounds.Height);
+        int x = areaOverviewPanel.Right + Panel.MenuStandard.PanelOffset.X;
+        Rectangle areaPanelBounds = new Rectangle(x, bounds.Y, bounds.Width - x, bounds.Height);
 
         this._menuItems.ToList().ForEach(menuItem =>
         {
@@ -109,19 +107,19 @@ public class AreaSettingsView : BaseSettingsView
         this.ClearAreaPanel();
 
         this._areaPanel = this.GetPanel(parent);
-        _areaPanel.ShowBorder = true;
-        _areaPanel.CanScroll = false; // Should not be needed
-        _areaPanel.HeightSizingMode = SizingMode.Standard;
-        _areaPanel.WidthSizingMode = SizingMode.Standard;
-        _areaPanel.Location = new Point(bounds.X, bounds.Y);
-        _areaPanel.Size = new Point(bounds.Width, bounds.Height);
+        this._areaPanel.ShowBorder = true;
+        this._areaPanel.CanScroll = false; // Should not be needed
+        this._areaPanel.HeightSizingMode = SizingMode.Standard;
+        this._areaPanel.WidthSizingMode = SizingMode.Standard;
+        this._areaPanel.Location = new Point(bounds.X, bounds.Y);
+        this._areaPanel.Size = new Point(bounds.Width, bounds.Height);
     }
 
     private void BuildAddPanel(Panel parent, Rectangle bounds, Menu menu)
     {
         this.CreateAreaPanel(parent, bounds);
 
-        var panelBounds = this._areaPanel.ContentRegion;
+        Rectangle panelBounds = this._areaPanel.ContentRegion;
 
         TextBox areaName = new TextBox()
         {
@@ -134,7 +132,7 @@ public class AreaSettingsView : BaseSettingsView
         {
             try
             {
-                var name = areaName.Text;
+                string name = areaName.Text;
 
                 if (this._areaConfigurations.Any(configuration => configuration.Name == name))
                 {
@@ -144,7 +142,7 @@ public class AreaSettingsView : BaseSettingsView
 
                 ScrollingTextAreaConfiguration configuration = ScrollingCombatTextModule.ModuleInstance.ModuleSettings.AddDrawer(name);
 
-                var menuItem = menu.AddMenuItem(name);
+                MenuItem menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
                 {
                     this.BuildEditPanel(parent, bounds, menuItem, configuration);
@@ -181,7 +179,7 @@ public class AreaSettingsView : BaseSettingsView
 
         this.CreateAreaPanel(parent, bounds);
 
-        var panelBounds = new Rectangle(this._areaPanel.ContentRegion.Location, new Point(this._areaPanel.ContentRegion.Size.X - 50, this._areaPanel.ContentRegion.Size.Y));
+        Rectangle panelBounds = new Rectangle(this._areaPanel.ContentRegion.Location, new Point(this._areaPanel.ContentRegion.Size.X - 50, this._areaPanel.ContentRegion.Size.Y));
 
         Label areaName = new Label()
         {
@@ -204,40 +202,39 @@ public class AreaSettingsView : BaseSettingsView
             CanScroll = true
         };
 
-        this.RenderSetting(settingsPanel, areaConfiguration.Enabled);
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.Enabled);
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderIntSetting(settingsPanel, areaConfiguration.Location.X);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.Location.Y);
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderSetting(settingsPanel, areaConfiguration.Location.X);
-        this.RenderSetting(settingsPanel, areaConfiguration.Location.Y);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.Size.X);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.Size.Y);
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderSetting(settingsPanel, areaConfiguration.Size.X);
-        this.RenderSetting(settingsPanel, areaConfiguration.Size.Y);
-
-        this.RenderEmptyLine(settingsPanel);
-
-        this.RenderSetting(settingsPanel, areaConfiguration.Curve);
-        this.RenderSetting(settingsPanel, areaConfiguration.EventHeight);
-        this.RenderSetting(settingsPanel, areaConfiguration.ScrollSpeed);
+        this.RenderEnumSetting(settingsPanel, areaConfiguration.Curve);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.EventHeight);
+        this.RenderFloatSetting(settingsPanel, areaConfiguration.ScrollSpeed);
 
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderColorSetting(settingsPanel, areaConfiguration.BackgroundColor);
-        this.RenderSetting(settingsPanel, areaConfiguration.Opacity);
+        this.RenderFloatSetting(settingsPanel, areaConfiguration.Opacity);
 
         this.RenderEmptyLine(settingsPanel);
 
         #region Categories
-        var categoryPanel = this.GetPanel(settingsPanel);
+        Panel categoryPanel = this.GetPanel(settingsPanel);
 
-        var categoriesLabel = this.RenderLabel(categoryPanel, "Categories").TitleLabel;
+        Label categoriesLabel = this.RenderLabel(categoryPanel, "Categories").TitleLabel;
         categoriesLabel.AutoSizeWidth = false;
         categoriesLabel.Width = panelBounds.Width;
         categoriesLabel.HorizontalAlignment = HorizontalAlignment.Center;
 
-        var categorySelectPanel = new FlowPanel()
+        FlowPanel categorySelectPanel = new FlowPanel()
         {
             Parent = categoryPanel,
             Top = categoriesLabel.Bottom + 20,
@@ -251,14 +248,14 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         #region Types
-        var typePanel = this.GetPanel(settingsPanel);
+        Panel typePanel = this.GetPanel(settingsPanel);
 
-        var typesLabel = this.RenderLabel(typePanel, "Types").TitleLabel;
+        Label typesLabel = this.RenderLabel(typePanel, "Types").TitleLabel;
         typesLabel.AutoSizeWidth = false;
         typesLabel.Width = panelBounds.Width;
         typesLabel.HorizontalAlignment = HorizontalAlignment.Center;
 
-        var typeSelectPanel = new FlowPanel()
+        FlowPanel typeSelectPanel = new FlowPanel()
         {
             Parent = typePanel,
             Top = typesLabel.Bottom + 20,
@@ -272,19 +269,19 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         #region Format Rules
-        var formatRulesLabel = this.RenderLabel(settingsPanel, "Format Rules").TitleLabel;
+        Label formatRulesLabel = this.RenderLabel(settingsPanel, "Format Rules").TitleLabel;
         formatRulesLabel.AutoSizeWidth = false;
         formatRulesLabel.Width = panelBounds.Width;
         formatRulesLabel.HorizontalAlignment = HorizontalAlignment.Center;
 
         this.RenderEmptyLine(settingsPanel);
 
-        var formatRulesPanel = this.GetPanel(settingsPanel);
+        Panel formatRulesPanel = this.GetPanel(settingsPanel);
 
         #region Add Category Checkboxes
-        foreach (var category in (CombatEventCategory[])Enum.GetValues(typeof(CombatEventCategory)))
+        foreach (CombatEventCategory category in (CombatEventCategory[])Enum.GetValues(typeof(CombatEventCategory)))
         {
-            var categoryCheckbox = new Checkbox()
+            Checkbox categoryCheckbox = new Checkbox()
             {
                 Parent = categorySelectPanel,
                 Text = category.Humanize(),
@@ -293,7 +290,7 @@ public class AreaSettingsView : BaseSettingsView
 
             categoryCheckbox.CheckedChanged += (s, e) =>
             {
-                var value = ((CombatEventCategory[])Enum.GetValues(typeof(CombatEventCategory))).ToList().Find(category => category.Humanize() == categoryCheckbox.Text);
+                CombatEventCategory value = ((CombatEventCategory[])Enum.GetValues(typeof(CombatEventCategory))).ToList().Find(category => category.Humanize() == categoryCheckbox.Text);
                 if (categoryCheckbox.Checked)
                 {
                     areaConfiguration.Categories.Value = new List<CombatEventCategory>(areaConfiguration.Categories.Value) { value };
@@ -311,14 +308,14 @@ public class AreaSettingsView : BaseSettingsView
         #endregion
 
         #region Add Types Checkboxes
-        foreach (var type in (CombatEventType[])Enum.GetValues(typeof(CombatEventType)))
+        foreach (CombatEventType type in (CombatEventType[])Enum.GetValues(typeof(CombatEventType)))
         {
             if (new CombatEventType[] { CombatEventType.NONE, CombatEventType.BUFF, CombatEventType.MIGHT, CombatEventType.FURY, CombatEventType.REGENERATION, CombatEventType.PROTECTION, CombatEventType.QUICKNESS, CombatEventType.ALACRITY, CombatEventType.VIGOR, CombatEventType.STABILITY, CombatEventType.AEGIS, CombatEventType.SWIFTNESS, CombatEventType.RESISTENCE, CombatEventType.STEALTH, CombatEventType.SUPERSPEED, CombatEventType.RESOLUTION }.Contains(type))
             {
                 continue;
             }
 
-            var typeCheckbox = new Checkbox()
+            Checkbox typeCheckbox = new Checkbox()
             {
                 Parent = typeSelectPanel,
                 Text = type.Humanize(),
@@ -327,7 +324,7 @@ public class AreaSettingsView : BaseSettingsView
 
             typeCheckbox.CheckedChanged += (s, e) =>
             {
-                var value = ((CombatEventType[])Enum.GetValues(typeof(CombatEventType))).ToList().Find(category => category.Humanize() == typeCheckbox.Text);
+                CombatEventType value = ((CombatEventType[])Enum.GetValues(typeof(CombatEventType))).ToList().Find(category => category.Humanize() == typeCheckbox.Text);
                 if (typeCheckbox.Checked)
                 {
                     areaConfiguration.Types.Value = new List<CombatEventType>(areaConfiguration.Types.Value) { value };
@@ -347,10 +344,10 @@ public class AreaSettingsView : BaseSettingsView
         this.BuildFormatRulesArea(formatRulesPanel, panelBounds, areaConfiguration);
         #endregion
 
-        var removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
+        StandardButton removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
         {
             this.RemoveArea?.Invoke(this, areaConfiguration);
-            var menu = menuItem.Parent as Menu;
+            Menu menu = menuItem.Parent as Menu;
             menu.RemoveChild(menuItem);
             this._menuItems.Remove(areaConfiguration.Name);
             this.ClearAreaPanel();
@@ -366,7 +363,7 @@ public class AreaSettingsView : BaseSettingsView
     {
         parent.ClearChildren();
 
-        var currentFormatRules = areaConfiguration.FormatRules.Value.Where(rule => areaConfiguration.Categories.Value.Contains(rule.Category) && areaConfiguration.Types.Value.Contains(rule.Type)).ToList();
+        List<CombatEventFormatRule> currentFormatRules = areaConfiguration.FormatRules.Value.Where(rule => areaConfiguration.Categories.Value.Contains(rule.Category) && areaConfiguration.Types.Value.Contains(rule.Type)).ToList();
 
         if (currentFormatRules.Count == 0)
         {
@@ -375,9 +372,9 @@ public class AreaSettingsView : BaseSettingsView
 
         Action changedAction = () => areaConfiguration.FormatRules.Value = new List<CombatEventFormatRule>(areaConfiguration.FormatRules.Value);
 
-        var formatRulesMenuPanel = this.GetPanel(parent);
+        Panel formatRulesMenuPanel = this.GetPanel(parent);
         formatRulesMenuPanel.ShowBorder = true;
-        var formatRulesMenu = new Shared.Controls.Menu()
+        Shared.Controls.Menu formatRulesMenu = new Shared.Controls.Menu()
         {
             Parent = formatRulesMenuPanel,
             Width = Panel.MenuStandard.Size.X
@@ -392,12 +389,13 @@ public class AreaSettingsView : BaseSettingsView
             Size = formatRuleAreaBounds.Size
         };
 
-        foreach (var formatRule in currentFormatRules)
+        foreach (CombatEventFormatRule formatRule in currentFormatRules)
         {
-            var formatRuleMenuItem = formatRulesMenu.AddMenuItem(formatRule.Name);
+            MenuItem formatRuleMenuItem = formatRulesMenu.AddMenuItem(formatRule.Name);
 
             formatRuleMenuItem.Click += (s, e) =>
             {
+                formatRuleArea.Children?.ToList().ForEach(child => child.Dispose());
                 formatRuleArea.ClearChildren();
                 this.BuildFormatRuleArea(formatRuleArea, formatRuleAreaBounds, formatRule, changedAction);
             };
@@ -406,42 +404,36 @@ public class AreaSettingsView : BaseSettingsView
 
     private void BuildFormatRuleArea(Panel parent, Rectangle bounds, CombatEventFormatRule formatRule, Action changedAction)
     {
-        Label formatName = new Label()
+        Label formatName = new Label
         {
             Parent = parent,
             Font = GameService.Content.DefaultFont18,
             AutoSizeHeight = true,
             Text = formatRule.Name,
             HorizontalAlignment = HorizontalAlignment.Center,
+            Width = bounds.Width
         };
 
-        formatName.Width = bounds.Width;
+        Label formatRuleTextLabel = this.RenderLabel(parent, "Format").TitleLabel;
 
-        var formatRuleTextLabel = this.RenderLabel(parent, "Format").TitleLabel;
+        int formatRuleTextX = formatRuleTextLabel.Right + 40;
+
         formatRuleTextLabel.Location = new Point(0, formatName.Bottom + 20);
 
-        var formatRuleText = new TextBox
-        {
-            Parent = parent,
-            Location = new Point(formatRuleTextLabel.Right + 20, formatRuleTextLabel.Top),
-            Font = GameService.Content.DefaultFont18,
-            PlaceholderText = "Format",
-            Text = formatRule.Format,
-            BasicTooltipText = formatRule.GetType().GetProperty(nameof(formatRule.Format)).GetCustomAttribute<DescriptionAttribute>()?.Description,
-        };
+        TextBox formatRuleText = this.RenderTextbox(
+            parent,
+    new Point(formatRuleTextX, formatRuleTextLabel.Top),
+       bounds.Width - formatRuleTextX,
+       formatRule.Format,
+       "Format",
+       newValue =>
+       {
+           formatRule.Format = newValue;
 
-        formatRuleText.Width = bounds.Width  - formatRuleText.Left;
+           changedAction?.Invoke();
+       });
 
-        formatRuleText.TextChanged += (s, e) =>
-        {
-            var valueChangeArgs = e as ValueChangedEventArgs<string>;
-
-            formatRule.Format = valueChangeArgs.NewValue;
-
-            changedAction?.Invoke();
-        };
-
-        var formatRuleTextSizeSelectLabel = this.RenderLabel(parent, "Text Size").TitleLabel;
+        Label formatRuleTextSizeSelectLabel = this.RenderLabel(parent, "Text Size").TitleLabel;
         formatRuleTextSizeSelectLabel.Location = new Point(0, formatRuleTextLabel.Bottom + 20);
 
         if (formatRule.FontSize == 0)
@@ -450,29 +442,19 @@ public class AreaSettingsView : BaseSettingsView
             changedAction?.Invoke();
         }
 
-        var formatRuleTextSizeSelect = new Dropdown()
-        {
-            Parent = parent,
-            Location = new Point(formatRuleTextSizeSelectLabel.Right + 20, formatRuleTextSizeSelectLabel.Top),
-            SelectedItem = formatRule.FontSize.Humanize()
-        };
+        Dropdown formatRuleTextSizeSelect = this.RenderDropdown(
+             parent,
+            new Point(formatRuleText.Left, formatRuleTextSizeSelectLabel.Top),
+            bounds.Width - formatRuleText.Left,
+            ((FontSize[])Enum.GetValues(typeof(FontSize))).Select(enumValue => enumValue.Humanize()).ToArray(),
+            formatRule.FontSize.Humanize(),
+           newValue =>
+           {
+               formatRule.FontSize = ((FontSize[])Enum.GetValues(typeof(FontSize))).ToList().Find(fontSize => fontSize.Humanize() == newValue);
+               changedAction?.Invoke();
+           });
 
-        formatRuleTextSizeSelect.Width = bounds.Width - formatRuleTextSizeSelect.Left;
-
-        var formatRuleFontSizeOptions = (FontSize[])Enum.GetValues(typeof(FontSize));
-
-        foreach (var formatRuleFontSizeOption in formatRuleFontSizeOptions)
-        {
-            formatRuleTextSizeSelect.Items.Add(formatRuleFontSizeOption.Humanize());
-        }
-
-        formatRuleTextSizeSelect.ValueChanged += (s, e) =>
-        {
-            formatRule.FontSize = ((FontSize[])Enum.GetValues(typeof(FontSize))).ToList().Find(fontSize => fontSize.Humanize() == e.CurrentValue);
-            changedAction?.Invoke();
-        };
-
-        var colorLabel = this.RenderLabel(parent, "Text Color").TitleLabel;
+        Label colorLabel = this.RenderLabel(parent, "Text Color").TitleLabel;
         colorLabel.Location = new Point(0, formatRuleTextSizeSelectLabel.Bottom + 20);
 
         if (formatRule.TextColor == null)
@@ -480,12 +462,17 @@ public class AreaSettingsView : BaseSettingsView
             formatRule.TextColor = this.DefaultColor;
         }
 
-        var colorBox = this.RenderColor(parent, formatRule.TextColor, formatRule.Name, changedColor =>
-        {
-            formatRule.TextColor = changedColor;
-            changedAction?.Invoke();
-        });
-        colorBox.Location = new Point(colorLabel.Right + 20, colorLabel.Top);
+        ColorBox colorBox = this.RenderColorBox(
+            parent,
+            new Point(formatRuleText.Left, colorLabel.Top),
+            formatRule.TextColor,
+            changedColor =>
+            {
+                formatRule.TextColor = changedColor;
+                changedAction?.Invoke();
+            },
+            selectorPanel: this.MainPanel,
+            innerSelectorPanelPadding: new Thickness(20, 20));
     }
 
     private void ClearAreaPanel()
@@ -493,6 +480,7 @@ public class AreaSettingsView : BaseSettingsView
         if (this._areaPanel != null)
         {
             this._areaPanel.Hide();
+            this._areaPanel.Children?.ToList().ForEach(child => child.Dispose());
             this._areaPanel.ClearChildren();
             this._areaPanel.Dispose();
             this._areaPanel = null;
@@ -509,7 +497,7 @@ public class AreaSettingsView : BaseSettingsView
         base.Unload();
 
         this.ClearAreaPanel();
-        _areaConfigurations = null;
+        this._areaConfigurations = null;
         this._menuItems?.Clear();
 
     }

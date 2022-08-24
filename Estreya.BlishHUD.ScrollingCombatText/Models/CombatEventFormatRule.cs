@@ -64,9 +64,9 @@ public class CombatEventFormatRule
         string sourceName = combatEvent.Src?.Name ?? string.Empty;
         string destinationName = combatEvent.Dst?.Name ?? string.Empty;
 
-        if (this.Format == null)
+        if (string.IsNullOrWhiteSpace(this.Format))
         {
-            return $"{category}: {skillName ?? type} ({type}): {value}";
+            return $"--Empty Format--";
         }
 
         var template = Handlebars.Compile(this.Format);
@@ -105,5 +105,16 @@ public class CombatEventFormatRule
             //.Replace("{sourceName}", sourceName)
             //.Replace("{destinationName}", destinationName)
             //.Replace("{value}", value.ToString());
+    }
+
+    public bool Validate()
+    {
+        bool valid = true;
+
+        valid &= !string.IsNullOrWhiteSpace(this.Format);
+        valid &= this.FontSize != 0;
+        valid &= this.TextColor != null;
+
+        return valid;
     }
 }

@@ -10,7 +10,7 @@ public class AccountState : APIState<Account>
 {
     public Account Account => this.APIObjectList.Any() ? this.APIObjectList.First() : null;
 
-    public AccountState(Gw2ApiManager apiManager) : base(apiManager, new List<TokenPermission>() { TokenPermission.Account }) { }
+    public AccountState(APIStateConfiguration configuration, Gw2ApiManager apiManager) : base(apiManager, configuration) { }
 
     protected override Task DoClear()
     {

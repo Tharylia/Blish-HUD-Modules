@@ -20,9 +20,8 @@
         public event EventHandler<string> WorldbossCompleted;
         public event EventHandler<string> WorldbossRemoved;
 
-        public WorldbossState(Gw2ApiManager apiManager, AccountState accountState) :
-            base(apiManager,
-                new List<TokenPermission> { TokenPermission.Account, TokenPermission.Progression })
+        public WorldbossState(APIStateConfiguration configuration, Gw2ApiManager apiManager, AccountState accountState) :
+            base(apiManager,configuration)
         {
             this._accountState = accountState;
 

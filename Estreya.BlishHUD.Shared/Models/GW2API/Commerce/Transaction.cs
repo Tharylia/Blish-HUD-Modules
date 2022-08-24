@@ -2,7 +2,6 @@
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.UI.Views.Controls;
 using Gw2Sharp.WebApi.V2.Models;
 using Humanizer;
 using Newtonsoft.Json;

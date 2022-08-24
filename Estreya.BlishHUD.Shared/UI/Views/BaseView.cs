@@ -3,46 +3,43 @@
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
+using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Helpers;
 using Estreya.BlishHUD.Shared.Resources;
 using Estreya.BlishHUD.Shared.State;
-using Estreya.BlishHUD.Shared.Threading;
-using Estreya.BlishHUD.Shared.UI.Views.Controls;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 using System.Threading.Tasks;
 
 public abstract class BaseView : View
 {
-    private const int LEFT_PADDING = 20;
-    private const int CONTROL_X_SPACING = 20;
-    private const int LABEL_WIDTH = 250;
-    private const int BINDING_WIDTH = 170;
+    protected int CONTROL_X_SPACING { get; set; } = 20;
+    protected int LABEL_WIDTH { get; set; } = 250;
 
     private static readonly Logger Logger = Logger.GetLogger<BaseView>();
 
-    protected static IEnumerable<Gw2Sharp.WebApi.V2.Models.Color> Colors { get; set; }
+    protected static List<Gw2Sharp.WebApi.V2.Models.Color> Colors { get; set; }
 
-    protected static Panel ColorPickerPanel { get; set; }
+    private CancellationTokenSource _messageCancellationTokenSource;
 
-    protected static ColorPicker ColorPicker { get; set; }
-
-    protected string SelectedColorSetting { get; set; }
-    private Container BuildPanel { get; set; }
-    private Panel ErrorPanel { get; set; }
-    private CancellationTokenSource ErrorCancellationTokenSource = new CancellationTokenSource();
-
-    public Gw2ApiManager APIManager { get; init; }
+    protected Gw2ApiManager APIManager { get; }
+    protected BitmapFont Font { get; }
     public Gw2Sharp.WebApi.V2.Models.Color DefaultColor { get; init; }
-    public BitmapFont Font { get; init; }
 
-    public IconState IconState { get; init; }
+    protected IconState IconState { get; }
+
+    protected Panel MainPanel { get; private set; }
+
+    public BaseView(Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null)
+    {
+        this.APIManager = apiManager;
+        this.IconState = iconState;
+        this.Font = font ?? GameService.Content.DefaultFont16;
+    }
 
     protected sealed override async Task<bool> Load(IProgress<string> progress)
     {
@@ -54,7 +51,8 @@ public abstract class BaseView : View
             {
                 if (this.APIManager != null)
                 {
-                    Colors = await this.APIManager.Gw2ApiClient.V2.Colors.AllAsync();
+                    var colors = await this.APIManager.Gw2ApiClient.V2.Colors.AllAsync();
+                    Colors = colors.ToList();
                 }
             }
             catch (Exception ex)
@@ -64,42 +62,6 @@ public abstract class BaseView : View
                 {
                     Logger.Debug($"Adding default color: {this.DefaultColor.Name}");
                     Colors = new List<Gw2Sharp.WebApi.V2.Models.Color>() { this.DefaultColor };
-                }
-            }
-        }
-
-        if (ColorPicker == null)
-        {
-            progress.Report(Strings.BaseSettingsView_LoadingColorPicker);
-            // build initial colorpicker
-
-            ColorPickerPanel = new Panel()
-            {
-                Location = new Point(10, 10),
-                WidthSizingMode = SizingMode.AutoSize,
-                HeightSizingMode = SizingMode.AutoSize,
-                Visible = false,
-                ZIndex = int.MaxValue,
-                BackgroundColor = Color.Black,
-                ShowBorder = false,
-            };
-
-            ColorPicker = new ColorPicker()
-            {
-                Location = new Point(10, 10),
-                Parent = ColorPickerPanel,
-                HeightSizingMode = SizingMode.AutoSize,
-                WidthSizingMode = SizingMode.AutoSize,
-                CanScroll = true,
-                Visible = true
-            };
-
-            progress.Report(Strings.BaseSettingsView_AddingColorsToColorPicker);
-            if (Colors != null)
-            {
-                foreach (Gw2Sharp.WebApi.V2.Models.Color color in Colors.OrderBy(color => color.Categories.FirstOrDefault()))
-                {
-                    ColorPicker.Colors.Add(color);
                 }
             }
         }
@@ -124,13 +86,12 @@ public abstract class BaseView : View
             Parent = buildPanel
         };
 
-        this.BuildPanel = parentPanel;
-        this.RegisterErrorPanel(buildPanel);
+        this.MainPanel = parentPanel;
 
-        this.DoBuild(parentPanel);
+        this.InternalBuild(parentPanel);
     }
 
-    protected abstract void DoBuild(Panel parent);
+    protected abstract void InternalBuild(Panel parent);
 
     protected void RenderEmptyLine(Panel parent, int height = 25)
     {
@@ -144,68 +105,173 @@ public abstract class BaseView : View
         settingContainer.Show(new EmptyLineView(height));
     }
 
-    protected Panel RenderProperty<TObject, TProperty>(Panel parent, TObject obj, Expression<Func<TObject, TProperty>> expression, Func<TObject, bool> isEnabled, (float Min, float Max)? range = null, string title = null, string description = null, int width = -1)
+    protected TextBox RenderTextbox(Panel parent, Point location, int width, string value, string placeholder, Action<string> onChangeAction = null, Action<string> onEnterAction = null, bool clearOnEnter = false)
     {
-        return this.RenderPropertyWithValidation<TObject, TProperty>(parent, obj, expression, isEnabled, null, range, title, description, width);
-    }
-
-    protected Panel RenderPropertyWithValidation<TObject, TProperty>(Panel parent, TObject obj, Expression<Func<TObject, TProperty>> expression, Func<TObject, bool> isEnabled, Func<TProperty, (bool Valid, string Message)> validationFunction, (float Min, float Max)? range = null, string title = null, string description = null, int width = -1)
-    {
-        return this.RenderPropertyWithChangedTypeValidation<TObject, TProperty, TProperty>(parent, obj, expression, isEnabled, validationFunction, range, title, description, width);
-    }
-
-    protected Panel RenderPropertyWithChangedTypeValidation<TObject, TProperty, TOverrideType>(Panel parent, TObject obj, Expression<Func<TObject, TProperty>> expression, Func<TObject, bool> isEnabled, Func<TOverrideType, (bool Valid, string Message)> validationFunction, (float Min, float Max)? range = null, string title = null, string description = null, int width = -1)
-    {
-        Panel panel = this.GetPanel(parent);
-
-        Label label = this.GetLabel(panel, title ?? string.Empty);
-
-        try
+        TextBox textBox = new TextBox
         {
-            Control ctrl = ControlHandler.CreateFromPropertyWithChangedTypeValidation(obj, expression, isEnabled, (TOverrideType val) =>
+            Parent = parent,
+            PlaceholderText = placeholder,
+            Text = value,
+            Location = location,
+            Width = width,
+            Font = this.Font
+        };
+
+        if (onChangeAction != null)
+        {
+            textBox.TextChanged += (s, e) =>
             {
-                (bool Valid, string Message) validationResult = validationFunction != null ? validationFunction.Invoke(val) : (true, null);
-                if (!validationResult.Valid)
-                {
-                    this.ShowError(validationResult.Message);
-                }
-
-                return validationResult.Valid;
-            }, range, width == -1 ? BINDING_WIDTH : width, -1, label.Right + CONTROL_X_SPACING, 0);
-            ctrl.Parent = panel;
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, $"Type \"{typeof(TProperty).FullName}\" with override \"{typeof(TOverrideType).FullName}\" could not be found in internal type lookup:");
-        }
-
-        return panel;
-    }
-
-    protected Panel RenderTextbox(Panel parent, string description, string placeholder, Action<string> onEnterAction)
-    {
-        Panel panel = this.GetPanel(parent);
-
-        Label label = this.GetLabel(panel, description);
-
-        try
-        {
-            TextBox textBox = (TextBox)ControlHandler.Create<string>(BINDING_WIDTH, -1, label.Right + CONTROL_X_SPACING, 0);
-            textBox.Parent = panel;
-            textBox.BasicTooltipText = description;
-            textBox.PlaceholderText = placeholder;
-            textBox.EnterPressed += (s, e) =>
-            {
-                onEnterAction?.Invoke(textBox.Text);
-                textBox.Text = string.Empty;
+                var scopeTextBox = s as TextBox;
+                onChangeAction?.Invoke(scopeTextBox.Text);
             };
         }
-        catch (Exception ex)
+
+        if (onEnterAction != null)
         {
-            Logger.Error(ex, $"Type \"{typeof(string).FullName}\" could not be found in internal type lookup:");
+            textBox.EnterPressed += (s, e) =>
+            {
+                var scopeTextBox = s as TextBox;
+
+                onEnterAction?.Invoke(scopeTextBox.Text);
+
+                if (clearOnEnter)
+                {
+                    textBox.Text = string.Empty;
+                }
+            };
         }
 
-        return panel;
+        return textBox;
+    }
+
+    protected TrackBar RenderTrackBar(Panel parent, Point location, int width, int value, (int Min, int Max)? range = null, Action<int> onChangeAction = null)
+    {
+
+        TrackBar trackBar = new TrackBar
+        {
+            Parent = parent,
+            Location = location,
+            Width = width,
+        };
+
+        trackBar.MinValue = range?.Min ?? 0;
+        trackBar.MaxValue = range?.Max ?? 100;
+
+        trackBar.Value = value;
+
+        if (onChangeAction != null)
+        {
+            trackBar.ValueChanged += (s, e) =>
+            {
+                var scopeTrackBar = s as TrackBar;
+                onChangeAction?.Invoke((int)scopeTrackBar.Value);
+            };
+        }
+
+        return trackBar;
+    }
+
+    protected TrackBar RenderTrackBar(Panel parent, Point location, int width, float value, (float Min, float Max)? range = null, Action<float> onChangeAction = null)
+    {
+
+        TrackBar trackBar = new TrackBar
+        {
+            Parent = parent,
+            SmallStep = true,
+            Location = location,
+            Width = width,
+        };
+
+        trackBar.MinValue = range?.Min ?? 0f;
+        trackBar.MaxValue = range?.Max ?? 1f;
+
+        trackBar.Value = value;
+
+        if (onChangeAction != null)
+        {
+            trackBar.ValueChanged += (s, e) =>
+            {
+                var scopeTrackBar = s as TrackBar;
+                onChangeAction?.Invoke(scopeTrackBar.Value);
+            };
+        }
+
+        return trackBar;
+    }
+
+    protected Checkbox RenderCheckbox(Panel parent, Point location, bool value, Action<bool> onChangeAction = null)
+    {
+
+        Checkbox checkBox = new Checkbox
+        {
+            Parent = parent,
+            Checked = value,
+            Location = location,
+        };
+
+        if (onChangeAction != null)
+        {
+            checkBox.CheckedChanged += (s, e) =>
+            {
+                var scopeCheckbox = s as Checkbox;
+                onChangeAction?.Invoke(scopeCheckbox.Checked);
+            };
+        }
+
+        return checkBox;
+    }
+
+    protected Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null)
+    {
+        Dropdown dropdown = new Dropdown
+        {
+            Parent = parent,
+            Width = width,
+            Location = location,
+        };
+
+        if (values != null)
+        {
+            foreach (var valueToAdd in values)
+            {
+                dropdown.Items.Add(valueToAdd);
+            }
+
+            dropdown.SelectedItem = value;
+        }
+
+        if (onChangeAction != null)
+        {
+            dropdown.ValueChanged += (s, e) =>
+            {
+                var scopeDropdown = s as Dropdown;
+                onChangeAction?.Invoke(scopeDropdown.SelectedItem);
+            };
+        }
+
+        return dropdown;
+    }
+
+    protected Shared.Controls.KeybindingAssigner RenderKeybinding(Panel parent, Point location, int width, KeyBinding value, Action<KeyBinding> onChangeAction = null)
+    {
+        Shared.Controls.KeybindingAssigner keybindingAssigner = new Shared.Controls.KeybindingAssigner(false)
+        {
+            Parent = parent,
+            Width = width,
+            Location = location,
+            KeyBinding = value,
+        };
+
+        if (onChangeAction != null)
+        {
+            keybindingAssigner.BindingChanged += (s, e) =>
+            {
+                var scopeKeybindingAssigner = s as Shared.Controls.KeybindingAssigner;
+                onChangeAction?.Invoke(scopeKeybindingAssigner.KeyBinding);
+            };
+        }
+
+        return keybindingAssigner;
     }
 
     protected Panel GetPanel(Container parent)
@@ -218,14 +284,16 @@ public abstract class BaseView : View
         };
     }
 
-    protected Label GetLabel(Panel parent, string text)
+    protected Label GetLabel(Panel parent, string text, Color? color = null)
     {
         return new Label()
         {
             Parent = parent,
             Text = text,
-            AutoSizeHeight = true,
-            Width = LABEL_WIDTH
+            Font = this.Font,
+            TextColor = color ?? Color.White,
+            AutoSizeHeight = !string.IsNullOrWhiteSpace(text),
+            Width = (int)this.Font.MeasureString(text).Width
         };
     }
 
@@ -235,11 +303,10 @@ public abstract class BaseView : View
         {
             Parent = parent,
             Text = text,
-            //Width = (int)EventTableModule.ModuleInstance.Font.MeasureString(text).Width + 10,
             Enabled = !disabledCallback?.Invoke() ?? true,
         };
 
-        var measuredWidth = (int)(this.Font ?? GameService.Content.DefaultFont14).MeasureString(text).Width + 10;
+        int measuredWidth = (int)this.Font.MeasureString(text).Width + 10;
 
         if (button.Width < measuredWidth)
         {
@@ -251,7 +318,7 @@ public abstract class BaseView : View
 
     protected StandardButton RenderButton(Panel parent, string text, Action action, Func<bool> disabledCallback = null)
     {
-        var button = this.BuildButton(parent, text, disabledCallback);
+        StandardButton button = this.BuildButton(parent, text, disabledCallback);
 
         button.Click += (s, e) =>
         {
@@ -261,7 +328,7 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
-                this.ShowError(ex.Message);
+                //this.ShowError(ex.Message);
             }
         };
 
@@ -270,7 +337,7 @@ public abstract class BaseView : View
 
     protected StandardButton RenderButtonAsync(Panel parent, string text, Func<Task> action, Func<bool> disabledCallback = null)
     {
-        var button = this.BuildButton(parent, text, disabledCallback);
+        StandardButton button = this.BuildButton(parent, text, disabledCallback);
 
         button.Click += (s, e) => Task.Run(async () =>
         {
@@ -280,28 +347,9 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
-                this.ShowError(ex.Message);
+                //this.ShowError(ex.Message);
             }
         });
-
-        return button;
-    }
-
-    protected StandardButton RenderButtonAsyncWait(Panel parent, string text, Func<Task> action, Func<bool> disabledCallback = null)
-    {
-        var button = this.BuildButton(parent, text, disabledCallback);
-
-        button.Click += (s, e) => 
-        {
-            try
-            {
-                AsyncHelper.RunSync(action);
-            }
-            catch (Exception ex)
-            {
-                this.ShowError(ex.Message);
-            }
-        };
 
         return button;
     }
@@ -310,136 +358,147 @@ public abstract class BaseView : View
     {
         Panel panel = this.GetPanel(parent);
 
-        Label titleLabel = this.GetLabel(panel, title);
-        titleLabel.TextColor = textColorTitle ?? titleLabel.TextColor;
+        Label titleLabel = this.GetLabel(panel, title, color: textColorTitle);
 
         Label valueLabel = null;
 
         if (value != null)
         {
-            valueLabel = this.GetLabel(panel, value);
+            valueLabel = this.GetLabel(panel, value, color: textColorValue);
             valueLabel.Left = titleLabel.Right + CONTROL_X_SPACING;
-            valueLabel.TextColor = textColorValue ?? valueLabel.TextColor;
         }
         else
         {
             titleLabel.AutoSizeWidth = true;
         }
 
-        return (titleLabel,valueLabel);
+        return (titleLabel, valueLabel);
 
     }
 
-    protected ColorBox RenderColor(Panel parent, Gw2Sharp.WebApi.V2.Models.Color defaultColor, string identifierKey, Action<Gw2Sharp.WebApi.V2.Models.Color> onChange)
+    protected ColorBox RenderColorBox(Panel parent, Point location, Gw2Sharp.WebApi.V2.Models.Color initialColor, Action<Gw2Sharp.WebApi.V2.Models.Color> onChange, Panel selectorPanel = null, Thickness? innerSelectorPanelPadding = null)
     {
         Panel panel = this.GetPanel(parent);
 
         ColorBox colorBox = new ColorBox()
         {
-            Location = new Point(0, 0),
+            Location = location,
             Parent = panel,
-            Color = defaultColor
+            Color = initialColor
         };
+
+        var selectorPanelCreated = selectorPanel == null;
+
+        if (selectorPanel == null)
+        {
+            selectorPanel = this.GetPanel(parent);
+            selectorPanel.Visible = false;
+        }
+
+        ColorPicker colorPicker = new ColorPicker()
+        {
+            Parent = selectorPanel,
+            ZIndex = int.MaxValue,
+            Visible = false,
+            WidthSizingMode = SizingMode.Fill,
+            HeightSizingMode = SizingMode.Fill,
+            Padding = innerSelectorPanelPadding ?? Thickness.Zero,
+            AssociatedColorBox = colorBox,
+        };
+
+        if (Colors != null)
+        {
+            foreach (Gw2Sharp.WebApi.V2.Models.Color color in Colors.OrderBy(color => color.Categories.FirstOrDefault()))
+            {
+                colorPicker.Colors.Add(color);
+            }
+        }
 
         colorBox.LeftMouseButtonPressed += (s, e) =>
         {
-            ColorPickerPanel.Parent = parent;
-            ColorPickerPanel.HeightSizingMode = SizingMode.Fill;
-            ColorPickerPanel.WidthSizingMode = SizingMode.Fill;
-            //ColorPickerPanel.Size = new Point(panel.Width - 30, 850);
-
-            // Hack to get lineup right
-            Gw2Sharp.WebApi.V2.Models.Color tempColor = new Gw2Sharp.WebApi.V2.Models.Color()
+            if (selectorPanelCreated)
             {
-                Id = int.MaxValue,
-                Name = "temp"
-            };
-
-            ColorPicker.RecalculateLayout();
-            ColorPicker.Colors.Add(tempColor);
-            ColorPicker.Colors.Remove(tempColor);
-            ColorPicker.RecalculateLayout();
-
-            ColorPickerPanel.Visible = !ColorPickerPanel.Visible;
-            this.SelectedColorSetting = identifierKey;
-        };
-
-        ColorPicker.SelectedColorChanged += (sender, eArgs) =>
-        {
-            if (this.SelectedColorSetting != identifierKey)
-            {
-                return;
+                selectorPanel.Visible = true;
             }
 
-            Gw2Sharp.WebApi.V2.Models.Color selectedColor = ColorPicker.SelectedColor;
+            colorPicker.Visible = true;
+
+            try
+            {
+                colorPicker.DoUpdate(null); // This is kinda painful.
+
+                // Hack to get lineup right
+                Gw2Sharp.WebApi.V2.Models.Color tempColor = new Gw2Sharp.WebApi.V2.Models.Color()
+                {
+                    Id = int.MaxValue,
+                    Name = "temp"
+                };
+
+                colorPicker.RecalculateLayout();
+                colorPicker.Colors.Add(tempColor);
+                colorPicker.Colors.Remove(tempColor);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Hacky colorpicker resize failed.. Nothing to prevent this..");
+            }
+
+        };
+
+        colorPicker.SelectedColorChanged += (sender, eArgs) =>
+        {
+            var colorPicker = sender as ColorPicker;
+
+            Gw2Sharp.WebApi.V2.Models.Color selectedColor = colorPicker.SelectedColor;
 
             onChange?.Invoke(selectedColor);
-            ColorPickerPanel.Visible = false;
-            ColorPickerPanel.Parent = null;
-            colorBox.Color = selectedColor;
+
+            if (selectorPanelCreated)
+            {
+                selectorPanel.Visible = false;
+            }
+
+            colorPicker.Visible = false;
         };
 
         return colorBox;
     }
 
-    private void RegisterErrorPanel(Container parent)
+    private void ShowMessage(string message, Color color, int durationMS)
     {
-        Panel panel = this.GetPanel(parent);
-        panel.ZIndex = 1000;
-        panel.WidthSizingMode = SizingMode.Fill;
-        panel.Visible = false;
+        _messageCancellationTokenSource?.Cancel();
+        _messageCancellationTokenSource = new CancellationTokenSource();
 
-        this.ErrorPanel = panel;
+        int textHeight = (int)this.Font.MeasureString(message).Height;
+
+        var messagePanel = this.GetPanel(this.MainPanel);
+        messagePanel.HeightSizingMode = SizingMode.Standard;
+        messagePanel.Height = textHeight;
+        messagePanel.WidthSizingMode = SizingMode.Fill;
+
+        messagePanel.Location = new Point(0, this.MainPanel.Bottom - messagePanel.Height);
+
+        _ = this.GetLabel(messagePanel, message, color: color);
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(durationMS, _messageCancellationTokenSource.Token);
+            messagePanel.Dispose();
+        });
     }
 
-    public async void ShowError(string message)
+    protected void ShowError(string message)
     {
-        lock (this.ErrorPanel)
-        {
-            if (this.ErrorPanel.Visible)
-            {
-                this.ErrorCancellationTokenSource.Cancel();
-                this.ErrorCancellationTokenSource = new CancellationTokenSource();
-            }
-        }
+        this.ShowMessage(message, Color.Red, 5000);
+    }
 
-        this.ErrorPanel.ClearChildren();
-        BitmapFont font = GameService.Content.DefaultFont32;
-        message = DrawUtil.WrapText(font, message, this.ErrorPanel.Width * (3f / 4f));
-
-        Label label = this.GetLabel(this.ErrorPanel, message);
-        label.Width = this.ErrorPanel.Width;
-
-        label.Font = font;
-        label.HorizontalAlignment = HorizontalAlignment.Center;
-        label.TextColor = Color.Red;
-
-        this.ErrorPanel.Height = label.Height;
-        this.ErrorPanel.Bottom = this.BuildPanel.ContentRegion.Bottom;
-
-        lock (this.ErrorPanel)
-        {
-            this.ErrorPanel.Show();
-        }
-
-        try
-        {
-            await Task.Delay(5000, this.ErrorCancellationTokenSource.Token);
-        }
-        catch (TaskCanceledException)
-        {
-            Logger.Debug("Task was canceled to show new error:");
-        }
-
-        lock (this.ErrorPanel)
-        {
-            this.ErrorPanel.Hide();
-        }
+    protected void ShowInfo(string message)
+    {
+        this.ShowMessage(message, Color.White, 2500);
     }
 
     protected override void Unload()
     {
         base.Unload();
-        this.ErrorPanel.Dispose();
     }
 }

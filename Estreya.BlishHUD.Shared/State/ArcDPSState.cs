@@ -5,13 +5,10 @@ using Blish_HUD.ArcDps;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
 using Estreya.BlishHUD.Shared.Threading.Events;
-using Humanizer;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
 using System.Threading.Tasks;
 
 public class ArcDPSState : ManagedState
@@ -20,28 +17,29 @@ public class ArcDPSState : ManagedState
 
     private ConcurrentQueue<RawCombatEventArgs> _combatEventQueue;
 
-    private bool _notified = false;
+    private bool _lastState = true;
 
-    public event EventHandler ArcDPSServiceStopped;
+    public event EventHandler Started;
+    public event EventHandler Stopped;
 
     public event AsyncEventHandler<CombatEvent> AreaCombatEvent;
     public event AsyncEventHandler<CombatEvent> LocalCombatEvent;
 
-    public ArcDPSState(SkillState skillState) : base(saveInterval: -1)
+    public ArcDPSState(StateConfiguration configuration, SkillState skillState) : base(configuration)
     {
         this._skillState = skillState;
     }
 
     public override Task Clear()
     {
-        _combatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
+        this._combatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
 
         return Task.CompletedTask;
     }
 
     protected override Task Initialize()
     {
-        _combatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
+        this._combatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
 
         GameService.ArcDps.RawCombatEvent += this.ArcDps_RawCombatEvent;
 
@@ -62,15 +60,22 @@ public class ArcDPSState : ManagedState
 
     protected override void InternalUpdate(GameTime gameTime)
     {
-        if (!GameService.ArcDps.RenderPresent && !_notified)
+        if (GameService.ArcDps.RenderPresent != this._lastState)
         {
-            Logger.Error("ArcDPS Service stopped.");
+            if (GameService.ArcDps.RenderPresent)
+            {
+                this.Logger.Debug("ArcDPS Service started.");
 
-            this.ArcDPSServiceStopped?.Invoke(this, EventArgs.Empty);
+                this.Started?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                this.Logger.Debug("ArcDPS Service stopped.");
 
-            _notified = true;
+                this.Stopped?.Invoke(this, EventArgs.Empty);
+            }
 
-            this.Stop();
+            this._lastState = GameService.ArcDps.RenderPresent;
         }
 
         while (this._combatEventQueue.TryDequeue(out RawCombatEventArgs eventData))
@@ -91,6 +96,11 @@ public class ArcDPSState : ManagedState
 
     public void SimulateCombatEvent(RawCombatEventArgs rawCombatEventArgs)
     {
+        if (!this.Running)
+        {
+            return;
+        }
+
         this.ArcDps_RawCombatEvent(null, rawCombatEventArgs);
     }
 
@@ -102,7 +112,7 @@ public class ArcDPSState : ManagedState
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Failed adding combat event to queue.");
+            this.Logger.Error(ex, "Failed adding combat event to queue.");
         }
     }
 
@@ -167,7 +177,7 @@ public class ArcDPSState : ManagedState
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Failed parsing combat event:");
+            this.Logger.Error(ex, "Failed parsing combat event:");
         }
     }
 
@@ -325,21 +335,24 @@ public class ArcDPSState : ManagedState
             }
         }
 
-        if (types.Count == 0) types.Add(CombatEventType.NONE);
+        if (types.Count == 0)
+        {
+            types.Add(CombatEventType.NONE);
+        }
 
         Skill skill = null;
         if (types.Count > 0)
         {
-            skill = _skillState.GetById((int)ev.SkillId);
+            skill = this._skillState.GetById((int)ev.SkillId);
 
             if (skill == null)
             {
-                Logger.Debug($"Failed to fetch skill \"{ev.SkillId}\". ArcDPS reports: {skillName}");
-                _ = _skillState._missingSkillsFromAPIReportedByArcDPS.TryAdd((int)ev.SkillId, skillName);
+                this.Logger.Debug($"Failed to fetch skill \"{ev.SkillId}\". ArcDPS reports: {skillName}");
+                _ = this._skillState._missingSkillsFromAPIReportedByArcDPS.TryAdd((int)ev.SkillId, skillName);
             }
             else
             {
-                _ = _skillState._missingSkillsFromAPIReportedByArcDPS.TryRemove((int)ev.SkillId, out var unused);
+                _ = this._skillState._missingSkillsFromAPIReportedByArcDPS.TryRemove((int)ev.SkillId, out string unused);
             }
         }
 
@@ -369,7 +382,7 @@ public class ArcDPSState : ManagedState
 
             foreach (CombatEventCategory category in categories)
             {
-                CombatEvent combatEvent = new CombatEvent(ev, src, dst, category, type, CombatEventGroup.NORMAL)
+                CombatEvent combatEvent = new CombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL)
                 {
                     Skill = skill,
                 };
@@ -397,7 +410,7 @@ public class ArcDPSState : ManagedState
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, $"Failed emit event:");
+            this.Logger.Error(ex, $"Failed emit event:");
         }
     }
 }

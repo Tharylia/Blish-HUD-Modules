@@ -1,8 +1,11 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.UI.Views.Settings
 {
     using Blish_HUD.Controls;
+    using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.ScrollingCombatText;
+    using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.UI.Views;
+    using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Diagnostics;
     using System.Linq;
@@ -10,22 +13,24 @@
 
     public class GeneralSettingsView : BaseSettingsView
     {
-        public GeneralSettingsView() : base()
+        public GeneralSettingsView(Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
         {
         }
 
         protected override void BuildView(Panel parent)
         {
-            this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.GlobalDrawerVisible);
-            this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.GlobalDrawerVisibleHotkey);
-            this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.RegisterCornerIcon);
+            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.GlobalDrawerVisible);
+            this.RenderKeybindingSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.GlobalDrawerVisibleHotkey);
+            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.RegisterCornerIcon);
 
             this.RenderEmptyLine(parent);
 
-            this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideOnMissingMumbleTicks);
-            this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideOnOpenMap);
-            this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInWvW);
-            this.RenderSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInPvP);
+            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideOnMissingMumbleTicks);
+            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideOnOpenMap);
+            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInPvE_OpenWorld);
+            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInPvE_Competetive);
+            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInWvW);
+            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInPvP);
 
             //this.RenderEmptyLine(parent);
 

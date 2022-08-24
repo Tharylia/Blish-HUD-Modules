@@ -10,6 +10,7 @@ using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
@@ -19,6 +20,8 @@ public class ScrollingTextArea : Container
     private static readonly Logger Logger = Logger.GetLogger<ScrollingTextArea>();
 
     private static readonly ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
+
+    private const int MAX_CONSECUTIVE_FAIL_ITERATIONS = 10;
 
     private readonly SynchronizedCollection<ScrollingTextAreaEvent> _activeEvents = new SynchronizedCollection<ScrollingTextAreaEvent>();
 
@@ -80,40 +83,52 @@ public class ScrollingTextArea : Container
 
     public void AddCombatEvent(Shared.Models.ArcDPS.CombatEvent combatEvent)
     {
-        if (!this.Enabled || !this.CheckConfiguration(combatEvent))
+        if (!this.Enabled || this._cancellationTokenSource.IsCancellationRequested || !this.CheckConfiguration(combatEvent))
         {
             return;
         }
 
-        CombatEventFormatRule rule = this.Configuration.FormatRules.Value.Find(rule => rule.Category == combatEvent.Category && rule.Type == combatEvent.Type);
-
-        BitmapFont font = _fonts.GetOrAdd(rule.FontSize, (fontSize) => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular));
-
-        Color textColor = Color.White;
-
-        if (rule.TextColor != null && rule.TextColor.Id != 1)
+        try
         {
-            textColor = rule.TextColor.Cloth.ToXnaColor();
+            CombatEventFormatRule rule = this.Configuration.FormatRules.Value.Find(rule => rule.Category == combatEvent.Category && rule.Type == combatEvent.Type);
+
+            if (!rule.Validate())
+            {
+                Logger.Warn($"Rule '{rule.Name}' of area '{this.Configuration.Name}' is invalid. Expect possible errors.");
+            }
+
+            BitmapFont font = _fonts.GetOrAdd(rule?.FontSize ?? FontSize.Size16, (fontSize) => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular));
+
+            Color textColor = Color.White;
+            if (rule?.TextColor != null && rule.TextColor.Id != 1)
+            {
+                textColor = rule.TextColor.Cloth.ToXnaColor();
+            }
+
+            ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, font)
+            {
+                Parent = this,
+                Height = this.Configuration.EventHeight.Value,
+                BaseTextColor = textColor,
+                Opacity = 0f,
+                Visible = true,
+                DrawInterval = TimeSpan.FromSeconds(30)
+            };
+
+            scrollingTextAreaEvent.CalculateLayout();
+            scrollingTextAreaEvent.CalculateScrollingTexts();
+
+            scrollingTextAreaEvent.Disposed += this.ScrollingTextAreaEvent_Disposed;
+
+            this._activeEvents.Add(scrollingTextAreaEvent);
+
+            // Signal because of new events
+            _ = this._updateWaitHandle.Set();
         }
-
-        ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, font)
+        catch (Exception ex)
         {
-            Parent = this,
-            Height = this.Configuration.EventHeight.Value,
-            TextColor = textColor,
-            Opacity = 0f,
-            DrawInterval = TimeSpan.FromSeconds(30)
-        };
-
-        scrollingTextAreaEvent.CalculateLayout();
-
-        scrollingTextAreaEvent.Disposed += this.ScrollingTextAreaEvent_Disposed;
-
-        this._activeEvents.Add(scrollingTextAreaEvent);
-
-        scrollingTextAreaEvent.Show();
-
-        _ = this._updateWaitHandle.Set();
+            Logger.Error(ex, $"Could not add event to area '{this.Configuration.Name}':");
+        }
     }
 
     private float GetNow()
@@ -137,84 +152,115 @@ public class ScrollingTextArea : Container
 
     private async Task HandleUpdate()
     {
+        int currentConsecutiveFails = 0;
         do
         {
-            if (this._activeEvents == null || this._activeEvents.Count == 0)
+            try
             {
-                Logger.Debug($"Scrolling area \"{this.Configuration.Name}\" has no events. Waiting.");
-
-                _ = this._updateWaitHandle.Reset();
-                _ = await this._updateWaitHandle.WaitOneAsync(Timeout.InfiniteTimeSpan, this._cancellationTokenSource.Token);
-
-                Logger.Debug($"Scrolling area \"{this.Configuration.Name}\" has events. Continue.");
-            }
-
-            float now = this.GetNow();
-            float actualScrollspeed = this.GetActualScrollspeed();
-
-            if (this._activeEvents.Count >= 2)
-            {
-                // Move olders events down, if not enough space
-                ScrollingTextAreaEvent lastChecked = this._activeEvents[this._activeEvents.Count - 1];
-                for (int i = this._activeEvents.Count - 2; i >= 0; i--)
+                // Only lock once
+                var activeEvents = new List<ScrollingTextAreaEvent>();
+                lock (this._activeEvents)
                 {
-                    ScrollingTextAreaEvent activeEvent = this._activeEvents[i];
-                    if (lastChecked.Bottom > activeEvent.Top)
+                    activeEvents.AddRange(this._activeEvents.ToList());
+                }
+
+                if (activeEvents == null || activeEvents.Count == 0)
+                {
+                    Logger.Debug($"Scrolling area \"{this.Configuration.Name}\" has no events. Waiting.");
+
+                    _ = this._updateWaitHandle.Reset();
+                    _ = await this._updateWaitHandle.WaitOneAsync(Timeout.InfiniteTimeSpan, this._cancellationTokenSource.Token);
+
+                    if (this._cancellationTokenSource.IsCancellationRequested)
                     {
-                        activeEvent.Time -= this.DistanceToTime(now, actualScrollspeed, lastChecked.Bottom - activeEvent.Top);
+                        return;
                     }
 
-                    lastChecked = activeEvent;
+                    Logger.Debug($"Scrolling area \"{this.Configuration.Name}\" has events. Continue.");
+                }
+
+                float now = this.GetNow();
+                float actualScrollspeed = this.GetActualScrollspeed();
+
+                if (activeEvents.Count >= 2)
+                {
+                    // Move olders events down, if not enough space
+                    ScrollingTextAreaEvent lastChecked = activeEvents[activeEvents.Count - 1];
+                    for (int i = activeEvents.Count - 2; i >= 0; i--)
+                    {
+                        ScrollingTextAreaEvent activeEvent = activeEvents[i];
+                        if (lastChecked.Bottom > activeEvent.Top)
+                        {
+                            activeEvent.Time -= this.DistanceToTime(now, actualScrollspeed, lastChecked.Bottom - activeEvent.Top);
+                        }
+
+                        lastChecked = activeEvent;
+                    }
+                }
+
+                float fadeLength = 0.10f;
+                for (int i = 0; i < activeEvents.Count; i++)
+                {
+                    ScrollingTextAreaEvent activeEvent = activeEvents[i];
+
+                    float animatedHeight = (float)(now - activeEvent.Time) * actualScrollspeed;
+                    float percentage = animatedHeight / this.Height;
+
+                    if (percentage > 1)
+                    {
+                        activeEvent.Dispose();
+                        //i--;
+                        continue;
+                    }
+
+                    float alpha = 1 - (percentage - 1f + fadeLength) / fadeLength;
+                    activeEvent.Opacity = alpha;
+
+                    float x = 0;
+
+                    switch (this.Configuration.Curve.Value)
+                    {
+                        case ScrollingTextAreaCurve.Left:
+                            if (activeEvent.Width < this.Width)
+                            {
+                                x += (this.Width - activeEvent.Width) * (2 * percentage - 1) * (2 * percentage - 1);
+                            }
+
+                            break;
+                        case ScrollingTextAreaCurve.Right:
+                            if (activeEvent.Width < this.Width)
+                            {
+                                x += (this.Width - activeEvent.Width) * (1 - (2 * percentage - 1) * (2 * percentage - 1));
+                            }
+
+                            break;
+                        case ScrollingTextAreaCurve.Straight:
+                            break;
+                        default:
+                            break;
+                    }
+
+                    activeEvent.Location = new Point((int)x, (int)animatedHeight);
                 }
             }
-
-            float fadeLength = 0.10f;
-            for (int i = 0; i < this._activeEvents.Count; i++)
+            catch (Exception ex)
             {
-                ScrollingTextAreaEvent activeEvent = this._activeEvents[i];
+                Logger.Warn(ex, $"{nameof(HandleUpdate)} failed:");
+                currentConsecutiveFails++;
 
-                float animatedHeight = (float)(now - activeEvent.Time) * actualScrollspeed;
-                float percentage = animatedHeight / this.Height;
-
-                if (percentage > 1)
+                if (currentConsecutiveFails >= MAX_CONSECUTIVE_FAIL_ITERATIONS)
                 {
-                    activeEvent.Dispose();
-                    i--;
-                    continue;
+                    Logger.Error($"{nameof(HandleUpdate)} failed at least {MAX_CONSECUTIVE_FAIL_ITERATIONS} times. Abort worker.");
+                    this._cancellationTokenSource.Cancel();
                 }
 
-                float alpha = 1 - (percentage - 1f + fadeLength) / fadeLength;
-                activeEvent.Opacity = alpha;
-
-                float x = 0;
-
-                switch (this.Configuration.Curve.Value)
-                {
-                    case ScrollingTextAreaCurve.Left:
-                        if (activeEvent.Width < this.Width)
-                        {
-                            x += (this.Width - activeEvent.Width) * (2 * percentage - 1) * (2 * percentage - 1);
-                        }
-
-                        break;
-                    case ScrollingTextAreaCurve.Right:
-                        if (activeEvent.Width < this.Width)
-                        {
-                            x += (this.Width - activeEvent.Width) * (1 - (2 * percentage - 1) * (2 * percentage - 1));
-                        }
-
-                        break;
-                    case ScrollingTextAreaCurve.Straight:
-                        break;
-                    default:
-                        break;
-                }
-
-                activeEvent.Location = new Point((int)x, (int)animatedHeight);
+                continue;
             }
+
+            currentConsecutiveFails = 0; // Reset fail chain
         } while (!this._cancellationTokenSource.IsCancellationRequested);
 
-        Logger.Debug("Task exited.");
+        Logger.Debug($"{nameof(HandleUpdate)} for area '{this.Configuration.Name}' exited.");
     }
 
     private float DistanceToTime(float timeNow, float actualScrollspeed, float distance)
@@ -246,6 +292,7 @@ public class ScrollingTextArea : Container
 
         _ = this._activeEvents.Remove(scrollingTextAreaEvent);
     }
+
     protected override void DisposeControl()
     {
         // Cancel token to trigger worker stopping.

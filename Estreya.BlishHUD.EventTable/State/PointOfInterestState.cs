@@ -22,6 +22,7 @@ public class PointOfInterestState : APIState<PointOfInterest>
 {
     private static readonly Logger Logger = Logger.GetLogger<PointOfInterestState>();
     private const string BASE_FOLDER_STRUCTURE = "pois";
+    private const string FILE_NAME = "pois.json";
     private const string LAST_UPDATED_FILE_NAME = "last_updated.txt";
 
     private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
@@ -95,32 +96,33 @@ public class PointOfInterestState : APIState<PointOfInterest>
         {
             bool loadFromApi = false;
 
-            if (Directory.Exists(this.FullPath))
+            var filePath = Path.Combine(this.FullPath, FILE_NAME);
+
+            if (Directory.Exists(this.FullPath) && System.IO.File.Exists(filePath))
             {
                 bool continueLoadingFiles = true;
 
                 string lastUpdatedFilePath = Path.Combine(this.FullPath, LAST_UPDATED_FILE_NAME);
-                if (!System.IO.File.Exists(lastUpdatedFilePath))
+                if (System.IO.File.Exists(lastUpdatedFilePath))
                 {
-                    await this.CreateLastUpdatedFile();
-                }
-
-                string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
-                if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
-                {
-                    Logger.Debug("Failed parsing last updated.");
-                }
-                else
-                {
-                    if (DateTime.UtcNow - new DateTime(lastUpdated.Ticks, DateTimeKind.Utc) > TimeSpan.FromDays(5))
+                    string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
+                    if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
                     {
-                        continueLoadingFiles = false;
-                        loadFromApi = true;
+                        Logger.Debug("Failed parsing last updated.");
+                    }
+                    else
+                    {
+                        if (DateTime.UtcNow - new DateTime(lastUpdated.Ticks, DateTimeKind.Utc) > TimeSpan.FromDays(5))
+                        {
+                            continueLoadingFiles = false;
+                            loadFromApi = true;
+                        }
                     }
                 }
 
                 if (continueLoadingFiles)
                 {
+                    /*
                     var dirs = Directory.GetDirectories(this.FullPath).ToList();
 
                     string[] files = dirs.SelectMany(dir => Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories)).ToArray();
@@ -132,6 +134,14 @@ public class PointOfInterestState : APIState<PointOfInterest>
                     else
                     {
                         loadFromApi = true;
+                    }
+                    */
+
+                        var poiJson = await FileUtil.ReadStringAsync(filePath);
+                    var pois = JsonConvert.DeserializeObject<List<PointOfInterest>>(poiJson);
+                    using (await this._listLock.LockAsync())
+                    {
+                        this.APIObjectList.AddRange(pois);
                     }
                 }
             }
@@ -147,7 +157,8 @@ public class PointOfInterestState : APIState<PointOfInterest>
             }
 
             Logger.Debug("Loaded {0} point of interests.", this.APIObjectList.Count);
-        }catch (Exception ex)
+        }
+        catch (Exception ex)
         {
             Logger.Warn(ex, "Failed loading point of interests:");
         }
@@ -211,7 +222,11 @@ public class PointOfInterestState : APIState<PointOfInterest>
 
         using (await this._listLock.LockAsync())
         {
-            IEnumerable<Task> fileWriteTasks = this.APIObjectList.Select(poi =>
+            var filePath = Path.Combine(this.FullPath, FILE_NAME);
+
+            await FileUtil.WriteStringAsync(filePath, JsonConvert.SerializeObject(this.APIObjectList, Formatting.Indented));
+
+            /*IEnumerable<Task> fileWriteTasks = this.APIObjectList.Select(poi =>
             {
                 string landmarkPath = Path.Combine(this.FullPath, FileUtil.SanitizeFileName(poi.Continent.Name), FileUtil.SanitizeFileName(poi.Floor.Id.ToString()), FileUtil.SanitizeFileName(poi.Region.Name), FileUtil.SanitizeFileName(poi.Map.Name), FileUtil.SanitizeFileName(poi.Name) + ".txt");
 
@@ -222,7 +237,7 @@ public class PointOfInterestState : APIState<PointOfInterest>
                 return FileUtil.WriteStringAsync(landmarkPath, landmarkData);
             });
 
-            await Task.WhenAll(fileWriteTasks);
+            await Task.WhenAll(fileWriteTasks);*/
         }
 
         await this.CreateLastUpdatedFile();

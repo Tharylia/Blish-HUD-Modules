@@ -12,21 +12,19 @@
     {
         protected Logger Logger;
 
-        private readonly int _saveInterval;
-
         private readonly AsyncRef<double> _lastSaved = 0;
+
+        protected StateConfiguration Configuration { get; }
 
         protected CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
 
         public bool Running { get; private set; } = false;
-        public bool AwaitLoad { get; }
+        public bool AwaitLoading => this.Configuration.AwaitLoading;
 
-        protected ManagedState(bool awaitLoad = true, int saveInterval = 60000)
+        protected ManagedState(StateConfiguration configuration)
         {
-            this.AwaitLoad = awaitLoad;
-            this._saveInterval = saveInterval;
-
             this.Logger = Logger.GetLogger(this.GetType());
+            this.Configuration = configuration;
         }
 
         public async Task Start()
@@ -40,9 +38,10 @@
             Logger.Debug("Starting state.");
 
             await this.Initialize();
-            await this.Load();
 
             this.Running = true;
+
+            await this.Load();
         }
 
         public void Stop()
@@ -65,38 +64,9 @@
                 return;
             }
 
-            if (this._saveInterval != -1 /*&& this.TimeSinceSave.TotalMilliseconds >= this.SaveInternal*/)
+            if (this.Configuration.SaveInterval != Timeout.InfiniteTimeSpan)
             {
-                _ = UpdateUtil.UpdateAsync(this.SaveWrapper, gameTime, this._saveInterval, this._lastSaved);
-
-                /*
-                // Prevent multiple threads running Save() at the same time.
-                if (_saveSemaphore.CurrentCount > 0)
-                {
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await _saveSemaphore.WaitAsync();
-                            await this.Save();
-                            this.TimeSinceSave = TimeSpan.Zero;
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, "{0} failed saving.", this.GetType().Name);
-                        }
-                        finally
-                        {
-                            _ = _saveSemaphore.Release();
-                        }
-                    });
-                }
-                else
-                {
-                    Logger.Debug("Another thread is already running Save() for {0}", this.GetType().Name);
-                }*/
-
-
+                _ = UpdateUtil.UpdateAsync(this.SaveWrapper, gameTime, this.Configuration.SaveInterval.TotalMilliseconds, this._lastSaved);
             }
 
             try

@@ -40,10 +40,11 @@
         public SettingEntry<bool> HideOnMissingMumbleTicks { get; private set; }
         public SettingEntry<bool> HideInCombat { get; private set; }
         public SettingEntry<bool> HideOnOpenMap { get; private set; }
+        public SettingEntry<bool> HideInPvE_OpenWorld { get; private set; }
+        public SettingEntry<bool> HideInPvE_Competetive { get; private set; }
         public SettingEntry<bool> HideInWvW { get; private set; }
         public SettingEntry<bool> HideInPvP { get; private set; }
         public SettingEntry<bool> DebugEnabled { get; private set; }
-        public SettingEntry<FontSize> FontSize { get; private set; }
         #endregion
 
         #region Drawers
@@ -149,33 +150,20 @@
             this.HideInCombat = this.GlobalSettings.DefineSetting(nameof(this.HideInCombat), false, () => Strings.Setting_HideInCombat_Name, () => Strings.Setting_HideInCombat_Description);
             this.HideInCombat.SettingChanged += this.SettingChanged;
 
-            this.HideInWvW = this.GlobalSettings.DefineSetting(nameof(this.HideInWvW), false, () => "Hide in WvW", () => "Whether the event table should hide when in world vs. world.");
+            this.HideInPvE_OpenWorld = this.GlobalSettings.DefineSetting(nameof(this.HideInPvE_OpenWorld), false, () => "Hide in PvE (Open World)", () => "Whether the drawers should hide when in PvE (Open World).");
+            this.HideInPvE_OpenWorld.SettingChanged += this.SettingChanged;
+
+            this.HideInPvE_Competetive = this.GlobalSettings.DefineSetting(nameof(this.HideInPvE_Competetive), false, () => "Hide in PvE (Competetive)", () => "Whether the drawers should hide when in PvE (Competetive).");
+            this.HideInPvE_Competetive.SettingChanged += this.SettingChanged;
+
+            this.HideInWvW = this.GlobalSettings.DefineSetting(nameof(this.HideInWvW), false, () => "Hide in WvW", () => "Whether the drawers should hide when in world vs. world.");
             this.HideInWvW.SettingChanged += this.SettingChanged;
 
-            this.HideInPvP = this.GlobalSettings.DefineSetting(nameof(this.HideInPvP), false, () => "Hide in PvP", () => "Whether the event table should hide when in player vs. player.");
+            this.HideInPvP = this.GlobalSettings.DefineSetting(nameof(this.HideInPvP), false, () => "Hide in PvP", () => "Whether the drawers should hide when in player vs. player.");
             this.HideInPvP.SettingChanged += this.SettingChanged;
-            /*
-            this.BackgroundColor = this.GlobalSettings.DefineSetting(nameof(this.BackgroundColor), this.DefaultGW2Color, () => Strings.Setting_BackgroundColor_Name, () => Strings.Setting_BackgroundColor_Description);
-            this.BackgroundColor.SettingChanged += this.SettingChanged;
-
-            this.BackgroundColorOpacity = this.GlobalSettings.DefineSetting(nameof(this.BackgroundColorOpacity), 0.0f, () => Strings.Setting_BackgroundColorOpacity_Name, () => Strings.Setting_BackgroundColorOpacity_Description);
-            this.BackgroundColorOpacity.SetRange(0.0f, 1f);
-            this.BackgroundColorOpacity.SettingChanged += this.SettingChanged;
-            */
+           
             this.DebugEnabled = this.GlobalSettings.DefineSetting(nameof(this.DebugEnabled), false, () => Strings.Setting_DebugEnabled_Name, () => Strings.Setting_DebugEnabled_Description);
             this.DebugEnabled.SettingChanged += this.SettingChanged;
-
-            /*
-            this.BuildDirection = this.GlobalSettings.DefineSetting(nameof(this.BuildDirection), Shared.Models.BuildDirection.Top, () => Strings.Setting_BuildDirection_Name, () => Strings.Setting_BuildDirection_Description);
-            this.BuildDirection.SettingChanged += this.SettingChanged;
-
-            this.Opacity = this.GlobalSettings.DefineSetting(nameof(this.Opacity), 1f, () => Strings.Setting_Opacity_Name, () => Strings.Setting_Opacity_Description);
-            this.Opacity.SetRange(0.1f, 1f);
-            this.Opacity.SettingChanged += this.SettingChanged;
-            */
-
-            this.FontSize = this.GlobalSettings.DefineSetting(nameof(this.FontSize), ContentService.FontSize.Size16, () => Strings.Setting_FontSize_Name, () => Strings.Setting_FontSize_Description);
-            this.FontSize.SettingChanged += this.SettingChanged;
 
             this.DoInitializeGlobalSettings(this.GlobalSettings);
         }
@@ -281,6 +269,8 @@
             this.RegisterCornerIcon.SettingChanged -= this.SettingChanged;
             this.HideOnOpenMap.SettingChanged -= this.SettingChanged;
             this.HideOnMissingMumbleTicks.SettingChanged -= this.SettingChanged;
+            this.HideInPvE_OpenWorld.SettingChanged -= this.SettingChanged;
+            this.HideInPvE_Competetive.SettingChanged -= this.SettingChanged;
             this.HideInCombat.SettingChanged -= this.SettingChanged;
             this.HideInPvP.SettingChanged -= this.SettingChanged;
             //this.BackgroundColor.SettingChanged -= this.SettingChanged;
@@ -288,7 +278,6 @@
             this.DebugEnabled.SettingChanged -= this.SettingChanged;
             //this.BuildDirection.SettingChanged -= this.SettingChanged;
             //this.Opacity.SettingChanged -= this.SettingChanged;
-            this.FontSize.SettingChanged -= this.SettingChanged;
 
             for (int i = this.GlobalSettings.Entries.Count - 1; i >= 0; i--)
             {

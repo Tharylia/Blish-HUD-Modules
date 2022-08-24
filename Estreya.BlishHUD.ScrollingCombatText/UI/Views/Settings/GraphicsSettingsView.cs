@@ -1,13 +1,16 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.UI.Views.Settings
 {
     using Blish_HUD.Controls;
+    using Blish_HUD.Modules.Managers;
+    using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.UI.Views;
+    using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Threading.Tasks;
 
     public class GraphicsSettingsView : BaseSettingsView
     {
-        public GraphicsSettingsView() : base()
+        public GraphicsSettingsView(Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
         {
         }
 

@@ -1,6 +1,6 @@
 {
   "name": "Scrolling Combat Text",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.5",
   "namespace": "estreya.bh.scrollingCombatText",
   "package": "Estreya.BlishHUD.ScrollingCombatText.dll",
   "manifest_version": 1,
