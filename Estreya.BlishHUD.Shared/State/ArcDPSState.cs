@@ -4,7 +4,6 @@ using Blish_HUD;
 using Blish_HUD.ArcDps;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
-using Estreya.BlishHUD.Shared.Threading.Events;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Concurrent;
@@ -15,31 +14,37 @@ public class ArcDPSState : ManagedState
 {
     private SkillState _skillState;
 
-    private ConcurrentQueue<RawCombatEventArgs> _combatEventQueue;
+    private ConcurrentQueue<RawCombatEventArgs> _rawCombatEventQueue;
+    private ConcurrentQueue<(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)> _parsedCombatEventQueue;
 
     private bool _lastState = true;
+
+    // Persitent Combat Data
+    public ushort _selfInstId;
 
     public event EventHandler Started;
     public event EventHandler Stopped;
 
-    public event AsyncEventHandler<CombatEvent> AreaCombatEvent;
-    public event AsyncEventHandler<CombatEvent> LocalCombatEvent;
+    public event EventHandler<CombatEvent> AreaCombatEvent;
+    public event EventHandler<CombatEvent> LocalCombatEvent;
 
     public ArcDPSState(StateConfiguration configuration, SkillState skillState) : base(configuration)
     {
         this._skillState = skillState;
     }
 
-    public override Task Clear()
+    protected override Task Clear()
     {
-        this._combatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
+        this._rawCombatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
+        this._parsedCombatEventQueue = new ConcurrentQueue<(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)>();
 
         return Task.CompletedTask;
     }
 
     protected override Task Initialize()
     {
-        this._combatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
+        this._rawCombatEventQueue = new ConcurrentQueue<RawCombatEventArgs>();
+        this._parsedCombatEventQueue = new ConcurrentQueue<(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)>();
 
         GameService.ArcDps.RawCombatEvent += this.ArcDps_RawCombatEvent;
 
@@ -55,33 +60,65 @@ public class ArcDPSState : ManagedState
     {
         GameService.ArcDps.RawCombatEvent -= this.ArcDps_RawCombatEvent;
         this._skillState = null;
-        this._combatEventQueue = null;
+        this._rawCombatEventQueue = null;
+        this._parsedCombatEventQueue = null;
     }
 
     protected override void InternalUpdate(GameTime gameTime)
     {
-        if (GameService.ArcDps.RenderPresent != this._lastState)
+        // TODO: Remove reflection
+        System.Reflection.PropertyInfo runningProperty = GameService.ArcDps.GetType().GetProperty("Running");
+        if (runningProperty != null)
         {
-            if (GameService.ArcDps.RenderPresent)
+            bool running = (bool)runningProperty.GetValue(GameService.ArcDps);
+            if (running != this._lastState)
             {
-                this.Logger.Debug("ArcDPS Service started.");
+                if (running)
+                {
+                    this.Logger.Debug("ArcDPS Service started.");
 
-                this.Started?.Invoke(this, EventArgs.Empty);
+                    this.Started?.Invoke(this, EventArgs.Empty);
+                }
+                else
+                {
+                    this.Logger.Debug("ArcDPS Service stopped.");
+
+                    this.Stopped?.Invoke(this, EventArgs.Empty);
+                }
+
+                this._lastState = running;
             }
-            else
+        }
+        else
+        {
+            if (GameService.ArcDps.RenderPresent != this._lastState)
             {
-                this.Logger.Debug("ArcDPS Service stopped.");
+                if (GameService.ArcDps.RenderPresent)
+                {
+                    this.Logger.Debug("ArcDPS Service started.");
 
-                this.Stopped?.Invoke(this, EventArgs.Empty);
+                    this.Started?.Invoke(this, EventArgs.Empty);
+                }
+                else
+                {
+                    this.Logger.Debug("ArcDPS Service stopped.");
+
+                    this.Stopped?.Invoke(this, EventArgs.Empty);
+                }
+
+                this._lastState = GameService.ArcDps.RenderPresent;
             }
-
-            this._lastState = GameService.ArcDps.RenderPresent;
         }
 
-        while (this._combatEventQueue.TryDequeue(out RawCombatEventArgs eventData))
+        GameService.Debug.StartTimeFunc($"{nameof(ArcDPSState)}-UpdateIterateQueue", 60);
+        while (this._rawCombatEventQueue.TryDequeue(out RawCombatEventArgs eventData))
         {
-            this.ParseCombatEvent(eventData);
+            foreach (var parsedCombatEvent in this.ParseCombatEvent(eventData))
+            {
+                this.EmitEvent(parsedCombatEvent, eventData.EventType);
+            }
         }
+        GameService.Debug.StopTimeFunc($"{nameof(ArcDPSState)}-UpdateIterateQueue");
     }
 
     protected override Task Load()
@@ -108,7 +145,7 @@ public class ArcDPSState : ManagedState
     {
         try
         {
-            this._combatEventQueue.Enqueue(rawCombatEventArgs);
+            this._rawCombatEventQueue.Enqueue(rawCombatEventArgs);
         }
         catch (Exception ex)
         {
@@ -116,11 +153,13 @@ public class ArcDPSState : ManagedState
         }
     }
 
-    private void ParseCombatEvent(RawCombatEventArgs rawCombatEventArgs)
+    private List<CombatEvent> ParseCombatEvent(RawCombatEventArgs rawCombatEventArgs)
     {
+        var combatEvents = new List<CombatEvent>();
+
         if (!this.Running)
         {
-            return;
+            return combatEvents;
         }
 
         try
@@ -135,7 +174,6 @@ public class ArcDPSState : ManagedState
             if (ev != null)
             {
                 string skillName = rawCombatEvent.SkillName;
-                uint selfInstId = 0;
 
                 /* default names */
                 if (string.IsNullOrWhiteSpace(src.Name))
@@ -155,17 +193,17 @@ public class ArcDPSState : ManagedState
 
                 if (src.Self == 1)
                 {
-                    selfInstId = ev.SrcInstId;
+                    this._selfInstId = ev.SrcInstId;
                 }
 
                 if (dst.Self == 1)
                 {
-                    selfInstId = ev.DstInstId;
+                    this._selfInstId = ev.DstInstId;
                 }
 
-                this.HandleNormalCombatEvents(ev, src, dst, skillName, selfInstId, targetAgentId, rawCombatEventArgs.EventType);
-                this.HandleActivationEvents(ev, src, dst, skillName, selfInstId, targetAgentId, rawCombatEventArgs.EventType);
-                this.HandleStatechangeEvents(ev, src, dst, skillName, selfInstId, targetAgentId, rawCombatEventArgs.EventType);
+                combatEvents.AddRange(this.HandleNormalCombatEvents(ev, src, dst, skillName, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
+                combatEvents.AddRange(this.HandleActivationEvents(ev, src, dst, skillName, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
+                combatEvents.AddRange(this.HandleStatechangeEvents(ev, src, dst, skillName, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
             }
             else
             {
@@ -179,36 +217,45 @@ public class ArcDPSState : ManagedState
         {
             this.Logger.Error(ex, "Failed parsing combat event:");
         }
+
+        return combatEvents;
     }
 
-    private void HandleStatechangeEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
+    private List<CombatEvent> HandleStatechangeEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
+        var combatEvents = new List<CombatEvent>();
+
+        return combatEvents;
     }
 
-    private void HandleActivationEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
+    private List<CombatEvent> HandleActivationEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
+        var combatEvents = new List<CombatEvent>();
+
+        return combatEvents;
     }
 
-    private void HandleNormalCombatEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, ulong selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
+    private List<CombatEvent> HandleNormalCombatEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, ulong selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
+        var combatEvents = new List<CombatEvent>();
         List<CombatEventType> types = new List<CombatEventType>();
 
         /* statechange */
         if (ev.IsStateChange != ArcDpsEnums.StateChange.None)
         {
-            return;
+            return combatEvents;
         }
 
         /* activation */
         else if (ev.IsActivation != ArcDpsEnums.Activation.None)
         {
-            return;
+            return combatEvents;
         }
 
         /* buff remove */
         else if (ev.IsBuffRemove != ArcDpsEnums.BuffRemove.None)
         {
-            return;
+            return combatEvents;
         }
 
         if (ev.Buff)
@@ -335,10 +382,10 @@ public class ArcDPSState : ManagedState
             }
         }
 
-        if (types.Count == 0)
-        {
-            types.Add(CombatEventType.NONE);
-        }
+        //if (types.Count == 0)
+        //{
+        //    types.Add(CombatEventType.NONE);
+        //}
 
         Skill skill = null;
         if (types.Count > 0)
@@ -347,12 +394,15 @@ public class ArcDPSState : ManagedState
 
             if (skill == null)
             {
-                this.Logger.Debug($"Failed to fetch skill \"{ev.SkillId}\". ArcDPS reports: {skillName}");
-                _ = this._skillState._missingSkillsFromAPIReportedByArcDPS.TryAdd((int)ev.SkillId, skillName);
+               var added = this._skillState.AddMissingSkill((int)ev.SkillId, skillName);
+                if (added)
+                {
+                    this.Logger.Debug($"Failed to fetch skill \"{ev.SkillId}\". ArcDPS reports: {skillName}");
+                }
             }
             else
             {
-                _ = this._skillState._missingSkillsFromAPIReportedByArcDPS.TryRemove((int)ev.SkillId, out string unused);
+                this._skillState.RemoveMissingSkill((int)ev.SkillId);
             }
         }
 
@@ -366,7 +416,7 @@ public class ArcDPSState : ManagedState
                     categories.Add(CombatEventCategory.PLAYER_OUT);
                 }
             }
-            else if (ev.SrcMasterInstId == selfInstId && (/*!Options::get()->outgoingOnlyToTarget || */dst.Id == targetAgentId))
+            else if (ev.SrcMasterInstId == selfInstId)// && (/*!Options::get()->outgoingOnlyToTarget || */dst.Id == targetAgentId))
             {
                 categories.Add(CombatEventCategory.PET_OUT);
             }
@@ -387,9 +437,11 @@ public class ArcDPSState : ManagedState
                     Skill = skill,
                 };
 
-                this.EmitEvent(combatEvent, scope);
+                combatEvents.Add(combatEvent);
             }
         }
+
+        return combatEvents;
     }
 
     private void EmitEvent(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)
@@ -400,11 +452,11 @@ public class ArcDPSState : ManagedState
             {
                 case RawCombatEventArgs.CombatEventType.Area:
                     // Fire task and don't worry about it.
-                    _ = this.AreaCombatEvent?.Invoke(this, combatEvent);
+                    this.AreaCombatEvent?.Invoke(this, combatEvent);
                     break;
                 case RawCombatEventArgs.CombatEventType.Local:
                     // Fire task and don't worry about it.
-                    _ = this.LocalCombatEvent?.Invoke(this, combatEvent);
+                    this.LocalCombatEvent?.Invoke(this, combatEvent);
                     break;
             }
         }

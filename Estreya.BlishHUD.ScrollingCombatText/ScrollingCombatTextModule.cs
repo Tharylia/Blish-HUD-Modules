@@ -107,7 +107,7 @@
             this.ArcDPSState.LocalCombatEvent += this.ArcDPSState_LocalCombatEvent;
         }
 
-        private Task ArcDPSState_LocalCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
+        private void ArcDPSState_LocalCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
         {
             foreach (var area in this._areas.Values)
             {
@@ -115,8 +115,6 @@
             }
 
             e.Dispose();
-
-            return Task.CompletedTask;
         }
 
         protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
@@ -265,7 +263,6 @@
         protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
         {
             var moduleSettings = new ModuleSettings(settings);
-
 
             return moduleSettings;
         }

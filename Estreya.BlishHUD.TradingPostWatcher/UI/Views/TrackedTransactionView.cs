@@ -3,11 +3,14 @@
 using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
+using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
+using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,12 +29,12 @@ public class TrackedTransactionView : BaseView
     public event EventHandler<TrackedTransaction> AddTracking;
     public event EventHandler<TrackedTransaction> RemoveTracking;
 
-    public TrackedTransactionView(List<TrackedTransaction> trackedTransactions)
+    public TrackedTransactionView(List<TrackedTransaction> trackedTransactions, Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
     {
         this._trackedTransactions = trackedTransactions;
     }
 
-    protected override void DoBuild(Panel parent)
+    protected override void InternalBuild(Panel parent)
     {
         var bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - (PADDING_X * 2), parent.ContentRegion.Height - (PADDING_Y * 2));
 
@@ -220,12 +223,12 @@ public class TrackedTransactionView : BaseView
         cancelButton.Right = saveButton.Left - 10;
         cancelButton.Bottom = panelBounds.Bottom - 20;
 
-        StandardButton loadItemButton = this.RenderButtonAsyncWait(this._transactionPanel, "Load Item", async () =>
+        StandardButton loadItemButton = this.RenderButtonAsync(this._transactionPanel, "Load Item", async () =>
         {
             // TODO: Get Id from entered item name
             var id = int.Parse(itemName.Text);
             var item = await this.APIManager.Gw2ApiClient.V2.Items.GetAsync(id);
-            var itemIcon = await this.IconState?.GetIconAsync(item.Icon) ?? ContentService.Textures.Error;
+            var itemIcon = this.IconState?.GetIcon(item.Icon) ?? ContentService.Textures.Error;
             loadedItem = (item, itemIcon);
 
             var itemPrice = await this.APIManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(id);

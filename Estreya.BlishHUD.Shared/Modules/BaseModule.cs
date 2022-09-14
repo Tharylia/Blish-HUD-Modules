@@ -80,11 +80,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     public virtual BitmapFont Font => GameService.Content.DefaultFont16;
 
-    internal DateTime DateTimeNow => DateTime.Now;
+    protected DateTime DateTimeNow => DateTime.Now;
 
     #region States
     private readonly AsyncLock _stateLock = new AsyncLock();
-    private Collection<ManagedState> States { get; } = new Collection<ManagedState>();
+    private Collection<ManagedState> _states = new Collection<ManagedState>();
 
     public IconState IconState { get; private set; }
     public WorldbossState WorldbossState { get; private set; }
@@ -148,7 +148,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             if (configurations.Account.Enabled)
             {
                 this.AccountState = new AccountState(configurations.Account, this.Gw2ApiManager);
-                this.States.Add(this.AccountState);
+                this._states.Add(this.AccountState);
             }
 
             this.IconState = new IconState(new StateConfiguration()
@@ -156,12 +156,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 Enabled = true,
                 AwaitLoading = false
             }, this.ContentsManager);
-            this.States.Add(this.IconState);
+            this._states.Add(this.IconState);
 
             if (configurations.TradingPost.Enabled)
             {
                 this.TradingPostState = new TradingPostState(configurations.TradingPost, this.Gw2ApiManager);
-                this.States.Add(this.TradingPostState);
+                this._states.Add(this.TradingPostState);
             }
 
             if (configurations.Worldbosses.Enabled)
@@ -169,7 +169,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 if (configurations.Account.Enabled)
                 {
                     this.WorldbossState = new WorldbossState(configurations.Worldbosses, this.Gw2ApiManager, this.AccountState);
-                    this.States.Add(this.WorldbossState);
+                    this._states.Add(this.WorldbossState);
                 }
                 else
                 {
@@ -183,7 +183,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 if (configurations.Account.Enabled)
                 {
                     this.MapchestState = new MapchestState(configurations.Mapchests, this.Gw2ApiManager, this.AccountState);
-                    this.States.Add(this.MapchestState);
+                    this._states.Add(this.MapchestState);
                 }
                 else
                 {
@@ -200,7 +200,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
 
                 this.PointOfInterestState = new PointOfInterestState(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath);
-                this.States.Add(this.PointOfInterestState);
+                this._states.Add(this.PointOfInterestState);
             }
 
             if (configurations.Skills.Enabled)
@@ -211,7 +211,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
 
                 this.SkillState = new SkillState(configurations.Skills, this.Gw2ApiManager, this.IconState, directoryPath);
-                this.States.Add(this.SkillState);
+                this._states.Add(this.SkillState);
             }
 
             if (configurations.ArcDPS.Enabled)
@@ -219,7 +219,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 if (configurations.Skills.Enabled)
                 {
                     this.ArcDPSState = new ArcDPSState(configurations.ArcDPS, this.SkillState);
-                    this.States.Add(this.ArcDPSState);
+                    this._states.Add(this.ArcDPSState);
                 }
                 else
                 {
@@ -236,12 +236,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 foreach (ManagedState customState in customStates)
                 {
-                    this.States.Add(customState);
+                    this._states.Add(customState);
                 }
             }
 
             // Only start states not already running
-            foreach (ManagedState state in this.States.Where(state => !state.Running))
+            foreach (ManagedState state in this._states.Where(state => !state.Running))
             {
                 try
                 {
@@ -365,11 +365,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             this.SettingsWindow.Tabs.Add(
                 new Tab(
-                    this.IconState.GetIcon("155052.png"), 
-                    () => new UI.Views.Settings.StateSettingsView(this.States, this.Gw2ApiManager, this.IconState, this.Font) 
-                    { 
-                        DefaultColor = this.ModuleSettings.DefaultGW2Color 
-                    }, 
+                    this.IconState.GetIcon("155052.png"),
+                    () => new UI.Views.Settings.StateSettingsView(this._states, this.Gw2ApiManager, this.IconState, this.Font)
+                    {
+                        DefaultColor = this.ModuleSettings.DefaultGW2Color
+                    },
                     "Debug"));
         }
 
@@ -411,7 +411,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         using (this._stateLock.Lock())
         {
-            foreach (ManagedState state in this.States)
+            foreach (ManagedState state in this._states)
             {
                 state.Update(gameTime);
             }
@@ -480,15 +480,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// <inheritdoc />
     protected override void Unload()
     {
-        this.Logger.Debug("Unload module.");
-
-        this.Logger.Debug("Unload base.");
-
-        base.Unload();
-
-        this.Logger.Debug("Unloaded base.");
-
-        this.Logger.Debug("Unload settings");
+        this.Logger.Debug("Unload settings...");
 
         if (this.ModuleSettings != null)
         {
@@ -498,7 +490,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Unloaded settings.");
 
-        this.Logger.Debug("Unload default settings view.");
+        this.Logger.Debug("Unload default settings view...");
 
         if (this._defaultSettingView != null)
         {
@@ -509,17 +501,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Unloaded default settings view.");
 
-        this.Logger.Debug("Unload settings window.");
+        this.Logger.Debug("Unload settings window...");
 
-        if (this.SettingsWindow != null)
-        {
-            this.SettingsWindow.Hide();
-            this.SettingsWindow.Dispose();
-        }
+        this.SettingsWindow?.Hide();
+        this.SettingsWindow?.Dispose();
 
         this.Logger.Debug("Unloaded settings window.");
 
-        this.Logger.Debug("Unload corner icon.");
+        this.Logger.Debug("Unload corner icon...");
 
         this.HandleCornerIcon(false);
 
@@ -529,26 +518,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         using (this._stateLock.Lock())
         {
-            this.States.ToList().ForEach(state => state.Dispose());
-            this.States.Clear();
+            this._states.ToList().ForEach(state => state?.Dispose());
+            this._states.Clear();
         }
 
-        this.Logger.Debug("Finished unloading states.");
-    }
+        this.Logger.Debug("Unloaded states.");
 
-    protected async Task ReloadStates()
-    {
-        using (await this._stateLock.LockAsync())
-        {
-            await Task.WhenAll(this.States.Select(state => state.Reload()));
-        }
-    }
+        this.Logger.Debug("Unload module instance...");
 
-    protected async Task ClearStates()
-    {
-        using (await this._stateLock.LockAsync())
-        {
-            await Task.WhenAll(this.States.Select(state => state.Clear()));
-        }
+        Instance = null;
+
+        this.Logger.Debug("Unloaded module instance.");
     }
 }

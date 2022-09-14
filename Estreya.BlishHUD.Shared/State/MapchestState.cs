@@ -44,13 +44,6 @@
             return this.APIObjectList.Contains(apiCode);
         }
 
-        protected override Task Save()
-        {
-            return Task.CompletedTask;
-        }
-
-        protected override Task DoClear() => Task.CompletedTask;
-
         protected override void DoUnload()
         {
             this.APIObjectAdded -= this.APIState_APIObjectAdded;
@@ -59,7 +52,6 @@
 
         protected override async Task<List<string>> Fetch(Gw2ApiManager apiManager)
         {
-            await this._accountState.WaitAsync();
             DateTime lastModifiedUTC = this._accountState.Account?.LastModified.UtcDateTime ?? DateTime.MinValue;
 
             DateTime now = DateTime.UtcNow;
@@ -67,6 +59,7 @@
 
             if (lastModifiedUTC < lastResetUTC)
             {
+                Logger.Warn("Account has not been modified after reset.");
                 return new List<string>();
             }
 

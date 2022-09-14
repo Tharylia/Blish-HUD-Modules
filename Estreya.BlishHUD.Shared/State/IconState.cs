@@ -36,12 +36,6 @@ public class IconState : ManagedState
         this._contentsManager = contentsManager;
     }
 
-    protected override async Task InternalReload()
-    {
-        await this.Clear();
-        await this.Load();
-    }
-
     protected override Task Initialize() => Task.CompletedTask;
 
     protected override void InternalUnload()
@@ -51,8 +45,6 @@ public class IconState : ManagedState
     protected override void InternalUpdate(GameTime gameTime) { }
 
     protected override Task Load() => Task.CompletedTask;
-
-    protected override Task Save() => Task.CompletedTask;
 
     public AsyncTexture2D GetIcon(string identifier)
     {
@@ -127,8 +119,6 @@ public class IconState : ManagedState
             return this.GetIcon(identifier);
         }, cancellationToken);
     }
-
-    public override Task Clear() => Task.CompletedTask;
 
     private string ParseIdentifierBySource(string identifier, IconSource source)
     {

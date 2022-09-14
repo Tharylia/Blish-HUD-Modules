@@ -1,17 +1,13 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.GW2API.Skills;
 
 using Blish_HUD.Content;
-using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.State;
 using Gw2Sharp;
 using Gw2Sharp.WebApi.V2.Models;
-using Microsoft.Xna.Framework.Graphics;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -90,13 +86,15 @@ public class Skill : IDisposable
     /// The list of skill facts.
     /// If the skill doesn't have any facts, this value is <see langword="null"/>.
     /// </summary>
-    public List<SkillFact>? Facts { get; set; }
+    /// BUGGY WITH COPY()
+    //public List<SkillFact>? Facts { get; set; }
 
     /// <summary>
     /// The list of traited skill facts.
     /// If the skill doesn't have any traited facts, this value is <see langword="null"/>.
     /// </summary>
-    public List<SkillFact>? TraitedFacts { get; set; }
+    /// BUGGY WITH COPY()
+    //public List<SkillFact>? TraitedFacts { get; set; }
 
     /// <summary>
     /// The list of skill categories.
@@ -197,8 +195,8 @@ public class Skill : IDisposable
             Slot = skill.Slot?.IsUnknown ?? true ? SkillSlot.Unknown : skill.Slot,
             DualAttunement = skill.DualAttunement?.IsUnknown ?? true ? Attunement.Unknown : skill.DualAttunement,
             Flags = skill.Flags?.List.Select(flag => flag.Value).ToList(),
-            Facts = skill.Facts?.ToList(),
-            TraitedFacts = skill.TraitedFacts?.ToList(),
+            //Facts = skill.Facts?.ToList(),
+            //TraitedFacts = skill.TraitedFacts?.ToList(),
             Categories = skill.Categories?.ToList(),
             SubSkills = skill.SubSkills?.ToList(),
             Attunement = skill.Attunement?.IsUnknown ?? true ? Attunement.Unknown : skill.Attunement,
@@ -242,9 +240,29 @@ public class Skill : IDisposable
             Icon = skill.Icon,
             ChatLink = skill.ChatLink,
             Flags = skill.Flags?.List.Select(flag => flag.Value).ToList(),
-            Facts = skill.Facts?.ToList(),
-            TraitedFacts = skill.TraitedFacts?.ToList(),
+            //Facts = skill.Facts?.ToList(),
+            //TraitedFacts = skill.TraitedFacts?.ToList(),
             Categories = skill.Categories?.ToList(),
+        };
+
+        return newSkill;
+    }
+
+    public static Skill FromAPIUpgradeComponent(ItemUpgradeComponent upgradeComponent)
+    {
+        if (upgradeComponent.Details?.InfixUpgrade == null)
+        {
+            return null;
+        }
+
+        Skill newSkill = new Skill
+        {
+            Category = SkillCategory.UpgradeComponent,
+            Id = upgradeComponent.Details?.InfixUpgrade.Buff.SkillId ?? 0,
+            Name = upgradeComponent.Name,
+            Description = upgradeComponent.Details?.InfixUpgrade.Buff.Description,
+            Icon = upgradeComponent.Icon,
+            ChatLink = upgradeComponent.ChatLink
         };
 
         return newSkill;

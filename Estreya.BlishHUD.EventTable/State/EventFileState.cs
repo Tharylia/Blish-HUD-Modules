@@ -3,7 +3,9 @@
     using Blish_HUD;
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.EventTable.Models.Settings;
-    using Estreya.BlishHUD.EventTable.Utils;
+    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Threading;
+    using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Newtonsoft.Json;
     using System;
@@ -13,28 +15,24 @@
 
     public class EventFileState : ManagedState
     {
-        private static readonly Logger Logger = Logger.GetLogger<EventFileState>();
-
         private const string WEB_SOURCE_URL = $"{EventTableModule.WEBSITE_FILE_ROOT_URL}/event-table/events.json";
 
         private TimeSpan updateInterval = TimeSpan.FromHours(1);
-        private double timeSinceUpdate = 0;
+        private AsyncRef<double> timeSinceUpdate = 0;
 
         private static object _lockObject = new object();
-        private string Directory { get; set; }
-        private string FileName { get; set; }
-
-        private string FilePath => Path.Combine(this.Directory, this.FileName);
 
         private bool _notified = false;
 
-        private ContentsManager ContentsManager { get; set; }
+        private string _filePath => Path.Combine(this._directoryPath, this._fileName);
 
-        public EventFileState(ContentsManager contentsManager, string directory, string fileName)
+        private readonly string _directoryPath;
+        private readonly string _fileName;
+
+        public EventFileState(StateConfiguration configuration, string directoryPath, string fileName):base(configuration)
         {
-            this.ContentsManager = contentsManager;
-            this.Directory = directory;
-            this.FileName = fileName;
+            this._directoryPath = directoryPath;
+            this._fileName = fileName;
         }
 
         protected override async Task InternalReload()
@@ -56,7 +54,7 @@
 
         protected override void InternalUpdate(GameTime gameTime)
         {
-            _ = UpdateUtil.UpdateAsync(this.CheckAndNotifyOrUpdate, gameTime, this.updateInterval.TotalMilliseconds, ref this.timeSinceUpdate);
+            _ = UpdateUtil.UpdateAsync(this.CheckAndNotifyOrUpdate, gameTime, this.updateInterval.TotalMilliseconds, this.timeSinceUpdate);
         }
 
         protected override Task Load() => Task.CompletedTask;
@@ -100,7 +98,7 @@
         {
             try
             {
-                return File.Exists(this.FilePath);
+                return File.Exists(this._filePath);
             }
             catch (Exception ex)
             {
@@ -113,49 +111,24 @@
         {
             try
             {
-                // Try fetching from web source.
-                try
+                Logger.Debug("Loading json from web source.");
+
+                string webJson = await EventTableModule.ModuleInstance.WebClient.DownloadStringTaskAsync(new Uri(WEB_SOURCE_URL));
+
+                Logger.Debug($"Got content (length): {webJson?.Length ?? 0}");
+
+                if (!string.IsNullOrWhiteSpace(webJson))
                 {
-                    Logger.Debug("Loading json from web source.");
-
-                    string webJson = await EventTableModule.ModuleInstance.GetWebClient().DownloadStringTaskAsync(new Uri(WEB_SOURCE_URL));
-
-                    Logger.Debug($"Got content (length): {webJson?.Length ?? 0}");
-
-                    if (!string.IsNullOrWhiteSpace(webJson))
+                    EventSettingsFile webEventSettingFile = JsonConvert.DeserializeObject<EventSettingsFile>(webJson);
+                    if (webEventSettingFile.MinimumModuleVersion.IsSatisfied(EventTableModule.ModuleInstance.Version.BaseVersion()))
                     {
-                        EventSettingsFile webEventSettingFile = JsonConvert.DeserializeObject<EventSettingsFile>(webJson);
-                        if (webEventSettingFile.MinimumModuleVersion.IsSatisfied(EventTableModule.ModuleInstance.Version.BaseVersion()))
-                        {
-                            Logger.Debug("Module statisfies min web file version");
-                            return webEventSettingFile;
-                        }
-                        else
-                        {
-                            Logger.Debug("Module does not statisfy min web file version");
-                        }
+                        Logger.Debug("Module statisfies min web file version");
+                        return webEventSettingFile;
                     }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Could not read json from web source.");
-                }
-
-                Logger.Debug("Load json from internal ref.");
-
-                // Fall back to internal source.
-                using Stream stream = this.ContentsManager.GetFileStream("events.json");
-                string content = await FileUtil.ReadStringAsync(stream);
-                EventSettingsFile internalEventSettingFile = JsonConvert.DeserializeObject<EventSettingsFile>(content);
-
-                if (internalEventSettingFile.MinimumModuleVersion.IsSatisfied(EventTableModule.ModuleInstance.Version.BaseVersion()))
-                {
-                    Logger.Debug("Module statisfies min internal file version");
-                    return internalEventSettingFile;
-                }
-                else
-                {
-                    Logger.Debug("Module does not statisfy min internal file version");
+                    else
+                    {
+                        Logger.Error("Module does not statisfy min web file version");
+                    }
                 }
             }
             catch (Exception ex)
@@ -169,7 +142,7 @@
         {
             try
             {
-                string content = await FileUtil.ReadStringAsync(this.FilePath);
+                string content = await FileUtil.ReadStringAsync(this._filePath);
                 return JsonConvert.DeserializeObject<EventSettingsFile>(content);
             }
             catch (Exception ex)
@@ -201,7 +174,7 @@
             eventSettingsFile ??= new EventSettingsFile();
 
             string content = JsonConvert.SerializeObject(eventSettingsFile, Formatting.Indented);
-            await FileUtil.WriteStringAsync(this.FilePath, content);
+            await FileUtil.WriteStringAsync(this._filePath, content);
 
             await this.Clear();
         }

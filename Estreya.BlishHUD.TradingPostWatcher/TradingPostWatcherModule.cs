@@ -13,7 +13,7 @@
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Utils;
     using Estreya.BlishHUD.TradingPostWatcher.Controls;
-    using Estreya.BlishHUD.TradingPostWatcher.Resources;
+    using Estreya.BlishHUD.TradingPostWatcher.Models;
     using Estreya.BlishHUD.TradingPostWatcher.State;
     using Humanizer;
     using Microsoft.Xna.Framework;
@@ -31,11 +31,9 @@
 
         internal static TradingPostWatcherModule ModuleInstance => Instance;
 
-        private TradingPostWatcherDrawer Drawer { get; set; }
+        private TransactionDrawer Drawer { get; set; }
 
-        internal DrawerConfiguration DrawerConfiguration { get; set; }
-
-        internal DateTime DateTimeNow => DateTime.Now;
+        internal TransactionDrawerConfiguration DrawerConfiguration { get; set; }
 
         #region States
         public TrackedTransactionState TrackedTransactionState { get; private set; }
@@ -46,14 +44,6 @@
 
         protected override void Initialize()
         {
-            this.Drawer = new TradingPostWatcherDrawer(this.DrawerConfiguration)
-            {
-                Parent = GameService.Graphics.SpriteScreen,
-                Opacity = 0f,
-                Visible = false,
-                FlowDirection = ControlFlowDirection.SingleTopToBottom,
-                HeightSizingMode = SizingMode.AutoSize
-            };
 
             GameService.Overlay.UserLocaleChanged += (s, e) =>
             {
@@ -71,12 +61,6 @@
                     case nameof(this.ModuleSettings.GlobalDrawerVisible):
                         this.ToggleContainer(this.ModuleSettings.GlobalDrawerVisible.Value);
                         break;
-                    case nameof(this.ModuleSettings.MaxTransactions):
-                    case nameof(this.ModuleSettings.ShowBuyTransactions):
-                    case nameof(this.ModuleSettings.ShowSellTransactions):
-                    case nameof(this.ModuleSettings.ShowHighestTransactions):
-                        this.AddTransactions();
-                        break;
                     default:
                         break;
                 }
@@ -85,69 +69,44 @@
 
         private void TradingPostState_TransactionsUpdated(object sender, EventArgs e)
         {
-            this.AddTransactions();
-        }
-
-        private void AddTransactions()
-        {
-            this.Logger.Debug("Clear current transactions from drawer.");
-            this.Drawer.SuspendLayout();
-            this.Drawer.Children.ToList().ForEach(transaction => transaction.Dispose());
-            this.Drawer.ClearChildren();
-            this.Drawer.ResumeLayout(true);
-
-            this.Logger.Debug("Filter new transactions.");
-            IEnumerable<CurrentTransaction> filteredTransactions = this.TradingPostState.Transactions.Where(transaction =>
+            this.Drawer.ClearTransactions();
+            foreach (var transaction in this.TradingPostState.Transactions)
             {
-                if (!this.ModuleSettings.ShowBuyTransactions.Value && transaction.Type == TransactionType.Buy)
-                {
-                    return false;
-                }
-
-                if (!this.ModuleSettings.ShowSellTransactions.Value && transaction.Type == TransactionType.Sell)
-                {
-                    return false;
-                }
-
-                if (!this.ModuleSettings.ShowHighestTransactions.Value && transaction.IsHighest)
-                {
-                    return false;
-                }
-
-                return true;
-            });
-
-            foreach (CurrentTransaction transaction in filteredTransactions.Take(this.ModuleSettings.MaxTransactions.Value))
-            {
-                this.Logger.Debug("Add new transaction: {0}", transaction);
-                new Controls.Transaction(transaction,
-                    () => this.DrawerConfiguration.Opacity.Value,
-                    () => this.ModuleSettings.ShowPrice.Value,
-                    () => this.ModuleSettings.ShowPriceAsTotal.Value,
-                    () => this.ModuleSettings.ShowRemaining.Value,
-                    () => this.ModuleSettings.ShowCreated.Value)
-                {
-                    Parent = this.Drawer,
-                    HeightSizingMode = SizingMode.AutoSize,
-                    WidthSizingMode = SizingMode.Fill
-                };
+                this.Drawer.AddTransaction(transaction);
             }
         }
 
         protected override void HandleDefaultStates()
         {
-            this.TradingPostState.TransactionsUpdated += this.TradingPostState_TransactionsUpdated;
+            this.Drawer = new TransactionDrawer(this.DrawerConfiguration, this.IconState)
+            {
+                Parent = GameService.Graphics.SpriteScreen,
+                Opacity = 0f,
+                Visible = false,
+                FlowDirection = ControlFlowDirection.SingleTopToBottom,
+                HeightSizingMode = SizingMode.AutoSize
+            };
+
+            this.TradingPostState.Updated += this.TradingPostState_TransactionsUpdated;
         }
 
         protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
         {
             Collection<ManagedState> states = new Collection<ManagedState>();
 
-            this.TrackedTransactionState = new TrackedTransactionState(this.Gw2ApiManager, directoryPath);
+            this.TrackedTransactionState = new TrackedTransactionState(new APIStateConfiguration()
+            {
+                AwaitLoading = true,
+                Enabled = true,
+                SaveInterval = TimeSpan.FromSeconds(30),
+                UpdateInterval = TimeSpan.FromSeconds(30)
+            },this.Gw2ApiManager , directoryPath);
             this.TrackedTransactionState.TransactionEnteredRange += this.TrackedTransactionState_TransactionEnteredRange;
             this.TrackedTransactionState.TransactionLeftRange += this.TrackedTransactionState_TransactionLeftRange;
 
+#if DEBUG
             //states.Add(this.TrackedTransactionState);
+#endif
 
             return states;
         }
@@ -200,9 +159,6 @@
             // Base handler must be called
             base.OnModuleLoaded(e);
 
-            this.Drawer.UpdatePosition(this.DrawerConfiguration.Location.X.Value, this.DrawerConfiguration.Location.Y.Value);
-            this.Drawer.UpdateSize(this.DrawerConfiguration.Size.X.Value, -1);
-
             if (this.ModuleSettings.GlobalDrawerVisible.Value)
             {
                 this.ToggleContainer(true);
@@ -221,12 +177,12 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
+            /*
+#if DEBUG
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () =>
             {
-                UI.Views.TrackedTransactionView trackedTransactionView = new UI.Views.TrackedTransactionView(this.TrackedTransactionState.TrackedTransactions)
+                UI.Views.TrackedTransactionView trackedTransactionView = new UI.Views.TrackedTransactionView(this.TrackedTransactionState.TrackedTransactions, this.Gw2ApiManager, this.IconState, this.Font)
                 {
-                    APIManager = this.Gw2ApiManager,
-                    IconState = this.IconState,
                     DefaultColor = this.ModuleSettings.DefaultGW2Color
                 };
 
@@ -244,10 +200,12 @@
 
                 return trackedTransactionView;
             }, "Tracked Transactions"));
+#endif
+            */
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GeneralSettings_Title));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GraphicSettings_Title));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView(this.Gw2ApiManager, this.IconState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView(this.Gw2ApiManager, this.IconState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic"));
 
         }
 
@@ -257,20 +215,12 @@
 
             this.ToggleContainer(this.ShowUI);
 
-            this.Drawer.UpdatePosition(this.DrawerConfiguration.Location.X.Value, this.DrawerConfiguration.Location.Y.Value); // Handle windows resize
-
             this.ModuleSettings.CheckDrawerSizeAndPosition(this.DrawerConfiguration);
         }
 
         /// <inheritdoc />
         protected override void Unload()
         {
-            this.Logger.Debug("Unload base.");
-
-            base.Unload();
-
-            this.Logger.Debug("Unloaded base.");
-
             this.Logger.Debug("Unload drawer.");
 
             if (this.Drawer != null)
@@ -281,10 +231,16 @@
             this.Logger.Debug("Unloaded drawer.");
 
             this.Logger.Debug("Unloading states...");
-            this.TradingPostState.TransactionsUpdated -= this.TradingPostState_TransactionsUpdated;
+            this.TradingPostState.Updated -= this.TradingPostState_TransactionsUpdated;
             this.TrackedTransactionState.TransactionEnteredRange -= this.TrackedTransactionState_TransactionEnteredRange;
             this.TrackedTransactionState.TransactionLeftRange -= this.TrackedTransactionState_TransactionLeftRange;
             this.Logger.Debug("Finished unloading states.");
+
+            this.Logger.Debug("Unload base.");
+
+            base.Unload();
+
+            this.Logger.Debug("Unloaded base.");
         }
 
         protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
@@ -304,6 +260,7 @@
         protected override void ConfigureStates(StateConfigurations configurations)
         {
             configurations.TradingPost.Enabled = true;
+            configurations.TradingPost.UpdateInterval = TimeSpan.FromSeconds(10);
         }
     }
 }

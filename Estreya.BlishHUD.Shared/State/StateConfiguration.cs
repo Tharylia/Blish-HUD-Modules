@@ -10,5 +10,5 @@ public class StateConfiguration
 {
     public bool Enabled { get; set; }
     public bool AwaitLoading { get; set; } = true;
-    public TimeSpan SaveInterval { get; init; } = Timeout.InfiniteTimeSpan;
+    public TimeSpan SaveInterval { get; set; } = Timeout.InfiniteTimeSpan;
 }

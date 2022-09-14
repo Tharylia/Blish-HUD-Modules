@@ -32,7 +32,7 @@ public class TrackedTransactionState : APIState<TrackedTransaction>
     public event EventHandler<TrackedTransaction> TransactionEnteredRange;
     public event EventHandler<TrackedTransaction> TransactionLeftRange;
 
-    public TrackedTransactionState(Gw2ApiManager apiManager, string baseFolder) : base(apiManager, null, TimeSpan.FromMinutes(2), true, 60000)
+    public TrackedTransactionState(APIStateConfiguration configuration, Gw2ApiManager apiManager, string baseFolder) : base(apiManager, configuration)
     {
         this.APIObjectAdded += this.TrackedTransactionState_APIObjectAdded;
         this.APIObjectRemoved += this.TrackedTransactionState_APIObjectRemoved;
@@ -160,15 +160,15 @@ public class TrackedTransactionState : APIState<TrackedTransaction>
 
     public void Remove(int id, TransactionType type)
     {
-        List<TrackedTransaction> transactionsToRemove = this._trackedTransactions.Where(t => t.ItemId == id && t.Type == type).ToList();
-
-        if (transactionsToRemove.Count == 0)
-        {
-            return;
-        }
-
         using (this._transactionLock.Lock())
         {
+            List<TrackedTransaction> transactionsToRemove = this._trackedTransactions.Where(t => t.ItemId == id && t.Type == type).ToList();
+
+            if (transactionsToRemove.Count == 0)
+            {
+                return;
+            }
+
             for (int i = transactionsToRemove.Count - 1; i >= 0; i--)
             {
                 _ = this._trackedTransactions.Remove(transactionsToRemove[i]);

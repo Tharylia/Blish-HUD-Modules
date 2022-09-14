@@ -63,6 +63,10 @@ public class SkillState : APIState<Skill>
         { 5585,5492  }, // Fire Attunement
         { 5575, 5494 }, // Air Attunement
         { 13133,13132 }, // Basilisk Venom
+        { 68121,68079 }, // Rifle Burst Grenade
+        { 59579,59562 }, // Explosive Entrance
+        { 63264, 63348}, // Jade Energy Shot
+        { 48894, 1808}, // Expose Defenses
     };
 
     private static readonly Dictionary<int, (string Name, string RenderUrl)> _missingSkills = new Dictionary<int, (string Name, string RenderUrl)>()
@@ -123,10 +127,13 @@ public class SkillState : APIState<Skill>
         { 41836, ("Chapter 3: Valiant Bulwark", "1770469.png") }, // Guardian Tome 3, Skill 3
         //{ 999999909, ("Chapter 4: Stalwart Stand", "1770470.png") }, // Guardian Tome 3, Skill 4
         { 43194, ("Epilogue: Unbroken Lines", "1770471.png") }, // Guardian Tome 3, Skill 5
-        { 53285, ("Rune of the Monk", "220738.png") } // Rune of the Monk
+        { 53285, ("Rune of the Monk", "220738.png") }, // Rune of the Monk
+        { 63348, ("Jade Energy Shot","103434.png") }, // Jade Energy Shot
+        { 1656, ("Whirling Assault","102998.png") }, // Whirling Assault
+        { 33611, ("Leader of the Pack III","66520.png") }, // Leader of the Pack III
     };
 
-    public ConcurrentDictionary<int, string> _missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, string>();
+    private ConcurrentDictionary<int, string> _missingSkillsFromAPIReportedByArcDPS;
 
     public SkillState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IconState iconState, string baseFolderPath) : base(apiManager, configuration)
     {
@@ -134,14 +141,17 @@ public class SkillState : APIState<Skill>
         this._baseFolderPath = baseFolderPath;
     }
 
-    protected override Task DoClear()
+    protected override Task DoInitialize()
     {
-        this._iconState = null;
-
+        this._missingSkillsFromAPIReportedByArcDPS =  new ConcurrentDictionary<int, string>();
         return Task.CompletedTask;
     }
 
-    protected override void DoUnload() { }
+    protected override void DoUnload() {
+        this._missingSkillsFromAPIReportedByArcDPS?.Clear();
+        this._missingSkillsFromAPIReportedByArcDPS = null;
+        this._iconState = null;
+    }
 
     protected override async Task Load()
     {
@@ -156,7 +166,14 @@ public class SkillState : APIState<Skill>
             if (!shouldLoadFiles)
             {
                 await base.Load();
-                await this.Save();
+                if (!this._fetchTask.IsFaulted)
+                {
+                    await this.Save();
+                }
+                else
+                {
+                    Logger.Warn("Skip save because fetch was faulted.");
+                }
             }
             else
             {
@@ -225,25 +242,94 @@ public class SkillState : APIState<Skill>
 
     protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager)
     {
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync(this.CancellationTokenSource.Token);
+        Logger.Debug("Loading normal skills..");
+
+        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync(this._cancellationTokenSource.Token);
         List<Skill> skills = skillResponse.Select(skill => Skill.FromAPISkill(skill)).ToList();
 
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync(this.CancellationTokenSource.Token);
+        Logger.Debug("Loaded normal skills..");
+
+        Logger.Debug("Loading traits..");
+
+        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync(this._cancellationTokenSource.Token);
         skills = skills.Concat(traitResponse.Select(trait => Skill.FromAPITrait(trait))).ToList();
+
+        Logger.Debug("Loaded traits..");
+
+        Logger.Debug("Loading trait skills..");
 
         IEnumerable<Gw2Sharp.WebApi.V2.Models.TraitSkill> traitSkills = traitResponse.Where(trait => trait.Skills != null).SelectMany(trait => trait.Skills);
         skills = skills.Concat(traitSkills.Select(traitSkill => Skill.FromAPITraitSkill(traitSkill))).ToList();
+
+        Logger.Debug("Loaded trait skills..");
+
+        /*
+        Logger.Debug("Loading item ids..");
+
+        var itemIds = await apiManager.Gw2ApiClient.V2.Items.IdsAsync(this.CancellationTokenSource.Token);
+
+        Logger.Debug($"Loaded item ids.. {itemIds.Count}");
+
+        var itemIdChunks = itemIds.ChunkBy(200);
+
+        Logger.Debug("Loading items..");
+
+        var itemsMany = new List<IReadOnlyList<Gw2Sharp.WebApi.V2.Models.Item>>();
+
+        
+        foreach (var itemIdChunk in itemIdChunks)
+        {
+            var itemIdChunkList = itemIdChunk.ToList();
+            if (itemIdChunkList.Count == 0) continue;
+
+            try
+            {
+                itemsMany.Add(await apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIdChunkList, this.CancellationTokenSource.Token));
+
+                Logger.Debug($"Loaded items {itemIdChunkList[0]} - {itemIdChunkList[itemIdChunkList.Count - 1]}");
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex,$"Could not load item ids {itemIdChunkList[0]} - {itemIdChunkList[itemIdChunkList.Count - 1]}:");
+            }
+        }
+
+        Logger.Debug("Loaded items..");
+
+        var items = itemsMany.SelectMany(item => item).ToList();
+        var upgradeComponents = items.Where(item => item.Type == Gw2Sharp.WebApi.V2.Models.ItemType.UpgradeComponent).Select(item => item as Gw2Sharp.WebApi.V2.Models.ItemUpgradeComponent);
+
+        var sigils = upgradeComponents.Where(upgradeComponent => upgradeComponent.Details?.Type == Gw2Sharp.WebApi.V2.Models.ItemUpgradeComponentType.Sigil);
+        skills = skills.Concat(sigils.Select(sigil => Skill.FromAPIUpgradeComponent(sigil)).Where(skill => skill != null)).ToList();
+
+        var runes = upgradeComponents.Where(upgradeComponent => upgradeComponent.Details?.Type == Gw2Sharp.WebApi.V2.Models.ItemUpgradeComponentType.Rune);
+        skills = skills.Concat(runes.Select(rune => Skill.FromAPIUpgradeComponent(rune)).Where(skill => skill != null)).ToList();
+        */
+        // Sigils have ids but not resolvable against /skills
+        // Runes have no ids to begin with..
 
         // Mount skills are not resolveable against v2/skills
         //var mountResponse = await apiManager.Gw2ApiClient.V2.Mounts.Types.AllAsync();
         //var mountSkills = mountResponse.SelectMany(mount => mount.Skills);
         //skills = skills.Concat(mountSkills).ToList();
 
+        Logger.Debug("Adding missing skills..");
+
         this.AddMissingSkills(skills);
+
+        Logger.Debug("Added missing skills..");
+
+        Logger.Debug("Remapping skills..");
 
         this.RemapSkillIds(skills);
 
+        Logger.Debug("Remapped skills..");
+
+        Logger.Debug("Loading skill icons..");
+
         await this.LoadSkillIcons(skills);
+
+        Logger.Debug("Loaded skill icons..");
 
         return skills.ToList();
     }
@@ -266,6 +352,8 @@ public class SkillState : APIState<Skill>
             skillsToRemap.ForEach(skillToRemap => skills.Remove(skillToRemap));
 
             skills.Add(skillToInsert);
+
+            Logger.Debug($"Remapped skill from {remappedSkillId.Key} to {remappedSkillId.Value}");
         }
     }
 
@@ -289,7 +377,7 @@ public class SkillState : APIState<Skill>
     {
         IEnumerable<Task> skillLoadTasks = skills.Select(skill =>
         {
-            return skill.LoadTexture(this._iconState, this.CancellationTokenSource.Token);
+            return skill.LoadTexture(this._iconState, this._cancellationTokenSource.Token);
         });
 
         await Task.WhenAll(skillLoadTasks);
@@ -312,9 +400,9 @@ public class SkillState : APIState<Skill>
         await this.CreateLastUpdatedFile();
     }
 
-    protected override void InternalUpdate(GameTime gameTime)
+    protected override void DoUpdate(GameTime gameTime)
     {
-        _ = UpdateUtil.UpdateAsync(this.SaveMissingSkills, gameTime, 60000, this._lastSaveMissingSkill);
+        _= UpdateUtil.UpdateAsync(this.SaveMissingSkills, gameTime, 60000, this._lastSaveMissingSkill);
     }
 
     private async Task SaveMissingSkills()
@@ -378,5 +466,15 @@ public class SkillState : APIState<Skill>
 
             return null;
         }
+    }
+
+    public bool AddMissingSkill(int id, string name)
+    {
+       return this._missingSkillsFromAPIReportedByArcDPS.TryAdd(id, name);
+    }
+
+    public void RemoveMissingSkill(int id)
+    {
+        _ = this._missingSkillsFromAPIReportedByArcDPS.TryRemove(id, out string _);
     }
 }

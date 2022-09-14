@@ -31,7 +31,7 @@
 			<ExcludeAssets>runtime</ExcludeAssets>
 		</PackageReference>
 		<PackageReference Include="BlishHUD" Version="0.11.8-ci.113">
-			<ExcludeAssets>runtime</ExcludeAssets>
+			<ExcludeAssets>runtime;contentFiles</ExcludeAssets>
 		</PackageReference>
 		<PackageReference Include="Gw2Sharp" Version="1.7.3">
 			<ExcludeAssets>runtime</ExcludeAssets>

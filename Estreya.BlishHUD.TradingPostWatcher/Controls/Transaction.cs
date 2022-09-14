@@ -1,10 +1,12 @@
 ﻿namespace Estreya.BlishHUD.TradingPostWatcher.Controls;
 
 using Blish_HUD;
+using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models;
 using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
+using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
 using Microsoft.Xna.Framework;
@@ -22,8 +24,9 @@ public class Transaction : RenderTargetControl
     private readonly Func<bool> _getShowPriceAsTotal;
     private readonly Func<bool> _getShowRemaining;
     private readonly Func<bool> _getShowCreatedDate;
+    private readonly Func<BitmapFont> _getFont;
 
-    private Texture2D _transactionTexture => TradingPostWatcherModule.ModuleInstance.IconState.GetIcon(this._currentTransaction?.Item?.Icon);
+    private AsyncTexture2D _transactionTexture;
 
     private const int SPACING_X = 10;
 
@@ -51,7 +54,7 @@ public class Transaction : RenderTargetControl
         set => this.SetProperty(ref this._heightSizingMode, value);
     }
 
-    public Transaction(CurrentTransaction commerceTransaction, Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate)
+    public Transaction(CurrentTransaction commerceTransaction, IconState iconState, Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate, Func<BitmapFont> getFont)
     {
         this._currentTransaction = commerceTransaction;
         this._getOpacityAction = getOpacity;
@@ -59,6 +62,9 @@ public class Transaction : RenderTargetControl
         this._getShowPriceAsTotal = getShowPriceAsTotal;
         this._getShowRemaining = getShowRemaining;
         this._getShowCreatedDate = getShowCreatedDate;
+        this._getFont = getFont;
+
+        this._transactionTexture = iconState.GetIcon(this._currentTransaction?.Item?.Icon);
     }
 
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
@@ -66,7 +72,7 @@ public class Transaction : RenderTargetControl
         float opacity = this._getOpacityAction?.Invoke() ?? 1;
 
         RectangleF iconBounds = RectangleF.Empty;
-        if (this._transactionTexture != null)
+        if (this._transactionTexture != null && this._transactionTexture.HasSwapped)
         {
             Size iconSize = this.GetIconSize();
             iconBounds.Size = new Size2(iconSize.Width, iconSize.Height);
@@ -79,7 +85,7 @@ public class Transaction : RenderTargetControl
 
         RectangleF textRectangle = new RectangleF(iconBounds.Width + SPACING_X, 0, textMaxWidth, this.Height);
 
-        spriteBatch.DrawString(text, TradingPostWatcherModule.ModuleInstance.Font, textRectangle, (this._currentTransaction.IsHighest ? Color.Green : Color.Red) * opacity);
+        spriteBatch.DrawString(text, this._getFont(), textRectangle, (this._currentTransaction.IsHighest ? Color.Green : Color.Red) * opacity);
     }
 
     private string GetText()
@@ -120,7 +126,7 @@ public class Transaction : RenderTargetControl
 
     private string GetWrappedText(int maxSize)
     {
-        return DrawUtil.WrapText(TradingPostWatcherModule.ModuleInstance.Font, this.GetText(), maxSize);
+        return DrawUtil.WrapText(this._getFont(), this.GetText(), maxSize);
     }
 
     private Size GetIconSize()
@@ -131,7 +137,7 @@ public class Transaction : RenderTargetControl
     protected override void InternalUpdate(GameTime gameTime)
     {
         Size iconSize = this.GetIconSize();
-        Size2 textSize = TradingPostWatcherModule.ModuleInstance.Font.MeasureString(this.GetText());
+        Size2 textSize = this._getFont().MeasureString(this.GetText());
 
         // Update our size based on the sizing mode
         var parent = this.Parent;
@@ -142,7 +148,7 @@ public class Transaction : RenderTargetControl
                                                   (int)Math.Ceiling(iconSize.Width + textSize.Width),
                                                   parent.ContentRegion.Width - this.Left);
 
-            Size2 wrappedTextSize = TradingPostWatcherModule.ModuleInstance.Font.MeasureString(this.GetWrappedText(width - iconSize.Width - (SPACING_X * 5)));
+            Size2 wrappedTextSize = this._getFont().MeasureString(this.GetWrappedText(width - iconSize.Width - (SPACING_X * 5)));
 
             this.Size = new Point(width,
                                   this.GetUpdatedSizing(this.HeightSizingMode,

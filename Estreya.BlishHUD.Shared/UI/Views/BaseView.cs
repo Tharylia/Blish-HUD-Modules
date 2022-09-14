@@ -80,8 +80,8 @@ public abstract class BaseView : View
         Panel parentPanel = new Panel()
         {
             Size = bounds.Size,
-            WidthSizingMode = SizingMode.Fill,
-            HeightSizingMode = SizingMode.Fill,
+            //WidthSizingMode = SizingMode.Fill,
+            //HeightSizingMode = SizingMode.Fill,
             AutoSizePadding = new Point(15, 15),
             Parent = buildPanel
         };
@@ -324,7 +324,7 @@ public abstract class BaseView : View
         {
             try
             {
-                action.Invoke();
+                action?.Invoke();
             }
             catch (Exception ex)
             {
@@ -343,7 +343,7 @@ public abstract class BaseView : View
         {
             try
             {
-                await action.Invoke();
+                await action?.Invoke();
             }
             catch (Exception ex)
             {
@@ -482,7 +482,12 @@ public abstract class BaseView : View
 
         _ = Task.Run(async () =>
         {
-            await Task.Delay(durationMS, _messageCancellationTokenSource.Token);
+            try
+            {
+                await Task.Delay(durationMS, _messageCancellationTokenSource.Token);
+            }
+            catch (Exception) { }
+
             messagePanel.Dispose();
         });
     }

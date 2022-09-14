@@ -5,12 +5,15 @@ using Blish_HUD._Extensions;
 using Blish_HUD.Controls;
 using Estreya.BlishHUD.ScrollingCombatText.Models;
 using Estreya.BlishHUD.Shared.Extensions;
+using Humanizer;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
@@ -21,6 +24,8 @@ public class ScrollingTextArea : Container
 
     private static readonly ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
 
+    private const int MAX_CONCURRENT_EVENTS = 1000;
+
     private const int MAX_CONSECUTIVE_FAIL_ITERATIONS = 10;
 
     private readonly SynchronizedCollection<ScrollingTextAreaEvent> _activeEvents = new SynchronizedCollection<ScrollingTextAreaEvent>();
@@ -30,6 +35,31 @@ public class ScrollingTextArea : Container
     private readonly EventWaitHandle _updateWaitHandle = new EventWaitHandle(true, EventResetMode.ManualReset);
 
     private readonly Task _updateWorker;
+
+
+#if DEBUG
+    /// <summary>
+    /// Last time <see cref="_callsPerInterval"/> was updated.
+    /// </summary>
+    private DateTime _lastCallUpdate = DateTime.UtcNow;
+
+    /// <summary>
+    /// The time interval in which <see cref="_callsPerInterval"/> is calculated.
+    /// </summary>
+    private TimeSpan _callUpdateInterval = TimeSpan.FromMilliseconds(1000);
+
+    /// <summary>
+    /// Temporary amount of calls per interval. Gets swapped to <see cref="_callsPerInterval"/> after the specified interval of <see cref="_callUpdateInterval"/>.
+    /// </summary>
+    private int _tempCallsPerInterval;
+
+    /// <summary>
+    /// The calculated calls per interval specified by <see cref="_callUpdateInterval"/>.
+    /// </summary>
+    private int _callsPerInterval;
+
+    //private List<KeyValuePair<DateTime, int>> _callsPerIntervalHistory = new List<KeyValuePair<DateTime, int>>();
+#endif
 
     public new bool Enabled => this.Configuration?.Enabled.Value ?? false;
 
@@ -146,10 +176,6 @@ public class ScrollingTextArea : Container
         return CaptureType.None;
     }
 
-    public override void UpdateContainer(GameTime gameTime)
-    {
-    }
-
     private async Task HandleUpdate()
     {
         int currentConsecutiveFails = 0;
@@ -158,26 +184,50 @@ public class ScrollingTextArea : Container
             try
             {
                 // Only lock once
-                var activeEvents = new List<ScrollingTextAreaEvent>();
-                lock (this._activeEvents)
+                List<ScrollingTextAreaEvent> activeEvents = new List<ScrollingTextAreaEvent>();
+
+                try
                 {
                     activeEvents.AddRange(this._activeEvents.ToList());
+                }
+                catch (ArgumentException)
+                {
+                    // Don't let this be seen.
+                    // Return as there are no events to process anyway.
+                    continue;
                 }
 
                 if (activeEvents == null || activeEvents.Count == 0)
                 {
                     Logger.Debug($"Scrolling area \"{this.Configuration.Name}\" has no events. Waiting.");
 
+#if DEBUG
+                    this.CalculateUpdateRate(0);
+#endif
+
                     _ = this._updateWaitHandle.Reset();
                     _ = await this._updateWaitHandle.WaitOneAsync(Timeout.InfiniteTimeSpan, this._cancellationTokenSource.Token);
 
                     if (this._cancellationTokenSource.IsCancellationRequested)
                     {
-                        return;
+                        continue;
                     }
 
                     Logger.Debug($"Scrolling area \"{this.Configuration.Name}\" has events. Continue.");
                 }
+
+                if (activeEvents.Count >= MAX_CONCURRENT_EVENTS)
+                {
+                    // Fail safe when processing gets laggy
+                    Logger.Warn($"Area \"{this.Configuration.Name}\" has reached max events of {MAX_CONCURRENT_EVENTS}. Clear for better performance.");
+
+                    this._activeEvents.Clear();
+                    continue;
+                }
+
+#if DEBUG
+                this.CalculateUpdateRate();
+#endif
 
                 float now = this.GetNow();
                 float actualScrollspeed = this.GetActualScrollspeed();
@@ -262,6 +312,38 @@ public class ScrollingTextArea : Container
 
         Logger.Debug($"{nameof(HandleUpdate)} for area '{this.Configuration.Name}' exited.");
     }
+
+#if DEBUG
+    private void CalculateUpdateRate(int overrideUpdateRate = -1)
+    {
+        var now = DateTime.UtcNow;
+
+        if (overrideUpdateRate != -1)
+        {
+            this._callsPerInterval = overrideUpdateRate;
+            _tempCallsPerInterval = 0;
+            _lastCallUpdate = now;
+            return;
+        }
+
+        _tempCallsPerInterval++;
+
+        if ((now - _lastCallUpdate).TotalMilliseconds >= _callUpdateInterval.TotalMilliseconds)
+        {
+            _callsPerInterval = _tempCallsPerInterval;
+
+            _tempCallsPerInterval = 0;
+            _lastCallUpdate = now;
+
+            //this._callsPerIntervalHistory.Add(new KeyValuePair<DateTime, int>(now, _callsPerInterval));
+        }
+    }
+
+    public override void PaintBeforeChildren(SpriteBatch spriteBatch, Rectangle bounds)
+    {
+        spriteBatch.DrawStringOnCtrl(this, $"Calls per {_callUpdateInterval.Humanize()}: {_callsPerInterval:n0}", GameService.Content.DefaultFont16, new Rectangle(0, 0, this.Width, GameService.Content.DefaultFont16.LineHeight), Color.White);
+    }
+#endif
 
     private float DistanceToTime(float timeNow, float actualScrollspeed, float distance)
     {

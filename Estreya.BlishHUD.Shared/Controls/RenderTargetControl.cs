@@ -62,30 +62,33 @@ public abstract class RenderTargetControl : Control
         spriteBatch.GraphicsDevice.PresentationParameters.RenderTargetUsage = RenderTargetUsage.PreserveContents;
         spriteBatch.End();
 
-        using (this._renderTargetLock.Lock())
+        if (this._renderTargetLock.IsFree())
         {
-            if (this._renderTarget != null)
+            using (this._renderTargetLock.Lock())
             {
-                if (this._renderTargetIsEmpty || this._lastDraw > this.DrawInterval)
+                if (this._renderTarget != null)
                 {
-                    spriteBatch.GraphicsDevice.SetRenderTarget(this._renderTarget);
+                    if (this._renderTargetIsEmpty || this._lastDraw > this.DrawInterval)
+                    {
+                        spriteBatch.GraphicsDevice.SetRenderTarget(this._renderTarget);
 
-                    spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-                    spriteBatch.GraphicsDevice.Clear(Color.Transparent); // Clear render target to transparent. Backgroundcolor is set on the control
+                        spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+                        spriteBatch.GraphicsDevice.Clear(Color.Transparent); // Clear render target to transparent. Backgroundcolor is set on the control
 
-                    this.DoPaint(spriteBatch, bounds);
+                        this.DoPaint(spriteBatch, bounds);
 
+                        spriteBatch.End();
+
+                        spriteBatch.GraphicsDevice.SetRenderTarget(null);
+
+                        this._renderTargetIsEmpty = false;
+                        this._lastDraw = TimeSpan.Zero;
+                    }
+
+                    spriteBatch.Begin(this.SpriteBatchParameters);
+                    spriteBatch.DrawOnCtrl(this, _renderTarget, bounds, Color.White);
                     spriteBatch.End();
-
-                    spriteBatch.GraphicsDevice.SetRenderTarget(null);
-
-                    this._renderTargetIsEmpty = false;
-                    this._lastDraw = TimeSpan.Zero;
                 }
-
-                spriteBatch.Begin(this.SpriteBatchParameters);
-                spriteBatch.DrawOnCtrl(this, _renderTarget, bounds, Color.White);
-                spriteBatch.End();
             }
         }
 
@@ -117,17 +120,18 @@ public abstract class RenderTargetControl : Control
 
             if (this._renderTarget == null)
             {
-                using var ctx = GameService.Graphics.LendGraphicsDeviceContext();
-
-                this._renderTarget = new RenderTarget2D(
-                ctx.GraphicsDevice,
-                width,
-                height,
-                false,
-                ctx.GraphicsDevice.PresentationParameters.BackBufferFormat,
-                ctx.GraphicsDevice.PresentationParameters.DepthStencilFormat,
-                1,
-                RenderTargetUsage.PreserveContents);
+                using (var ctx = GameService.Graphics.LendGraphicsDeviceContext())
+                {
+                    this._renderTarget = new RenderTarget2D(
+                        ctx.GraphicsDevice,
+                        width,
+                        height,
+                        false,
+                        ctx.GraphicsDevice.PresentationParameters.BackBufferFormat,
+                        ctx.GraphicsDevice.PresentationParameters.DepthStencilFormat,
+                        1,
+                        RenderTargetUsage.PreserveContents);
+                }
 
                 _renderTargetIsEmpty = true;
             }

@@ -16,7 +16,7 @@
 
     public abstract class BaseModuleSettings
     {
-        private static readonly Logger Logger = Logger.GetLogger<BaseModuleSettings>();
+        protected Logger Logger;
         private KeyBinding _globalEnabledKeybinding;
 
         private Gw2Sharp.WebApi.V2.Models.Color _defaultColor;
@@ -54,6 +54,8 @@
 
         public BaseModuleSettings(SettingCollection settings, KeyBinding globalEnabledKeybinding)
         {
+            this.Logger = Logger.GetLogger(this.GetType());
+
             this._settings = settings;
             this._globalEnabledKeybinding = globalEnabledKeybinding;
             this.BuildDefaultColor();

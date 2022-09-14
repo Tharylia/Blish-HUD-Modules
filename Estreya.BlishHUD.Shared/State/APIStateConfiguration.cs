@@ -12,5 +12,5 @@ public class APIStateConfiguration : StateConfiguration
 {
     public List<TokenPermission> NeededPermissions { get; init; } = new List<TokenPermission>();
 
-    public TimeSpan UpdateInterval { get; init; } = Timeout.InfiniteTimeSpan;
+    public TimeSpan UpdateInterval { get; set; } = Timeout.InfiniteTimeSpan;
 }

@@ -12,17 +12,7 @@ public class AccountState : APIState<Account>
 
     public AccountState(APIStateConfiguration configuration, Gw2ApiManager apiManager) : base(apiManager, configuration) { }
 
-    protected override Task DoClear()
-    {
-        return Task.CompletedTask;
-    }
-
     protected override void DoUnload() { }
-
-    protected override Task Save()
-    {
-        return Task.CompletedTask;
-    }
 
     protected override async Task<List<Account>> Fetch(Gw2ApiManager apiManager)
     {

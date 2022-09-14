@@ -15,32 +15,9 @@ public class TradingPostState : APIState<CurrentTransaction>
 {
     public List<CurrentTransaction> Transactions => this.APIObjectList;
 
-    public event EventHandler TransactionsUpdated;
-
     public TradingPostState(APIStateConfiguration configuration, Gw2ApiManager apiManager) :
         base(apiManager, configuration)
     {
-        this.Updated += this.TradingPostState_TransactionsUpdated;
-    }
-
-    private void TradingPostState_TransactionsUpdated(object sender, EventArgs e)
-    {
-        this.TransactionsUpdated?.Invoke(this, EventArgs.Empty);
-    }
-
-    protected override Task DoClear()
-    {
-        return Task.CompletedTask;
-    }
-
-    protected override void DoUnload()
-    {
-        this.Updated -= this.TradingPostState_TransactionsUpdated;
-    }
-
-    protected override Task Save()
-    {
-        return Task.CompletedTask;
     }
 
     protected override async Task<List<CurrentTransaction>> Fetch(Gw2ApiManager apiManager)
@@ -87,35 +64,22 @@ public class TradingPostState : APIState<CurrentTransaction>
 
         #region Set Item
 
-        List<Task<IReadOnlyList<Item>>> itemIdTasks = new List<Task<IReadOnlyList<Item>>>();
+        IReadOnlyList<Item> rawItemList = await apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIds);
+        Dictionary<int, Item> itemLookup = rawItemList.ToDictionary(item => item.Id);
 
-        foreach (IEnumerable<int> itemIdChunk in itemIds.ChunkBy(200))
-        {
-            itemIdTasks.Add(apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIdChunk));
-        }
-
-        IReadOnlyList<Item>[] rawItemList = await Task.WhenAll(itemIdTasks);
-        Dictionary<int, Item> itemLookup = rawItemList.SelectMany(rawItemList => rawItemList).ToList().ToDictionary(item => item.Id);
-
-        transactions.ForEach(transaction =>
+        foreach (var transaction in transactions)
         {
             transaction.Item = itemLookup[transaction.ItemId];
-        });
+        }
 
         #endregion
 
         #region Is Highest
 
-        List<Task<IReadOnlyList<CommercePrices>>> itemPriceTasks = new List<Task<IReadOnlyList<CommercePrices>>>();
-        foreach (IEnumerable<int> itemIdChunk in itemIds.ChunkBy(200))
-        {
-            itemPriceTasks.Add(apiManager.Gw2ApiClient.V2.Commerce.Prices.ManyAsync(itemIdChunk));
-        }
+        IReadOnlyList<CommercePrices> rawItemPriceList = await apiManager.Gw2ApiClient.V2.Commerce.Prices.ManyAsync(itemIds);
+        Dictionary<int, CommercePrices> itemPriceLookup = rawItemPriceList.ToDictionary(item => item.Id);
 
-        IReadOnlyList<CommercePrices>[] rawItemPriceList = await Task.WhenAll(itemPriceTasks);
-        Dictionary<int, CommercePrices> itemPriceLookup = rawItemPriceList.SelectMany(rawItemPriceList => rawItemPriceList).ToList().ToDictionary(item => item.Id);
-
-        transactions.ForEach(transaction =>
+        foreach (var transaction in transactions)
         {
             switch (transaction.Type)
             {
@@ -128,7 +92,7 @@ public class TradingPostState : APIState<CurrentTransaction>
                 default:
                     break;
             }
-        });
+        }
 
         #endregion
 

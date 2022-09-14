@@ -16,7 +16,7 @@
 
         protected StateConfiguration Configuration { get; }
 
-        protected CancellationTokenSource CancellationTokenSource { get; } = new CancellationTokenSource();
+        protected CancellationTokenSource _cancellationTokenSource;
 
         public bool Running { get; private set; } = false;
         public bool AwaitLoading => this.Configuration.AwaitLoading;
@@ -37,6 +37,8 @@
 
             Logger.Debug("Starting state.");
 
+            this._cancellationTokenSource = new CancellationTokenSource();
+
             await this.Initialize();
 
             this.Running = true;
@@ -44,7 +46,7 @@
             await this.Load();
         }
 
-        public void Stop()
+        private void Stop()
         {
             if (!this.Running)
             {
@@ -66,7 +68,7 @@
 
             if (this.Configuration.SaveInterval != Timeout.InfiniteTimeSpan)
             {
-                _ = UpdateUtil.UpdateAsync(this.SaveWrapper, gameTime, this.Configuration.SaveInterval.TotalMilliseconds, this._lastSaved);
+                UpdateUtil.UpdateAsync(this.Save, gameTime, this.Configuration.SaveInterval.TotalMilliseconds, this._lastSaved);
             }
 
             try
@@ -78,6 +80,10 @@
             }
         }
 
+        /// <summary>
+        /// Clears and reloads the state
+        /// </summary>
+        /// <returns></returns>
         public async Task Reload()
         {
             if (!this.Running)
@@ -88,48 +94,48 @@
 
             Logger.Debug("Reloading state.");
 
+            await this.Clear();
+            await this.Load();
+
             await this.InternalReload();
         }
 
-        protected abstract Task InternalReload();
-
+        /// <summary>
+        /// Clears the state and requests further unload from subclasses.
+        /// </summary>
         private void Unload()
         {
-            if (!this.Running)
+            if (this._cancellationTokenSource.IsCancellationRequested)
             {
-                Logger.Warn("Trying to unload, but not running.");
+                Logger.Warn("Already unloaded.");
                 return;
             }
 
             Logger.Debug("Unloading state.");
 
-            this.CancellationTokenSource?.Cancel();
+            this._cancellationTokenSource.Cancel();
 
+            this.Clear();
             this.InternalUnload();
         }
 
-        public abstract Task Clear();
-
-        protected abstract void InternalUnload();
-
         protected abstract Task Initialize();
+        protected abstract Task Load();
+
+        protected virtual Task Save()=> Task.CompletedTask;
 
         protected abstract void InternalUpdate(GameTime gameTime);
 
-        private async Task SaveWrapper()
-        {
-            Logger.Debug("Starting save.");
-            await this.Save();
-            Logger.Debug("Finished save.");
-        }
+        protected virtual Task InternalReload() => Task.CompletedTask;
 
-        protected abstract Task Save();
-        protected abstract Task Load();
+        protected virtual Task Clear() => Task.CompletedTask;
+
+        protected abstract void InternalUnload();
 
         public void Dispose()
         {
-            this.Unload();
             this.Stop();
+            this.Unload();
         }
     }
 }

@@ -9,5 +9,6 @@ public enum SkillCategory
 {
     Skill,
     Trait,
-    TraitSkill
+    TraitSkill,
+    UpgradeComponent
 }

@@ -134,10 +134,6 @@ public class PointOfInterestState : APIState<PointOfInterest>
         }
     }
 
-    protected override Task DoClear() => Task.CompletedTask;
-
-    protected override void DoUnload() { /* NOOP */ }
-
     protected override async Task<List<PointOfInterest>> Fetch(Gw2ApiManager apiManager)
     {
         List<PointOfInterest> pointOfInterests = new List<PointOfInterest>();
