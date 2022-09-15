@@ -30,8 +30,8 @@ public class TransactionDrawer : FlowPanel
 
         this.Size_X_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Size.X.Value));
         this.Size_Y_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Size.Y.Value));
+        this.Location_X_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Location.X.Value));
         this.Location_Y_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Location.Y.Value));
-        this.Location_X_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Location.Y.Value));
         this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color>(null, this.Configuration.BackgroundColor.Value));
         this.Opacity_SettingChanged(this, new ValueChangedEventArgs<float>(0f, this.Configuration.Opacity.Value));
 
