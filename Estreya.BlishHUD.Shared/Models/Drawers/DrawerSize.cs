@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 public class DrawerSize
 {
-    public SettingEntry<int> X { get; init; }
+    public SettingEntry<int> X { get; set; }
 
-    public SettingEntry<int> Y { get; init; }
+    public SettingEntry<int> Y { get; set; }
 }

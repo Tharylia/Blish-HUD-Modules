@@ -10,12 +10,12 @@ using System.Threading.Tasks;
 
 public class TransactionDrawerConfiguration : DrawerConfiguration
 {
-    public SettingEntry<int> MaxTransactions { get; init; }
-    public SettingEntry<bool> ShowBuyTransactions { get; init; }
-    public SettingEntry<bool> ShowSellTransactions { get; init; }
-    public SettingEntry<bool> ShowHighestTransactions { get; init; }
-    public SettingEntry<bool> ShowPrice { get; init; }
-    public SettingEntry<bool> ShowPriceAsTotal { get; init; }
-    public SettingEntry<bool> ShowRemaining { get; init; }
-    public SettingEntry<bool> ShowCreated { get; init; }
+    public SettingEntry<int> MaxTransactions { get; set; }
+    public SettingEntry<bool> ShowBuyTransactions { get; set; }
+    public SettingEntry<bool> ShowSellTransactions { get; set; }
+    public SettingEntry<bool> ShowHighestTransactions { get; set; }
+    public SettingEntry<bool> ShowPrice { get; set; }
+    public SettingEntry<bool> ShowPriceAsTotal { get; set; }
+    public SettingEntry<bool> ShowRemaining { get; set; }
+    public SettingEntry<bool> ShowCreated { get; set; }
 }

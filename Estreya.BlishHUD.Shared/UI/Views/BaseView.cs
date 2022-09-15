@@ -28,7 +28,7 @@ public abstract class BaseView : View
 
     protected Gw2ApiManager APIManager { get; }
     protected BitmapFont Font { get; }
-    public Gw2Sharp.WebApi.V2.Models.Color DefaultColor { get; init; }
+    public Gw2Sharp.WebApi.V2.Models.Color DefaultColor { get; set; }
 
     protected IconState IconState { get; }
 

@@ -10,15 +10,15 @@ using System.Threading.Tasks;
 
 public class EventAreaConfiguration : DrawerConfiguration
 {
-    public SettingEntry<List<string>> ActiveEventKeys { get; init; }
-    public SettingEntry<EventCompletedAction> CompletionAcion { get; init; }
+    public SettingEntry<List<string>> ActiveEventKeys { get; set; }
+    public SettingEntry<EventCompletedAction> CompletionAcion { get; set; }
 
-    public SettingEntry<bool> ShowTooltips { get; init; }
-    public SettingEntry<LeftClickAction> LeftClickAction { get; init; }
-    public SettingEntry<bool> AcceptWaypointPrompt { get; init; }
-    public SettingEntry<bool> ShowContextMenu { get; init; }
-    public SettingEntry<int> TimeSpan { get; init; } 
-    public SettingEntry<int> HistorySplit { get; init; } 
-    public SettingEntry<bool> DrawBorders { get; init; } 
-    public SettingEntry<bool> UseFiller { get; init; } 
+    public SettingEntry<bool> ShowTooltips { get; set; }
+    public SettingEntry<LeftClickAction> LeftClickAction { get; set; }
+    public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
+    public SettingEntry<bool> ShowContextMenu { get; set; }
+    public SettingEntry<int> TimeSpan { get; set; } 
+    public SettingEntry<int> HistorySplit { get; set; } 
+    public SettingEntry<bool> DrawBorders { get; set; } 
+    public SettingEntry<bool> UseFiller { get; set; } 
 }

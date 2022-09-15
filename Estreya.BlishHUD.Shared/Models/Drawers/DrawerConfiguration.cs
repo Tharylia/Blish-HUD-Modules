@@ -11,21 +11,21 @@ using static Blish_HUD.ContentService;
 
 public class DrawerConfiguration
 {
-    public string Name { get; init; }
+    public string Name { get; set; }
 
-    public SettingEntry<bool> Enabled { get; init; }
+    public SettingEntry<bool> Enabled { get; set; }
 
-    public DrawerLocation Location { get; init; }
+    public DrawerLocation Location { get; set; }
 
-    public DrawerSize Size { get; init; }
+    public DrawerSize Size { get; set; }
 
-    public SettingEntry<BuildDirection> BuildDirection { get; init; }
+    public SettingEntry<BuildDirection> BuildDirection { get; set; }
 
-    public SettingEntry<float> Opacity { get; init; }
+    public SettingEntry<float> Opacity { get; set; }
 
-    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> BackgroundColor { get; init; }
+    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> BackgroundColor { get; set; }
 
-    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> TextColor { get; init; }
+    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> TextColor { get; set; }
 
-    public SettingEntry<FontSize> FontSize { get; init; }
+    public SettingEntry<FontSize> FontSize { get; set; }
 }

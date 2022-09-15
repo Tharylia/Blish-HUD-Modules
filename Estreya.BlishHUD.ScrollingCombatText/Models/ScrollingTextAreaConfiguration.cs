@@ -7,15 +7,15 @@ using System.Collections.Generic;
 
 public class ScrollingTextAreaConfiguration : DrawerConfiguration
 {
-    public SettingEntry<List<CombatEventType>> Types { get; init; }
+    public SettingEntry<List<CombatEventType>> Types { get; set; }
 
-    public SettingEntry<List<CombatEventCategory>> Categories { get; init; }
+    public SettingEntry<List<CombatEventCategory>> Categories { get; set; }
 
-    public SettingEntry<int> EventHeight { get; init; }
+    public SettingEntry<int> EventHeight { get; set; }
 
-    public SettingEntry<float> ScrollSpeed { get; init; }
+    public SettingEntry<float> ScrollSpeed { get; set; }
 
-    public SettingEntry<ScrollingTextAreaCurve> Curve { get; init; }
+    public SettingEntry<ScrollingTextAreaCurve> Curve { get; set; }
 
-    public SettingEntry<List<CombatEventFormatRule>> FormatRules { get; init; }
+    public SettingEntry<List<CombatEventFormatRule>> FormatRules { get; set; }
 }

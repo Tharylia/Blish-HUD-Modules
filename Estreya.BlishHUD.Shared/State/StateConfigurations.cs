@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 public class StateConfigurations
 {
-    public APIStateConfiguration Account { get; init; } = new APIStateConfiguration()
+    public APIStateConfiguration Account { get; set; } = new APIStateConfiguration()
     {
         Enabled = false,
         AwaitLoading = true,
@@ -15,7 +15,7 @@ public class StateConfigurations
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIStateConfiguration Mapchests { get; init; }  = new APIStateConfiguration()
+    public APIStateConfiguration Mapchests { get; set; }  = new APIStateConfiguration()
     {
         Enabled = false,
         AwaitLoading = false,
@@ -23,7 +23,7 @@ public class StateConfigurations
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIStateConfiguration Worldbosses { get; init; } = new APIStateConfiguration()
+    public APIStateConfiguration Worldbosses { get; set; } = new APIStateConfiguration()
     {
         Enabled = false,
         AwaitLoading = false,
@@ -31,19 +31,19 @@ public class StateConfigurations
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIStateConfiguration PointOfInterests { get; init; } = new APIStateConfiguration()
+    public APIStateConfiguration PointOfInterests { get; set; } = new APIStateConfiguration()
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public APIStateConfiguration Skills { get; init; } = new APIStateConfiguration()
+    public APIStateConfiguration Skills { get; set; } = new APIStateConfiguration()
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public APIStateConfiguration TradingPost { get; init; } = new APIStateConfiguration()
+    public APIStateConfiguration TradingPost { get; set; } = new APIStateConfiguration()
     {
         Enabled = false,
         AwaitLoading = false,
@@ -51,7 +51,7 @@ public class StateConfigurations
         UpdateInterval = TimeSpan.FromMinutes(2)
     };
 
-    public StateConfiguration ArcDPS { get; init; } = new StateConfiguration()
+    public StateConfiguration ArcDPS { get; set; } = new StateConfiguration()
     {
         Enabled = false,
         AwaitLoading = false

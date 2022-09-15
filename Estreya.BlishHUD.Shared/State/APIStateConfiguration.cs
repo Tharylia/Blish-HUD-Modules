@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 public class APIStateConfiguration : StateConfiguration
 {
-    public List<TokenPermission> NeededPermissions { get; init; } = new List<TokenPermission>();
+    public List<TokenPermission> NeededPermissions { get; set; } = new List<TokenPermission>();
 
     public TimeSpan UpdateInterval { get; set; } = Timeout.InfiniteTimeSpan;
 }

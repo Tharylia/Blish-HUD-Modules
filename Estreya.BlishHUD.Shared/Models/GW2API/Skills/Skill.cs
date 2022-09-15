@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 public class Skill : IDisposable
 {
-    public SkillCategory Category { get; init; }
+    public SkillCategory Category { get; set; }
 
     /// <summary>
     /// The skill id.
