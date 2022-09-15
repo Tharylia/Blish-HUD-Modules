@@ -93,6 +93,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public AccountState AccountState { get; private set; }
     public SkillState SkillState { get; private set; }
     public TradingPostState TradingPostState { get; private set; }
+    public ItemState ItemState { get; private set; }
     public ArcDPSState ArcDPSState { get; private set; }
     #endregion
 
@@ -164,6 +165,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 this._states.Add(this.TradingPostState);
             }
 
+            if (configurations.Items.Enabled)
+            {
+                this.ItemState = new ItemState(configurations.Items, this.Gw2ApiManager, directoryPath);
+                this._states.Add(this.ItemState);
+            }
+
             if (configurations.Worldbosses.Enabled)
             {
                 if (configurations.Account.Enabled)
@@ -228,8 +235,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
             }
 
-            this.HandleDefaultStates();
-
             Collection<ManagedState> customStates = this.GetAdditionalStates(directoryPath);
 
             if (customStates != null && customStates.Count > 0)
@@ -239,6 +244,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     this._states.Add(customState);
                 }
             }
+
+            this.OnBeforeStatesStarted();
 
             // Only start states not already running
             foreach (ManagedState state in this._states.Where(state => !state.Running))
@@ -258,7 +265,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                             {
                                 this.Logger.Error(task.Exception, "Not awaited state start failed for \"{0}\"", state.GetType().Name);
                             }
-                        });
+                        }).ConfigureAwait(false);
                     }
                 }
                 catch (Exception ex)
@@ -269,13 +276,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
     }
 
-    protected abstract void ConfigureStates(StateConfigurations configurations);
+    protected virtual void ConfigureStates(StateConfigurations configurations) { }
 
-    protected abstract void HandleDefaultStates();
+    protected virtual void OnBeforeStatesStarted() { }
 
     protected virtual Collection<ManagedState> GetAdditionalStates(string directoryPath)
     {
-        return new Collection<ManagedState>();
+        return null;
     }
 
     private void HandleCornerIcon(bool show)
