@@ -28,8 +28,6 @@ public class PointOfInterestState : APIState<PointOfInterest>
 
     private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
 
-    // Don't await loading as this can take a long time.
-
     public PointOfInterestState(APIStateConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
     {
         this._baseFolderPath = baseFolderPath;
@@ -55,8 +53,6 @@ public class PointOfInterestState : APIState<PointOfInterest>
                 {
                     this.APIObjectList.AddRange(pois);
                 }
-
-                this._fetchTask = Task.CompletedTask;
             }
 
             Logger.Debug("Loaded {0} point of interests.", this.APIObjectList.Count);

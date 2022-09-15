@@ -143,11 +143,12 @@ public class SkillState : APIState<Skill>
 
     protected override Task DoInitialize()
     {
-        this._missingSkillsFromAPIReportedByArcDPS =  new ConcurrentDictionary<int, string>();
+        this._missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, string>();
         return Task.CompletedTask;
     }
 
-    protected override void DoUnload() {
+    protected override void DoUnload()
+    {
         this._missingSkillsFromAPIReportedByArcDPS?.Clear();
         this._missingSkillsFromAPIReportedByArcDPS = null;
         this._iconState = null;
@@ -166,14 +167,7 @@ public class SkillState : APIState<Skill>
             if (!shouldLoadFiles)
             {
                 await base.Load();
-                if (!this._fetchTask.IsFaulted)
-                {
-                    await this.Save();
-                }
-                else
-                {
-                    Logger.Warn("Skip save because fetch was faulted.");
-                }
+                await this.Save();
             }
             else
             {
@@ -195,8 +189,6 @@ public class SkillState : APIState<Skill>
                     {
                         this.APIObjectList.AddRange(skills);
                     }
-
-                    this._fetchTask = Task.CompletedTask;
                 }
                 finally
                 {
@@ -402,7 +394,7 @@ public class SkillState : APIState<Skill>
 
     protected override void DoUpdate(GameTime gameTime)
     {
-        _= UpdateUtil.UpdateAsync(this.SaveMissingSkills, gameTime, 60000, this._lastSaveMissingSkill);
+        _ = UpdateUtil.UpdateAsync(this.SaveMissingSkills, gameTime, 60000, this._lastSaveMissingSkill);
     }
 
     private async Task SaveMissingSkills()
@@ -470,7 +462,7 @@ public class SkillState : APIState<Skill>
 
     public bool AddMissingSkill(int id, string name)
     {
-       return this._missingSkillsFromAPIReportedByArcDPS.TryAdd(id, name);
+        return this._missingSkillsFromAPIReportedByArcDPS.TryAdd(id, name);
     }
 
     public void RemoveMissingSkill(int id)

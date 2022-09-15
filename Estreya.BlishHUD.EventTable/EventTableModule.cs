@@ -290,7 +290,7 @@
             configurations.PointOfInterests.Enabled = true;
         }
 
-        protected override void HandleDefaultStates()
+        protected override void OnBeforeStatesStarted()
         {
         }
 

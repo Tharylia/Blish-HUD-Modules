@@ -22,16 +22,19 @@ public class TrackedTransactionView : BaseView
     private const int PADDING_X = 20;
     private const int PADDING_Y = 20;
 
-    private readonly List<TrackedTransaction> _trackedTransactions;
+    private readonly Func<List<TrackedTransaction>> _getTrackedTransactions;
+    private readonly ItemState _itemState;
+    private List<TrackedTransaction> _trackedTransactions;
     private Dictionary<(TransactionType Type, int Id), MenuItem> _menuItems = new Dictionary<(TransactionType Type, int Id), MenuItem>();
     private Panel _transactionPanel;
 
     public event EventHandler<TrackedTransaction> AddTracking;
     public event EventHandler<TrackedTransaction> RemoveTracking;
 
-    public TrackedTransactionView(List<TrackedTransaction> trackedTransactions, Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
+    public TrackedTransactionView(Func<List<TrackedTransaction>> getTrackedTransactions, Gw2ApiManager apiManager, IconState iconState, ItemState itemState, BitmapFont font = null) : base(apiManager, iconState, font)
     {
-        this._trackedTransactions = trackedTransactions;
+        this._getTrackedTransactions = getTrackedTransactions;
+        this._itemState = itemState;
     }
 
     protected override void InternalBuild(Panel parent)
@@ -51,6 +54,8 @@ public class TrackedTransactionView : BaseView
             Parent = trackedOverviewPanel,
             WidthSizingMode = SizingMode.Fill
         };
+
+        this._trackedTransactions = this._getTrackedTransactions.Invoke();
 
         foreach (var trackedTransaction in this._trackedTransactions)
         {
@@ -117,7 +122,7 @@ public class TrackedTransactionView : BaseView
             Parent = this._transactionPanel,
             Top = itemImage.Top,
             Left = itemImage.Right + 10,
-            PlaceholderText = "WIP: For now enter the item id"
+            PlaceholderText = "Item Name"
         };
 
         (Gw2Sharp.WebApi.V2.Models.Item Item, Texture2D Icon) loadedItem = (null, null);
@@ -225,13 +230,22 @@ public class TrackedTransactionView : BaseView
 
         StandardButton loadItemButton = this.RenderButtonAsync(this._transactionPanel, "Load Item", async () =>
         {
-            // TODO: Get Id from entered item name
-            var id = int.Parse(itemName.Text);
-            var item = await this.APIManager.Gw2ApiClient.V2.Items.GetAsync(id);
+            if (this._itemState?.Loading ?? true)
+            {
+                throw new Exception("Items are still being loaded.");
+            }
+
+            var item = this._itemState?.GetItemByName(itemName.Text);
+
+            if (item == null)
+            {
+                throw new ArgumentNullException($"The name \"{itemName.Text}\" is not a valid item.");
+            }
+
             var itemIcon = this.IconState?.GetIcon(item.Icon) ?? ContentService.Textures.Error;
             loadedItem = (item, itemIcon);
 
-            var itemPrice = await this.APIManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(id);
+            var itemPrice = await this.APIManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(item.Id);
 
             var splitPrice = GW2Utils.SplitCoins(itemPrice.Buys.UnitPrice);
 
@@ -416,5 +430,15 @@ public class TrackedTransactionView : BaseView
     protected override Task<bool> InternalLoad(IProgress<string> progress)
     {
         return Task.FromResult(true);
+    }
+
+    protected override void Unload()
+    {
+        base.Unload();
+
+        this._menuItems.Clear();
+        this._trackedTransactions.Clear();
+
+        ClearTransactionPanel();
     }
 }

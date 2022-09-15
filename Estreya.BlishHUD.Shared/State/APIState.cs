@@ -24,8 +24,7 @@ public abstract class APIState<T> : ManagedState
 
     private AsyncRef<double> _timeSinceUpdate = 0;
 
-    protected Task _fetchTask;
-
+    private readonly AsyncLock _loadingLock = new AsyncLock();
     protected readonly AsyncLock _apiObjectListLock = new AsyncLock();
     public bool Loading { get; protected set; }
 
@@ -102,11 +101,6 @@ public abstract class APIState<T> : ManagedState
 
     private async Task FetchFromAPI()
     {
-        //if (this._fetchTask != null && (!this._fetchTask.IsCompleted && !this._fetchTask.IsFaulted))
-        //{
-        //    return this._fetchTask;
-        //}
-
         this.Logger.Info($"Check for api objects.");
 
         if (this._apiManager == null)
@@ -131,7 +125,7 @@ public abstract class APIState<T> : ManagedState
                     return;
                 }
 
-                List<T> apiObjects = await this.Fetch(this._apiManager);
+                List<T> apiObjects = await this.Fetch(this._apiManager).ConfigureAwait(false);
 
                 Logger.Debug("API returned {0} objects.", apiObjects.Count);
 
@@ -197,67 +191,31 @@ public abstract class APIState<T> : ManagedState
             Logger.Warn(ex, "Error updating api objects:");
             throw;
         }
-
-        //return this._fetchTask;
     }
 
     protected abstract Task<List<T>> Fetch(Gw2ApiManager apiManager);
 
-    /// <summary>
-    /// Waits until the first or current fetch is completed.
-    /// </summary>
-    /// <returns></returns>
-    //public async Task<bool> WaitAsync(bool waitForFirstFetch = true)
-    //{
-    //    if (this._fetchTask == null)
-    //    {
-    //        this.Logger.Debug("First fetch did not start yet.");
-
-    //        if (!waitForFirstFetch)
-    //        {
-    //            this.Logger.Debug("Not waiting for first fetch.");
-    //            return true;
-    //        }
-
-    //        int waitMs = 100;
-    //        int counter = 0;
-    //        int maxCounter = 60 * 5; // 5 Minutes
-    //        while (this._fetchTask == null)
-    //        {
-    //            // Wait for first load
-    //            await Task.Delay(waitMs);
-
-    //            counter++;
-
-    //            if (counter > maxCounter)
-    //            {
-    //                this.Logger.Debug("First fetch did not complete after {0} tries. ({1} minutes)", counter, counter * waitMs / 1000 / 60);
-    //                return false;
-    //            }
-    //        }
-    //    }
-
-    //    await this._fetchTask;
-    //    return true;
-    //}
-
     protected override async Task Load()
     {
-        lock (this)
+        if (!this._loadingLock.IsFree())
         {
-            this.Loading = true;
+            Logger.Warn("Tried to load again while already loading.");
+            return;
         }
 
-        try
+        using (await this._loadingLock.LockAsync())
         {
-            await this.FetchFromAPI();
-        }
-        finally
-        {
-            lock (this)
+            this.Loading = true;
+
+            try
+            {
+                await this.FetchFromAPI();
+            }
+            finally
             {
                 this.Loading = false;
             }
         }
+
     }
 }

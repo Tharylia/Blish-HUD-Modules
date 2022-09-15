@@ -328,7 +328,7 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
-                //this.ShowError(ex.Message);
+                this.ShowError(ex.Message);
             }
         };
 
@@ -347,7 +347,7 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
-                //this.ShowError(ex.Message);
+                this.ShowError(ex.Message);
             }
         });
 

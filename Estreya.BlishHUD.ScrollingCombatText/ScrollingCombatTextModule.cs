@@ -102,7 +102,7 @@
             ScreenNotification.ShowNotification("ArcDPS Service started!", ScreenNotification.NotificationType.Info, duration: 10);
         }
 
-        protected override void HandleDefaultStates()
+        protected override void OnBeforeStatesStarted()
         {
             this.ArcDPSState.LocalCombatEvent += this.ArcDPSState_LocalCombatEvent;
         }
