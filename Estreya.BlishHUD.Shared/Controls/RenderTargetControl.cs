@@ -14,6 +14,8 @@ using System.Threading.Tasks;
 
 public abstract class RenderTargetControl : Control
 {
+    private static Logger Logger = Logger.GetLogger<RenderTargetControl>();
+
     private RenderTarget2D _renderTarget;
     private bool _renderTargetIsEmpty;
     private readonly AsyncLock _renderTargetLock = new AsyncLock();
@@ -120,20 +122,27 @@ public abstract class RenderTargetControl : Control
 
             if (this._renderTarget == null)
             {
-                using (var ctx = GameService.Graphics.LendGraphicsDeviceContext())
+                try
                 {
-                    this._renderTarget = new RenderTarget2D(
-                        ctx.GraphicsDevice,
-                        width,
-                        height,
-                        false,
-                        ctx.GraphicsDevice.PresentationParameters.BackBufferFormat,
-                        ctx.GraphicsDevice.PresentationParameters.DepthStencilFormat,
-                        1,
-                        RenderTargetUsage.PreserveContents);
-                }
+                    using (var ctx = GameService.Graphics.LendGraphicsDeviceContext())
+                    {
+                        this._renderTarget = new RenderTarget2D(
+                            ctx.GraphicsDevice,
+                            width,
+                            height,
+                            false,
+                            ctx.GraphicsDevice.PresentationParameters.BackBufferFormat,
+                            ctx.GraphicsDevice.PresentationParameters.DepthStencilFormat,
+                            1,
+                            RenderTargetUsage.PreserveContents);
+                    }
 
-                _renderTargetIsEmpty = true;
+                    _renderTargetIsEmpty = true;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "Failed to create Render Target");
+                }
             }
         }
     }
