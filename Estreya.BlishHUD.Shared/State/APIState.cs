@@ -61,7 +61,7 @@ public abstract class APIState<T> : ManagedState
         if (this.Configuration.NeededPermissions.Count > 0)
         {
             AsyncHelper.RunSync(this.Clear);
-            this._timeSinceUpdate.Value = 0;
+            this._timeSinceUpdate.Value = this.Configuration.UpdateInterval.TotalMilliseconds;
         }
     }
 
@@ -123,7 +123,7 @@ public abstract class APIState<T> : ManagedState
                 oldAPIObjectList = this.APIObjectList.Copy();
                 this.APIObjectList.Clear();
 
-                Logger.Debug("Got {0} api objects from previous fetch: {1}", oldAPIObjectList.Count, string.Join(", ", oldAPIObjectList));
+                Logger.Debug("Got {0} api objects from previous fetch.", oldAPIObjectList.Count);
 
                 if (!this._apiManager.HasPermissions(this.Configuration.NeededPermissions))
                 {
@@ -133,7 +133,7 @@ public abstract class APIState<T> : ManagedState
 
                 List<T> apiObjects = await this.Fetch(this._apiManager);
 
-                Logger.Debug("API returned objects: {0}", string.Join(", ", apiObjects));
+                Logger.Debug("API returned {0} objects.", apiObjects.Count);
 
                 this.APIObjectList.AddRange(apiObjects);
 
