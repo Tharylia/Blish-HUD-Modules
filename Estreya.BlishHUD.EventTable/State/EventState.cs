@@ -153,7 +153,7 @@
             }
         }
 
-        public override Task Clear()
+        protected override Task Clear()
         {
             lock (this.Instances)
             {

@@ -116,7 +116,7 @@
 
                     IEnumerable<Task> eventCategoryLoadTasks = categories.Select(ec =>
                     {
-                        return ec.LoadAsync();
+                        return ec.LoadAsync(this.EventState, () => this.DateTimeNow);
                     });
 
                     await Task.WhenAll(eventCategoryLoadTasks);
@@ -185,7 +185,7 @@
             {
                 this.EventCategories.ForEach(ec =>
                 {
-                    ec.Update(gameTime);
+                    //ec.Update(gameTime);
                 });
             }
         }

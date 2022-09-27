@@ -1,7 +1,6 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Models;
 
 using Blish_HUD;
-using Estreya.BlishHUD.EventTable.UI.Views.Controls;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using System;
@@ -18,7 +17,7 @@ public class EventPhaseMarker
     /// <summary>
     /// Describes the time the marker occures after event start.
     /// </summary>
-    [JsonProperty("time"), TypeOverride(typeof(string)), Description("Specifies the time in minutes after the event started.")]
+    [JsonProperty("time"), Description("Specifies the time in minutes after the event started.")]
     public float Time { get; set; }
 
     [JsonIgnore]
