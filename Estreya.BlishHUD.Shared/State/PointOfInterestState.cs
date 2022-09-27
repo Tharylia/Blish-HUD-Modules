@@ -46,12 +46,22 @@ public class PointOfInterestState : APIState<PointOfInterest>
             }
             else
             {
-                var filePath = Path.Combine(this.DirectoryPath, FILE_NAME);
-                var poiJson = await FileUtil.ReadStringAsync(filePath);
-                var pois = JsonConvert.DeserializeObject<List<PointOfInterest>>(poiJson);
-                using (await this._apiObjectListLock.LockAsync())
+                try
                 {
-                    this.APIObjectList.AddRange(pois);
+                    this.Loading = true;
+
+                    var filePath = Path.Combine(this.DirectoryPath, FILE_NAME);
+                    var poiJson = await FileUtil.ReadStringAsync(filePath);
+                    var pois = JsonConvert.DeserializeObject<List<PointOfInterest>>(poiJson);
+                    using (await this._apiObjectListLock.LockAsync())
+                    {
+                        this.APIObjectList.AddRange(pois);
+                    }
+                }
+                finally
+                {
+                    this.Loading = false;
+                    this.SignalCompletion();
                 }
             }
 
@@ -130,7 +140,7 @@ public class PointOfInterestState : APIState<PointOfInterest>
         }
     }
 
-    protected override async Task<List<PointOfInterest>> Fetch(Gw2ApiManager apiManager)
+    protected override async Task<List<PointOfInterest>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
     {
         List<PointOfInterest> pointOfInterests = new List<PointOfInterest>();
 

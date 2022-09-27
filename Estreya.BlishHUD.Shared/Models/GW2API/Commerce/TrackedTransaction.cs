@@ -15,4 +15,16 @@ public class TrackedTransaction : Transaction
     {
         return $"Item-ID: {this.ItemId} - Type: {this.Type.Humanize()} - Quantity: {this.Quantity} - Unit Price: {this.Price} - Wish Price: {this.WishPrice}";
     }
+
+    public override int GetHashCode()
+    {
+        var hash = base.GetHashCode();
+
+        unchecked
+        {
+            hash = hash * 23 + this.WishPrice.GetHashCode();
+        }
+
+        return hash;
+    }
 }

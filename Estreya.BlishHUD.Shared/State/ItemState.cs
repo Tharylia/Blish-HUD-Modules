@@ -3,18 +3,20 @@
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
+using Estreya.BlishHUD.Shared.Models.GW2API.Items;
 using Estreya.BlishHUD.Shared.Models.GW2API.PointOfInterest;
 using Estreya.BlishHUD.Shared.Utils;
-using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Documents;
 
 public class ItemState : APIState<Item>
 {
@@ -27,6 +29,8 @@ public class ItemState : APIState<Item>
     private readonly string _baseFolderPath;
 
     private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
+
+    public List<Item> Items => this.APIObjectList;
 
     public ItemState(APIStateConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
     {
@@ -46,12 +50,22 @@ public class ItemState : APIState<Item>
             }
             else
             {
-                var filePath = Path.Combine(this.DirectoryPath, FILE_NAME);
-                var itemJson = await FileUtil.ReadStringAsync(filePath);
-                var items = JsonConvert.DeserializeObject<List<Item>>(itemJson);
-                using (await this._apiObjectListLock.LockAsync())
+                try
                 {
-                    this.APIObjectList.AddRange(items);
+                    this.Loading = true;
+
+                    var filePath = Path.Combine(this.DirectoryPath, FILE_NAME);
+                    var itemJson = await FileUtil.ReadStringAsync(filePath);
+                    var items = JsonConvert.DeserializeObject<List<Item>>(itemJson);
+                    using (await this._apiObjectListLock.LockAsync())
+                    {
+                        this.APIObjectList.AddRange(items);
+                    }
+                }
+                finally
+                {
+                    this.Loading = false;
+                    this.SignalCompletion();
                 }
             }
 
@@ -84,7 +98,8 @@ public class ItemState : APIState<Item>
             }
             else
             {
-                return DateTime.UtcNow - new DateTime(lastUpdated.Ticks, DateTimeKind.Utc) <= TimeSpan.FromDays(5);
+                var lastUpdatedUTC = new DateTime(lastUpdated.Ticks, DateTimeKind.Utc);
+                return lastUpdatedUTC >= DateTime.ParseExact(Item.LAST_SCHEMA_CHANGE, "yyyy-MM-dd", CultureInfo.InvariantCulture) && DateTime.UtcNow - lastUpdatedUTC <= TimeSpan.FromDays(5);
             }
         }
 
@@ -155,23 +170,49 @@ public class ItemState : APIState<Item>
         }
     }
 
-    protected override async Task<List<Item>> Fetch(Gw2ApiManager apiManager)
+    protected override async Task<List<Item>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
     {
         List<Item> items = new List<Item>();
+
+        progress.Report("Load item ids...");
 
         var itemIds = await apiManager.Gw2ApiClient.V2.Items.IdsAsync(this._cancellationTokenSource.Token);
 
         Logger.Info($"Start loading items: {itemIds.First()} - {itemIds.Last()}");
 
-        foreach (var itemIdChunk in itemIds.ChunkBy(200))
+        int chunkSize = 200;
+        foreach (var itemIdChunk in itemIds.ChunkBy(chunkSize))
         {
             try
             {
-                Logger.Debug($"Start loading items by id: {itemIdChunk.First()} - {itemIdChunk.Last()}");
+                try
+                {
+                    var itemChunk = await this.FetchChunk(apiManager, progress, itemIdChunk);
 
-                var itemChunk = await apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIdChunk, this._cancellationTokenSource.Token);
+                    items.AddRange(itemChunk);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, $"Failed loading items with chunk size {chunkSize}:");
 
-                items.AddRange(itemChunk);
+                    chunkSize = 10;
+
+                    Logger.Debug($"Try load failed chunk in smaller chunk size: {chunkSize}");
+
+                    foreach (var smallerItemIdChunk in itemIdChunk.ChunkBy(chunkSize))
+                    {
+                        try
+                        {
+                            var itemChunk = await this.FetchChunk(apiManager, progress, smallerItemIdChunk);
+
+                            items.AddRange(itemChunk);
+                        }
+                        catch (Exception smallerEx)
+                        {
+                            Logger.Warn(smallerEx, $"Failed loading items with chunk size {chunkSize}:");
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -180,5 +221,17 @@ public class ItemState : APIState<Item>
         }
 
         return items;
+    }
+
+    private async Task<List<Item>> FetchChunk(Gw2ApiManager apiManager, IProgress<string> progress, IEnumerable<int> itemIdChunk)
+    {
+        string message = $"Start loading items by id: {itemIdChunk.First()} - {itemIdChunk.Last()}";
+
+        progress.Report(message);
+        Logger.Debug(message);
+
+        var items = await apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIdChunk, this._cancellationTokenSource.Token);
+
+        return items.Select(apiItem => Item.FromAPI(apiItem)).ToList();
     }
 }

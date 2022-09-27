@@ -284,16 +284,16 @@ public abstract class BaseView : View
         };
     }
 
-    protected Label GetLabel(Panel parent, string text, Color? color = null)
+    protected Label GetLabel(Panel parent, string text, Color? color = null, BitmapFont font= null)
     {
         return new Label()
         {
             Parent = parent,
             Text = text,
-            Font = this.Font,
+            Font = font ?? this.Font,
             TextColor = color ?? Color.White,
             AutoSizeHeight = !string.IsNullOrWhiteSpace(text),
-            Width = (int)this.Font.MeasureString(text).Width
+            Width = (int)this.Font.MeasureString(text).Width + 10
         };
     }
 
@@ -464,21 +464,24 @@ public abstract class BaseView : View
         return colorBox;
     }
 
-    private void ShowMessage(string message, Color color, int durationMS)
+    private void ShowMessage(string message, Color color, int durationMS, BitmapFont font = null)
     {
         _messageCancellationTokenSource?.Cancel();
         _messageCancellationTokenSource = new CancellationTokenSource();
 
-        int textHeight = (int)this.Font.MeasureString(message).Height;
+        font ??= this.Font;
+
+        var textSize = font.MeasureString(message);
 
         var messagePanel = this.GetPanel(this.MainPanel);
         messagePanel.HeightSizingMode = SizingMode.Standard;
-        messagePanel.Height = textHeight;
-        messagePanel.WidthSizingMode = SizingMode.Fill;
+        messagePanel.Height = (int)textSize.Height;
+        messagePanel.WidthSizingMode = SizingMode.Standard;
+        messagePanel.Width = (int)textSize.Width + 10;
 
-        messagePanel.Location = new Point(0, this.MainPanel.Bottom - messagePanel.Height);
+        messagePanel.Location = new Point((this.MainPanel.Width / 2) - (messagePanel.Width / 2), this.MainPanel.Bottom - messagePanel.Height);
 
-        _ = this.GetLabel(messagePanel, message, color: color);
+        _ = this.GetLabel(messagePanel, message, color: color, font: font);
 
         _ = Task.Run(async () =>
         {
@@ -494,7 +497,7 @@ public abstract class BaseView : View
 
     protected void ShowError(string message)
     {
-        this.ShowMessage(message, Color.Red, 5000);
+        this.ShowMessage(message, Color.Red, 5000, GameService.Content.DefaultFont18);
     }
 
     protected void ShowInfo(string message)

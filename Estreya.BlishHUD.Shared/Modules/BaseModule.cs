@@ -18,12 +18,10 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel.Composition;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-[Export(typeof(Blish_HUD.Modules.Module))]
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : Settings.BaseModuleSettings where TModule : class
 {
     protected Logger Logger { get; }
@@ -76,6 +74,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected CornerIcon CornerIcon { get; set; }
 
+    private LoadingSpinner _loadingSpinner;
+
     protected TabbedWindow2 SettingsWindow { get; private set; }
 
     public virtual BitmapFont Font => GameService.Content.DefaultFont16;
@@ -97,7 +97,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public ArcDPSState ArcDPSState { get; private set; }
     #endregion
 
-    [ImportingConstructor]
     public BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
     {
         this.Logger = Logger.GetLogger(this.GetType());
@@ -159,16 +158,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             }, this.ContentsManager);
             this._states.Add(this.IconState);
 
-            if (configurations.TradingPost.Enabled)
-            {
-                this.TradingPostState = new TradingPostState(configurations.TradingPost, this.Gw2ApiManager);
-                this._states.Add(this.TradingPostState);
-            }
-
             if (configurations.Items.Enabled)
             {
                 this.ItemState = new ItemState(configurations.Items, this.Gw2ApiManager, directoryPath);
                 this._states.Add(this.ItemState);
+            }
+
+            if (configurations.TradingPost.Enabled)
+            {
+                this.TradingPostState = new TradingPostState(configurations.TradingPost, this.Gw2ApiManager, this.ItemState);
+                this._states.Add(this.TradingPostState);
             }
 
             if (configurations.Worldbosses.Enabled)
@@ -250,27 +249,27 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             // Only start states not already running
             foreach (ManagedState state in this._states.Where(state => !state.Running))
             {
-                try
+                // Order is important
+                if (state.AwaitLoading)
                 {
-                    // Order is important
-                    if (state.AwaitLoading)
+                    try
                     {
                         await state.Start();
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        _ = state.Start().ContinueWith(task =>
-                        {
-                            if (task.IsFaulted)
-                            {
-                                this.Logger.Error(task.Exception, "Not awaited state start failed for \"{0}\"", state.GetType().Name);
-                            }
-                        }).ConfigureAwait(false);
+                        this.Logger.Error(ex, "Failed starting state \"{0}\"", state.GetType().Name);
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    this.Logger.Error(ex, "Failed starting state \"{0}\"", state.GetType().Name);
+                    _ = Task.Run(state.Start).ContinueWith(task =>
+                    {
+                        if (task.IsFaulted)
+                        {
+                            this.Logger.Error(task.Exception, "Not awaited state start failed for \"{0}\"", state.GetType().Name);
+                        }
+                    }).ConfigureAwait(false);
                 }
             }
         }
@@ -315,13 +314,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     public sealed override IView GetSettingsView()
     {
-        if (_defaultSettingView == null)
+        if (this._defaultSettingView == null)
         {
-            _defaultSettingView = new ModuleSettingsView(Strings.SettingsView_OpenSettings);
-            _defaultSettingView.OpenClicked += this.DefaultSettingView_OpenClicked;
+            this._defaultSettingView = new ModuleSettingsView(Strings.SettingsView_OpenSettings);
+            this._defaultSettingView.OpenClicked += this.DefaultSettingView_OpenClicked;
         }
 
-        return _defaultSettingView;
+        return this._defaultSettingView;
     }
 
     private void DefaultSettingView_OpenClicked(object sender, EventArgs e)
@@ -418,10 +417,32 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         using (this._stateLock.Lock())
         {
+            bool anyStateLoading = false;
+            string loadingText = null;
             foreach (ManagedState state in this._states)
             {
                 state.Update(gameTime);
+
+                if (state is APIState apiState)
+                {
+                    var loading = apiState.Loading;
+
+                    if (loading)
+                    {
+                        anyStateLoading = true;
+                        if (!string.IsNullOrWhiteSpace(apiState.ProgressText))
+                        {
+                            loadingText ??= $"{state.GetType().Name}: {apiState.ProgressText?.ToString()}";
+                        }
+                        else
+                        {
+                            loadingText ??= state.GetType().Name;
+                        }
+                    }
+                }
             }
+
+            this.HandleLoadingSpinner(anyStateLoading, loadingText);
         }
     }
 
@@ -482,6 +503,22 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
 
         return this.ShowUI;
+    }
+
+    protected void HandleLoadingSpinner(bool show, string text = null)
+    {
+        show &= this.CornerIcon != null;
+
+        this._loadingSpinner ??= new LoadingSpinner()
+        {
+            Parent = GameService.Graphics.SpriteScreen,
+            Location = new Point(this.CornerIcon.Location.X, this.CornerIcon.Location.Y + this.CornerIcon.Height + 5),
+            Size = this.CornerIcon.Size,
+            Visible = false
+        };
+
+        this._loadingSpinner.BasicTooltipText = text;
+        this._loadingSpinner.Visible = show;
     }
 
     /// <inheritdoc />

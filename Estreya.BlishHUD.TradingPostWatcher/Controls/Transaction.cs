@@ -1,170 +1,181 @@
-﻿namespace Estreya.BlishHUD.TradingPostWatcher.Controls;
+﻿namespace Estreya.BlishHUD.TradingPostWatcher.Controls {
 
-using Blish_HUD;
-using Blish_HUD.Content;
-using Blish_HUD.Controls;
-using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.Models;
-using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
-using Estreya.BlishHUD.Shared.State;
-using Estreya.BlishHUD.Shared.Utils;
-using Humanizer;
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using MonoGame.Extended;
-using MonoGame.Extended.BitmapFonts;
-using System;
-using System.Collections.Generic;
+    using Blish_HUD;
+    using Blish_HUD.Content;
+    using Blish_HUD.Controls;
+    using Estreya.BlishHUD.Shared.Controls;
+    using Estreya.BlishHUD.Shared.Models;
+    using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
+    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Utils;
+    using Humanizer;
+    using Microsoft.Xna.Framework;
+    using Microsoft.Xna.Framework.Graphics;
+    using MonoGame.Extended;
+    using MonoGame.Extended.BitmapFonts;
+    using System;
+    using System.Collections.Generic;
 
-public class Transaction : RenderTargetControl
-{
-    private readonly CurrentTransaction _currentTransaction;
-    private readonly Func<float> _getOpacityAction;
-    private readonly Func<bool> _getShowPrice;
-    private readonly Func<bool> _getShowPriceAsTotal;
-    private readonly Func<bool> _getShowRemaining;
-    private readonly Func<bool> _getShowCreatedDate;
-    private readonly Func<BitmapFont> _getFont;
-
-    private AsyncTexture2D _transactionTexture;
-
-    private const int SPACING_X = 10;
-
-    private SizingMode _widthSizingMode = SizingMode.Standard;
-
-    /// <summary>
-    /// Determines how the width of this
-    /// container should be handled.
-    /// </summary>
-    public virtual SizingMode WidthSizingMode
+    public class Transaction : RenderTargetControl
     {
-        get => this._widthSizingMode;
-        set => this.SetProperty(ref this._widthSizingMode, value);
-    }
+        private readonly PlayerTransaction _currentTransaction;
+        private readonly Func<float> _getOpacityAction;
+        private readonly Func<bool> _getShowPrice;
+        private readonly Func<bool> _getShowPriceAsTotal;
+        private readonly Func<bool> _getShowRemaining;
+        private readonly Func<bool> _getShowCreatedDate;
+        private readonly Func<BitmapFont> _getFont;
 
-    private SizingMode _heightSizingMode = SizingMode.Standard;
+        private AsyncTexture2D _transactionTexture;
 
-    /// <summary>
-    /// Determines how the height of this
-    /// container should be handled.
-    /// </summary>
-    public virtual SizingMode HeightSizingMode
-    {
-        get => this._heightSizingMode;
-        set => this.SetProperty(ref this._heightSizingMode, value);
-    }
+        private const int SPACING_X = 10;
 
-    public Transaction(CurrentTransaction commerceTransaction, IconState iconState, Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate, Func<BitmapFont> getFont)
-    {
-        this._currentTransaction = commerceTransaction;
-        this._getOpacityAction = getOpacity;
-        this._getShowPrice = getShowPrice;
-        this._getShowPriceAsTotal = getShowPriceAsTotal;
-        this._getShowRemaining = getShowRemaining;
-        this._getShowCreatedDate = getShowCreatedDate;
-        this._getFont = getFont;
+        private SizingMode _widthSizingMode = SizingMode.Standard;
 
-        this._transactionTexture = iconState.GetIcon(this._currentTransaction?.Item?.Icon);
-    }
-
-    protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
-    {
-        float opacity = this._getOpacityAction?.Invoke() ?? 1;
-
-        RectangleF iconBounds = RectangleF.Empty;
-        if (this._transactionTexture != null && this._transactionTexture.HasSwapped)
+        /// <summary>
+        /// Determines how the width of this
+        /// container should be handled.
+        /// </summary>
+        public virtual SizingMode WidthSizingMode
         {
-            Size iconSize = this.GetIconSize();
-            iconBounds.Size = new Size2(iconSize.Width, iconSize.Height);
-
-            spriteBatch.Draw(this._transactionTexture, iconBounds, Color.White * opacity);
+            get => this._widthSizingMode;
+            set => this.SetProperty(ref this._widthSizingMode, value);
         }
 
-        int textMaxWidth = (int)(this.Width - (iconBounds.Width + SPACING_X * 5));
-        string text = this.GetWrappedText(textMaxWidth);
+        private SizingMode _heightSizingMode = SizingMode.Standard;
 
-        RectangleF textRectangle = new RectangleF(iconBounds.Width + SPACING_X, 0, textMaxWidth, this.Height);
-
-        spriteBatch.DrawString(text, this._getFont(), textRectangle, (this._currentTransaction.IsHighest ? Color.Green : Color.Red) * opacity);
-    }
-
-    private string GetText()
-    {
-        string text = $"{this._currentTransaction.Type.Humanize()}: {this._currentTransaction.Item.Name}";
-
-        List<string> additionalInfos = new List<string>();
-
-        if (this._getShowPrice?.Invoke() ?? false)
+        /// <summary>
+        /// Determines how the height of this
+        /// container should be handled.
+        /// </summary>
+        public virtual SizingMode HeightSizingMode
         {
-            int price = this._currentTransaction.Price;
+            get => this._heightSizingMode;
+            set => this.SetProperty(ref this._heightSizingMode, value);
+        }
 
-            if (this._getShowPriceAsTotal?.Invoke() ?? false)
+        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate, Func<BitmapFont> getFont)
+        {
+            this._currentTransaction = commerceTransaction;
+            this._getOpacityAction = getOpacity;
+            this._getShowPrice = getShowPrice;
+            this._getShowPriceAsTotal = getShowPriceAsTotal;
+            this._getShowRemaining = getShowRemaining;
+            this._getShowCreatedDate = getShowCreatedDate;
+            this._getFont = getFont;
+
+            this._transactionTexture = iconState.GetIcon(this._currentTransaction?.Item?.Icon);
+        }
+
+        protected override CaptureType CapturesInput()
+        {
+            return CaptureType.Filter;
+        }
+
+        protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
+        {
+            float opacity = this._getOpacityAction?.Invoke() ?? 1;
+
+            RectangleF iconBounds = RectangleF.Empty;
+            if (this._transactionTexture != null && this._transactionTexture.HasSwapped)
             {
-                price *= this._currentTransaction.Quantity;
+                Size iconSize = this.GetIconSize();
+                iconBounds.Size = new Size2(iconSize.Width, iconSize.Height);
+
+                spriteBatch.Draw(this._transactionTexture, iconBounds, Color.White * opacity);
             }
 
-            additionalInfos.Add($"Price: {GW2Utils.FormatCoins(price)}");
+            int textMaxWidth = (int)(this.Width - (iconBounds.Width + SPACING_X * 3));
+            string text = this.GetWrappedText(textMaxWidth);
+
+            RectangleF textRectangle = new RectangleF(iconBounds.Width + SPACING_X, 0, textMaxWidth, this.Height);
+
+            spriteBatch.DrawString(text, this._getFont(), textRectangle, (this._currentTransaction.IsHighest ? Color.Green : Color.Red) * opacity);
         }
 
-        if (this._getShowRemaining?.Invoke() ?? false)
+        private string GetText()
         {
-            additionalInfos.Add($"Remaining: {this._currentTransaction.Quantity}");
+            if (this._currentTransaction == null)
+            {
+                return string.Empty;
+            }
+
+            string text = $"{this._currentTransaction.Type.Humanize()}: {this._currentTransaction.Item?.Name ?? "Unknown"}";
+
+            List<string> additionalInfos = new List<string>();
+
+            if (this._getShowPrice?.Invoke() ?? false)
+            {
+                int price = this._currentTransaction.Price;
+
+                if (this._getShowPriceAsTotal?.Invoke() ?? false)
+                {
+                    price *= this._currentTransaction.Quantity;
+                }
+
+                additionalInfos.Add($"Price: {GW2Utils.FormatCoins(price)}");
+            }
+
+            if (this._getShowRemaining?.Invoke() ?? false)
+            {
+                additionalInfos.Add($"Remaining: {this._currentTransaction.Quantity}");
+            }
+
+            if (this._getShowCreatedDate?.Invoke() ?? false)
+            {
+                additionalInfos.Add($"Created: {this._currentTransaction.Created.ToLocalTime():dd.MM.yyyy HH:mm:ss}");
+            }
+
+            if (additionalInfos.Count > 0)
+            {
+                text += $" ({string.Join(", ", additionalInfos)})";
+            }
+
+            return text;
         }
 
-        if (this._getShowCreatedDate?.Invoke() ?? false)
+        private string GetWrappedText(int maxSize)
         {
-            additionalInfos.Add($"Created: {this._currentTransaction.Created.ToLocalTime().ToString("dd.MM.yyyy HH:mm:ss")}");
+            return DrawUtil.WrapText(this._getFont(), this.GetText(), maxSize);
         }
 
-        if (additionalInfos.Count > 0)
+        private Size GetIconSize()
         {
-            text += $" ({string.Join(", ", additionalInfos)})";
+            return new Size(MathHelper.Clamp(this._transactionTexture.Width, 0, 24), MathHelper.Clamp(this._transactionTexture.Height, 0, 24));
         }
 
-        return text;
-    }
-
-    private string GetWrappedText(int maxSize)
-    {
-        return DrawUtil.WrapText(this._getFont(), this.GetText(), maxSize);
-    }
-
-    private Size GetIconSize()
-    {
-        return new Size(MathHelper.Clamp(this._transactionTexture.Width, 0, 24), MathHelper.Clamp(this._transactionTexture.Height, 0, 24));
-    }
-
-    protected override void InternalUpdate(GameTime gameTime)
-    {
-        Size iconSize = this.GetIconSize();
-        Size2 textSize = this._getFont().MeasureString(this.GetText());
-
-        // Update our size based on the sizing mode
-        var parent = this.Parent;
-        if (parent != null)
+        protected override void InternalUpdate(GameTime gameTime)
         {
-            int width = this.GetUpdatedSizing(this.WidthSizingMode,
-                                                  this.Width,
-                                                  (int)Math.Ceiling(iconSize.Width + textSize.Width),
-                                                  parent.ContentRegion.Width - this.Left);
+            Size iconSize = this.GetIconSize();
+            Size2 textSize = this._getFont().MeasureString(this.GetText());
 
-            Size2 wrappedTextSize = this._getFont().MeasureString(this.GetWrappedText(width - iconSize.Width - (SPACING_X * 5)));
+            // Update our size based on the sizing mode
+            var parent = this.Parent;
+            if (parent != null)
+            {
+                int width = this.GetUpdatedSizing(this.WidthSizingMode,
+                                                      this.Width,
+                                                      MathHelper.Clamp((int)Math.Ceiling(iconSize.Width + (SPACING_X * 3)+ textSize.Width), 0, parent.Width),
+                                                      parent.ContentRegion.Width - this.Left);
 
-            this.Size = new Point(width,
-                                  this.GetUpdatedSizing(this.HeightSizingMode,
-                                                  this.Height,
-                                                  (int)Math.Ceiling(Math.Max(iconSize.Height, wrappedTextSize.Height)),
-                                                  parent.ContentRegion.Height - this.Top));
+                Size2 wrappedTextSize = this._getFont().MeasureString(this.GetWrappedText(width - iconSize.Width - (SPACING_X * 3)));
+
+                this.Size = new Point(width,
+                                      this.GetUpdatedSizing(this.HeightSizingMode,
+                                                      this.Height,
+                                                      MathHelper.Clamp((int)Math.Ceiling(Math.Max(iconSize.Height, wrappedTextSize.Height)), 0, parent.Height),
+                                                      parent.ContentRegion.Height - this.Top));
+            }
         }
-    }
 
-    private int GetUpdatedSizing(SizingMode sizingMode, int currentSize, int maxSize, int fillSize)
-    {
-        return sizingMode switch
+        private int GetUpdatedSizing(SizingMode sizingMode, int currentSize, int maxSize, int fillSize)
         {
-            SizingMode.AutoSize => maxSize,
-            SizingMode.Fill => fillSize,
-            _ => currentSize,
-        };
+            return sizingMode switch
+            {
+                SizingMode.AutoSize => maxSize,
+                SizingMode.Fill => fillSize,
+                _ => currentSize,
+            };
+        }
     }
 }

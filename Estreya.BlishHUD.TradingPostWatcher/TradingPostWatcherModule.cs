@@ -63,7 +63,7 @@
         private void TradingPostState_TransactionsUpdated(object sender, EventArgs e)
         {
             this.Drawer.ClearTransactions();
-            foreach (CurrentTransaction transaction in this.TradingPostState.Transactions)
+            foreach (PlayerTransaction transaction in this.TradingPostState.OwnTransactions)
             {
                 this.Drawer.AddTransaction(transaction);
             }
@@ -92,8 +92,8 @@
                 AwaitLoading = true,
                 Enabled = true,
                 SaveInterval = TimeSpan.FromSeconds(30),
-                UpdateInterval = Timeout.InfiniteTimeSpan
-            }, this.Gw2ApiManager, directoryPath);
+                UpdateInterval = TimeSpan.FromSeconds(30)
+            }, this.Gw2ApiManager, this.ItemState, directoryPath);
             this.TrackedTransactionState.TransactionEnteredRange += this.TrackedTransactionState_TransactionEnteredRange;
             this.TrackedTransactionState.TransactionLeftRange += this.TrackedTransactionState_TransactionLeftRange;
 
@@ -192,7 +192,11 @@
         {
             AsyncHelper.RunSync(async () =>
             {
-                _=  await this.TrackedTransactionState.Add(e.ItemId, e.WishPrice, e.Type);
+                bool added = await this.TrackedTransactionState.Add(e.ItemId, e.WishPrice, e.Type);
+                if (!added)
+                {
+                    throw new Exception("Item could not be added to tracking list.");
+                }
             });
         }
 

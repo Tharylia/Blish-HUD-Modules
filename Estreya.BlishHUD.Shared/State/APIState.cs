@@ -17,21 +17,20 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-public abstract class APIState<T> : ManagedState
+public abstract class APIState : ManagedState
 {
     protected readonly Gw2ApiManager _apiManager;
+
+    private readonly EventWaitHandle _eventWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+
     protected new APIStateConfiguration Configuration { get; }
 
     private AsyncRef<double> _timeSinceUpdate = 0;
 
     private readonly AsyncLock _loadingLock = new AsyncLock();
-    protected readonly AsyncLock _apiObjectListLock = new AsyncLock();
     public bool Loading { get; protected set; }
 
-    protected List<T> APIObjectList { get; } = new List<T>();
-
-    protected event EventHandler<T> APIObjectAdded;
-    protected event EventHandler<T> APIObjectRemoved;
+    public string ProgressText { get; private set; } = string.Empty;
 
     /// <summary>
     /// Fired when the new api state has been fetched.
@@ -64,20 +63,6 @@ public abstract class APIState<T> : ManagedState
         }
     }
 
-    protected sealed override async Task Clear()
-    {
-        //await this.WaitAsync(false);
-
-        using (await this._apiObjectListLock.LockAsync())
-        {
-            this.APIObjectList.Clear();
-        }
-
-        await this.DoClear();
-    }
-
-    protected virtual Task DoClear() => Task.CompletedTask;
-
     protected sealed override void InternalUnload()
     {
         this._apiManager.SubtokenUpdated -= this.ApiManager_SubtokenUpdated;
@@ -99,102 +84,12 @@ public abstract class APIState<T> : ManagedState
 
     protected virtual void DoUpdate(GameTime gameTime) { }
 
-    private async Task FetchFromAPI()
-    {
-        this.Logger.Info($"Check for api objects.");
 
-        if (this._apiManager == null)
-        {
-            Logger.Warn("API Manager is null");
-            return;
-        }
-
-        try
-        {
-            List<T> oldAPIObjectList;
-            using (await this._apiObjectListLock.LockAsync())
-            {
-                oldAPIObjectList = this.APIObjectList.Copy();
-                this.APIObjectList.Clear();
-
-                Logger.Debug("Got {0} api objects from previous fetch.", oldAPIObjectList.Count);
-
-                if (!this._apiManager.HasPermissions(this.Configuration.NeededPermissions))
-                {
-                    Logger.Warn("API Manager does not have needed permissions: {0}", this.Configuration.NeededPermissions.Humanize());
-                    return;
-                }
-
-                List<T> apiObjects = await this.Fetch(this._apiManager).ConfigureAwait(false);
-
-                Logger.Debug("API returned {0} objects.", apiObjects.Count);
-
-                this.APIObjectList.AddRange(apiObjects);
-
-                // Check if new api objects have been added.
-                foreach (T apiObject in apiObjects)
-                {
-                    if (!oldAPIObjectList.Any(oldApiObject => oldApiObject.GetHashCode() == apiObject.GetHashCode()))
-                    {
-                        Logger.Debug($"API Object added: {apiObject}");
-                        try
-                        {
-                            this.APIObjectAdded?.Invoke(this, apiObject);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, "Error handling api object added event:");
-                        }
-                    }
-                }
-
-                // Immediately after login the api still reports some objects as available because the account record has not been updated yet.
-                // After another request to the api they should disappear.
-                for (int i = oldAPIObjectList.Count - 1; i >= 0; i--)
-                {
-                    T oldApiObject = oldAPIObjectList[i];
-
-                    if (!apiObjects.Any(apiObject => apiObject.GetHashCode() == oldApiObject.GetHashCode()))
-                    {
-                        Logger.Debug($"API Object disappeared from the api: {oldApiObject}");
-
-                        _ = oldAPIObjectList.Remove(oldApiObject);
-
-                        try
-                        {
-                            this.APIObjectRemoved?.Invoke(this, oldApiObject);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, "Error handling api object removed event:");
-                        }
-                    }
-                }
-
-                this.Updated?.Invoke(this, EventArgs.Empty);
-            }
-
-            this.Logger.Info($"Check for api objects finished.");
-        }
-        catch (MissingScopesException msex)
-        {
-            Logger.Warn(msex, "Could not update api objects due to missing scopes:");
-            throw;
-        }
-        catch (InvalidAccessTokenException iatex)
-        {
-            Logger.Warn(iatex, "Could not update api objects due to invalid access token:");
-            throw;
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn(ex, "Error updating api objects:");
-            throw;
-        }
-    }
-
-    protected abstract Task<List<T>> Fetch(Gw2ApiManager apiManager);
-
+    /// <summary>
+    /// Loads the api data of the state.
+    /// <para>If this function is overridden, the function <see cref="SignalCompletion"/> has to be called at the end when <see cref="Load"/> is not called.</para>
+    /// </summary>
+    /// <returns></returns>
     protected override async Task Load()
     {
         if (!this._loadingLock.IsFree())
@@ -205,17 +100,39 @@ public abstract class APIState<T> : ManagedState
 
         using (await this._loadingLock.LockAsync())
         {
+            _ = this._eventWaitHandle.Reset();
             this.Loading = true;
 
             try
             {
-                await this.FetchFromAPI();
+                IProgress<string> progress = new Progress<string>(newProgress => this.ProgressText = newProgress);
+                progress.Report($"Loading {this.GetType().Name}");
+                await this.FetchFromAPI(this._apiManager, progress);
+                this.Updated?.Invoke(this, EventArgs.Empty);
+                this.ProgressText = string.Empty;
             }
             finally
             {
                 this.Loading = false;
+                _= this._eventWaitHandle.Set();
             }
         }
+    }
 
+    protected abstract Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress);
+
+    public void SignalCompletion()
+    {
+        _ = this._eventWaitHandle.Set();
+    }
+
+    public Task<bool> WaitForCompletion()
+    {
+        return this.WaitForCompletion(Timeout.InfiniteTimeSpan);
+    }
+
+    public async Task<bool> WaitForCompletion(TimeSpan timeout)
+    {
+        return await this._eventWaitHandle.WaitOneAsync(timeout, this._cancellationTokenSource.Token);
     }
 }

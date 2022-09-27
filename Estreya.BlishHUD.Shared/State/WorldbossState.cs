@@ -50,7 +50,7 @@
             this.APIObjectRemoved -= this.APIState_APIObjectRemoved;
         }
 
-        protected override async Task<List<string>> Fetch(Gw2ApiManager apiManager)
+        protected override async Task<List<string>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
         {
             DateTime lastModifiedUTC = this._accountState.Account?.LastModified.UtcDateTime ?? DateTime.MinValue;
 

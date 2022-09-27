@@ -193,6 +193,7 @@ public class SkillState : APIState<Skill>
                 finally
                 {
                     this.Loading = false;
+                    this.SignalCompletion();
                 }
             }
 
@@ -232,8 +233,9 @@ public class SkillState : APIState<Skill>
         return false;
     }
 
-    protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager)
+    protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
     {
+        progress.Report("Loading normal skills..");
         Logger.Debug("Loading normal skills..");
 
         Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync(this._cancellationTokenSource.Token);
@@ -241,6 +243,7 @@ public class SkillState : APIState<Skill>
 
         Logger.Debug("Loaded normal skills..");
 
+        progress.Report("Loading traits..");
         Logger.Debug("Loading traits..");
 
         Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync(this._cancellationTokenSource.Token);
@@ -248,6 +251,7 @@ public class SkillState : APIState<Skill>
 
         Logger.Debug("Loaded traits..");
 
+        progress.Report("Loading trait skills..");
         Logger.Debug("Loading trait skills..");
 
         IEnumerable<Gw2Sharp.WebApi.V2.Models.TraitSkill> traitSkills = traitResponse.Where(trait => trait.Skills != null).SelectMany(trait => trait.Skills);
@@ -305,18 +309,21 @@ public class SkillState : APIState<Skill>
         //var mountSkills = mountResponse.SelectMany(mount => mount.Skills);
         //skills = skills.Concat(mountSkills).ToList();
 
+        progress.Report("Adding missing skills..");
         Logger.Debug("Adding missing skills..");
 
         this.AddMissingSkills(skills);
 
         Logger.Debug("Added missing skills..");
 
+        progress.Report("Remapping skills..");
         Logger.Debug("Remapping skills..");
 
         this.RemapSkillIds(skills);
 
         Logger.Debug("Remapped skills..");
 
+        progress.Report("Loading skill icons..");
         Logger.Debug("Loading skill icons..");
 
         await this.LoadSkillIcons(skills);

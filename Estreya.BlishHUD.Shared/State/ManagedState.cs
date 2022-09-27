@@ -68,7 +68,7 @@
 
             if (this.Configuration.SaveInterval != Timeout.InfiniteTimeSpan)
             {
-                UpdateUtil.UpdateAsync(this.Save, gameTime, this.Configuration.SaveInterval.TotalMilliseconds, this._lastSaved);
+                _ = UpdateUtil.UpdateAsync(this.Save, gameTime, this.Configuration.SaveInterval.TotalMilliseconds, this._lastSaved);
             }
 
             try

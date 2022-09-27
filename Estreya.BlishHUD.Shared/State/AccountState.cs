@@ -2,6 +2,7 @@
 
 using Blish_HUD.Modules.Managers;
 using Gw2Sharp.WebApi.V2.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ public class AccountState : APIState<Account>
 
     protected override void DoUnload() { }
 
-    protected override async Task<List<Account>> Fetch(Gw2ApiManager apiManager)
+    protected override async Task<List<Account>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
     {
         Account account = await apiManager.Gw2ApiClient.V2.Account.GetAsync();
 
