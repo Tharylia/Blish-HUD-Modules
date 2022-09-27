@@ -1,21 +1,21 @@
 {
   "name": "Scrolling Combat Text",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.5",
   "namespace": "estreya.bh.scrollingCombatText",
   "package": "Estreya.BlishHUD.ScrollingCombatText.dll",
   "manifest_version": 1,
-  "description": "",
+  "description": "NEEDS BlishHUD 0.11.8-ci.243",
   "dependencies": {
-    "bh.blishhud": ">=0.11.7"
+    "bh.blishhud": ">=0.11.8"
   },
   "url": "https://github.com/Tharylia/Blish-HUD-Modules",
   "contributors": [
     {
       "name": "Estreya",
-      "username": "Dominik.8620"
+      "username": "Estreya.8675"
     }
   ],
-  "directories": ["scrolling_combat_text"],
+  "directories": [ "scrolling_combat_text" ],
   "actions": [],
   "enabled_without_gw2": false,
   "api_permissions": {

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class CurrentTransaction : Transaction
+public class PlayerTransaction : Transaction
 {
     public bool IsHighest { get; set; }
 }

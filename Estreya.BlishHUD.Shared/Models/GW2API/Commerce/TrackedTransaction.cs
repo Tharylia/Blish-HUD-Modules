@@ -1,6 +1,5 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
 
-using Estreya.BlishHUD.Shared.UI.Views.Controls;
 using Humanizer;
 using System;
 using System.Collections.Generic;
@@ -15,5 +14,17 @@ public class TrackedTransaction : Transaction
     public override string ToString()
     {
         return $"Item-ID: {this.ItemId} - Type: {this.Type.Humanize()} - Quantity: {this.Quantity} - Unit Price: {this.Price} - Wish Price: {this.WishPrice}";
+    }
+
+    public override int GetHashCode()
+    {
+        var hash = base.GetHashCode();
+
+        unchecked
+        {
+            hash = hash * 23 + this.WishPrice.GetHashCode();
+        }
+
+        return hash;
     }
 }

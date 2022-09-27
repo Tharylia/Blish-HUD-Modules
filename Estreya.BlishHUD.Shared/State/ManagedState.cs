@@ -5,50 +5,56 @@
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public abstract class ManagedState : IDisposable
     {
-        private static readonly Logger Logger = Logger.GetLogger<ManagedState>();
-
-        private readonly int _saveInterval;
+        protected Logger Logger;
 
         private readonly AsyncRef<double> _lastSaved = 0;
 
-        public bool Running { get; private set; } = false;
-        public bool AwaitLoad { get; }
+        protected StateConfiguration Configuration { get; }
 
-        protected ManagedState(bool awaitLoad = true, int saveInterval = 60000)
+        protected CancellationTokenSource _cancellationTokenSource;
+
+        public bool Running { get; private set; } = false;
+        public bool AwaitLoading => this.Configuration.AwaitLoading;
+
+        protected ManagedState(StateConfiguration configuration)
         {
-            this.AwaitLoad = awaitLoad;
-            this._saveInterval = saveInterval;
+            this.Logger = Logger.GetLogger(this.GetType());
+            this.Configuration = configuration;
         }
 
         public async Task Start()
         {
             if (this.Running)
             {
-                Logger.Warn("Trying to start state \"{0}\" which is already running.", this.GetType().Name);
+                Logger.Warn("Trying to start, but already running.");
                 return;
             }
 
-            Logger.Debug("Starting managed state: {0}", this.GetType().Name);
+            Logger.Debug("Starting state.");
+
+            this._cancellationTokenSource = new CancellationTokenSource();
 
             await this.Initialize();
-            await this.Load();
 
             this.Running = true;
+
+            await this.Load();
         }
 
-        public void Stop()
+        private void Stop()
         {
             if (!this.Running)
             {
-                Logger.Warn("Trying to stop state \"{0}\" which is not running.", this.GetType().Name);
+                Logger.Warn("Trying to stop, but not running.");
                 return;
             }
 
-            Logger.Debug("Stopping managed state: {0}", this.GetType().Name);
+            Logger.Debug("Stopping state.");
 
             this.Running = false;
         }
@@ -60,93 +66,76 @@
                 return;
             }
 
-            if (this._saveInterval != -1 /*&& this.TimeSinceSave.TotalMilliseconds >= this.SaveInternal*/)
+            if (this.Configuration.SaveInterval != Timeout.InfiniteTimeSpan)
             {
-                _ = UpdateUtil.UpdateAsync(this.SaveWrapper, gameTime, this._saveInterval, this._lastSaved);
-
-                /*
-                // Prevent multiple threads running Save() at the same time.
-                if (_saveSemaphore.CurrentCount > 0)
-                {
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await _saveSemaphore.WaitAsync();
-                            await this.Save();
-                            this.TimeSinceSave = TimeSpan.Zero;
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, "{0} failed saving.", this.GetType().Name);
-                        }
-                        finally
-                        {
-                            _ = _saveSemaphore.Release();
-                        }
-                    });
-                }
-                else
-                {
-                    Logger.Debug("Another thread is already running Save() for {0}", this.GetType().Name);
-                }*/
-
-
+                _ = UpdateUtil.UpdateAsync(this.Save, gameTime, this.Configuration.SaveInterval.TotalMilliseconds, this._lastSaved);
             }
 
-            this.InternalUpdate(gameTime);
+            try
+            {
+                this.InternalUpdate(gameTime);
+            }catch(Exception ex)
+            {
+                Logger.Error(ex,"Failed to update:");
+            }
         }
 
+        /// <summary>
+        /// Clears and reloads the state
+        /// </summary>
+        /// <returns></returns>
         public async Task Reload()
         {
             if (!this.Running)
             {
-                Logger.Warn("Trying to reload state \"{0}\" which is not running.", this.GetType().Name);
+                Logger.Warn("Trying to reload, but not running.");
                 return;
             }
 
-            Logger.Debug("Reloading state: {0}", this.GetType().Name);
+            Logger.Debug("Reloading state.");
+
+            await this.Clear();
+            await this.Load();
 
             await this.InternalReload();
         }
 
-        protected abstract Task InternalReload();
-
+        /// <summary>
+        /// Clears the state and requests further unload from subclasses.
+        /// </summary>
         private void Unload()
         {
-            if (!this.Running)
+            if (this._cancellationTokenSource.IsCancellationRequested)
             {
-                Logger.Warn("Trying to unload state \"{0}\" which is not running.", this.GetType().Name);
+                Logger.Warn("Already unloaded.");
                 return;
             }
 
-            Logger.Debug("Unloading state: {0}", this.GetType().Name);
+            Logger.Debug("Unloading state.");
 
+            this._cancellationTokenSource.Cancel();
+
+            this.Clear();
             this.InternalUnload();
         }
 
-        public abstract Task Clear();
-
-        protected abstract void InternalUnload();
-
         protected abstract Task Initialize();
+        protected abstract Task Load();
+
+        protected virtual Task Save()=> Task.CompletedTask;
 
         protected abstract void InternalUpdate(GameTime gameTime);
 
-        private async Task SaveWrapper()
-        {
-            Logger.Debug("Starting save for \"{0}\"", this.GetType().Name);
-            await this.Save();
-            Logger.Debug("Finished save for \"{0}\"", this.GetType().Name);
-        }
+        protected virtual Task InternalReload() => Task.CompletedTask;
 
-        protected abstract Task Save();
-        protected abstract Task Load();
+        protected virtual Task Clear() => Task.CompletedTask;
+
+        protected abstract void InternalUnload();
 
         public void Dispose()
         {
-            this.Unload();
             this.Stop();
+            this.Unload();
         }
     }
 }

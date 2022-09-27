@@ -75,7 +75,7 @@
             }
 
             Input.MouseEventArgs mouseEventArgs = new Input.MouseEventArgs(this.RelativeMousePosition, e.IsDoubleClick, e.EventType);
-            foreach (EventCategory eventCategory in EventTableModule.ModuleInstance.EventCategories)
+            foreach (EventCategory eventCategory in EventTableModule.ModuleInstance.EventCategories.Where(ec => !ec.IsDisabled))
             {
                 foreach (Event ev in eventCategory.Events.Where(ev => !ev.IsDisabled))
                 {
@@ -98,7 +98,7 @@
                 return;
             }
 
-            foreach (EventCategory eventCategory in EventTableModule.ModuleInstance.EventCategories)
+            foreach (EventCategory eventCategory in EventTableModule.ModuleInstance.EventCategories.Where(ec => !ec.IsDisabled))
             {
                 foreach (Event ev in eventCategory.Events.Where(ev => !ev.IsDisabled))
                 {
@@ -156,7 +156,7 @@
                 spriteBatch.Begin(samplerState: SamplerState.PointClamp);
                 spriteBatch.GraphicsDevice.Clear(Color.Transparent); // Clear render target to transparent. Backgroundcolor is set on the control
 
-                List<EventCategory> eventCategories = EventTableModule.ModuleInstance.EventCategories; // Already checks for IsDisabled()
+                IEnumerable<EventCategory> eventCategories = EventTableModule.ModuleInstance.EventCategories.Where(ec => !ec.IsDisabled);
 
                 int y = 0;
                 DateTime now = EventTableModule.ModuleInstance.DateTimeNow;

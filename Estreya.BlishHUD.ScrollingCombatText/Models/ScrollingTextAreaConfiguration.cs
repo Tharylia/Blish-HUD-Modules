@@ -1,29 +1,21 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.Models;
 
+using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Microsoft.Xna.Framework;
-using MonoGame.Extended;
-using System;
+using Estreya.BlishHUD.Shared.Models.Drawers;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-public class ScrollingTextAreaConfiguration
+public class ScrollingTextAreaConfiguration : DrawerConfiguration
 {
-    public string Name { get; init; }
+    public SettingEntry<List<CombatEventType>> Types { get; set; }
 
-    public List<CombatEventType> Types { get; init; }
+    public SettingEntry<List<CombatEventCategory>> Categories { get; set; }
 
-    public List<CombatEventCategory> Categories { get; init; }
+    public SettingEntry<int> EventHeight { get; set; }
 
-    public Point Location { get; init; }
+    public SettingEntry<float> ScrollSpeed { get; set; }
 
-    public Point Size { get; init; }
+    public SettingEntry<ScrollingTextAreaCurve> Curve { get; set; }
 
-    public int EventHeight { get; init; } = -1;
-
-    public float ScrollSpeed { get; init; } = 1f;
-
-    public ScrollingTextAreaCurve Curve { get; init; } = ScrollingTextAreaCurve.Straight;
+    public SettingEntry<List<CombatEventFormatRule>> FormatRules { get; set; }
 }

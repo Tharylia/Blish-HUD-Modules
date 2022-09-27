@@ -44,6 +44,8 @@
 
             Rectangle contentRegion = this.Panel.ContentRegion;
 
+            var eventCategories = EventTableModule.ModuleInstance.EventCategories;
+
             TextBox searchBox = new TextBox()
             {
                 Parent = Panel,
@@ -63,7 +65,7 @@
 
             eventCategoriesPanel.Size = new Point(Panel.MenuStandard.Size.X, contentRegion.Height - eventCategoriesPanel.Location.Y);
 
-            Menu eventCategories = new Menu
+            Menu eventCategoryMenu = new Menu
             {
                 Parent = eventCategoriesPanel,
                 Size = eventCategoriesPanel.ContentRegion.Size,
@@ -93,20 +95,20 @@
 
             Dictionary<string, MenuItem> menus = new Dictionary<string, MenuItem>();
 
-            MenuItem allEvents = eventCategories.AddMenuItem(Strings.ManageEventsView_AllEvents);
+            MenuItem allEvents = eventCategoryMenu.AddMenuItem(Strings.ManageEventsView_AllEvents);
             allEvents.Select();
             menus.Add(nameof(allEvents), allEvents);
 
-            foreach (EventCategory category in EventTableModule.ModuleInstance.EventCategories.GroupBy(ec => ec.Key).Select(ec => ec.First()))
+            foreach (EventCategory category in eventCategories.GroupBy(ec => ec.Key).Select(ec => ec.First()))
             {
-                menus.Add(category.Key, eventCategories.AddMenuItem(category.Name));
+                menus.Add(category.Key, eventCategoryMenu.AddMenuItem(category.Name));
             }
 
             menus.ToList().ForEach(menuItemPair => menuItemPair.Value.Click += (s, e) =>
             {
                 if (s is MenuItem menuItem)
                 {
-                    EventCategory category = EventTableModule.ModuleInstance.EventCategories.Where(ec => ec.Name == menuItem.Text).FirstOrDefault();
+                    EventCategory category = eventCategories.Where(ec => ec.Name == menuItem.Text).FirstOrDefault();
 
                     eventPanel.FilterChildren<EventDetailsButton>(detailsButton =>
                     {
@@ -182,7 +184,7 @@
                 });
             };
 
-            foreach (EventCategory category in EventTableModule.ModuleInstance.EventCategories)
+            foreach (EventCategory category in eventCategories)
             {
                 IEnumerable<Event> events = category.ShowCombined ? category.Events.GroupBy(e => e.Key).Select(eg => eg.First()) : category.Events;
                 foreach (Event e in events)

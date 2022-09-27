@@ -6,7 +6,6 @@
     using Blish_HUD.Graphics.UI;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Controls;
-    using Estreya.BlishHUD.EventTable.Extensions;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.Models.Settings;
     using Estreya.BlishHUD.EventTable.Resources;

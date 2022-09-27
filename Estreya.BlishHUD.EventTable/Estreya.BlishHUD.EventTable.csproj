@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
-		<TargetFramework>net48</TargetFramework>
+		<TargetFramework>net481</TargetFramework>
 		<DebugType>portable</DebugType>
 		<AssemblyVersion>1.0.0.0</AssemblyVersion>
 		<FileVersion>1.0.0.0</FileVersion>
@@ -14,47 +14,20 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\CppNet.dll" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\libmojoshader_64.dll" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\mgfxc.deps.json" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\mgfxc.dll" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\mgfxc.exe" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\mgfxc.pdb" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\mgfxc.runtimeconfig.dev.json" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\mgfxc.runtimeconfig.json" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\SharpDX.D3DCompiler.dll" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\SharpDX.D3DCompiler.xml" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\SharpDX.dll" />
-		<Content Remove="$(USERPROFILE)\.nuget\packages\monogame.extended\3.8.0\contentFiles\any\netstandard2.0\SharpDX.xml" />
-	</ItemGroup>
-
-	<ItemGroup>
-		<Folder Include="BuildScripts\" />
 		<Folder Include="ref\images\" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AsyncClipboardService" Version="1.7.1">
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="BlishHUD" Version="0.11.6">
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="Gw2Sharp" Version="1.7.0">
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="MonoGame.Extended" Version="3.8.0">
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.0.1641">
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="SemanticVersioning" Version="1.2.2">
-			<ExcludeAssets>runtime</ExcludeAssets>
+		<PackageReference Include="BlishHUD" Version="0.11.8-ci.243">
+			<ExcludeAssets>runtime;contentFiles</ExcludeAssets>
 		</PackageReference>
 		<PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all" />
 		<PackageReference Include="Humanizer.Core.es" Version="2.6.2" PrivateAssets="all" />
 		<PackageReference Include="Humanizer.Core.fr" Version="2.6.2" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -94,13 +67,5 @@
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>
-
-	<Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-		<Exec Command="REM powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File &quot;$(ProjectDir)BuildScripts\CopyRef.ps1&quot; -Project &quot;$(ProjectDir)\&quot; -Output &quot;$(OutDir)\&quot;" />
-	</Target>
-
-	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
-		<Exec Command="REM powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File &quot;$(ProjectDir)BuildScripts\PackageModule.ps1&quot; -Project &quot;$(ProjectDir)\&quot; -Output &quot;$(OutDir)\&quot; -Name &quot;$(ProjectName)&quot;" />
-	</Target>
 
 </Project>

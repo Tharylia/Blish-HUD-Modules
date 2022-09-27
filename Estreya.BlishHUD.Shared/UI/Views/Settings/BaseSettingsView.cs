@@ -2,22 +2,32 @@
 {
     using Blish_HUD;
     using Blish_HUD.Controls;
+    using Blish_HUD.Input;
+    using Blish_HUD.Modules.Managers;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.Shared.Extensions;
-    using Estreya.BlishHUD.Shared.UI.Views.Controls;
+    using Estreya.BlishHUD.Shared.State;
+    using Humanizer;
     using Microsoft.Xna.Framework;
+    using MonoGame.Extended.BitmapFonts;
     using System;
+    using System.Linq;
 
     public abstract class BaseSettingsView : BaseView
     {
-        private const int LEFT_PADDING = 20;
-        private const int CONTROL_X_SPACING = 20;
-        private const int LABEL_WIDTH = 250;
-        private const int BINDING_WIDTH = 170;
+        private readonly int CONTROL_WIDTH;
+        private readonly Point CONTROL_LOCATION;
 
         private static readonly Logger Logger = Logger.GetLogger<BaseSettingsView>();
 
-        protected sealed override void DoBuild(Panel parent)
+        protected BaseSettingsView(Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font) {
+            base.LABEL_WIDTH = 250;
+            this.CONTROL_WIDTH = 250;
+
+            this.CONTROL_LOCATION = new Point(base.LABEL_WIDTH + 20, 0);
+        }
+
+        protected sealed override void InternalBuild(Panel parent)
         {
             Rectangle bounds = parent.ContentRegion;
 
@@ -26,7 +36,7 @@
                 Size = bounds.Size,
                 FlowDirection = ControlFlowDirection.SingleTopToBottom,
                 ControlPadding = new Vector2(5, 2),
-                OuterControlPadding = new Vector2(LEFT_PADDING, 15),
+                OuterControlPadding = new Vector2(20, 15),
                 WidthSizingMode = SizingMode.Fill,
                 HeightSizingMode = SizingMode.Fill,
                 AutoSizePadding = new Point(0, 15),
@@ -38,111 +48,105 @@
 
         protected abstract void BuildView(Panel parent);
 
-        protected Panel RenderChangedTypeSetting<T, TOverride>(Panel parent, SettingEntry<T> setting, Func<TOverride, T> convertFunction)
+        protected (Panel Panel, Label label, ColorBox colorBox) RenderColorSetting(Panel parent, SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> settingEntry)
+        {
+            Panel panel = this.GetPanel(parent);
+            var label = base.RenderLabel(panel, settingEntry.DisplayName);
+
+            var colorBox = base.RenderColorBox(panel, this.CONTROL_LOCATION, settingEntry.Value, color => settingEntry.Value = color, this.MainPanel);
+
+            return (panel, label.TitleLabel, colorBox);
+        }
+
+        protected (Panel Panel, Label label, TextBox textBox) RenderTextSetting(Panel parent, SettingEntry<string> settingEntry)
         {
             Panel panel = this.GetPanel(parent);
 
-            Label label = this.GetLabel(panel, setting.DisplayName);
+            var label = base.RenderLabel(panel, settingEntry.DisplayName);
 
-            try
+            var textBox = base.RenderTextbox(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, settingEntry.Description, onChangeAction: newValue =>
             {
-                Control ctrl = ControlHandler.CreateFromChangedTypeSetting<T, TOverride>(setting, (settingEntry, val) =>
-                {
-                    T converted = convertFunction(val);
-                    return this.HandleValidation(settingEntry, converted);
-                }, BINDING_WIDTH, -1, label.Right + CONTROL_X_SPACING, 0);
-                ctrl.Parent = panel;
-                ctrl.BasicTooltipText = setting.Description;
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, $"Type \"{setting.SettingType.FullName}\" could not be found in internal type lookup:");
-            }
+                settingEntry.Value = newValue;
+            });
 
-            return panel;
+            return (panel, label.TitleLabel, textBox);
         }
 
-        protected Panel RenderSetting<T>(Panel parent, SettingEntry<T> setting)
-        {
-            return this.RenderChangedTypeSetting(parent, setting, (T val) => val);
-        }
-
-        protected Panel RenderSetting<T>(Panel parent, SettingEntry<T> setting, Action<T> onChangeAction)
-        {
-            Panel panel = this.RenderSetting(parent, setting);
-
-            setting.SettingChanged += (s, e) =>
-            {
-                onChangeAction?.Invoke(e.NewValue);
-            };
-
-            return panel;
-        }
-
-        protected void RenderColorSetting(Panel parent, SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> setting)
+        protected (Panel Panel, Label label, TrackBar trackBar) RenderIntSetting(Panel parent, SettingEntry<int> settingEntry)
         {
             Panel panel = this.GetPanel(parent);
-            Label label = this.GetLabel(panel, setting.DisplayName);
 
-            ColorBox colorBox = new ColorBox()
+            var label = base.RenderLabel(panel, settingEntry.DisplayName);
+            var range = settingEntry.GetRange();
+
+            var trackbar = base.RenderTrackBar(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, ((int)(range?.Min ?? 0), (int)(range?.Max ?? 100)), onChangeAction: newValue =>
             {
-                Location = new Point(label.Right + CONTROL_X_SPACING, 0),
-                Parent = panel,
-                Color = setting.Value
-            };
+                settingEntry.Value = newValue;
+            });
 
-            colorBox.LeftMouseButtonPressed += (s, e) =>
-            {
-                ColorPickerPanel.Parent = parent.Parent;
-                ColorPickerPanel.Size = new Point(parent.Width - 30, 850);
-                ColorPicker.Size = new Point(ColorPickerPanel.Size.X - 20, ColorPickerPanel.Size.Y - 20);
-
-                // Hack to get lineup right
-                Gw2Sharp.WebApi.V2.Models.Color tempColor = new Gw2Sharp.WebApi.V2.Models.Color()
-                {
-                    Id = int.MaxValue,
-                    Name = "temp"
-                };
-
-                ColorPicker.RecalculateLayout();
-                ColorPicker.Colors.Add(tempColor);
-                ColorPicker.Colors.Remove(tempColor);
-
-                ColorPickerPanel.Visible = !ColorPickerPanel.Visible;
-                this.SelectedColorSetting = setting.EntryKey;
-            };
-
-            ColorPicker.SelectedColorChanged += (sender, eArgs) =>
-            {
-                if (this.SelectedColorSetting != setting.EntryKey)
-                {
-                    return;
-                }
-
-                Gw2Sharp.WebApi.V2.Models.Color selectedColor = ColorPicker.SelectedColor;
-
-                if (!this.HandleValidation(setting, selectedColor))
-                {
-                    selectedColor = setting.Value;
-                }
-
-                setting.Value = selectedColor;
-                ColorPickerPanel.Visible = false;
-                colorBox.Color = selectedColor;
-            };
+            return (panel, label.TitleLabel, trackbar);
         }
 
-        private bool HandleValidation<T>(SettingEntry<T> settingEntry, T value)
+        protected (Panel Panel, Label label, TrackBar trackBar) RenderFloatSetting(Panel parent, SettingEntry<float> settingEntry)
         {
-            SettingValidationResult result = settingEntry.CheckValidation(value);
+            Panel panel = this.GetPanel(parent);
 
-            if (!result.Valid)
+            var label = base.RenderLabel(panel, settingEntry.DisplayName);
+            var range = settingEntry.GetRange();
+
+            var trackbar = base.RenderTrackBar(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, range, onChangeAction: newValue =>
             {
-                this.ShowError(result.InvalidMessage);
-                return false;
-            }
+                settingEntry.Value = newValue;
+            });
 
-            return true;
+            return (panel, label.TitleLabel, trackbar);
+        }
+
+        protected (Panel Panel, Label label, Checkbox checkbox) RenderBoolSetting(Panel parent, SettingEntry<bool> settingEntry)
+        {
+            Panel panel = this.GetPanel(parent);
+
+            var label = base.RenderLabel(panel, settingEntry.DisplayName);
+
+            var checkbox = base.RenderCheckbox(panel, this.CONTROL_LOCATION, settingEntry.Value , onChangeAction: newValue =>
+            {
+                settingEntry.Value = newValue;
+            });
+
+            return (panel, label.TitleLabel, checkbox);
+        }
+
+        protected (Panel Panel, Label label, Shared.Controls.KeybindingAssigner keybindingAssigner) RenderKeybindingSetting(Panel parent, SettingEntry<KeyBinding> settingEntry)
+        {
+            Panel panel = this.GetPanel(parent);
+
+            var label = base.RenderLabel(panel, settingEntry.DisplayName);
+
+            var keybindingAssigner = base.RenderKeybinding(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, onChangeAction: newValue =>
+            {
+                settingEntry.Value = newValue;
+            });
+
+            return (panel, label.TitleLabel, keybindingAssigner);
+        }
+
+        protected (Panel Panel, Label label, Dropdown dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T: Enum
+        {
+            Panel panel = this.GetPanel(parent);
+
+            var label = base.RenderLabel(panel, settingEntry.DisplayName);
+
+            var casing = LetterCasing.Title;
+
+            var values = ((T[])Enum.GetValues(settingEntry.SettingType)).ToList();
+            var formattedValues = values.Select(value => value.Humanize(casing)).ToArray();
+
+            var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, formattedValues,  settingEntry.Value.Humanize(casing), onChangeAction: newValue =>
+            {
+                settingEntry.Value = values[formattedValues.ToList().IndexOf(newValue)];
+            });
+
+            return (panel, label.TitleLabel, dropdown);
         }
 
         protected override void Unload()

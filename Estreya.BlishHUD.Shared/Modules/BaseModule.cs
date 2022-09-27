@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.Shared.Modules;
 
 using Blish_HUD;
+using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Blish_HUD.Modules;
@@ -9,6 +10,7 @@ using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Resources;
 using Estreya.BlishHUD.Shared.Settings;
 using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Gw2Sharp.Models;
 using Microsoft.Xna.Framework;
@@ -16,24 +18,25 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel.Composition;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 
-[Export(typeof(Blish_HUD.Modules.Module))]
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : Settings.BaseModuleSettings where TModule : class
 {
     protected Logger Logger { get; }
 
     public const string WEBSITE_ROOT_URL = "https://blishhud.estreya.de";
     public const string WEBSITE_FILE_ROOT_URL = "https://files.blishhud.estreya.de";
+
     public string WEBSITE_MODULE_URL => $"{WEBSITE_ROOT_URL}/modules/{this.WebsiteModuleName}";
     public abstract string WebsiteModuleName { get; }
 
     protected static TModule Instance;
 
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
+
+    private ModuleSettingsView _defaultSettingView;
 
     private WebClient _webclient;
 
@@ -59,41 +62,29 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected Gw2ApiManager Gw2ApiManager => this.ModuleParameters.Gw2ApiManager;
     #endregion
 
-    //protected bool Debug => this.ModuleSettings?.DebugEnabled.Value ?? false;
 #if DEBUG
     protected bool Debug => true;
 #else
     protected bool Debug => false;
 #endif
 
-    protected bool ShowUI { get; private set; }
+    protected bool ShowUI { get; private set; } = true;
 
     public TSettings ModuleSettings { get; private set; }
 
     protected CornerIcon CornerIcon { get; set; }
 
+    private LoadingSpinner _loadingSpinner;
+
     protected TabbedWindow2 SettingsWindow { get; private set; }
 
-    private BitmapFont _font;
+    public virtual BitmapFont Font => GameService.Content.DefaultFont16;
 
-    public BitmapFont Font
-    {
-        get
-        {
-            if (this._font == null)
-            {
-                this._font = GameService.Content.GetFont(ContentService.FontFace.Menomonia, this.ModuleSettings.FontSize.Value, ContentService.FontStyle.Regular);
-            }
-
-            return this._font;
-        }
-    }
-
-    internal DateTime DateTimeNow => DateTime.Now;
+    protected DateTime DateTimeNow => DateTime.Now;
 
     #region States
     private readonly AsyncLock _stateLock = new AsyncLock();
-    private Collection<ManagedState> States { get; } = new Collection<ManagedState>();
+    private Collection<ManagedState> _states = new Collection<ManagedState>();
 
     public IconState IconState { get; private set; }
     public WorldbossState WorldbossState { get; private set; }
@@ -102,12 +93,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public AccountState AccountState { get; private set; }
     public SkillState SkillState { get; private set; }
     public TradingPostState TradingPostState { get; private set; }
+    public ItemState ItemState { get; private set; }
     public ArcDPSState ArcDPSState { get; private set; }
-
-    //public TrackedTransactionState TrackedTransactionState { get; private set; }
     #endregion
 
-    [ImportingConstructor]
     public BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
     {
         this.Logger = Logger.GetLogger(this.GetType());
@@ -121,32 +110,22 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected abstract BaseModuleSettings DefineModuleSettings(SettingCollection settings);
 
-    protected override void Initialize()
-    {
-        GameService.Overlay.UserLocaleChanged += (s, e) =>
-        {
-        };
-    }
-
     protected override async Task LoadAsync()
     {
         this.Logger.Debug("Initialize states");
         await this.InitializeStates();
 
-        this.ModuleSettings.ModuleSettingsChanged += (sender, eventArgs) =>
+        this.ModuleSettings.ModuleSettingsChanged += this.ModuleSettings_ModuleSettingsChanged;
+    }
+
+    private void ModuleSettings_ModuleSettingsChanged(object sender, BaseModuleSettings.ModuleSettingsChangedEventArgs e)
+    {
+        switch (e.Name)
         {
-            switch (eventArgs.Name)
-            {
-                case nameof(this.ModuleSettings.FontSize):
-                    this._font = null;
-                    break;
-                case nameof(this.ModuleSettings.RegisterCornerIcon):
-                    this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
-                    break;
-                default:
-                    break;
-            }
-        };
+            case nameof(this.ModuleSettings.RegisterCornerIcon):
+                this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
+                break;
+        }
     }
 
     protected abstract string GetDirectoryName();
@@ -155,99 +134,105 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         string directoryName = this.GetDirectoryName();
 
-        if (string.IsNullOrWhiteSpace(directoryName))
+        string directoryPath = null;
+        if (!string.IsNullOrWhiteSpace(directoryName))
         {
-            throw new ArgumentNullException(nameof(directoryName), "Module directory is not specified.");
+            directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
         }
-
-        string directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
 
         using (await this._stateLock.LockAsync())
         {
-            var configurations = new StateConfigurations();
+            StateConfigurations configurations = new StateConfigurations();
             this.ConfigureStates(configurations);
 
-            if (configurations.Account)
+            if (configurations.Account.Enabled)
             {
-                this.AccountState = new AccountState(this.Gw2ApiManager);
-                this.States.Add(this.AccountState);
+                this.AccountState = new AccountState(configurations.Account, this.Gw2ApiManager);
+                this._states.Add(this.AccountState);
             }
 
-            if (configurations.Icons)
+            this.IconState = new IconState(new StateConfiguration()
             {
-                this.IconState = new IconState(this.ContentsManager, directoryPath);
-                this.States.Add(this.IconState);
+                Enabled = true,
+                AwaitLoading = false
+            }, this.ContentsManager);
+            this._states.Add(this.IconState);
+
+            if (configurations.Items.Enabled)
+            {
+                this.ItemState = new ItemState(configurations.Items, this.Gw2ApiManager, directoryPath);
+                this._states.Add(this.ItemState);
             }
 
-            if (configurations.TradingPost)
+            if (configurations.TradingPost.Enabled)
             {
-                this.TradingPostState = new TradingPostState(this.Gw2ApiManager);
-                this.States.Add(this.TradingPostState);
+                this.TradingPostState = new TradingPostState(configurations.TradingPost, this.Gw2ApiManager, this.ItemState);
+                this._states.Add(this.TradingPostState);
             }
 
-            if (configurations.Worldbosses)
+            if (configurations.Worldbosses.Enabled)
             {
-                if (configurations.Account)
+                if (configurations.Account.Enabled)
                 {
-                    this.WorldbossState = new WorldbossState(this.Gw2ApiManager, this.AccountState);
-                    this.States.Add(this.WorldbossState);
+                    this.WorldbossState = new WorldbossState(configurations.Worldbosses, this.Gw2ApiManager, this.AccountState);
+                    this._states.Add(this.WorldbossState);
                 }
                 else
                 {
-                    Logger.Debug($"{typeof(WorldbossState).Name} is not available because {typeof(AccountState).Name} is deactivated.");
-                    configurations.Worldbosses = false;
+                    this.Logger.Debug($"{typeof(WorldbossState).Name} is not available because {typeof(AccountState).Name} is deactivated.");
+                    configurations.Worldbosses.Enabled = false;
                 }
             }
 
-            if (configurations.Mapchests)
+            if (configurations.Mapchests.Enabled)
             {
-                if (configurations.Account)
+                if (configurations.Account.Enabled)
                 {
-                    this.MapchestState = new MapchestState(this.Gw2ApiManager, this.AccountState);
-                    this.States.Add(this.MapchestState);
+                    this.MapchestState = new MapchestState(configurations.Mapchests, this.Gw2ApiManager, this.AccountState);
+                    this._states.Add(this.MapchestState);
                 }
                 else
                 {
-                    Logger.Debug($"{typeof(MapchestState).Name} is not available because {typeof(AccountState).Name} is deactivated.");
-                    configurations.Mapchests = false;
+                    this.Logger.Debug($"{typeof(MapchestState).Name} is not available because {typeof(AccountState).Name} is deactivated.");
+                    configurations.Mapchests.Enabled = false;
                 }
             }
 
-            if (configurations.PointOfInterests)
+            if (configurations.PointOfInterests.Enabled)
             {
-                this.PointOfInterestState = new PointOfInterestState(this.Gw2ApiManager, directoryPath);
-                this.States.Add(this.PointOfInterestState);
+                if (string.IsNullOrWhiteSpace(directoryPath))
+                {
+                    throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
+                }
+
+                this.PointOfInterestState = new PointOfInterestState(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath);
+                this._states.Add(this.PointOfInterestState);
             }
 
-            if (configurations.Skills)
+            if (configurations.Skills.Enabled)
             {
-                if (configurations.Icons)
+                if (string.IsNullOrWhiteSpace(directoryPath))
                 {
-                    this.SkillState = new SkillState(this.Gw2ApiManager, this.IconState, directoryPath);
-                    this.States.Add(this.SkillState);
+                    throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
+                }
+
+                this.SkillState = new SkillState(configurations.Skills, this.Gw2ApiManager, this.IconState, directoryPath);
+                this._states.Add(this.SkillState);
+            }
+
+            if (configurations.ArcDPS.Enabled)
+            {
+                if (configurations.Skills.Enabled)
+                {
+                    this.ArcDPSState = new ArcDPSState(configurations.ArcDPS, this.SkillState);
+                    this._states.Add(this.ArcDPSState);
                 }
                 else
                 {
-                    Logger.Debug($"{typeof(SkillState).Name} is not available because {typeof(IconState).Name} is deactivated.");
-                    configurations.Skills = false;
+                    this.Logger.Debug($"{typeof(ArcDPSState).Name} is not available because {typeof(SkillState).Name} is deactivated.");
+                    configurations.ArcDPS.Enabled = false;
                 }
             }
-
-            if (configurations.ArcDPS)
-            {
-                if (configurations.Skills)
-                {
-                    this.ArcDPSState = new ArcDPSState(this.SkillState);
-                    this.States.Add(this.ArcDPSState);
-                }
-                else
-                {
-                    Logger.Debug($"{typeof(ArcDPSState).Name} is not available because {typeof(SkillState).Name} is deactivated.");
-                    configurations.ArcDPS = false;
-                }
-            }
-
-            this.HandleDefaultStates();
 
             Collection<ManagedState> customStates = this.GetAdditionalStates(directoryPath);
 
@@ -255,44 +240,49 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 foreach (ManagedState customState in customStates)
                 {
-                    this.States.Add(customState);
+                    this._states.Add(customState);
                 }
             }
 
+            this.OnBeforeStatesStarted();
+
             // Only start states not already running
-            foreach (ManagedState state in this.States.Where(state => !state.Running))
+            foreach (ManagedState state in this._states.Where(state => !state.Running))
             {
-                try
+                // Order is important
+                if (state.AwaitLoading)
                 {
-                    // Order is important
-                    if (state.AwaitLoad)
+                    try
                     {
                         await state.Start();
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        _ = state.Start().ContinueWith(task =>
-                        {
-                            if (task.IsFaulted)
-                            {
-                                this.Logger.Error(task.Exception, "Not awaited state start failed for \"{0}\"", state.GetType().Name);
-                            }
-                        });
+                        this.Logger.Error(ex, "Failed starting state \"{0}\"", state.GetType().Name);
                     }
                 }
-                catch (Exception ex)
+                else
                 {
-                    this.Logger.Error(ex, "Failed starting state \"{0}\"", state.GetType().Name);
+                    _ = Task.Run(state.Start).ContinueWith(task =>
+                    {
+                        if (task.IsFaulted)
+                        {
+                            this.Logger.Error(task.Exception, "Not awaited state start failed for \"{0}\"", state.GetType().Name);
+                        }
+                    }).ConfigureAwait(false);
                 }
             }
         }
     }
 
-    protected abstract void ConfigureStates(StateConfigurations configurations);
+    protected virtual void ConfigureStates(StateConfigurations configurations) { }
 
-    protected abstract void HandleDefaultStates();
+    protected virtual void OnBeforeStatesStarted() { }
 
-    protected virtual Collection<ManagedState> GetAdditionalStates(string directoryPath) => new Collection<ManagedState>();
+    protected virtual Collection<ManagedState> GetAdditionalStates(string directoryPath)
+    {
+        return null;
+    }
 
     private void HandleCornerIcon(bool show)
     {
@@ -301,30 +291,41 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             this.CornerIcon = new CornerIcon()
             {
                 IconName = this.Name,
-                Icon = this.ContentsManager.GetTexture(@"textures\corner_icon.png"),
+                Icon = this.GetCornerIcon(),
             };
 
-            this.CornerIcon.Click += (s, ea) =>
-            {
-                this.SettingsWindow.ToggleWindow();
-            };
+            this.CornerIcon.Click += this.CornerIcon_Click;
         }
         else
         {
             if (this.CornerIcon != null)
             {
+                this.CornerIcon.Click -= this.CornerIcon_Click;
                 this.CornerIcon.Dispose();
                 this.CornerIcon = null;
             }
         }
     }
 
+    private void CornerIcon_Click(object sender, Blish_HUD.Input.MouseEventArgs e)
+    {
+        this.SettingsWindow.ToggleWindow();
+    }
+
     public sealed override IView GetSettingsView()
     {
-        Shared.UI.Views.ModuleSettingsView view = new Shared.UI.Views.ModuleSettingsView(Strings.SettingsView_OpenSettings);
-        view.OpenClicked += (s, e) => this.SettingsWindow.ToggleWindow();
+        if (this._defaultSettingView == null)
+        {
+            this._defaultSettingView = new ModuleSettingsView(Strings.SettingsView_OpenSettings);
+            this._defaultSettingView.OpenClicked += this.DefaultSettingView_OpenClicked;
+        }
 
-        return view;
+        return this._defaultSettingView;
+    }
+
+    private void DefaultSettingView_OpenClicked(object sender, EventArgs e)
+    {
+        this.SettingsWindow.ToggleWindow();
     }
 
     protected override void OnModuleLoaded(EventArgs e)
@@ -334,7 +335,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Start building settings window.");
 
-        Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png", false);
+        Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
 
         Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
         int contentRegionPaddingY = settingsWindowSize.Y - 15;
@@ -345,45 +346,37 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             Parent = GameService.Graphics.SpriteScreen,
             Title = this.Name,
-            Emblem = this.IconState.GetIcon(@"textures\emblem.png"),
             Subtitle = Strings.SettingsWindow_Subtitle,
             SavesPosition = true,
             Id = $"{this.GetType().Name}_6bd04be4-dc19-4914-a2c3-8160ce76818b"
         };
 
-        //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"images\tradingpost.png"), () =>
-        //{
-        //    var trackedTransactionView = new UI.Views.TrackedTransactionView(this.TrackedTransactionState.TrackedTransactions)
-        //    {
-        //        APIManager = this.Gw2ApiManager,
-        //        IconState = this.IconState,
-        //        DefaultColor = this.ModuleSettings.DefaultGW2Color
-        //    };
+        AsyncTexture2D emblem = this.GetEmblem();
 
-        //    trackedTransactionView.AddTracking += (s, e) =>
-        //    {
-        //        AsyncHelper.RunSync(async () =>
-        //        {
-        //            var added = await this.TrackedTransactionState.Add(e.ItemId, e.WishPrice, e.Type);
-        //        });
-        //    };
-        //    trackedTransactionView.RemoveTracking += (s, e) =>
-        //    {
-        //        this.TrackedTransactionState.Remove(e.ItemId, e.Type);
-        //    };
-
-        //    return trackedTransactionView;
-        //}, "Tracked Transactions"));
-
-        //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156736"), () => new UI.Views.Settings.GeneralSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GeneralSettings_Title));
-        //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"images\tradingpost.png"), () => new UI.Views.Settings.TransactionSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
-        //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"images\graphics_settings.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, Strings.SettingsWindow_GraphicSettings_Title));
+        if (emblem != null)
+        {
+            if (emblem.HasSwapped)
+            {
+                this.SettingsWindow.Emblem = emblem;
+            }
+            else
+            {
+                emblem.TextureSwapped += this.SettingsWindowEmblem_TextureSwapped;
+            }
+        }
 
         this.OnSettingWindowBuild(this.SettingsWindow);
 
         if (this.Debug)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"155052"), () => new UI.Views.Settings.StateSettingsView(this.States) { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Debug"));
+            this.SettingsWindow.Tabs.Add(
+                new Tab(
+                    this.IconState.GetIcon("155052.png"),
+                    () => new UI.Views.Settings.StateSettingsView(this._states, this.Gw2ApiManager, this.IconState, this.Font)
+                    {
+                        DefaultColor = this.ModuleSettings.DefaultGW2Color
+                    },
+                    "Debug"));
         }
 
         this.Logger.Debug("Finished building settings window.");
@@ -391,26 +384,72 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
     }
 
-    protected virtual void OnSettingWindowBuild(TabbedWindow2 settingWindow)
+    private void SettingsWindowEmblem_TextureSwapped(object sender, ValueChangedEventArgs<Texture2D> e)
     {
+        AsyncTexture2D texture = sender as AsyncTexture2D;
+        texture.TextureSwapped -= this.SettingsWindowEmblem_TextureSwapped;
 
+        this.SettingsWindow.Emblem = e.NewValue;
     }
 
+    /// <summary>
+    /// Gets the emblem for the settings window.
+    /// </summary>
+    /// <returns>The emblem as <see cref="AsyncTexture2D"/>.</returns>
+    protected abstract AsyncTexture2D GetEmblem();
+
+    /// <summary>
+    /// Gets the icon used for corner icons.
+    /// </summary>
+    /// <returns>The corner icon as <see cref="AsyncTexture2D"/>.</returns>
+    protected abstract AsyncTexture2D GetCornerIcon();
+
+    /// <summary>
+    /// Gets called after the base settings window has been constructed. Used to add custom tabs.
+    /// </summary>
+    /// <param name="settingWindow">The settings window.</param>
+    protected virtual void OnSettingWindowBuild(TabbedWindow2 settingWindow) { }
+
+    /// <inheritdoc/>
     protected override void Update(GameTime gameTime)
     {
         this.ShowUI = this.CalculateUIVisibility();
 
-        //this.ModuleSettings.CheckDrawerSizeAndPosition(this.Drawer.Width, this.Drawer.Height);
-
         using (this._stateLock.Lock())
         {
-            foreach (ManagedState state in this.States)
+            bool anyStateLoading = false;
+            string loadingText = null;
+            foreach (ManagedState state in this._states)
             {
                 state.Update(gameTime);
+
+                if (state is APIState apiState)
+                {
+                    var loading = apiState.Loading;
+
+                    if (loading)
+                    {
+                        anyStateLoading = true;
+                        if (!string.IsNullOrWhiteSpace(apiState.ProgressText))
+                        {
+                            loadingText ??= $"{state.GetType().Name}: {apiState.ProgressText?.ToString()}";
+                        }
+                        else
+                        {
+                            loadingText ??= state.GetType().Name;
+                        }
+                    }
+                }
             }
+
+            this.HandleLoadingSpinner(anyStateLoading, loadingText);
         }
     }
 
+    /// <summary>
+    /// Calculates the ui visibility based on settings or mumble parameters.
+    /// </summary>
+    /// <returns>The newly calculated ui visibility or the last value of <see cref="ShowUI"/>.</returns>
     protected virtual bool CalculateUIVisibility()
     {
         if (GameService.Gw2Mumble.IsAvailable)
@@ -429,6 +468,21 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             if (this.ModuleSettings.HideInCombat.Value)
             {
                 show &= !GameService.Gw2Mumble.PlayerCharacter.IsInCombat;
+            }
+
+            // All maps not specified as competetive will be treated as open world
+            if (this.ModuleSettings.HideInPvE_OpenWorld.Value)
+            {
+                MapType[] pveOpenWorldMapTypes = new[] { MapType.Public, MapType.Instance, MapType.Tutorial, MapType.PublicMini };
+
+                show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+            }
+
+            if (this.ModuleSettings.HideInPvE_Competetive.Value)
+            {
+                MapType[] pveCompetetiveMapTypes = new[] { MapType.Instance };
+
+                show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
             }
 
             if (this.ModuleSettings.HideInWvW.Value)
@@ -451,38 +505,54 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         return this.ShowUI;
     }
 
+    protected void HandleLoadingSpinner(bool show, string text = null)
+    {
+        show &= this.CornerIcon != null;
+
+        this._loadingSpinner ??= new LoadingSpinner()
+        {
+            Parent = GameService.Graphics.SpriteScreen,
+            Location = new Point(this.CornerIcon.Location.X, this.CornerIcon.Location.Y + this.CornerIcon.Height + 5),
+            Size = this.CornerIcon.Size,
+            Visible = false
+        };
+
+        this._loadingSpinner.BasicTooltipText = text;
+        this._loadingSpinner.Visible = show;
+    }
 
     /// <inheritdoc />
     protected override void Unload()
     {
-        this.Logger.Debug("Unload module.");
-
-        this.Logger.Debug("Unload base.");
-
-        base.Unload();
-
-        this.Logger.Debug("Unloaded base.");
-
-        this.Logger.Debug("Unload settings");
+        this.Logger.Debug("Unload settings...");
 
         if (this.ModuleSettings != null)
         {
+            this.ModuleSettings.ModuleSettingsChanged -= this.ModuleSettings_ModuleSettingsChanged;
             this.ModuleSettings.Unload();
         }
 
         this.Logger.Debug("Unloaded settings.");
 
-        this.Logger.Debug("Unload settings window.");
+        this.Logger.Debug("Unload default settings view...");
 
-        if (this.SettingsWindow != null)
+        if (this._defaultSettingView != null)
         {
-            this.SettingsWindow.Hide();
-            this.SettingsWindow.Dispose();
+            this._defaultSettingView.OpenClicked -= this.DefaultSettingView_OpenClicked;
+            this._defaultSettingView.DoUnload();
+            this._defaultSettingView = null;
         }
+
+        this.Logger.Debug("Unloaded default settings view.");
+
+        this.Logger.Debug("Unload settings window...");
+
+        this.SettingsWindow?.Hide();
+        this.SettingsWindow?.Dispose();
 
         this.Logger.Debug("Unloaded settings window.");
 
-        this.Logger.Debug("Unload corner icon.");
+        this.Logger.Debug("Unload corner icon...");
 
         this.HandleCornerIcon(false);
 
@@ -492,25 +562,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         using (this._stateLock.Lock())
         {
-            this.States.ToList().ForEach(state => state.Dispose());
+            this._states.ToList().ForEach(state => state?.Dispose());
+            this._states.Clear();
         }
 
-        this.Logger.Debug("Finished unloading states.");
-    }
+        this.Logger.Debug("Unloaded states.");
 
-    protected async Task ReloadStates()
-    {
-        using (await this._stateLock.LockAsync())
-        {
-            await Task.WhenAll(this.States.Select(state => state.Reload()));
-        }
-    }
+        this.Logger.Debug("Unload module instance...");
 
-    protected async Task ClearStates()
-    {
-        using (await this._stateLock.LockAsync())
-        {
-            await Task.WhenAll(this.States.Select(state => state.Clear()));
-        }
+        Instance = null;
+
+        this.Logger.Debug("Unloaded module instance.");
     }
 }

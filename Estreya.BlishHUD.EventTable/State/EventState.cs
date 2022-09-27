@@ -1,8 +1,9 @@
 ﻿namespace Estreya.BlishHUD.EventTable.State
 {
     using Blish_HUD;
-    using Estreya.BlishHUD.EventTable.Helpers;
-    using Estreya.BlishHUD.EventTable.Utils;
+    using Estreya.BlishHUD.Shared.Helpers;
+    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using System;
     using System.Collections.Generic;
@@ -36,7 +37,7 @@
         private const string LINE_SPLIT = "<-->";
         private bool dirty;
 
-        private string BasePath { get; set; }
+        private string _basePath { get; set; }
 
         private string _path;
 
@@ -46,18 +47,21 @@
             {
                 if (this._path == null)
                 {
-                    this._path = System.IO.Path.Combine(this.BasePath, FILE_NAME);
+                    this._path = System.IO.Path.Combine(this._basePath, FILE_NAME);
                 }
 
                 return this._path;
             }
         }
 
+        private readonly Func<DateTime> _getNowAction;
+
         private List<VisibleStateInfo> Instances { get; set; } = new List<VisibleStateInfo>();
 
-        public EventState(string basePath) : base(true, 30000)
+        public EventState(StateConfiguration configuration, string basePath, Func<DateTime> getNowAction) : base(configuration)
         {
-            this.BasePath = basePath;
+            this._basePath = basePath;
+            this._getNowAction = getNowAction;
         }
 
         protected override async Task InternalReload()
@@ -69,7 +73,7 @@
 
         protected override void InternalUpdate(GameTime gameTime)
         {
-            DateTime now = EventTableModule.ModuleInstance.DateTimeNow.ToUniversalTime();
+            DateTime now = this._getNowAction().ToUniversalTime();
             lock (this.Instances)
             {
                 for (int i = this.Instances.Count - 1; i >= 0; i--)

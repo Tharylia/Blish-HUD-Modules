@@ -22,6 +22,12 @@ public class AsyncLock
         _semaphore.Wait();
         return _releaser;
     }
+
+    public bool IsFree()
+    {
+        return _semaphore.CurrentCount > 0;
+    }
+
     public Task<IDisposable> LockAsync()
     {
         var waitTask = _semaphore.WaitAsync();
