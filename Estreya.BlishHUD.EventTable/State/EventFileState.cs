@@ -185,7 +185,7 @@
             await this.ExportFile(eventSettingsFile);
         }
 
-        public override Task Clear()
+        protected override Task Clear()
         {
             lock (_lockObject)
             {

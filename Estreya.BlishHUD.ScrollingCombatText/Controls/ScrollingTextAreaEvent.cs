@@ -37,7 +37,7 @@ public class ScrollingTextAreaEvent : RenderTargetControl
 
     public double Time { get; set; } = DateTime.UtcNow.TimeOfDay.TotalMilliseconds;
 
-    public Color BaseTextColor { get; init; } = Color.White;
+    public Color BaseTextColor { get; set; } = Color.White;
 
     public ScrollingTextAreaEvent(Shared.Models.ArcDPS.CombatEvent combatEvent, CombatEventFormatRule formatRule, BitmapFont font)
     {

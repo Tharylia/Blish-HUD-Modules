@@ -14,9 +14,9 @@ using static Blish_HUD.ContentService;
 
 public class CombatEventFormatRule
 {
-    public CombatEventCategory Category { get; init; }
+    public CombatEventCategory Category { get; set; }
 
-    public CombatEventType Type { get; init; }
+    public CombatEventType Type { get; set; }
 
     public string Name => $"{this.Category.Humanize()} - {this.Type.Humanize()}";
 

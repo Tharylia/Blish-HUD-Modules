@@ -4,22 +4,29 @@
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
     using Blish_HUD.Graphics.UI;
+    using Blish_HUD.Modules.Managers;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Controls;
-    using Estreya.BlishHUD.EventTable.Extensions;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.Resources;
+    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.UI.Views;
     using Microsoft.Xna.Framework;
+    using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
 
-    public class ManageEventsView : View
+    public class ManageEventsView : BaseView
     {
         private static Point MAIN_PADDING = new Point(20, 20);
 
         private static readonly Logger Logger = Logger.GetLogger<ManageEventsView>();
+
+        public ManageEventsView(Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
+        {
+        }
 
         public Panel Panel { get; private set; }
 
@@ -31,14 +38,16 @@
             });
         }
 
-        protected override void Build(Container buildPanel)
+
+        protected override void InternalBuild(Panel parent)
         {
+            /*
             this.Panel = new Panel
             {
-                Parent = buildPanel,
+                Parent = parent,
                 Location = new Point(MAIN_PADDING.X, MAIN_PADDING.Y),
-                Width = buildPanel.ContentRegion.Width - MAIN_PADDING.X * 1,
-                Height = buildPanel.ContentRegion.Height - MAIN_PADDING.Y,
+                Width = parent.ContentRegion.Width - MAIN_PADDING.X * 1,
+                Height = parent.ContentRegion.Height - MAIN_PADDING.Y,
                 CanScroll = true
             };
 
@@ -295,6 +304,12 @@
                     };
                 }
             }
+            */
+        }
+
+        protected override Task<bool> InternalLoad(IProgress<string> progress)
+        {
+            return Task.FromResult(true);
         }
     }
 }

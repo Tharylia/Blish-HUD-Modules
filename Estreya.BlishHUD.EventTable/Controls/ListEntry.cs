@@ -1,6 +1,6 @@
 ﻿using Blish_HUD;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.EventTable.Utils;
+using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
