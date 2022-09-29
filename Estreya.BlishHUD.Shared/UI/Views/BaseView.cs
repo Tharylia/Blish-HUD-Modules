@@ -328,6 +328,7 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
+                Logger.Warn(ex, "Failed executing action:");
                 this.ShowError(ex.Message);
             }
         };
@@ -343,11 +344,17 @@ public abstract class BaseView : View
         {
             try
             {
+                button.Enabled = false;
                 await action?.Invoke();
             }
             catch (Exception ex)
             {
+                Logger.Warn(ex, "Failed executing action:");
                 this.ShowError(ex.Message);
+            }
+            finally
+            {
+                button.Enabled = true;
             }
         });
 

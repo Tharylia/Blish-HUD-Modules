@@ -7,7 +7,9 @@ using Blish_HUD.Graphics.UI;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
+using Estreya.BlishHUD.Shared.Helpers;
 using Estreya.BlishHUD.Shared.Resources;
+using Estreya.BlishHUD.Shared.Security;
 using Estreya.BlishHUD.Shared.Settings;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
@@ -20,14 +22,23 @@ using System;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
+using System.Text;
 using System.Threading.Tasks;
 
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : Settings.BaseModuleSettings where TModule : class
 {
     protected Logger Logger { get; }
 
-    public const string WEBSITE_ROOT_URL = "https://blishhud.estreya.de";
-    public const string WEBSITE_FILE_ROOT_URL = "https://files.blishhud.estreya.de";
+    protected const string WEBSITE_ROOT_URL = "https://blishhud.estreya.de";
+    protected const string WEBSITE_FILE_ROOT_URL = "https://files.blishhud.estreya.de";
+
+    protected const string GITHUB_OWNER = "Tharylia";
+    protected const string GITHUB_REPOSITORY = "IssueTest";//"Blish-HUD-Modules";
+    private const string GITHUB_CLIENT_ID = "Iv1.9e4dc29d43243704";
+
+    private GitHubHelper _githubHelper;
+
+    protected PasswordManager PasswordManager { get; private set; }
 
     public string WEBSITE_MODULE_URL => $"{WEBSITE_ROOT_URL}/modules/{this.WebsiteModuleName}";
     public abstract string WebsiteModuleName { get; }
@@ -110,10 +121,24 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected abstract BaseModuleSettings DefineModuleSettings(SettingCollection settings);
 
+    protected override void Initialize()
+    {
+        string directoryName = this.GetDirectoryName();
+
+        if (!string.IsNullOrWhiteSpace(directoryName))
+        {
+            var directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
+            this.PasswordManager = new PasswordManager(directoryPath);
+            this.PasswordManager.InitializeEntropy(Encoding.UTF8.GetBytes(this.Namespace));
+        }
+    }
+
     protected override async Task LoadAsync()
     {
         this.Logger.Debug("Initialize states");
         await this.InitializeStates();
+
+        this._githubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY,GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconState);
 
         this.ModuleSettings.ModuleSettingsChanged += this.ModuleSettings_ModuleSettingsChanged;
     }
@@ -316,11 +341,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (this._defaultSettingView == null)
         {
-            this._defaultSettingView = new ModuleSettingsView(Strings.SettingsView_OpenSettings);
+            this._defaultSettingView = new ModuleSettingsView(Strings.SettingsView_OpenSettings, this.IconState);
             this._defaultSettingView.OpenClicked += this.DefaultSettingView_OpenClicked;
+            this._defaultSettingView.CreateGithubIssueClicked += this.DefaultSettingView_CreateGithubIssueClicked;
         }
 
         return this._defaultSettingView;
+    }
+
+    private void DefaultSettingView_CreateGithubIssueClicked(object sender, EventArgs e)
+    {
+        this._githubHelper.OpenIssueWindow();
     }
 
     private void DefaultSettingView_OpenClicked(object sender, EventArgs e)
@@ -539,6 +570,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         if (this._defaultSettingView != null)
         {
             this._defaultSettingView.OpenClicked -= this.DefaultSettingView_OpenClicked;
+            this._defaultSettingView.CreateGithubIssueClicked -= this.DefaultSettingView_CreateGithubIssueClicked;
             this._defaultSettingView.DoUnload();
             this._defaultSettingView = null;
         }
