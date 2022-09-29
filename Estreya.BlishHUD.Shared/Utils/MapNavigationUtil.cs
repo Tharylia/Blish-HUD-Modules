@@ -265,7 +265,7 @@ public class MapNavigationUtil
                 return false;
             }
 
-            Controls.ScreenNotification.ShowNotification(new string[] { "DO NOT MOVE THE CURSOR!", "Close map to cancel." }, Blish_HUD.Controls.ScreenNotification.NotificationType.Warning, duration: 7);
+            Controls.ScreenNotification.ShowNotification(new string[] { "DO NOT MOVE THE CURSOR!", "Close map to cancel." }, Controls.ScreenNotification.NotificationType.Warning, duration: 7);
 
             if (!await this.OpenFullscreenMap())
             {

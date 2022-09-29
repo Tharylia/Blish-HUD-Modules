@@ -2,32 +2,33 @@
 {
     using Blish_HUD.Controls;
     using Blish_HUD.Graphics.UI;
+    using Estreya.BlishHUD.Shared.Helpers;
+    using Estreya.BlishHUD.Shared.State;
     using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Threading.Tasks;
 
-    public class ModuleSettingsView : View
+    public class ModuleSettingsView : BaseView
     {
         private readonly string _openSettingsText;
 
-        public BitmapFont Font { get; set; }
-
         public event EventHandler OpenClicked;
+        public event EventHandler CreateGithubIssueClicked;
 
-        public ModuleSettingsView(string openSettingsText)
+        public ModuleSettingsView(string openSettingsText, IconState iconState): base(null, iconState)
         {
             this._openSettingsText = openSettingsText;
         }
 
-        protected override Task<bool> Load(IProgress<string> progress)
+        protected override Task<bool> InternalLoad(IProgress<string> progress)
         {
             return Task.FromResult(true);
         }
 
-        protected override void Build(Container buildPanel)
+        protected override void InternalBuild(Panel parent)
         {
-            Rectangle bounds = buildPanel.ContentRegion;
+            Rectangle bounds = parent.ContentRegion;
 
             FlowPanel parentPanel = new FlowPanel()
             {
@@ -38,7 +39,7 @@
                 WidthSizingMode = SizingMode.Fill,
                 HeightSizingMode = SizingMode.AutoSize,
                 AutoSizePadding = new Point(0, 15),
-                Parent = buildPanel
+                Parent = parent
             };
 
             ViewContainer settingContainer = new ViewContainer()
@@ -50,20 +51,37 @@
 
             string buttonText = _openSettingsText;
 
-            StandardButton button = new StandardButton()
+            StandardButton openSettingsButton = new StandardButton()
             {
                 Parent = settingContainer,
                 Text = buttonText,
-                            };
+            };
 
             if (this.Font != null)
             {
-                button.Width = (int)this.Font.MeasureString(buttonText).Width;
+                openSettingsButton.Width = (int)this.Font.MeasureString(buttonText).Width;
             }
 
-            button.Location = new Point(Math.Max(buildPanel.Width / 2 - button.Width / 2, 20), Math.Max(buildPanel.Height / 2 - button.Height, 20));
+            openSettingsButton.Location = new Point(Math.Max(parentPanel.Width / 2 - openSettingsButton.Width / 2, 20), Math.Max(parentPanel.Height / 2 - openSettingsButton.Height, 20));
 
-            button.Click += (s, e) => this.OpenClicked?.Invoke(this, EventArgs.Empty);
+            openSettingsButton.Click += (s, e) => this.OpenClicked?.Invoke(this, EventArgs.Empty);
+
+            var githubIssueText = "Create Bug/Feature Issue";
+
+            StandardButton createGithubIssue = new StandardButton()
+            {
+                Parent = settingContainer,
+                Text = githubIssueText
+            };
+
+            if (this.Font != null)
+            {
+                createGithubIssue.Width = (int)this.Font.MeasureString(githubIssueText).Width;
+            }
+
+            createGithubIssue.Location = new Point(Math.Max(parentPanel.Width / 2 - createGithubIssue.Width / 2, 20), openSettingsButton.Bottom + 10);
+
+            createGithubIssue.Click += (s, e) => CreateGithubIssueClicked?.Invoke(this, EventArgs.Empty);
         }
     }
 }
