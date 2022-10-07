@@ -29,8 +29,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 {
     protected Logger Logger { get; }
 
-    protected const string WEBSITE_ROOT_URL = "https://blishhud.estreya.de";
-    protected const string WEBSITE_FILE_ROOT_URL = "https://files.blishhud.estreya.de";
+    public const string WEBSITE_ROOT_URL = "https://blishhud.estreya.de";
+    public const string WEBSITE_FILE_ROOT_URL = "https://files.blishhud.estreya.de";
 
     protected const string GITHUB_OWNER = "Tharylia";
     protected const string GITHUB_REPOSITORY = "IssueTest";//"Blish-HUD-Modules";
