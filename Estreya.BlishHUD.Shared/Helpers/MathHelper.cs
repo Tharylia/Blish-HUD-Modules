@@ -6,20 +6,20 @@
 
     public static class MathHelper
     {
-        public static float CalculeAngle(Point start, Point arrival)
+        public static float CalculateAngle(Point start, Point arrival)
         {
             float radian = (float)Math.Atan2(arrival.Y - start.Y, arrival.X - start.X);
 
             return radian;
         }
 
-        public static float CalculeAngle(Point2 start, Point2 arrival)
+        public static float CalculateAngle(Point2 start, Point2 arrival)
         {
             float radian = (float)Math.Atan2(arrival.Y - start.Y, arrival.X - start.X);
 
             return radian;
         }
-        public static double CalculeDistance(Point start, Point arrival)
+        public static double CalculateDistance(Point start, Point arrival)
         {
             double deltaX = Math.Pow(arrival.X - start.X, 2);
             double deltaY = Math.Pow(arrival.Y - start.Y, 2);
@@ -29,7 +29,7 @@
             return distance;
         }
 
-        public static float CalculeDistance(Point2 start, Point2 arrival)
+        public static float CalculateDistance(Point2 start, Point2 arrival)
         {
             double deltaX = Math.Pow(arrival.X - start.X, 2);
             double deltaY = Math.Pow(arrival.Y - start.Y, 2);

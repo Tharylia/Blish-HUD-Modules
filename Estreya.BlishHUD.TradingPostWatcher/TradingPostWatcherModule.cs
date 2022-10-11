@@ -71,7 +71,7 @@
 
         protected override void OnBeforeStatesStarted()
         {
-            this.Drawer = new TransactionDrawer(this.DrawerConfiguration, this.IconState)
+            this.Drawer = new TransactionDrawer(this.DrawerConfiguration, this.IconState, this.TradingPostState)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Opacity = 0f,

@@ -5,6 +5,7 @@
     using Blish_HUD.Input;
     using Blish_HUD.Modules.Managers;
     using Blish_HUD.Settings;
+    using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.State;
     using Humanizer;
@@ -12,6 +13,7 @@
     using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Linq;
+    using static System.Windows.Forms.VisualStyles.VisualStyleElement.Menu;
 
     public abstract class BaseSettingsView : BaseView
     {
@@ -55,6 +57,8 @@
 
             var colorBox = base.RenderColorBox(panel, this.CONTROL_LOCATION, settingEntry.Value, color => settingEntry.Value = color, this.MainPanel);
 
+            colorBox.BasicTooltipText = settingEntry.Description;
+
             return (panel, label.TitleLabel, colorBox);
         }
 
@@ -68,6 +72,8 @@
             {
                 settingEntry.Value = newValue;
             });
+
+            textBox.BasicTooltipText = settingEntry.Description;
 
             return (panel, label.TitleLabel, textBox);
         }
@@ -84,6 +90,8 @@
                 settingEntry.Value = newValue;
             });
 
+            trackbar.BasicTooltipText = settingEntry.Description;
+
             return (panel, label.TitleLabel, trackbar);
         }
 
@@ -99,6 +107,8 @@
                 settingEntry.Value = newValue;
             });
 
+            trackbar.BasicTooltipText = settingEntry.Description;
+
             return (panel, label.TitleLabel, trackbar);
         }
 
@@ -113,6 +123,8 @@
                 settingEntry.Value = newValue;
             });
 
+            checkbox.BasicTooltipText = settingEntry.Description;
+
             return (panel, label.TitleLabel, checkbox);
         }
 
@@ -126,6 +138,8 @@
             {
                 settingEntry.Value = newValue;
             });
+
+            keybindingAssigner.BasicTooltipText = settingEntry.Description;
 
             return (panel, label.TitleLabel, keybindingAssigner);
         }
@@ -145,6 +159,8 @@
             {
                 settingEntry.Value = values[formattedValues.ToList().IndexOf(newValue)];
             });
+
+            dropdown.BasicTooltipText = settingEntry.Description;
 
             return (panel, label.TitleLabel, dropdown);
         }

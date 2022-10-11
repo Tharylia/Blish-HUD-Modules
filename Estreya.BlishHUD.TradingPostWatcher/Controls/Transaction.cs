@@ -1,13 +1,18 @@
-﻿namespace Estreya.BlishHUD.TradingPostWatcher.Controls {
+﻿namespace Estreya.BlishHUD.TradingPostWatcher.Controls
+{
 
     using Blish_HUD;
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
+    using Blish_HUD.Input;
     using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Models;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
     using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Threading;
+    using Estreya.BlishHUD.Shared.UI.Views;
     using Estreya.BlishHUD.Shared.Utils;
+    using Estreya.BlishHUD.TradingPostWatcher.UI.Views;
     using Humanizer;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
@@ -15,15 +20,25 @@
     using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Collections.Generic;
+    using System.Threading.Tasks;
 
     public class Transaction : RenderTargetControl
     {
+        private static Logger Logger = Logger.GetLogger<Transaction>();
+        private static TimeSpan _updateTooltipInterval = TimeSpan.FromSeconds(30);
+        private AsyncRef<double> _timeSinceLastTooltipUpdate = new AsyncRef<double>(_updateTooltipInterval.TotalMilliseconds);
+
         private readonly PlayerTransaction _currentTransaction;
+
+        private readonly IconState _iconState;
+        private readonly TradingPostState _tradingPostState;
+
         private readonly Func<float> _getOpacityAction;
         private readonly Func<bool> _getShowPrice;
         private readonly Func<bool> _getShowPriceAsTotal;
         private readonly Func<bool> _getShowRemaining;
         private readonly Func<bool> _getShowCreatedDate;
+        private readonly Func<bool> _getShowTooltips;
         private readonly Func<BitmapFont> _getFont;
 
         private AsyncTexture2D _transactionTexture;
@@ -43,6 +58,7 @@
         }
 
         private SizingMode _heightSizingMode = SizingMode.Standard;
+        private Tooltip _tooltip;
 
         /// <summary>
         /// Determines how the height of this
@@ -54,17 +70,39 @@
             set => this.SetProperty(ref this._heightSizingMode, value);
         }
 
-        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate, Func<BitmapFont> getFont)
+        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, TradingPostState  tradingPostState,
+            Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate, Func<bool> getShowTooltips, Func<BitmapFont> getFont) : base()
         {
             this._currentTransaction = commerceTransaction;
+            this._iconState = iconState;
+            this._tradingPostState = tradingPostState;
+
             this._getOpacityAction = getOpacity;
             this._getShowPrice = getShowPrice;
             this._getShowPriceAsTotal = getShowPriceAsTotal;
             this._getShowRemaining = getShowRemaining;
             this._getShowCreatedDate = getShowCreatedDate;
+            this._getShowTooltips = getShowTooltips;
             this._getFont = getFont;
 
             this._transactionTexture = iconState.GetIcon(this._currentTransaction?.Item?.Icon);
+        }
+
+        protected override void OnMouseEntered(MouseEventArgs e)
+        {
+            base.OnMouseEntered(e);
+
+            if (this._getShowTooltips?.Invoke() ?? false)
+            {
+                this._tooltip?.Show();
+            }
+        }
+
+        protected override void OnMouseLeft(MouseEventArgs e)
+        {
+            base.OnMouseLeft(e);
+
+            this._tooltip?.Hide();
         }
 
         protected override CaptureType CapturesInput()
@@ -146,6 +184,11 @@
 
         protected override void InternalUpdate(GameTime gameTime)
         {
+            if (this._getShowTooltips?.Invoke() ?? false)
+            {
+                _ = UpdateUtil.UpdateAsync(this.BuildTooltip, gameTime, _updateTooltipInterval.TotalMilliseconds, _timeSinceLastTooltipUpdate);
+            }
+
             Size iconSize = this.GetIconSize();
             Size2 textSize = this._getFont().MeasureString(this.GetText());
 
@@ -155,7 +198,7 @@
             {
                 int width = this.GetUpdatedSizing(this.WidthSizingMode,
                                                       this.Width,
-                                                      MathHelper.Clamp((int)Math.Ceiling(iconSize.Width + (SPACING_X * 3)+ textSize.Width), 0, parent.Width),
+                                                      MathHelper.Clamp((int)Math.Ceiling(iconSize.Width + (SPACING_X * 3) + textSize.Width), 0, parent.Width),
                                                       parent.ContentRegion.Width - this.Left);
 
                 Size2 wrappedTextSize = this._getFont().MeasureString(this.GetWrappedText(width - iconSize.Width - (SPACING_X * 3)));
@@ -176,6 +219,30 @@
                 SizingMode.Fill => fillSize,
                 _ => currentSize,
             };
+        }
+
+        private async Task BuildTooltip()
+        {
+            var currentlyShowing = this._tooltip?.Visible ?? false;
+            this._tooltip?.Dispose();
+
+            if (this._currentTransaction?.Item != null)
+            {
+                var itemPrice = await _tradingPostState.GetPriceForItem(this._currentTransaction.ItemId, this._currentTransaction.Type);
+                var priceNote = this._getShowPriceAsTotal?.Invoke() ?? false ? $"You have enabled combined price display!" : null;
+                this._tooltip = new Tooltip(new PriceTooltipView(this._currentTransaction.Item.Name, this._currentTransaction.Item.Description, itemPrice, priceNote, this._transactionTexture, null, this._iconState));
+
+                if (currentlyShowing)
+                {
+                    this._tooltip.Show();
+                }
+            }
+        }
+
+        protected override void InternalDispose()
+        {
+            this._tooltip?.Dispose();
+            this._transactionTexture = null; // Don't dispose
         }
     }
 }

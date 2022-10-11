@@ -5,35 +5,38 @@
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
     using Blish_HUD.Graphics.UI;
+    using Blish_HUD.Modules.Managers;
+    using Estreya.BlishHUD.Shared.State;
     using Microsoft.Xna.Framework;
     using System;
+    using System.Threading.Tasks;
 
-    public class TooltipView : View, ITooltipView, IView
+    public class TooltipView : BaseView, ITooltipView, IView
     {
         private string Title { get; set; }
         private string Description { get; set; }
         private AsyncTexture2D Icon { get; set; }
-        public TooltipView(string title, string description)
+        public TooltipView(string title, string description, Gw2ApiManager apiManager = null, IconState iconState = null) : base(apiManager, iconState)
         {
             this.Title = title;
             this.Description = description;
         }
-        public TooltipView(string title, string description, AsyncTexture2D icon) : this(title, description)
+        public TooltipView(string title, string description, AsyncTexture2D icon, Gw2ApiManager apiManager = null, IconState iconState = null) : this(title, description, apiManager, iconState)
         {
             this.Icon = icon;
         }
 
-        protected override void Build(Container buildPanel)
+        protected override void InternalBuild(Panel parent)
         {
             //buildPanel.Size = new Point(300, 256);
-            buildPanel.HeightSizingMode = SizingMode.AutoSize;
-            buildPanel.WidthSizingMode = SizingMode.AutoSize;
+            parent.HeightSizingMode = SizingMode.AutoSize;
+            parent.WidthSizingMode = SizingMode.AutoSize;
 
             Image image = new Image()
             {
                 Size = new Point(48, 48),
                 Location = new Point(8, 8),
-                Parent = buildPanel,
+                Parent = parent,
                 Texture = this.Icon
             };
 
@@ -48,7 +51,7 @@
                 VerticalAlignment = VerticalAlignment.Middle,
                 Font = GameService.Content.DefaultFont16,
                 Text = this.Title,
-                Parent = buildPanel
+                Parent = parent
             };
 
             Label descriptionLabel = new Label()
@@ -60,12 +63,17 @@
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Middle,
                 TextColor = Control.StandardColors.DisabledText,
-                WrapText = false,
+                WrapText = true,
                 Text = this.Description,
-                Parent = buildPanel
+                Parent = parent
             };
 
-            descriptionLabel.Width = (int)Math.Ceiling(Math.Max(nameLabel.Width, descriptionLabel.Font.MeasureString(descriptionLabel.Text).Width));
+            descriptionLabel.Width = (int)Math.Max(nameLabel.Width, 500);
+        }
+
+        protected override Task<bool> InternalLoad(IProgress<string> progress)
+        {
+            return Task.FromResult(true);
         }
     }
 }

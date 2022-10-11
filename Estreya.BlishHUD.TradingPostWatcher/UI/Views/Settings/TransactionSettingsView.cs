@@ -26,6 +26,8 @@
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowPriceAsTotal);
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowRemaining);
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowCreated);
+            var showTooltipsSetting = this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowTooltips);
+            showTooltipsSetting.label.Text += " (WIP)";
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)

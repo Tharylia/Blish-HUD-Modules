@@ -13,8 +13,6 @@
 
     public class ModuleSettings : BaseModuleSettings
     {
-        private static readonly Logger Logger = Logger.GetLogger<ModuleSettings>();
-
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.T)) { }
 
         public TransactionDrawerConfiguration AddDrawer(string name)
@@ -34,9 +32,11 @@
 
             var showPriceAsTotal = this.DrawerSettings.DefineSetting($"{name}-showPriceAsTotal", true, () => "Show Price as Total", () => "Whether the price of the transaction should be shown as the total price.");
 
-            var showRemaining = this.DrawerSettings.DefineSetting($"{name}-ShowRemaining", true, () => "Show Remaining Quantity", () => "Whether the remaining quantity of the transaction should be shown.");
+            var showRemaining = this.DrawerSettings.DefineSetting($"{name}-showRemaining", true, () => "Show Remaining Quantity", () => "Whether the remaining quantity of the transaction should be shown.");
 
             var showCreated = this.DrawerSettings.DefineSetting($"{name}-showCreated", false, () => "Show Created Date", () => "Whether the created date of the transaction should be shown.");
+
+            var showTooltips = this.DrawerSettings.DefineSetting($"{name}-showTooltips", true, () => "Show Tooltips", () => "Whether the transactions displays a tooltip on mouse hover.");
 
             return new TransactionDrawerConfiguration()
             {
@@ -57,6 +57,7 @@
                 ShowPriceAsTotal = showPriceAsTotal,
                 ShowRemaining = showRemaining,
                 ShowCreated = showCreated,
+                ShowTooltips = showTooltips
             };
         }
 
@@ -70,8 +71,9 @@
             this.DrawerSettings.UndefineSetting($"{name}-showHighestTransactions");
             this.DrawerSettings.UndefineSetting($"{name}-showPrice");
             this.DrawerSettings.UndefineSetting($"{name}-showPriceAsTotal");
-            this.DrawerSettings.UndefineSetting($"{name}-ShowRemaining");
+            this.DrawerSettings.UndefineSetting($"{name}-showRemaining");
             this.DrawerSettings.UndefineSetting($"{name}-showCreated");
+            this.DrawerSettings.UndefineSetting($"{name}-showTooltips");
         }
 
         public override void Unload()

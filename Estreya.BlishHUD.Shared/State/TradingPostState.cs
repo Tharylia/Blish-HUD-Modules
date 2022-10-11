@@ -31,9 +31,9 @@ public class TradingPostState : APIState<TransactionMapping>
 
     protected override async Task<List<TransactionMapping>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
     {
-        var loadOwn = ((this.Scopes & TransactionMappingType.Own) != 0);
-        var loadBuy = ((this.Scopes & TransactionMappingType.Buy) != 0);
-        var loadSell = ((this.Scopes & TransactionMappingType.Sell) != 0);
+        var loadOwn = (this.Scopes & TransactionMappingType.Own) != 0;
+        var loadBuy = (this.Scopes & TransactionMappingType.Buy) != 0;
+        var loadSell = (this.Scopes & TransactionMappingType.Sell) != 0;
 
         List<TransactionMapping> transactions = new List<TransactionMapping>();
 
@@ -126,15 +126,17 @@ public class TradingPostState : APIState<TransactionMapping>
 
         }
 
-        if (loadBuy || loadSell)
+        if (transactions.Count > 0 || loadBuy || loadSell)
         {
             var itemStateCompleted = await this._itemState.WaitForCompletion(TimeSpan.FromMinutes(10));
             if (!itemStateCompleted)
             {
                 Logger.Warn("ItemState did not complete in the predefined timespan.");
-                return new List<TransactionMapping>();
             }
+        }
 
+        if (loadBuy || loadSell)
+        {
             var tradeableItems = this._itemState.Items.Where(item => !item.Flags.Any(flag => flag is ItemFlag.AccountBound or ItemFlag.SoulbindOnAcquire)).ToList();
 
             #region Buys/Sells
@@ -213,6 +215,37 @@ public class TradingPostState : APIState<TransactionMapping>
         #endregion
 
         return transactions;
+    }
+
+    public async Task<int> GetPriceForItem(int itemId, TransactionType transactionType)
+    {
+        switch (transactionType)
+        {
+            case TransactionType.Buy:
+                var itemBuys = this.Buys.Where(buy => buy.ItemId == itemId);
+                if (itemBuys.Any())
+                {
+                    return itemBuys.First().Price;
+                }
+                else
+                {
+                    var itemPrices = await this._apiManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(itemId);
+                    return itemPrices.Buys.UnitPrice;
+                }
+            case TransactionType.Sell:
+                var itemSells = this.Sells.Where(sell => sell.ItemId == itemId);
+                if (itemSells.Any())
+                {
+                    return itemSells.First().Price;
+                }
+                else
+                {
+                    var itemPrices = await this._apiManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(itemId);
+                    return itemPrices.Sells.UnitPrice;
+                }
+            default:
+                throw new ArgumentException($"Invalid transaction type: {transactionType}");
+        }
     }
 
     public enum TransactionMappingType
