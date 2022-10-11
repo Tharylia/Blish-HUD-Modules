@@ -14,7 +14,6 @@
 
     public class MapchestState : APIState<string>
     {
-        private static readonly Logger Logger = Logger.GetLogger<MapchestState>();
         private readonly AccountState _accountState;
 
         public event EventHandler<string> MapchestCompleted;

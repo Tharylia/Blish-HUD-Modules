@@ -13,8 +13,6 @@
 
     public class ModuleSettings : BaseModuleSettings
     {
-        private static readonly Logger Logger = Logger.GetLogger<ModuleSettings>();
-
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.T)) { }
 
         public TransactionDrawerConfiguration AddDrawer(string name)
