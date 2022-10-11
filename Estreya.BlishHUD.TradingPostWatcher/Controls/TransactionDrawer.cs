@@ -21,13 +21,15 @@
 
         private List<PlayerTransaction> _transactions = new List<PlayerTransaction>();
         private readonly IconState _iconState;
+        private readonly TradingPostState _tradingPostState;
 
         public TransactionDrawerConfiguration Configuration { get; private set; }
 
-        public TransactionDrawer(TransactionDrawerConfiguration configuration, IconState iconState)
+        public TransactionDrawer(TransactionDrawerConfiguration configuration, IconState iconState, TradingPostState tradingPostState)
         {
             this.Configuration = configuration;
             this._iconState = iconState;
+            this._tradingPostState = tradingPostState;
 
             this.Size_X_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Size.X.Value));
             this.Size_Y_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Size.Y.Value));
@@ -191,6 +193,7 @@
             new Transaction(
                 transaction,
                 this._iconState,
+                this._tradingPostState,
                 () => this.Configuration.Opacity.Value,
                 () => this.Configuration.ShowPrice.Value,
                 () => this.Configuration.ShowPriceAsTotal.Value,
