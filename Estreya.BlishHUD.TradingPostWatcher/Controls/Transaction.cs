@@ -38,6 +38,7 @@
         private readonly Func<bool> _getShowPriceAsTotal;
         private readonly Func<bool> _getShowRemaining;
         private readonly Func<bool> _getShowCreatedDate;
+        private readonly Func<bool> _getShowTooltips;
         private readonly Func<BitmapFont> _getFont;
 
         private AsyncTexture2D _transactionTexture;
@@ -69,7 +70,8 @@
             set => this.SetProperty(ref this._heightSizingMode, value);
         }
 
-        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, TradingPostState  tradingPostState, Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate, Func<BitmapFont> getFont) : base()
+        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, TradingPostState  tradingPostState,
+            Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate, Func<bool> getShowTooltips, Func<BitmapFont> getFont) : base()
         {
             this._currentTransaction = commerceTransaction;
             this._iconState = iconState;
@@ -80,6 +82,7 @@
             this._getShowPriceAsTotal = getShowPriceAsTotal;
             this._getShowRemaining = getShowRemaining;
             this._getShowCreatedDate = getShowCreatedDate;
+            this._getShowTooltips = getShowTooltips;
             this._getFont = getFont;
 
             this._transactionTexture = iconState.GetIcon(this._currentTransaction?.Item?.Icon);
@@ -89,7 +92,10 @@
         {
             base.OnMouseEntered(e);
 
-            this._tooltip?.Show();
+            if (this._getShowTooltips?.Invoke() ?? false)
+            {
+                this._tooltip?.Show();
+            }
         }
 
         protected override void OnMouseLeft(MouseEventArgs e)
@@ -178,7 +184,10 @@
 
         protected override void InternalUpdate(GameTime gameTime)
         {
-            _ = UpdateUtil.UpdateAsync(this.BuildTooltip, gameTime, _updateTooltipInterval.TotalMilliseconds, _timeSinceLastTooltipUpdate);
+            if (this._getShowTooltips?.Invoke() ?? false)
+            {
+                _ = UpdateUtil.UpdateAsync(this.BuildTooltip, gameTime, _updateTooltipInterval.TotalMilliseconds, _timeSinceLastTooltipUpdate);
+            }
 
             Size iconSize = this.GetIconSize();
             Size2 textSize = this._getFont().MeasureString(this.GetText());

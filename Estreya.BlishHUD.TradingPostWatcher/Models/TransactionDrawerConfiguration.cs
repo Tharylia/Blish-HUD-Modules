@@ -19,5 +19,7 @@
         public SettingEntry<bool> ShowPriceAsTotal { get; set; }
         public SettingEntry<bool> ShowRemaining { get; set; }
         public SettingEntry<bool> ShowCreated { get; set; }
+
+        public SettingEntry<bool> ShowTooltips { get; set; }
     }
 }

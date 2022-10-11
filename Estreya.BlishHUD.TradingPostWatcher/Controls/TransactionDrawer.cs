@@ -199,6 +199,7 @@
                 () => this.Configuration.ShowPriceAsTotal.Value,
                 () => this.Configuration.ShowRemaining.Value,
                 () => this.Configuration.ShowCreated.Value,
+                () => this.Configuration.ShowTooltips.Value,
                 () => GameService.Content.GetFont(ContentService.FontFace.Menomonia, this.Configuration.FontSize.Value, ContentService.FontStyle.Regular))
             {
                 Parent = this,

@@ -26,6 +26,7 @@
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowPriceAsTotal);
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowRemaining);
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowCreated);
+            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowTooltips);
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)
