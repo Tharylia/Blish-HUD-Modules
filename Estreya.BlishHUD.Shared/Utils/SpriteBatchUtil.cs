@@ -233,9 +233,9 @@
 
         public static void DrawAngledLineOnCtrl(this SpriteBatch spriteBatch, Control control, Texture2D baseTexture, Point2 start, Point2 end, Color color)
         {
-            float length = Helpers.MathHelper.CalculeDistance(start, end);
+            float length = Helpers.MathHelper.CalculateDistance(start, end);
             RectangleF lineRectangle = new RectangleF(start.X, start.Y, length, 1);
-            float angle = Helpers.MathHelper.CalculeAngle(start, end);
+            float angle = Helpers.MathHelper.CalculateAngle(start, end);
 
             if (control != null)
             {
