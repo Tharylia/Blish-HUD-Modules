@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.Shared.Helpers;
+﻿namespace Estreya.BlishHUD.Shared.Helpers;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -83,7 +83,7 @@ public class GitHubHelper : IDisposable
         {
             OauthDeviceFlowRequest request = new OauthDeviceFlowRequest(this._clientId);
             OauthDeviceFlowResponse deviceFlowResponse = await this._github.Oauth.InitiateDeviceFlow(request);
-            Controls.ScreenNotification notification = new Controls.ScreenNotification($"GITHUB: Enter the code {deviceFlowResponse.UserCode}", Controls.ScreenNotification.NotificationType.Info, duration: int.MaxValue)
+            Controls.ScreenNotification notification = new Controls.ScreenNotification($"GITHUB: Enter the code {deviceFlowResponse.UserCode}", Controls.ScreenNotification.NotificationType.Info, duration: TimeSpan.FromMinutes(15).Seconds)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Opacity = 1f,
