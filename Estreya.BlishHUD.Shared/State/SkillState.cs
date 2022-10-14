@@ -3,6 +3,8 @@
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
+using Estreya.BlishHUD.Shared.Modules;
+using Estreya.BlishHUD.Shared.Settings;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
@@ -13,6 +15,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,17 +24,31 @@ public class SkillState : APIState<Skill>
 {
     private const string BASE_FOLDER_STRUCTURE = "skills";
     private const string FILE_NAME = "skills.json";
-    private const string MISSING_SKILL_FILE_NAME = "missingSkills.json";
+
+    private const string WEBSITE_SKILL_FOLDER_NAME = "skills";
+    private const string WEBSITE_MISSING_SKILLS_FILE_NAME = "missing_skills.json";
+    private const string WEBSITE_REMAPPED_SKILLS_FILE_NAME = "remapped_skills.json";
+
+    private const string LOCAL_MISSING_SKILL_FILE_NAME = "missingSkills.json";
     private const string LAST_UPDATED_FILE_NAME = "last_updated.txt";
 
     private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
 
     private IconState _iconState;
     private readonly string _baseFolderPath;
-
+    private readonly WebClient _webClient;
+    private readonly string _websiteFileRoot;
     private AsyncRef<double> _lastSaveMissingSkill = new AsyncRef<double>(0);
 
     private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
+
+    public static Skill UnknownSkill { get; } = new Skill()
+    {
+        Id = int.MaxValue,
+        Name = "Unknown",
+        Icon = "62248.png",
+        Category = SkillCategory.Skill,
+    };
 
     private static readonly Dictionary<int, int> _remappedSkillIds = new Dictionary<int, int>()
     {
@@ -38,35 +56,37 @@ public class SkillState : APIState<Skill>
         { 46808, 42297 }, // Manifest Sand Shade
         { 46821, 42297 }, // Manifest Sand Shade
         { 46824, 42297 }, // Manifest Sand Shade
-        { 59601,1947 }, // Big Boomer
-        { 49084,1877 }, // Impact Savant
-        { 54935,29921 }, // Shredder Gyro
+        { 59601, 1947 }, // Big Boomer
+        { 49084, 1877 }, // Impact Savant
+        { 54935, 29921 }, // Shredder Gyro
         { 30176, 29921 }, // Shredder Gyro
-        { 1377,1512 }, // Shoot
-        { 42366,2159 }, // Loremaster
-        { 42984,2101 }, // Liberator's Vow
-        { 9113,9118 }, // Virtue of Courage
-        { 9114,9115 }, // Virtue of Justice
-        { 9119,9120 }, // Virtue of Resolve
+        { 1377, 1512 }, // Shoot
+        { 42366, 2159 }, // Loremaster
+        { 42984, 2101 }, // Liberator's Vow
+        { 9113, 9118 }, // Virtue of Courage
+        { 9114, 9115 }, // Virtue of Justice
+        { 9119, 9120 }, // Virtue of Resolve
         { 17047, 9120 }, // Virtue of Resolve
-        { 42639,2063 }, // Weighty Terms
-        { 1623,2871 }, // Jab
-        { 45895,2089 }, // Purity of Word
-        { 2672,5683 }, // Unsteady Ground
+        { 42639, 2063 }, // Weighty Terms
+        { 1623, 2871 }, // Jab
+        { 45895, 2089 }, // Purity of Word
+        { 2672, 5683 }, // Unsteady Ground
         { 42133, 2643}, // Tail Spin, Raptor Skill 1
         { 13655, 582 }, // Valorous Protection
-        { 30207,1899 }, // Invigorated Bulwark
+        { 30207, 1899 }, // Invigorated Bulwark
         { 30235, 58090 }, // Med Blaster
         { 13515, 1916 }, // Medical Dispersion Field
-        { 5586,5493 }, // Water Attunement
+        { 5586, 5493 }, // Water Attunement
         { 5580, 5495}, // Earth Attunement
-        { 5585,5492  }, // Fire Attunement
+        { 5585, 5492  }, // Fire Attunement
         { 5575, 5494 }, // Air Attunement
-        { 13133,13132 }, // Basilisk Venom
-        { 68121,68079 }, // Rifle Burst Grenade
-        { 59579,59562 }, // Explosive Entrance
+        { 13133, 13132 }, // Basilisk Venom
+        { 68121, 68079 }, // Rifle Burst Grenade
+        { 59579, 59562 }, // Explosive Entrance
         { 63264, 63348}, // Jade Energy Shot
         { 48894, 1808}, // Expose Defenses
+        { 10243, 10192 }, // Distortion
+        { 62592, 62597 }, // Bladeturn Requiem?
     };
 
     private static readonly Dictionary<int, (string Name, string RenderUrl)> _missingSkills = new Dictionary<int, (string Name, string RenderUrl)>()
@@ -85,6 +105,7 @@ public class SkillState : APIState<Skill>
         { 742, ("Weakness", "102853.png") }, // Weakness
         { 743, ("Aegis", "DFB4D1B50AE4D6A275B349E15B179261EE3EB0AF/102854" ) }, // Aegis
         { 762, ("Determined", "102763.png") }, // Determined
+        { 770, ("Downed", "102763.png") }, // Downed
         { 791, ("Fear", "102869.png") }, // Fear
         { 833, ("Daze", "433474.png") }, // Daze
 	    { 861, ("Confusion", "289AA0A4644F0E044DED3D3F39CED958E1DDFF53/102880"  )}, //Confusion
@@ -131,14 +152,17 @@ public class SkillState : APIState<Skill>
         { 63348, ("Jade Energy Shot","103434.png") }, // Jade Energy Shot
         { 1656, ("Whirling Assault","102998.png") }, // Whirling Assault
         { 33611, ("Leader of the Pack III","66520.png") }, // Leader of the Pack III
+        { 62554,("Cutter Burst","2479385.png") }, // Cutter Burst
     };
 
     private ConcurrentDictionary<int, string> _missingSkillsFromAPIReportedByArcDPS;
 
-    public SkillState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IconState iconState, string baseFolderPath) : base(apiManager, configuration)
+    public SkillState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IconState iconState, string baseFolderPath, WebClient webClient, string websiteFileRoot) : base(apiManager, configuration)
     {
         this._iconState = iconState;
         this._baseFolderPath = baseFolderPath;
+        this._webClient = webClient;
+        this._websiteFileRoot = websiteFileRoot;
     }
 
     protected override Task DoInitialize()
@@ -162,12 +186,50 @@ public class SkillState : APIState<Skill>
             await this.LoadMissingSkills();
             // TEST
 
+            //List<MissingSkill> ms = new List<MissingSkill>();
+                 
+            //foreach (var missingSkill in _missingSkills)
+            //{
+            //    ms.Add(new MissingSkill()
+            //    {
+            //        ID = missingSkill.Key,
+            //        Name = missingSkill.Value.Name,
+            //        Icon = missingSkill.Value.RenderUrl
+            //    });
+            //}
+
+            //await FileUtil.WriteStringAsync(@"C:\temp\missingskills.json", JsonConvert.SerializeObject(ms, Formatting.Indented));
+
+            //List<RemappedSkillID> rs = new List<RemappedSkillID>();
+
+            //foreach (var remappedSkill in _remappedSkillIds)
+            //{
+            //    rs.Add(new RemappedSkillID()
+            //    {
+            //        OriginalID = remappedSkill.Key,
+            //        DestinationID = remappedSkill.Value
+            //    });
+            //}
+
+            //await FileUtil.WriteStringAsync(@"C:\temp\remapped_skills.json", JsonConvert.SerializeObject(rs, Formatting.Indented));
+
+            await UnknownSkill.LoadTexture(this._iconState, this._cancellationTokenSource.Token);
+
             bool shouldLoadFiles = await this.ShouldLoadFiles();
 
             if (!shouldLoadFiles)
             {
                 await base.Load();
                 await this.Save();
+
+                await this.AddMissingSkills(this.APIObjectList);
+                await this.RemapSkillIds(this.APIObjectList);
+
+                Logger.Debug("Loading skill icons..");
+
+                await this.LoadSkillIcons(this.APIObjectList);
+
+                Logger.Debug("Loaded skill icons..");
             }
             else
             {
@@ -179,9 +241,9 @@ public class SkillState : APIState<Skill>
                     string content = await FileUtil.ReadStringAsync(filePath);
                     List<Skill> skills = JsonConvert.DeserializeObject<List<Skill>>(content);
 
-                    this.AddMissingSkills(skills);
+                    await this.AddMissingSkills(skills);
 
-                    this.RemapSkillIds(skills);
+                    await this.RemapSkillIds(skills);
 
                     await this.LoadSkillIcons(skills);
 
@@ -309,64 +371,70 @@ public class SkillState : APIState<Skill>
         //var mountSkills = mountResponse.SelectMany(mount => mount.Skills);
         //skills = skills.Concat(mountSkills).ToList();
 
-        progress.Report("Adding missing skills..");
-        Logger.Debug("Adding missing skills..");
+        //progress.Report("Adding missing skills..");
+        //Logger.Debug("Adding missing skills..");
 
-        this.AddMissingSkills(skills);
+        //this.AddMissingSkills(skills);
 
-        Logger.Debug("Added missing skills..");
+        //Logger.Debug("Added missing skills..");
 
-        progress.Report("Remapping skills..");
-        Logger.Debug("Remapping skills..");
+        //progress.Report("Remapping skills..");
+        //Logger.Debug("Remapping skills..");
 
-        this.RemapSkillIds(skills);
+        //this.RemapSkillIds(skills);
 
-        Logger.Debug("Remapped skills..");
+        //Logger.Debug("Remapped skills..");
 
-        progress.Report("Loading skill icons..");
-        Logger.Debug("Loading skill icons..");
+        //progress.Report("Loading skill icons..");
+        //Logger.Debug("Loading skill icons..");
 
-        await this.LoadSkillIcons(skills);
+        //await this.LoadSkillIcons(skills);
 
-        Logger.Debug("Loaded skill icons..");
+        //Logger.Debug("Loaded skill icons..");
 
         return skills.ToList();
     }
 
-    private void RemapSkillIds(List<Skill> skills)
+    private async Task RemapSkillIds(List<Skill> skills)
     {
-        foreach (KeyValuePair<int, int> remappedSkillId in _remappedSkillIds)
-        {
-            List<Skill> skillsToRemap = skills.Where(skill => skill.Id == remappedSkillId.Key).ToList();
+        var remappedSkillsJson = await _webClient.DownloadStringTaskAsync(new Uri(new Uri(this._websiteFileRoot), $"{WEBSITE_SKILL_FOLDER_NAME}/{WEBSITE_REMAPPED_SKILLS_FILE_NAME}"));
+        var remappedSkills = JsonConvert.DeserializeObject<List<RemappedSkillID>>(remappedSkillsJson);
 
-            Skill skillToInsert = skills.FirstOrDefault(skill => skill.Id == remappedSkillId.Value);
+        foreach (var remappedSkill in remappedSkills)
+        {
+            List<Skill> skillsToRemap = skills.Where(skill => skill.Id == remappedSkill.OriginalID).ToList();
+
+            Skill skillToInsert = skills.FirstOrDefault(skill => skill.Id == remappedSkill.DestinationID);
             if (skillToInsert == null)
             {
                 continue;
             }
 
             skillToInsert = skillToInsert.Copy();
-            skillToInsert.Id = remappedSkillId.Key;
+            skillToInsert.Id = remappedSkill.OriginalID;
 
             skillsToRemap.ForEach(skillToRemap => skills.Remove(skillToRemap));
 
             skills.Add(skillToInsert);
 
-            Logger.Debug($"Remapped skill from {remappedSkillId.Key} to {remappedSkillId.Value}");
+            Logger.Debug($"Remapped skill from {remappedSkill.OriginalID} to {remappedSkill.DestinationID}");
         }
     }
 
-    private void AddMissingSkills(List<Skill> skills)
+    private async Task AddMissingSkills(List<Skill> skills)
     {
-        foreach (KeyValuePair<int, (string Name, string RenderUrl)> missingSkill in _missingSkills)
+        var missingSkillsJson = await _webClient.DownloadStringTaskAsync(new Uri(new Uri(this._websiteFileRoot), $"{WEBSITE_SKILL_FOLDER_NAME}/{WEBSITE_MISSING_SKILLS_FILE_NAME}"));
+        var missingSkills = JsonConvert.DeserializeObject<List<MissingSkill>>(missingSkillsJson);
+
+        foreach (var missingSkill in missingSkills)
         {
-            if (!skills.Exists(skill => skill.Id == missingSkill.Key))
+            if (!skills.Exists(skill => skill.Id == missingSkill.ID))
             {
                 skills.Add(new Skill()
                 {
-                    Id = missingSkill.Key,
-                    Name = missingSkill.Value.Name,
-                    Icon = missingSkill.Value.RenderUrl
+                    Id = missingSkill.ID,
+                    Name = missingSkill.Name,
+                    Icon = missingSkill.Icon
                 });
             }
         }
@@ -406,17 +474,21 @@ public class SkillState : APIState<Skill>
 
     private async Task SaveMissingSkills()
     {
-        string missingSkillPath = Path.Combine(this.DirectoryPath, MISSING_SKILL_FILE_NAME);
+        string missingSkillPath = Path.Combine(this.DirectoryPath, LOCAL_MISSING_SKILL_FILE_NAME);
 
         await FileUtil.WriteStringAsync(missingSkillPath, JsonConvert.SerializeObject(this._missingSkillsFromAPIReportedByArcDPS.OrderBy(skill => skill.Value).ToDictionary(skill => skill.Key, skill => skill.Value), Formatting.Indented));
     }
 
     private async Task LoadMissingSkills()
     {
-        string missingSkillPath = Path.Combine(this.DirectoryPath, MISSING_SKILL_FILE_NAME);
+        string missingSkillPath = Path.Combine(this.DirectoryPath, LOCAL_MISSING_SKILL_FILE_NAME);
         if (File.Exists(missingSkillPath))
         {
             this._missingSkillsFromAPIReportedByArcDPS = JsonConvert.DeserializeObject<ConcurrentDictionary<int, string>>(await FileUtil.ReadStringAsync(missingSkillPath));
+        }
+        else
+        {
+            this._missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, string>();
         }
     }
 
@@ -469,11 +541,11 @@ public class SkillState : APIState<Skill>
 
     public bool AddMissingSkill(int id, string name)
     {
-        return this._missingSkillsFromAPIReportedByArcDPS.TryAdd(id, name);
+        return this._missingSkillsFromAPIReportedByArcDPS?.TryAdd(id, name) ?? false;
     }
 
     public void RemoveMissingSkill(int id)
     {
-        _ = this._missingSkillsFromAPIReportedByArcDPS.TryRemove(id, out string _);
+        _ = this._missingSkillsFromAPIReportedByArcDPS?.TryRemove(id, out string _);
     }
 }

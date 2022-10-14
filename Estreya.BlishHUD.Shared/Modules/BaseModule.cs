@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.Modules;
+namespace Estreya.BlishHUD.Shared.Modules;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -241,7 +241,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.SkillState = new SkillState(configurations.Skills, this.Gw2ApiManager, this.IconState, directoryPath);
+                this.SkillState = new SkillState(configurations.Skills, this.Gw2ApiManager, this.IconState, directoryPath, this.Webclient, WEBSITE_FILE_ROOT_URL);
                 this._states.Add(this.SkillState);
             }
 
