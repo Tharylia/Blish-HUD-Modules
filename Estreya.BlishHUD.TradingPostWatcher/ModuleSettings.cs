@@ -38,6 +38,10 @@
 
             var showTooltips = this.DrawerSettings.DefineSetting($"{name}-showTooltips", true, () => "Show Tooltips", () => "Whether the transactions displays a tooltip on mouse hover.");
 
+            var highestTransactionColor = this.DrawerSettings.DefineSetting($"{name}-highestTransactionColor", this.DefaultGW2Color, () => "Highest Transaction Color", () => "Defines the color which the highest transations should be displayed in.");
+
+            var outbidTransactionColor = this.DrawerSettings.DefineSetting($"{name}-outbidTransactionColor", this.DefaultGW2Color, () => "Outbid Transaction Color", () => "Defines the color which the outbid transations should be displayed in.");
+
             return new TransactionDrawerConfiguration()
             {
                 Name = drawer.Name,
@@ -57,7 +61,9 @@
                 ShowPriceAsTotal = showPriceAsTotal,
                 ShowRemaining = showRemaining,
                 ShowCreated = showCreated,
-                ShowTooltips = showTooltips
+                ShowTooltips = showTooltips,
+                HighestTransactionColor = highestTransactionColor,
+                OutbidTransactionColor = outbidTransactionColor
             };
         }
 
@@ -74,6 +80,8 @@
             this.DrawerSettings.UndefineSetting($"{name}-showRemaining");
             this.DrawerSettings.UndefineSetting($"{name}-showCreated");
             this.DrawerSettings.UndefineSetting($"{name}-showTooltips");
+            this.DrawerSettings.UndefineSetting($"{name}-highestTransactionColor");
+            this.DrawerSettings.UndefineSetting($"{name}-outbidTransactionColor");
         }
 
         public override void Unload()

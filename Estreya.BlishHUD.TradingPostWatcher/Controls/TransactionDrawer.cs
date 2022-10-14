@@ -194,13 +194,15 @@
                 transaction,
                 this._iconState,
                 this._tradingPostState,
-                () => this.Configuration.Opacity.Value,
-                () => this.Configuration.ShowPrice.Value,
-                () => this.Configuration.ShowPriceAsTotal.Value,
-                () => this.Configuration.ShowRemaining.Value,
-                () => this.Configuration.ShowCreated.Value,
-                () => this.Configuration.ShowTooltips.Value,
-                () => GameService.Content.GetFont(ContentService.FontFace.Menomonia, this.Configuration.FontSize.Value, ContentService.FontStyle.Regular))
+                this.Configuration.Opacity,
+                this.Configuration.ShowPrice,
+                this.Configuration.ShowPriceAsTotal,
+                this.Configuration.ShowRemaining,
+                this.Configuration.ShowCreated,
+                this.Configuration.ShowTooltips,
+                this.Configuration.FontSize,
+                this.Configuration.HighestTransactionColor,
+                this.Configuration.OutbidTransactionColor)
             {
                 Parent = this,
                 DrawInterval = TimeSpan.FromSeconds(1),
@@ -212,15 +214,14 @@
 
         private void ReAddControls()
         {
-            using (var suspendCtx = this.SuspendLayoutContext())
-            {
-                this.Children.ToList().ForEach(child => child.Dispose());
-                this.Children.Clear();
+            using var suspendCtx = this.SuspendLayoutContext();
 
-                foreach (var transaction in _transactions)
-                {
-                    _ = this.AddControl(transaction);
-                }
+            this.Children.ToList().ForEach(child => child.Dispose());
+            this.Children.Clear();
+
+            foreach (var transaction in _transactions)
+            {
+                _ = this.AddControl(transaction);
             }
         }
 

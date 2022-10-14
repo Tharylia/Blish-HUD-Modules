@@ -2,9 +2,11 @@
 {
 
     using Blish_HUD;
+    using Blish_HUD._Extensions;
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
     using Blish_HUD.Input;
+    using Blish_HUD.Settings;
     using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Models;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
@@ -19,6 +21,7 @@
     using MonoGame.Extended;
     using MonoGame.Extended.BitmapFonts;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Threading.Tasks;
 
@@ -33,13 +36,16 @@
         private readonly IconState _iconState;
         private readonly TradingPostState _tradingPostState;
 
-        private readonly Func<float> _getOpacityAction;
-        private readonly Func<bool> _getShowPrice;
-        private readonly Func<bool> _getShowPriceAsTotal;
-        private readonly Func<bool> _getShowRemaining;
-        private readonly Func<bool> _getShowCreatedDate;
-        private readonly Func<bool> _getShowTooltips;
-        private readonly Func<BitmapFont> _getFont;
+        private readonly SettingEntry<float> _opacitySetting;
+        private readonly SettingEntry<bool> _showPriceSetting;
+        private readonly SettingEntry<bool> _showPriceAsTotalSetting;
+        private readonly SettingEntry<bool> _showRemainingSetting;
+        private readonly SettingEntry<bool> _showCreatedDateSetting;
+        private readonly SettingEntry<bool> _showTooltipsSetting;
+        private readonly SettingEntry<ContentService.FontSize> _fontSizeSetting;
+        private readonly SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> _highestTransactionColorSetting;
+        private readonly SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> _outbidTransactionColorSetting;
+        private static readonly ConcurrentDictionary<ContentService.FontSize, BitmapFont> _fontCache = new ConcurrentDictionary<ContentService.FontSize, BitmapFont>();
 
         private AsyncTexture2D _transactionTexture;
 
@@ -58,7 +64,7 @@
         }
 
         private SizingMode _heightSizingMode = SizingMode.Standard;
-        private Tooltip _tooltip;
+        //private Tooltip _tooltip;
 
         /// <summary>
         /// Determines how the height of this
@@ -70,49 +76,49 @@
             set => this.SetProperty(ref this._heightSizingMode, value);
         }
 
-        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, TradingPostState  tradingPostState,
-            Func<float> getOpacity, Func<bool> getShowPrice, Func<bool> getShowPriceAsTotal, Func<bool> getShowRemaining, Func<bool> getShowCreatedDate, Func<bool> getShowTooltips, Func<BitmapFont> getFont) : base()
+        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, TradingPostState tradingPostState,
+            SettingEntry<float> opacity, SettingEntry<bool> showPrice, SettingEntry<bool> showPriceAsTotal,
+            SettingEntry<bool> showRemaining, SettingEntry<bool> showCreatedDate, SettingEntry<bool> showTooltips,
+            SettingEntry<ContentService.FontSize> fontSize, SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> highestTransactionColorSetting,
+            SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> outbidTransactionColorSetting) : base()
         {
             this._currentTransaction = commerceTransaction;
             this._iconState = iconState;
             this._tradingPostState = tradingPostState;
 
-            this._getOpacityAction = getOpacity;
-            this._getShowPrice = getShowPrice;
-            this._getShowPriceAsTotal = getShowPriceAsTotal;
-            this._getShowRemaining = getShowRemaining;
-            this._getShowCreatedDate = getShowCreatedDate;
-            this._getShowTooltips = getShowTooltips;
-            this._getFont = getFont;
-
+            this._opacitySetting = opacity;
+            this._showPriceSetting = showPrice;
+            this._showPriceAsTotalSetting = showPriceAsTotal;
+            this._showRemainingSetting = showRemaining;
+            this._showCreatedDateSetting = showCreatedDate;
+            this._showTooltipsSetting = showTooltips;
+            this._fontSizeSetting = fontSize;
+            this._highestTransactionColorSetting = highestTransactionColorSetting;
+            this._outbidTransactionColorSetting = outbidTransactionColorSetting;
             this._transactionTexture = iconState.GetIcon(this._currentTransaction?.Item?.Icon);
+
+            this._showTooltipsSetting.SettingChanged += this.ShowTooltips_SettingChanged;
         }
 
-        protected override void OnMouseEntered(MouseEventArgs e)
+        private void ShowTooltips_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
         {
-            base.OnMouseEntered(e);
-
-            if (this._getShowTooltips?.Invoke() ?? false)
+            if (!e.NewValue)
             {
-                this._tooltip?.Show();
+                this.Tooltip?.Dispose();
+                return;
             }
-        }
 
-        protected override void OnMouseLeft(MouseEventArgs e)
-        {
-            base.OnMouseLeft(e);
-
-            this._tooltip?.Hide();
+            _timeSinceLastTooltipUpdate = _updateTooltipInterval.TotalMilliseconds;
         }
 
         protected override CaptureType CapturesInput()
         {
-            return CaptureType.Filter;
+            return CaptureType.Mouse | CaptureType.DoNotBlock;
         }
 
         protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
         {
-            float opacity = this._getOpacityAction?.Invoke() ?? 1;
+            float opacity = this._opacitySetting?.Value ?? 1;
 
             RectangleF iconBounds = RectangleF.Empty;
             if (this._transactionTexture != null && this._transactionTexture.HasSwapped)
@@ -128,7 +134,17 @@
 
             RectangleF textRectangle = new RectangleF(iconBounds.Width + SPACING_X, 0, textMaxWidth, this.Height);
 
-            spriteBatch.DrawString(text, this._getFont(), textRectangle, (this._currentTransaction.IsHighest ? Color.Green : Color.Red) * opacity);
+            spriteBatch.DrawString(text, this.GetFont(), textRectangle, this.GetColor() * opacity);
+        }
+
+        private Color GetColor()
+        {
+            if (this._currentTransaction?.IsHighest ?? false)
+            {
+                return this._highestTransactionColorSetting?.Value.Cloth.ToXnaColor() ?? Color.Green;
+            }
+
+            return this._outbidTransactionColorSetting?.Value.Cloth.ToXnaColor() ?? Color.Red;
         }
 
         private string GetText()
@@ -142,11 +158,11 @@
 
             List<string> additionalInfos = new List<string>();
 
-            if (this._getShowPrice?.Invoke() ?? false)
+            if (this._showPriceSetting?.Value ?? false)
             {
                 int price = this._currentTransaction.Price;
 
-                if (this._getShowPriceAsTotal?.Invoke() ?? false)
+                if (this._showPriceAsTotalSetting?.Value ?? false)
                 {
                     price *= this._currentTransaction.Quantity;
                 }
@@ -154,12 +170,12 @@
                 additionalInfos.Add($"Price: {GW2Utils.FormatCoins(price)}");
             }
 
-            if (this._getShowRemaining?.Invoke() ?? false)
+            if (this._showRemainingSetting?.Value ?? false)
             {
                 additionalInfos.Add($"Remaining: {this._currentTransaction.Quantity}");
             }
 
-            if (this._getShowCreatedDate?.Invoke() ?? false)
+            if (this._showCreatedDateSetting?.Value ?? false)
             {
                 additionalInfos.Add($"Created: {this._currentTransaction.Created.ToLocalTime():dd.MM.yyyy HH:mm:ss}");
             }
@@ -174,7 +190,7 @@
 
         private string GetWrappedText(int maxSize)
         {
-            return DrawUtil.WrapText(this._getFont(), this.GetText(), maxSize);
+            return DrawUtil.WrapText(this.GetFont(), this.GetText(), maxSize);
         }
 
         private Size GetIconSize()
@@ -184,13 +200,15 @@
 
         protected override void InternalUpdate(GameTime gameTime)
         {
-            if (this._getShowTooltips?.Invoke() ?? false)
+            if (this._showTooltipsSetting.Value)
             {
                 _ = UpdateUtil.UpdateAsync(this.BuildTooltip, gameTime, _updateTooltipInterval.TotalMilliseconds, _timeSinceLastTooltipUpdate);
             }
 
+            BitmapFont font = this.GetFont();
+
             Size iconSize = this.GetIconSize();
-            Size2 textSize = this._getFont().MeasureString(this.GetText());
+            Size2 textSize = font.MeasureString(this.GetText());
 
             // Update our size based on the sizing mode
             var parent = this.Parent;
@@ -201,7 +219,7 @@
                                                       MathHelper.Clamp((int)Math.Ceiling(iconSize.Width + (SPACING_X * 3) + textSize.Width), 0, parent.Width),
                                                       parent.ContentRegion.Width - this.Left);
 
-                Size2 wrappedTextSize = this._getFont().MeasureString(this.GetWrappedText(width - iconSize.Width - (SPACING_X * 3)));
+                Size2 wrappedTextSize = font.MeasureString(this.GetWrappedText(width - iconSize.Width - (SPACING_X * 3)));
 
                 this.Size = new Point(width,
                                       this.GetUpdatedSizing(this.HeightSizingMode,
@@ -209,6 +227,12 @@
                                                       MathHelper.Clamp((int)Math.Ceiling(Math.Max(iconSize.Height, wrappedTextSize.Height)), 0, parent.Height),
                                                       parent.ContentRegion.Height - this.Top));
             }
+        }
+
+        private BitmapFont GetFont()
+        {
+            return _fontCache.GetOrAdd(this._fontSizeSetting?.Value ?? ContentService.FontSize.Size14,
+                fontSize => GameService.Content.GetFont(ContentService.FontFace.Menomonia, fontSize, ContentService.FontStyle.Regular));
         }
 
         private int GetUpdatedSizing(SizingMode sizingMode, int currentSize, int maxSize, int fillSize)
@@ -223,26 +247,20 @@
 
         private async Task BuildTooltip()
         {
-            var currentlyShowing = this._tooltip?.Visible ?? false;
-            this._tooltip?.Dispose();
-
             if (this._currentTransaction?.Item != null)
             {
                 var itemPrice = await _tradingPostState.GetPriceForItem(this._currentTransaction.ItemId, this._currentTransaction.Type);
-                var priceNote = this._getShowPriceAsTotal?.Invoke() ?? false ? $"You have enabled combined price display!" : null;
-                this._tooltip = new Tooltip(new PriceTooltipView(this._currentTransaction.Item.Name, this._currentTransaction.Item.Description, itemPrice, priceNote, this._transactionTexture, null, this._iconState));
-
-                if (currentlyShowing)
-                {
-                    this._tooltip.Show();
-                }
+                var priceNote = this._showPriceAsTotalSetting?.Value ?? false ? $"You have enabled combined price display!" : null;
+                this.Tooltip = new Tooltip(new PriceTooltipView(this._currentTransaction.Item.Name, this._currentTransaction.Item.Description, itemPrice, priceNote, this._transactionTexture, null, this._iconState));
             }
         }
 
         protected override void InternalDispose()
         {
-            this._tooltip?.Dispose();
+            this._showTooltipsSetting.SettingChanged -= this.ShowTooltips_SettingChanged;
+
             this._transactionTexture = null; // Don't dispose
+            this.Tooltip?.Dispose();
         }
     }
 }

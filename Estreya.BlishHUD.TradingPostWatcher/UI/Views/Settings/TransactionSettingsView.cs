@@ -26,8 +26,10 @@
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowPriceAsTotal);
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowRemaining);
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowCreated);
-            var showTooltipsSetting = this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowTooltips);
-            showTooltipsSetting.label.Text += " (WIP)";
+            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowTooltips);
+            this.RenderEmptyLine(parent);
+            this.RenderColorSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.HighestTransactionColor);
+            this.RenderColorSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.OutbidTransactionColor);
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)
