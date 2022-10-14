@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.Helpers;
+namespace Estreya.BlishHUD.Shared.Helpers;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -177,10 +177,14 @@ public class GitHubHelper : IDisposable
 
         await this.Login();
 
-        Issue issue = await this._github.Issue.Create(this._owner, this._repository, new NewIssue(title)
+        var newIssue = new NewIssue(title)
         {
             Body = issueMessage,
-        });
+        };
+
+        newIssue.Labels.Add($"Module: {this._moduleName}");
+
+        Issue issue = await this._github.Issue.Create(this._owner, this._repository, newIssue);
 
         if (includeSystemInformation)
         {
