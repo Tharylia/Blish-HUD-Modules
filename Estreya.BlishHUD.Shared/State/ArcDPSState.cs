@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.State;
 
 using Blish_HUD;
 using Blish_HUD.ArcDps;
@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 
 public class ArcDPSState : ManagedState
 {
+    private const int MAX_PARSE_PER_LOOP = 50;
     private SkillState _skillState;
 
     private ConcurrentQueue<RawCombatEventArgs> _rawCombatEventQueue;
@@ -87,33 +88,43 @@ public class ArcDPSState : ManagedState
 
             this._checkedFirstFrame = true;
             this._lastState = false;
-                }
+        }
         else if (GameService.ArcDps.Running != this._lastState)
         {
             if (GameService.ArcDps.Running)
-                {
-                    this.Logger.Debug("ArcDPS Service started.");
+            {
+                this.Logger.Debug("ArcDPS Service started.");
 
-                    this.Started?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    this.Logger.Debug("ArcDPS Service stopped.");
+                this.Started?.Invoke(this, EventArgs.Empty);
+            }
+            else
+            {
+                this.Logger.Debug("ArcDPS Service stopped.");
 
-                    this.Stopped?.Invoke(this, EventArgs.Empty);
-                }
+                this.Stopped?.Invoke(this, EventArgs.Empty);
+            }
 
             this._lastState = GameService.ArcDps.Running;
         }
 
         GameService.Debug.StartTimeFunc($"{nameof(ArcDPSState)}-UpdateIterateQueue", 60);
-        while (this._rawCombatEventQueue.TryDequeue(out RawCombatEventArgs eventData))
+
+        int parseCounter = 0;
+
+        // If parse counter is >= MAX_PARSE_PER_LOOP skip the following parses to the next frame.
+        // This prevents BlishHUD from freezing in heavy fights.
+
+        while (parseCounter < MAX_PARSE_PER_LOOP && this._rawCombatEventQueue.TryDequeue(out RawCombatEventArgs eventData))
         {
             foreach (var parsedCombatEvent in this.ParseCombatEvent(eventData))
             {
+                this.AddSkill(parsedCombatEvent, eventData.CombatEvent.SkillName);
                 this.EmitEvent(parsedCombatEvent, eventData.EventType);
             }
+
+            parseCounter++;
         }
+
         GameService.Debug.StopTimeFunc($"{nameof(ArcDPSState)}-UpdateIterateQueue");
     }
 
@@ -383,25 +394,6 @@ public class ArcDPSState : ManagedState
         //    types.Add(CombatEventType.NONE);
         //}
 
-        Skill skill = null;
-        if (types.Count > 0)
-        {
-            skill = this._skillState.GetById((int)ev.SkillId);
-
-            if (skill == null)
-            {
-               var added = this._skillState.AddMissingSkill((int)ev.SkillId, skillName);
-                if (added)
-                {
-                    this.Logger.Debug($"Failed to fetch skill \"{ev.SkillId}\". ArcDPS reports: {skillName}");
-                }
-            }
-            else
-            {
-                this._skillState.RemoveMissingSkill((int)ev.SkillId);
-            }
-        }
-
         foreach (CombatEventType type in types)
         {
             List<CombatEventCategory> categories = new List<CombatEventCategory>();
@@ -428,10 +420,7 @@ public class ArcDPSState : ManagedState
 
             foreach (CombatEventCategory category in categories)
             {
-                CombatEvent combatEvent = new CombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL)
-                {
-                    Skill = skill,
-                };
+                CombatEvent combatEvent = new CombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL);
 
                 combatEvents.Add(combatEvent);
             }
@@ -440,7 +429,29 @@ public class ArcDPSState : ManagedState
         return combatEvents;
     }
 
-    private void EmitEvent(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)
+    private void AddSkill(Models.ArcDPS.CombatEvent combatEvent, string skillNameByArcDPS)
+    {
+        Skill skill = this._skillState.GetById((int)combatEvent.Ev.SkillId);
+
+        if (skill == null)
+        {
+            var added = this._skillState.AddMissingSkill((int)combatEvent.Ev.SkillId, skillNameByArcDPS);
+            if (added)
+            {
+                this.Logger.Debug($"Failed to fetch skill \"{combatEvent.Ev.SkillId}\". ArcDPS reports: {skillNameByArcDPS}");
+            }
+
+            skill = SkillState.UnknownSkill;
+        }
+        else
+        {
+            this._skillState.RemoveMissingSkill((int)combatEvent.Ev.SkillId);
+        }
+
+        combatEvent.Skill = skill;
+    }
+
+    private void EmitEvent(Models.ArcDPS.CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)
     {
         try
         {
