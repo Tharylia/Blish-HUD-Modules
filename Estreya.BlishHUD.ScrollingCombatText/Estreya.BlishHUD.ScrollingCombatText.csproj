@@ -12,7 +12,7 @@
 	</PropertyGroup>
 	
 	<ItemGroup>
-		<PackageReference Include="BlishHUD" Version="0.11.8-ci.243">
+		<PackageReference Include="BlishHUD" Version="0.11.8-ci.275">
 			<ExcludeAssets>runtime;contentFiles</ExcludeAssets>
 		</PackageReference>
 		<PackageReference Include="Handlebars.Net" Version="2.1.2" />

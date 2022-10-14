@@ -20,7 +20,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="BlishHUD" Version="0.11.8-ci.243">
+		<PackageReference Include="BlishHUD" Version="0.11.8-ci.275">
 			<ExcludeAssets>runtime;contentFiles</ExcludeAssets>
 		</PackageReference>
 		<PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all" />
