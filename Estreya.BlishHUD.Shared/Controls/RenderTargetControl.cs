@@ -59,6 +59,13 @@ public abstract class RenderTargetControl : Control
         this.CreateRenderTarget();
     }
 
+    public override void Invalidate()
+    {
+        this._lastDraw = this.DrawInterval;
+
+        base.Invalidate();
+    }
+
     protected sealed override void Paint(SpriteBatch spriteBatch, Rectangle bounds)
     {
         spriteBatch.GraphicsDevice.PresentationParameters.RenderTargetUsage = RenderTargetUsage.PreserveContents;
@@ -70,7 +77,7 @@ public abstract class RenderTargetControl : Control
             {
                 if (this._renderTarget != null)
                 {
-                    if (this._renderTargetIsEmpty || this._lastDraw > this.DrawInterval)
+                    if (this._renderTargetIsEmpty || this._lastDraw >= this.DrawInterval)
                     {
                         spriteBatch.GraphicsDevice.SetRenderTarget(this._renderTarget);
 
