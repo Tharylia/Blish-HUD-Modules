@@ -124,11 +124,11 @@ public class GitHubHelper : IDisposable
         };
     }
 
-    public void OpenIssueWindow()
+    public void OpenIssueWindow(string title = null, string message = null)
     {
         this.UnloadIssueView();
 
-        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconState, GameService.Content.DefaultFont18);
+        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconState, GameService.Content.DefaultFont18, title, message);
         this._issueView.CreateClicked += this.IssueView_CreateClicked;
         this._issueView.CancelClicked += this.IssueView_CancelClicked;
 
