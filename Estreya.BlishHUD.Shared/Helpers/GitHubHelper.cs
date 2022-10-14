@@ -83,7 +83,7 @@ public class GitHubHelper : IDisposable
         {
             OauthDeviceFlowRequest request = new OauthDeviceFlowRequest(this._clientId);
             OauthDeviceFlowResponse deviceFlowResponse = await this._github.Oauth.InitiateDeviceFlow(request);
-            Controls.ScreenNotification notification = new Controls.ScreenNotification($"GITHUB: Enter the code {deviceFlowResponse.UserCode}", Controls.ScreenNotification.NotificationType.Info, duration: int.MaxValue)
+            Controls.ScreenNotification notification = new Controls.ScreenNotification($"GITHUB: Enter the code {deviceFlowResponse.UserCode}", Controls.ScreenNotification.NotificationType.Info, duration: TimeSpan.FromMinutes(15).Seconds)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Opacity = 1f,
@@ -124,11 +124,11 @@ public class GitHubHelper : IDisposable
         };
     }
 
-    public void OpenIssueWindow()
+    public void OpenIssueWindow(string title = null, string message = null)
     {
         this.UnloadIssueView();
 
-        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconState, GameService.Content.DefaultFont18);
+        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconState, GameService.Content.DefaultFont18, title, message);
         this._issueView.CreateClicked += this.IssueView_CreateClicked;
         this._issueView.CancelClicked += this.IssueView_CancelClicked;
 
@@ -177,10 +177,14 @@ public class GitHubHelper : IDisposable
 
         await this.Login();
 
-        Issue issue = await this._github.Issue.Create(this._owner, this._repository, new NewIssue(title)
+        var newIssue = new NewIssue(title)
         {
             Body = issueMessage,
-        });
+        };
+
+        newIssue.Labels.Add($"Module: {this._moduleName}");
+
+        Issue issue = await this._github.Issue.Create(this._owner, this._repository, newIssue);
 
         if (includeSystemInformation)
         {

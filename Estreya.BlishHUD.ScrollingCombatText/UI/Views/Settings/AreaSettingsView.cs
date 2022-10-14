@@ -457,10 +457,7 @@ public class AreaSettingsView : BaseSettingsView
         Label colorLabel = this.RenderLabel(parent, "Text Color").TitleLabel;
         colorLabel.Location = new Point(0, formatRuleTextSizeSelectLabel.Bottom + 20);
 
-        if (formatRule.TextColor == null)
-        {
-            formatRule.TextColor = this.DefaultColor;
-        }
+        formatRule.TextColor ??= this.DefaultColor;
 
         ColorBox colorBox = this.RenderColorBox(
             parent,
@@ -473,6 +470,11 @@ public class AreaSettingsView : BaseSettingsView
             },
             selectorPanel: this.MainPanel,
             innerSelectorPanelPadding: new Thickness(20, 20));
+
+        StandardButton suggestBetterColorButton = this.RenderButton(parent, "Suggest better format colors", 
+            () => ScrollingCombatTextModule.ModuleInstance.GitHubHelper.OpenIssueWindow("Color ... would look better for ..."));
+
+        suggestBetterColorButton.Location = new Point(0, colorLabel.Bottom + 20);
     }
 
     private void ClearAreaPanel()

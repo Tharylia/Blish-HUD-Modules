@@ -33,10 +33,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public const string WEBSITE_FILE_ROOT_URL = "https://files.blishhud.estreya.de";
 
     protected const string GITHUB_OWNER = "Tharylia";
-    protected const string GITHUB_REPOSITORY = "IssueTest";//"Blish-HUD-Modules";
+    protected const string GITHUB_REPOSITORY = "Blish-HUD-Modules";
     private const string GITHUB_CLIENT_ID = "Iv1.9e4dc29d43243704";
 
-    private GitHubHelper _githubHelper;
+    protected GitHubHelper GithubHelper { get; private set; }
 
     protected PasswordManager PasswordManager { get; private set; }
 
@@ -57,7 +57,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             if (this._webclient == null)
             {
-                this._webclient = new WebClient();
+                this._webclient = new Net.WebClient();
 
                 this._webclient.Headers.Add("user-agent", $"{this.Name} {this.Version}");
             }
@@ -138,7 +138,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Initialize states");
         await this.InitializeStates();
 
-        this._githubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY,GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconState);
+        this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY,GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconState);
 
         this.ModuleSettings.ModuleSettingsChanged += this.ModuleSettings_ModuleSettingsChanged;
     }
@@ -241,7 +241,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.SkillState = new SkillState(configurations.Skills, this.Gw2ApiManager, this.IconState, directoryPath);
+                this.SkillState = new SkillState(configurations.Skills, this.Gw2ApiManager, this.IconState, directoryPath, this.Webclient, WEBSITE_FILE_ROOT_URL);
                 this._states.Add(this.SkillState);
             }
 
@@ -351,7 +351,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     private void DefaultSettingView_CreateGithubIssueClicked(object sender, EventArgs e)
     {
-        this._githubHelper.OpenIssueWindow();
+        this.GithubHelper.OpenIssueWindow();
     }
 
     private void DefaultSettingView_OpenClicked(object sender, EventArgs e)

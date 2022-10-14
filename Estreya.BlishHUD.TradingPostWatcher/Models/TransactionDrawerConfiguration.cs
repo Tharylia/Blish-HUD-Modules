@@ -21,5 +21,8 @@
         public SettingEntry<bool> ShowCreated { get; set; }
 
         public SettingEntry<bool> ShowTooltips { get; set; }
+
+        public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> HighestTransactionColor { get; set; }
+        public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> OutbidTransactionColor { get; set; }
     }
 }

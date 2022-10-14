@@ -31,7 +31,7 @@
 
         internal static ScrollingCombatTextModule ModuleInstance => Instance;
 
-        internal DateTime DateTimeNow => DateTime.Now;
+        internal GitHubHelper GitHubHelper => base.GithubHelper;
 
         private Dictionary<string, ScrollingTextArea> _areas = new Dictionary<string, ScrollingTextArea>();
 
@@ -52,9 +52,6 @@
         protected override async Task LoadAsync()
         {
             await base.LoadAsync();
-
-            this.ArcDPSState.Stopped += this.ArcDPSState_Stopped;
-            this.ArcDPSState.Started += this.ArcDPSState_Started;
 
             // Wait for skills to be loaded.
             //await this.SkillState.WaitAsync();
@@ -95,16 +92,24 @@
 
         private void ArcDPSState_Stopped(object sender, EventArgs e)
         {
-            ScreenNotification.ShowNotification("ArcDPS Service stopped!", ScreenNotification.NotificationType.Error, duration: 10);
+            ScreenNotification.ShowNotification("ArcDPS Service stopped!", ScreenNotification.NotificationType.Error, duration: 5);
         }
         private void ArcDPSState_Started(object sender, EventArgs e)
         {
-            ScreenNotification.ShowNotification("ArcDPS Service started!", ScreenNotification.NotificationType.Info, duration: 10);
+            ScreenNotification.ShowNotification("ArcDPS Service started!", ScreenNotification.NotificationType.Info, duration: 5);
         }
 
         protected override void OnBeforeStatesStarted()
         {
+            this.ArcDPSState.Unavailable += this.ArcDPSState_Unavailable;
+            this.ArcDPSState.Started += this.ArcDPSState_Started;
+            this.ArcDPSState.Stopped += this.ArcDPSState_Stopped;
             this.ArcDPSState.LocalCombatEvent += this.ArcDPSState_LocalCombatEvent;
+        }
+
+        private void ArcDPSState_Unavailable(object sender, EventArgs e)
+        {
+            ScreenNotification.ShowNotification("ArcDPS Service unavailable!", ScreenNotification.NotificationType.Error, duration: 5);
         }
 
         private void ArcDPSState_LocalCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
@@ -249,8 +254,9 @@
 #endif
 
             this.Logger.Debug("Unloading states...");
-            this.ArcDPSState.Stopped -= this.ArcDPSState_Stopped;
+            this.ArcDPSState.Unavailable -= this.ArcDPSState_Unavailable;
             this.ArcDPSState.Started -= this.ArcDPSState_Started;
+            this.ArcDPSState.Stopped -= this.ArcDPSState_Stopped;
             this.Logger.Debug("Finished unloading states.");
 
             this.Logger.Debug("Unload base.");

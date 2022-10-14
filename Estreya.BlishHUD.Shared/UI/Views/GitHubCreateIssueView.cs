@@ -17,6 +17,8 @@ using System.Windows.Media.Animation;
 public class GitHubCreateIssueView : BaseView
 {
     private readonly string _moduleName;
+    private readonly string _title;
+    private readonly string _message;
 
     public event AsyncEventHandler<(string Title, string Message, string DiscordName, bool IncludeSystemInformation)> CreateClicked;
     public event EventHandler CancelClicked;
@@ -24,6 +26,12 @@ public class GitHubCreateIssueView : BaseView
     public GitHubCreateIssueView(string moduleName, IconState iconState, BitmapFont font = null) : base(null,iconState, font)
     {
         this._moduleName = moduleName;
+    }
+
+    public GitHubCreateIssueView(string moduleName, IconState iconState, BitmapFont font = null, string title = null, string message = null) : this(moduleName, iconState,font)
+    {
+        this._title = title;
+        this._message = message;
     }
 
     protected override void InternalBuild(Panel parent)
@@ -47,7 +55,7 @@ public class GitHubCreateIssueView : BaseView
         var issueTitleTextBox = this.RenderTextbox(parent, 
             new Microsoft.Xna.Framework.Point(this.LABEL_WIDTH, issueTitleLabel.Top), 
             parent.Width - this.LABEL_WIDTH, 
-            $"[BUG/FEATURE] {this._moduleName} ....", 
+            !string.IsNullOrWhiteSpace(this._title) ? this._title : $"[BUG/FEATURE] {this._moduleName} ....", 
             "Issue Title");
 
         issueTitleTextBox.BasicTooltipText = "Should contain a clear title describing the feature or bug.";
@@ -59,7 +67,7 @@ public class GitHubCreateIssueView : BaseView
         var issueMessageTextBox = this.RenderTextbox(parent,
             new Microsoft.Xna.Framework.Point(this.LABEL_WIDTH, issueMessageLabel.Top),
             parent.Width - this.LABEL_WIDTH,
-            $"",
+            !string.IsNullOrWhiteSpace(this._message) ? this._message : string.Empty,
             "Issue Message");
 
         issueMessageTextBox.BasicTooltipText = "Describe your feature or bug here.";
