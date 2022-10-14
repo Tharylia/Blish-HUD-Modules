@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+namespace Estreya.BlishHUD.Shared.State;
 
 using Blish_HUD;
 using Blish_HUD.ArcDps;
@@ -17,13 +17,26 @@ public class ArcDPSState : ManagedState
     private ConcurrentQueue<RawCombatEventArgs> _rawCombatEventQueue;
     private ConcurrentQueue<(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)> _parsedCombatEventQueue;
 
+    private bool _checkedFirstFrame = false;
     private bool _lastState = true;
 
     // Persitent Combat Data
     public ushort _selfInstId;
 
+    /// <summary>
+    /// Gets fired if the <see cref="ArcDpsService"/> has started running. State is compared against the state from last update frame.
+    /// </summary>
     public event EventHandler Started;
+
+    /// <summary>
+    /// Gets fired if the <see cref="ArcDpsService"/> has stopped running. State is compared against the state from last update frame.
+    /// </summary>
     public event EventHandler Stopped;
+
+    /// <summary>
+    /// Gets fired if ArcDPS is not available in the first update loop of BlishHUD.
+    /// </summary>
+    public event EventHandler Unavailable;
 
     public event EventHandler<CombatEvent> AreaCombatEvent;
     public event EventHandler<CombatEvent> LocalCombatEvent;
@@ -66,14 +79,18 @@ public class ArcDPSState : ManagedState
 
     protected override void InternalUpdate(GameTime gameTime)
     {
-        // TODO: Remove reflection
-        System.Reflection.PropertyInfo runningProperty = GameService.ArcDps.GetType().GetProperty("Running");
-        if (runningProperty != null)
+        if (!_checkedFirstFrame && !GameService.ArcDps.Running)
         {
-            bool running = (bool)runningProperty.GetValue(GameService.ArcDps);
-            if (running != this._lastState)
-            {
-                if (running)
+            this.Logger.Debug("ArcDPS Service not available.");
+
+            this.Unavailable?.Invoke(this, EventArgs.Empty);
+
+            this._checkedFirstFrame = true;
+            this._lastState = false;
+                }
+        else if (GameService.ArcDps.Running != this._lastState)
+        {
+            if (GameService.ArcDps.Running)
                 {
                     this.Logger.Debug("ArcDPS Service started.");
 
@@ -86,28 +103,7 @@ public class ArcDPSState : ManagedState
                     this.Stopped?.Invoke(this, EventArgs.Empty);
                 }
 
-                this._lastState = running;
-            }
-        }
-        else
-        {
-            if (GameService.ArcDps.RenderPresent != this._lastState)
-            {
-                if (GameService.ArcDps.RenderPresent)
-                {
-                    this.Logger.Debug("ArcDPS Service started.");
-
-                    this.Started?.Invoke(this, EventArgs.Empty);
-                }
-                else
-                {
-                    this.Logger.Debug("ArcDPS Service stopped.");
-
-                    this.Stopped?.Invoke(this, EventArgs.Empty);
-                }
-
-                this._lastState = GameService.ArcDps.RenderPresent;
-            }
+            this._lastState = GameService.ArcDps.Running;
         }
 
         GameService.Debug.StartTimeFunc($"{nameof(ArcDPSState)}-UpdateIterateQueue", 60);
