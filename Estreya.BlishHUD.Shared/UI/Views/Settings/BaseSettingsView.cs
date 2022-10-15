@@ -13,6 +13,7 @@
     using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Linq;
+    using System.Reflection;
     using static System.Windows.Forms.VisualStyles.VisualStyleElement.Menu;
 
     public abstract class BaseSettingsView : BaseView
@@ -137,6 +138,7 @@
             var keybindingAssigner = base.RenderKeybinding(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, onChangeAction: newValue =>
             {
                 settingEntry.Value = newValue;
+                GameService.Settings.Save(); // Force save as it is not a new object
             });
 
             keybindingAssigner.BasicTooltipText = settingEntry.Description;

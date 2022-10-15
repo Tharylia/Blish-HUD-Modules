@@ -50,24 +50,20 @@ public class CombatEventFormatRule
             return string.Empty;
         }
 
-        int value = 0;
-
-        if (combatEvent.Ev != null)
-        {
-            value = combatEvent.Ev.Buff ? combatEvent.Ev.BuffDmg : combatEvent.Ev.Value;
-        }
-
-        string category = combatEvent.Category.Humanize();
-        string type = combatEvent.Type.Humanize();
-        string skillId = combatEvent.Ev.SkillId.ToString();
-        string skillName = combatEvent.Skill?.Name ?? string.Empty;
-        string sourceName = combatEvent.Src?.Name ?? string.Empty;
-        string destinationName = combatEvent.Dst?.Name ?? string.Empty;
-
         if (string.IsNullOrWhiteSpace(this.Format))
         {
             return $"--Empty Format--";
         }
+
+        int value = 0;
+
+        if (combatEvent.Ev != null)
+        {
+            value = combatEvent.Ev.Buff ? (combatEvent.Ev.BuffDmg != 0 ? combatEvent.Ev.BuffDmg : (int)combatEvent.Ev.OverStackValue) : (combatEvent.Ev.Value != 0 ? combatEvent.Ev.Value : (int)combatEvent.Ev.OverStackValue);
+        }
+
+        string category = combatEvent.Category.Humanize();
+        string type = combatEvent.Type.Humanize();
 
         var template = Handlebars.Compile(this.Format);
 
