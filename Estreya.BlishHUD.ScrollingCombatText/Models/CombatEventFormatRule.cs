@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.ScrollingCombatText.Models;
+namespace Estreya.BlishHUD.ScrollingCombatText.Models;
 
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Gw2Sharp.WebApi.V2.Models;
@@ -50,6 +50,11 @@ public class CombatEventFormatRule
             return string.Empty;
         }
 
+        if (string.IsNullOrWhiteSpace(this.Format))
+        {
+            return $"--Empty Format--";
+        }
+
         int value = 0;
 
         if (combatEvent.Ev != null)
@@ -59,15 +64,6 @@ public class CombatEventFormatRule
 
         string category = combatEvent.Category.Humanize();
         string type = combatEvent.Type.Humanize();
-        string skillId = combatEvent.Ev.SkillId.ToString();
-        string skillName = combatEvent.Skill?.Name ?? string.Empty;
-        string sourceName = combatEvent.Src?.Name ?? string.Empty;
-        string destinationName = combatEvent.Dst?.Name ?? string.Empty;
-
-        if (string.IsNullOrWhiteSpace(this.Format))
-        {
-            return $"--Empty Format--";
-        }
 
         var template = Handlebars.Compile(this.Format);
 
