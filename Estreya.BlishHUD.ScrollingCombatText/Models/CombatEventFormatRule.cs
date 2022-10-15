@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.ScrollingCombatText.Models;
+﻿namespace Estreya.BlishHUD.ScrollingCombatText.Models;
 
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Gw2Sharp.WebApi.V2.Models;
@@ -59,7 +59,7 @@ public class CombatEventFormatRule
 
         if (combatEvent.Ev != null)
         {
-            value = combatEvent.Ev.Buff ? combatEvent.Ev.BuffDmg : combatEvent.Ev.Value;
+            value = combatEvent.Ev.Buff ? (combatEvent.Ev.BuffDmg != 0 ? combatEvent.Ev.BuffDmg : (int)combatEvent.Ev.OverStackValue) : (combatEvent.Ev.Value != 0 ? combatEvent.Ev.Value : (int)combatEvent.Ev.OverStackValue);
         }
 
         string category = combatEvent.Category.Humanize();
