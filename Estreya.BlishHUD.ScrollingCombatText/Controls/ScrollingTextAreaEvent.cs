@@ -91,7 +91,7 @@ public class ScrollingTextAreaEvent : RenderTargetControl
     protected override void InternalDispose()
     {
         this._font = null;
-        this._combatEvent?.Dispose();
+        //this._combatEvent?.Dispose();
         this._combatEvent = null;
         this._formatRule = null;
     }
@@ -175,7 +175,7 @@ public class ScrollingTextAreaEvent : RenderTargetControl
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "Failed parsing event:");
+            Logger.Warn(ex, "Failed parsing event:");
 
             this._scrollingTexts.Add(new ScrollingTextAreaText()
             {

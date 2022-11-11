@@ -26,6 +26,9 @@ public class EventArea : Container
 {
     private static readonly Logger Logger = Logger.GetLogger<EventArea>();
 
+    private static TimeSpan _updateEventInterval = TimeSpan.FromMinutes(15);
+    private double _lastEventUpdate = 0;
+
     private static readonly ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
     private EventState _eventState;
     private WorldbossState _worldbossState;
@@ -61,6 +64,9 @@ public class EventArea : Container
         this._eventState = eventState;
         this._worldbossState = worldbossState;
         this._mapchestState = mapchestState;
+
+        //this._eventState.
+
         this._worldbossState.WorldbossCompleted += this.Event_Completed;
         this._worldbossState.WorldbossRemoved += this.Event_Removed;
 
@@ -170,13 +176,36 @@ public class EventArea : Container
     {
         using var suspendCtx = this.SuspendLayoutContext();
 
+        this.Children.ToList().ForEach(child => child.Dispose());
         this.Children.Clear();
 
         var times = this.GetTimes();
 
         foreach (var eventKey in this.Configuration.ActiveEventKeys.Value)
         {
+            this._controlEvents.TryRemove(eventKey, out var _);
 
+            //eventKey == Event.SettingsKey
+            var events = this._allEvents.SelectMany(ec => ec.Events.Where(ev => ev.SettingKey == eventKey)).ToList();
+            if (events.Count == 0)
+            {
+                continue;
+            }
+
+            var controlEvents= new List<Event>();
+
+            foreach (Models.Event ev in events)
+            {
+                foreach (var occurence in ev.Occurences)
+                {
+                    controlEvents.Add(new Event(ev, occurence, occurence.AddMinutes(ev.Duration), _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular)), this.Configuration.TextColor.Value.Cloth.ToXnaColor())
+                    {
+                        Parent = this,
+                    });
+                }
+            }
+
+            this._controlEvents[eventKey] = controlEvents;
         }
     }
 
@@ -197,12 +226,13 @@ public class EventArea : Container
         this._allEvents.ForEach(ec =>
         {
             ec.UpdateEventOccurences(times.Now, times.Min, times.Max);
-            ec.Events.ForEach(ev => ev.UpdateOccurences(times.Now, times.Min, times.Max));
+            // Called in EventCategory.UpdateEventOccurences
+            //ec.Events.ForEach(ev => ev.UpdateOccurences(times.Now, times.Min, times.Max));
         });
     }
 
     public override void UpdateContainer(GameTime gameTime)
     {
-        //UpdateUtil.Update()
+        UpdateUtil.Update(this.UpdateEvents, gameTime, _updateEventInterval.TotalMilliseconds, ref _lastEventUpdate);
     }
 }

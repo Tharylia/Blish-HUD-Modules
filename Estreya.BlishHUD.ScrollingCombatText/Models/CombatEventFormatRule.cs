@@ -18,6 +18,8 @@ public class CombatEventFormatRule
 
     public CombatEventType Type { get; set; }
 
+    public CombatEventState State { get; set; }
+
     public string Name => $"{this.Category.Humanize()} - {this.Type.Humanize()}";
 
     [Description(
@@ -55,44 +57,30 @@ public class CombatEventFormatRule
             return $"--Empty Format--";
         }
 
-        int value = 0;
-
-        if (combatEvent.Ev != null)
-        {
-            value = combatEvent.Ev.Buff ? (combatEvent.Ev.BuffDmg != 0 ? combatEvent.Ev.BuffDmg : (int)combatEvent.Ev.OverStackValue) : (combatEvent.Ev.Value != 0 ? combatEvent.Ev.Value : (int)combatEvent.Ev.OverStackValue);
-        }
-
         string category = combatEvent.Category.Humanize();
         string type = combatEvent.Type.Humanize();
 
         var template = Handlebars.Compile(this.Format);
 
+        var combatEventFields = new Dictionary<string, object>();
+        var fieldInfos = combatEvent.GetType().GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly | System.Reflection.BindingFlags.Public);
+        foreach (var fieldInfo in fieldInfos)
+        {
+            combatEventFields.Add(fieldInfo.Name, fieldInfo.GetValue(combatEvent));
+        }
+
         return template.Invoke(new
         {
             category,
             type,
-            source = new 
-            {
-                id = combatEvent.Src?.Id ?? 0,
-                name = combatEvent.Src?.Name ?? "Unknown",
-                profession = combatEvent.Src?.Profession ?? 0,
-                elite = combatEvent.Src?.Elite ?? 0,
-                team = combatEvent.Src?.Team ?? 0
-            },
-            destination = new
-            {
-                id = combatEvent.Dst?.Id ?? 0,
-                name = combatEvent.Dst?.Name ?? "Unknown",
-                profession = combatEvent.Dst?.Profession ?? 0,
-                elite = combatEvent.Dst?.Elite ?? 0,
-                team = combatEvent.Dst?.Team ?? 0
-            },
+            source = combatEvent.Source,
+            destination = combatEvent.Destination,
             skill = new
             {
-                id = combatEvent.Skill?.Id ?? 0,
-                name = combatEvent.Skill?.Name ?? "Unknown"
+                Id = combatEvent.Skill?.Id ?? 0,
+                Name = combatEvent.Skill?.Name ?? "Unknown"
             },
-            value
+            combatEvent = combatEventFields
         });
             //.Replace("{category}", category)
             //.Replace("{type}", type)
