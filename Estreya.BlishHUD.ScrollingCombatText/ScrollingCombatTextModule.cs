@@ -70,7 +70,7 @@
 
             foreach (string areaName in this.ModuleSettings.ScrollingAreaNames.Value)
             {
-                this.AddArea(this.ModuleSettings.AddDrawer(areaName));
+                this.AddArea(areaName);
             }
 
 #if DEBUG
@@ -116,10 +116,8 @@
         {
             foreach (var area in this._areas.Values)
             {
-                area.AddCombatEvent(new Shared.Models.ArcDPS.CombatEvent(e.Ev, e.Src, e.Dst, e.Category, e.Type, e.State) { Skill = e.Skill });
+                area.AddCombatEvent(e);
             }
-
-            e.Dispose();
         }
 
         protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
@@ -182,12 +180,11 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General Settings"));
-            //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
             var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
-                this.AddArea(e);
+                e.AreaConfiguration = this.AddArea(e.Name);
             };
 
             areaSettingsView.RemoveArea += (s, e) =>
@@ -195,11 +192,29 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156742.png"), () => areaSettingsView, "SCT Area Settings"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156742.png"), () => areaSettingsView, "SCT Areas"));
+        }
+
+        private ScrollingTextAreaConfiguration AddArea(string areaName)
+        {
+            if (string.IsNullOrWhiteSpace(areaName))
+            {
+                throw new ArgumentNullException(nameof(areaName), "Area name can't be null or empty.");
+            }
+
+            var configuration = this.ModuleSettings.AddDrawer(areaName);
+            this.AddArea(configuration);
+
+            return configuration;
         }
 
         private void AddArea(ScrollingTextAreaConfiguration configuration)
         {
+            if (string.IsNullOrWhiteSpace(configuration.Name))
+            {
+                throw new ArgumentNullException(nameof(configuration.Name), "Area name can't be null or empty.");
+            }
+
             if (!this.ModuleSettings.ScrollingAreaNames.Value.Contains(configuration.Name))
             {
                 this.ModuleSettings.ScrollingAreaNames.Value = new List<string>(this.ModuleSettings.ScrollingAreaNames.Value) { configuration.Name };
