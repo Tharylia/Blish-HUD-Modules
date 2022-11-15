@@ -1,0 +1,31 @@
+{
+  "name": "Live Map",
+  "version": "0.2.1",
+  "namespace": "estreya.bh.liveMap",
+  "package": "Estreya.BlishHUD.LiveMap.dll",
+  "manifest_version": 1,
+  "description": "",
+  "dependencies": {
+    "bh.blishhud": ">=0.11.7"
+  },
+  "url": "https://github.com/Tharylia/Blish-HUD-Modules",
+  "contributors": [
+    {
+      "name": "Estreya",
+      "username": "Estreya.8675"
+    }
+  ],
+  "api_permissions": {
+    "account": {
+      "optional": false,
+      "details": "Needed to check for account name."
+    },
+    "characters": {
+      "optional": false,
+      "details": "Needed to check for guild id."
+    }
+  },
+  "directories": [],
+  "actions": [],
+  "enabled_without_gw2": false
+}
