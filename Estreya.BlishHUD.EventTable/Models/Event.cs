@@ -6,6 +6,7 @@
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.Shared.Attributes;
     using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
@@ -23,6 +24,7 @@
     [Serializable]
     public class Event
     {
+        [IgnoreCopy]
         private static readonly Logger Logger = Logger.GetLogger<Event>();
         private EventState _eventState;
         private Func<DateTime> _getNowAction;
@@ -76,7 +78,7 @@
         public bool Filler { get; set; }
 
         [JsonIgnore]
-        public List<DateTime> Occurences { get; private set; }
+        public List<DateTime> Occurences { get; private set; } = new List<DateTime>();
 
         [JsonIgnore]
         public string SettingKey { get; private set; }
@@ -100,7 +102,7 @@
 
         public void UpdateOccurences(DateTime now, DateTime min, DateTime max)
         {
-            this.Occurences = this.GetStartOccurences(now, min, max);
+            this.Occurences = this.GetStartOccurences(now, min.AddDays(-2), max.AddDays(2));
         }
 
         private List<DateTime> GetStartOccurences(DateTime now, DateTime min, DateTime max)
@@ -132,6 +134,23 @@
             return startOccurences;
         }
 
+        public DateTime? GetCurrentOccurence(DateTime now)
+        {
+            var occurences = this.Occurences.Where(oc => oc <= now && oc.AddMinutes(this.Duration) >= now);
+            return occurences.Any() ? occurences.First() : null;
+        }
+
+        public bool IsRunning(DateTime now)
+        {
+            return this.GetCurrentOccurence(now) != null;
+        }
+
+        public TimeSpan GetTimeRemaining(DateTime now)
+        {
+            var co = this.GetCurrentOccurence(now);
+            return !co.HasValue ? TimeSpan.Zero : co.Value.AddMinutes(this.Duration) - now;
+        }
+
         public void Hide()
         {
             DateTime now = this._getNowAction().ToUniversalTime();
@@ -158,10 +177,36 @@
             return finished;
         }
 
+        public double CalculateXPosition(DateTime start, DateTime min, double pixelPerMinute)
+        {
+            double minutesSinceMin = start.Subtract(min).TotalMinutes;
+            return minutesSinceMin * pixelPerMinute;
+        }
+
+        public double CalculateWidth(DateTime eventOccurence, DateTime min, int maxWidth, double pixelPerMinute)
+        {
+            double eventWidth = this.Duration * pixelPerMinute;
+
+            double x = this.CalculateXPosition(eventOccurence, min, pixelPerMinute);
+
+            if (x < 0)
+            {
+                eventWidth -= Math.Abs(x);
+            }
+
+            // Only draw event until end of form
+            if ((x > 0 ? x : 0) + eventWidth > maxWidth)
+            {
+                eventWidth = maxWidth - (x > 0 ? x : 0);
+            }
+
+            //eventWidth = Math.Min(eventWidth, bounds.Width/* - x*/);
+
+            return eventWidth;
+        }
+
         public Task LoadAsync(EventCategory ec, EventState eventState, Func<DateTime> getNowAction)
         {
-            Logger.Debug("Load event: {0}", this.Key);
-
             this._eventState = eventState;
             this._getNowAction = getNowAction;
 
@@ -178,16 +223,17 @@
 
             this.SettingKey = $"{ec.Key}_{this.Key}";
 
-            Logger.Debug("Loaded event: {0}", this.Key);
-
             return Task.CompletedTask;
         }
 
         public void Unload()
         {
-            Logger.Debug("Unload event: {0}", this.Key);
+        }
 
-            Logger.Debug("Unloaded event: {0}", this.Key);
+        public override string ToString()
+        {
+            var keySplit = this.SettingKey.Split('_');
+            return $"Category: {keySplit[0]} - Name: {keySplit[1]} - Filler {this.Filler}";
         }
     }
 }

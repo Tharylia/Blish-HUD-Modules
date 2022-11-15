@@ -61,14 +61,25 @@
 
         protected override async Task LoadAsync()
         {
+            await base.LoadAsync();
+
             Logger.Debug("Load events.");
             await this.LoadEvents();
 
-            await base.LoadAsync();
 
             this.AddAllAreas();
 
+            await this.SetAreaEvents();
+
             this.MapNavigationUtil = new MapNavigationUtil(this.ModuleSettings.MapKeybinding.Value);
+        }
+
+        private async Task SetAreaEvents()
+        {
+            foreach (var area in this._areas.Values)
+            {
+                await area.UpdateAllEvents(this.EventCategories);
+            }
         }
 
         /// <summary>
@@ -97,7 +108,7 @@
                         this.EventCategories.Clear();
                     }
 
-                    EventSettingsFile eventSettingsFile = await this.EventFileState.GetExternalFile();
+                    EventSettingsFile eventSettingsFile = await this.EventFileState.GetLocalFile();
 
                     if (eventSettingsFile == null)
                     {
@@ -114,12 +125,16 @@
 
                     Logger.Info($"Loaded {eventCategoryCount} Categories with {eventCount} Events.");
 
-                    IEnumerable<Task> eventCategoryLoadTasks = categories.Select(ec =>
-                    {
-                        return ec.LoadAsync(this.EventState, () => this.DateTimeNow);
-                    });
+                    //IEnumerable<Task> eventCategoryLoadTasks = categories.Select(ec =>
+                    //{
+                    //    return ec.LoadAsync(this.EventState, () => this.DateTimeNow);
+                    //});
 
-                    await Task.WhenAll(eventCategoryLoadTasks);
+                    //await Task.WhenAll(eventCategoryLoadTasks);
+
+                    this.EventCategories = categories;
+
+                    await this.SetAreaEvents();
                 }
                 catch (Exception ex)
                 {
@@ -192,9 +207,14 @@
 
         private void AddAllAreas()
         {
+            if (this.ModuleSettings.EventAreaNames.Value.Count == 0)
+            {
+                this.ModuleSettings.EventAreaNames.Value.Add("main");
+            }
+
             foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
             {
-                this.AddArea(this.ModuleSettings.AddDrawer(areaName));
+                this.AddArea(this.ModuleSettings.AddDrawer(areaName, this.EventCategories));
             }
         }
 
@@ -205,7 +225,7 @@
                 this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value) { configuration.Name };
             }
 
-            var area = new EventArea(configuration, this.EventState, this.WorldbossState, this.MapchestState, () => this.DateTimeNow)
+            var area = new EventArea(configuration, this.IconState,this.EventState, this.WorldbossState, this.MapchestState, () => this.DateTimeNow)
             {
                 Parent = GameService.Graphics.SpriteScreen
             };
@@ -248,6 +268,9 @@
 
             Logger.Debug("Unloaded event categories.");
 
+            this.EventFileState.NewVersionAvailable -= this.EventFileState_NewVersionAvailable;
+            this.EventFileState.Updated -= this.EventFileState_Updated;
+
             this.Logger.Debug("Unload base.");
 
             base.Unload();
@@ -264,13 +287,13 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            /*
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General Settings"));
+            
+            //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General Settings"));
             //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
-            var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+            var areaSettingsView = new UI.Views.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
-                this.AddArea(e);
+                this.AddArea(e.AreaConfiguration);
             };
 
             areaSettingsView.RemoveArea += (s, e) =>
@@ -278,13 +301,14 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156742.png"), () => areaSettingsView, "Event Areas"));*/
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156742.png"), () => areaSettingsView, "Event Areas"));
         }
 
         protected override string GetDirectoryName() => "events";
 
         protected override void ConfigureStates(StateConfigurations configurations)
         {
+            configurations.Account.Enabled = true;
             configurations.Worldbosses.Enabled = true;
             configurations.Mapchests.Enabled = true;
             configurations.PointOfInterests.Enabled = true;
@@ -304,6 +328,10 @@
                 Enabled = true,
                 SaveInterval = Timeout.InfiniteTimeSpan
             }, directoryPath, "events.json");
+
+            this.EventFileState.NewVersionAvailable += this.EventFileState_NewVersionAvailable;
+            this.EventFileState.Updated += this.EventFileState_Updated;
+
             this.EventState = new EventState(new StateConfiguration()
             {
                 AwaitLoading = false,
@@ -317,14 +345,41 @@
             return additionalStates;
         }
 
+        private void EventFileState_Updated(object sender, EventArgs e)
+        {
+            Task.Run(this.LoadEvents);
+        }
+
+        private void EventFileState_NewVersionAvailable(object sender, NewEventFileVersionArgs e)
+        {
+            if (e.IsSelfUpdate)
+            {
+                Shared.Controls.ScreenNotification.ShowNotification(new string[]
+                {
+                    $"The event file got auto updated: {e.OldVersion} -> {e.NewVersion}"
+                }, duration: 5);
+            }
+            else
+            {
+                if (!e.AlreadyNotified)
+                {
+                    Shared.Controls.ScreenNotification.ShowNotification(new string[]
+                    {
+                    $"Version {e.NewVersion} of the event file is available.",
+                    $"Please update it from the settings window. You are running {e.OldVersion}"
+                    }, duration: 10);
+                }
+            }
+        }
+
         protected override AsyncTexture2D GetEmblem()
         {
-            throw new NotImplementedException();
+            return this.IconState.GetIcon("102392.png");
         }
 
         protected override AsyncTexture2D GetCornerIcon()
         {
-            throw new NotImplementedException();
+            return this.IconState.GetIcon("textures/event_boss_grey.png");
         }
     }
 }

@@ -15,8 +15,9 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Folder Include="ref\images\" />
-		<Folder Include="UI\Views\Settings\" />
+	  <Compile Remove="UI\Views\Settings\**" />
+	  <EmbeddedResource Remove="UI\Views\Settings\**" />
+	  <None Remove="UI\Views\Settings\**" />
 	</ItemGroup>
 
 	<ItemGroup>

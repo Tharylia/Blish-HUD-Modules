@@ -9,6 +9,7 @@
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.Models.Settings;
     using Estreya.BlishHUD.EventTable.Resources;
+    using Estreya.BlishHUD.Shared.Controls;
     using Microsoft.Xna.Framework;
     using Newtonsoft.Json;
     using System;
@@ -87,13 +88,13 @@
                 }
 
                 Logger.Debug("Load current external file.");
-                EventSettingsFile eventSettingsFile = await EventTableModule.ModuleInstance.EventFileState.GetExternalFile();
+                EventSettingsFile eventSettingsFile = await EventTableModule.ModuleInstance.EventFileState.GetLocalFile();
                 eventSettingsFile.EventCategories = currentCategories;
                 Logger.Debug("Export updated file.");
                 await EventTableModule.ModuleInstance.EventFileState.ExportFile(eventSettingsFile);
                 Logger.Debug("Reload events.");
                 await EventTableModule.ModuleInstance.LoadEvents();
-                EventTable.Controls.ScreenNotification.ShowNotification(Strings.ReorderEventsView_Save_Success);
+                Shared.Controls.ScreenNotification.ShowNotification(Strings.ReorderEventsView_Save_Success);
             };
 
             StandardButton resetButton = new StandardButton()

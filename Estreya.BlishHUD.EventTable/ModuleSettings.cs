@@ -54,7 +54,7 @@
             this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
         }
 
-        public EventAreaConfiguration AddDrawer(string name)
+        public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories)
         {
             DrawerConfiguration drawer = base.AddDrawer(name);
 
@@ -67,17 +67,15 @@
             var historySplit = this.DrawerSettings.DefineSetting($"{name}-historySplit", 50, () => "History Split", () => "Defines how much history the timespan should contain.");
             historySplit.SetRange(0, 75);
 
-            drawer.Size.Y.SetRange(5, 50); // Limit height
-            drawer.Size.Y.Value = 30;
-
             var drawBorders = this.DrawerSettings.DefineSetting($"{name}-drawBorders", false, () => "Draw Borders", () => "Whether the events should be rendered with borders.");
             var useFillers = this.DrawerSettings.DefineSetting($"{name}-useFillers", true, () => "Use Filler Events", () => "Whether the empty spaces should be filled by filler events.");
+            var fillerTextColor = this.DrawerSettings.DefineSetting($"{name}-fillerTextColor", this.DefaultGW2Color, () => "Filler Text Color", () => "Defines the text color used by filler events.");
 
             var acceptWaypointPrompt = this.DrawerSettings.DefineSetting($"{name}-acceptWaypointPrompt", true, () => "Accept Waypoint Prompt", () => "Whether the waypoint prompt should be accepted automatically when performing an automated teleport.");
 
             var completionAction = this.DrawerSettings.DefineSetting($"{name}-completionAction", EventCompletedAction.Crossout, () => "Completion Action", () => "Defines the action to perform if an event has been completed.");
 
-            var activeEventKeys = this.DrawerSettings.DefineSetting($"{name}-activeEventKeys", new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
+            var activeEventKeys = this.DrawerSettings.DefineSetting($"{name}-activeEventKeys", eventCategories.SelectMany(ec => ec.Events.Select(ev => ev.SettingKey)).ToList(), () => "Active Event Keys", () => "Defines the active event keys.");
 
             return new EventAreaConfiguration()
             {
@@ -97,6 +95,7 @@
                 HistorySplit = historySplit,
                 TimeSpan = timespan,
                 UseFiller = useFillers,
+                FillerTextColor = fillerTextColor,
                 AcceptWaypointPrompt = acceptWaypointPrompt,
                 ActiveEventKeys = activeEventKeys,
                 CompletionAcion = completionAction

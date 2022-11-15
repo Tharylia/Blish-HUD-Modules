@@ -3,6 +3,7 @@
     using Blish_HUD;
     using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.Shared.Attributes;
     using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
@@ -15,6 +16,7 @@
     [Serializable]
     public class EventCategory
     {
+        [IgnoreCopy]
         private static readonly Logger Logger = Logger.GetLogger<EventCategory>();
 
         private readonly TimeSpan updateInterval = TimeSpan.FromMinutes(15);
@@ -76,7 +78,7 @@
             this.timeSinceUpdate = this.updateInterval.TotalMilliseconds;
         }
 
-        public void UpdateEventOccurences(DateTime now, DateTime min, DateTime max)
+        public async Task UpdateEventOccurences(DateTime now, DateTime min, DateTime max)
         {
             lock (this._fillerEvents)
             {
@@ -124,7 +126,7 @@
                         Filler = true
                     };
 
-                    AsyncHelper.RunSync(() => filler.LoadAsync(this, this._eventState, this._getNowAction));
+                    await filler.LoadAsync(this, this._eventState, this._getNowAction);
 
                     modifiedEventStarts.Insert(i + 1, new KeyValuePair<DateTime, Event>(currentEnd, filler));
                 }
@@ -140,48 +142,56 @@
                 {
                     return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > lastEvent.Key && oc < max.AddDays(2))/*GetStartOccurences(now, max.AddDays(2), lastEvent.Key, limitsBetweenRanges: true)*/.FirstOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).First();
-                KeyValuePair<DateTime, Event> nextEventMapping = new KeyValuePair<DateTime, Event>(nextEvent.Key, nextEvent.Value);
 
-                DateTime nextStart = nextEventMapping.Key;
-                DateTime nextEnd = nextStart + TimeSpan.FromMinutes(nextEventMapping.Value.Duration);
 
-                if (nextStart - lastEvent.Key > TimeSpan.Zero)
+                if (nextEvent.Key != default)
                 {
-                    Event filler = new Event()
+                    KeyValuePair<DateTime, Event> nextEventMapping = new KeyValuePair<DateTime, Event>(nextEvent.Key, nextEvent.Value);
+
+                    DateTime nextStart = nextEventMapping.Key;
+                    DateTime nextEnd = nextStart + TimeSpan.FromMinutes(nextEventMapping.Value.Duration);
+
+                    if (nextStart - lastEvent.Key > TimeSpan.Zero)
                     {
-                        Name = $"{lastEvent.Value.Name} - {nextEventMapping.Value.Name}",
-                        Filler = true,
-                        Duration = (int)(nextStart - lastEvent.Key).TotalMinutes
-                    };
+                        Event filler = new Event()
+                        {
+                            Name = $"{lastEvent.Value.Name} - {nextEventMapping.Value.Name}",
+                            Filler = true,
+                            Duration = (int)(nextStart - lastEvent.Key).TotalMinutes
+                        };
 
-                    AsyncHelper.RunSync(() => filler.LoadAsync(this, this._eventState, this._getNowAction));
+                        await filler.LoadAsync(this, this._eventState, this._getNowAction);
 
-                    modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(lastEvent.Key + TimeSpan.FromMinutes(lastEvent.Value.Duration), filler));
+                        modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(lastEvent.Key + TimeSpan.FromMinutes(lastEvent.Value.Duration), filler));
+                    }
                 }
 
                 // We have a previous event
                 KeyValuePair<DateTime, Event> prevEvent = activeEvents.Select(ae =>
                 {
-                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min.AddDays(-2) && oc < firstEvent.Key)/*GetStartOccurences(now, firstEvent.Key, min.AddDays(-2), limitsBetweenRanges: true)*/.LastOrDefault(), ae);
+                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min.AddDays(-2) && oc < firstEvent.Key).LastOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).Last();
 
-                KeyValuePair<DateTime, Event> prevEventMapping = new KeyValuePair<DateTime, Event>(prevEvent.Key, prevEvent.Value);
-
-                DateTime prevStart = prevEventMapping.Key;
-                DateTime prevEnd = prevStart + TimeSpan.FromMinutes(prevEventMapping.Value.Duration);
-
-                if (firstEvent.Key - prevEnd > TimeSpan.Zero)
+                if (prevEvent.Key != default)
                 {
-                    Event filler = new Event()
+                    KeyValuePair<DateTime, Event> prevEventMapping = new KeyValuePair<DateTime, Event>(prevEvent.Key, prevEvent.Value);
+
+                    DateTime prevStart = prevEventMapping.Key;
+                    DateTime prevEnd = prevStart + TimeSpan.FromMinutes(prevEventMapping.Value.Duration);
+
+                    if (firstEvent.Key - prevEnd > TimeSpan.Zero)
                     {
-                        Name = $"{prevEventMapping.Value.Name} - {firstEvent.Value.Name}",
-                        Filler = true,
-                        Duration = (int)(firstEvent.Key - prevEnd).TotalMinutes
-                    };
+                        Event filler = new Event()
+                        {
+                            Name = $"{prevEventMapping.Value.Name} - {firstEvent.Value.Name}",
+                            Filler = true,
+                            Duration = (int)(firstEvent.Key - prevEnd).TotalMinutes
+                        };
 
-                    AsyncHelper.RunSync(() => filler.LoadAsync(this, this._eventState, this._getNowAction));
+                        await filler.LoadAsync(this, this._eventState, this._getNowAction);
 
-                    modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
+                        modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
+                    }
                 }
             }
             else if (activeEventStarts.Count == 1 && activeEvents.Count >= 1)
@@ -195,23 +205,27 @@
                 {
                     return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > currentEnd && oc < max.AddDays(2))/*GetStartOccurences(now, max.AddDays(2), currentEnd, limitsBetweenRanges: true)*/.FirstOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).First();
-                KeyValuePair<DateTime, Event> nextEventMapping = new KeyValuePair<DateTime, Event>(nextEvent.Key, nextEvent.Value);
 
-                DateTime nextStart = nextEventMapping.Key;
-                DateTime nextEnd = nextStart + TimeSpan.FromMinutes(nextEventMapping.Value.Duration);
-
-                if (nextStart - currentEnd > TimeSpan.Zero)
+                if (nextEvent.Key != default)
                 {
-                    Event filler = new Event()
+                    KeyValuePair<DateTime, Event> nextEventMapping = new KeyValuePair<DateTime, Event>(nextEvent.Key, nextEvent.Value);
+
+                    DateTime nextStart = nextEventMapping.Key;
+                    DateTime nextEnd = nextStart + TimeSpan.FromMinutes(nextEventMapping.Value.Duration);
+
+                    if (nextStart - currentEnd > TimeSpan.Zero)
                     {
-                        Name = $"{currentEvent.Value.Name} - {nextEventMapping.Value.Name}",
-                        Filler = true,
-                        Duration = (int)(nextStart - currentEnd).TotalMinutes
-                    };
+                        Event filler = new Event()
+                        {
+                            Name = $"{currentEvent.Value.Name} - {nextEventMapping.Value.Name}",
+                            Filler = true,
+                            Duration = (int)(nextStart - currentEnd).TotalMinutes
+                        };
 
-                    AsyncHelper.RunSync(() => filler.LoadAsync(this, this._eventState, this._getNowAction));
+                        await filler.LoadAsync(this, this._eventState, this._getNowAction);
 
-                    modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(currentEnd, filler));
+                        modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(currentEnd, filler));
+                    }
                 }
 
                 // We have a previous event
@@ -220,23 +234,26 @@
                     return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min.AddDays(-2) && oc < currentStart)/*GetStartOccurences(now, currentStart, min.AddDays(-2), limitsBetweenRanges: true)*/.LastOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).Last();
 
-                KeyValuePair<DateTime, Event> prevEventMapping = new KeyValuePair<DateTime, Event>(prevEvent.Key, prevEvent.Value);
-
-                DateTime prevStart = prevEventMapping.Key;
-                DateTime prevEnd = prevStart + TimeSpan.FromMinutes(prevEventMapping.Value.Duration);
-
-                if (currentStart - prevEnd > TimeSpan.Zero)
+                if (prevEvent.Key != default)
                 {
-                    Event filler = new Event()
+                    KeyValuePair<DateTime, Event> prevEventMapping = new KeyValuePair<DateTime, Event>(prevEvent.Key, prevEvent.Value);
+
+                    DateTime prevStart = prevEventMapping.Key;
+                    DateTime prevEnd = prevStart + TimeSpan.FromMinutes(prevEventMapping.Value.Duration);
+
+                    if (currentStart - prevEnd > TimeSpan.Zero)
                     {
-                        Name = $"{prevEventMapping.Value.Name} - {currentEvent.Value.Name}",
-                        Filler = true,
-                        Duration = (int)(currentStart - prevEnd).TotalMinutes
-                    };
+                        Event filler = new Event()
+                        {
+                            Name = $"{prevEventMapping.Value.Name} - {currentEvent.Value.Name}",
+                            Filler = true,
+                            Duration = (int)(currentStart - prevEnd).TotalMinutes
+                        };
 
-                    AsyncHelper.RunSync(() => filler.LoadAsync(this, this._eventState, this._getNowAction));
+                        await filler.LoadAsync(this, this._eventState, this._getNowAction);
 
-                    modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
+                        modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
+                    }
                 }
             }
             else if (activeEventStarts.Count == 0 && activeEvents.Count >= 1)
@@ -251,23 +268,27 @@
                     return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min && oc < max.AddDays(2))/*GetStartOccurences(now, max.AddDays(2), now, limitsBetweenRanges: true)*/.FirstOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).First();
 
-                KeyValuePair<DateTime, Event> prevEventMapping = new KeyValuePair<DateTime, Event>(prevEvent.Key, prevEvent.Value);
-                KeyValuePair<DateTime, Event> nextEventMapping = new KeyValuePair<DateTime, Event>(nextEvent.Key, nextEvent.Value);
-
-                DateTime prevStart = prevEventMapping.Key;
-                DateTime prevEnd = prevStart + TimeSpan.FromMinutes(prevEventMapping.Value.Duration);
-                DateTime nextStart = nextEventMapping.Key;
-
-                Event filler = new Event()
+                if (prevEvent.Key != default && nextEvent.Key != default)
                 {
-                    Name = $"{prevEventMapping.Value.Name} - {nextEventMapping.Value.Name}",
-                    Duration = (int)(nextStart - prevEnd).TotalMinutes,
-                    Filler = true
-                };
 
-                AsyncHelper.RunSync(() => filler.LoadAsync(this, this._eventState, this._getNowAction));
+                    KeyValuePair<DateTime, Event> prevEventMapping = new KeyValuePair<DateTime, Event>(prevEvent.Key, prevEvent.Value);
+                    KeyValuePair<DateTime, Event> nextEventMapping = new KeyValuePair<DateTime, Event>(nextEvent.Key, nextEvent.Value);
 
-                modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
+                    DateTime prevStart = prevEventMapping.Key;
+                    DateTime prevEnd = prevStart + TimeSpan.FromMinutes(prevEventMapping.Value.Duration);
+                    DateTime nextStart = nextEventMapping.Key;
+
+                    Event filler = new Event()
+                    {
+                        Name = $"{prevEventMapping.Value.Name} - {nextEventMapping.Value.Name}",
+                        Duration = (int)(nextStart - prevEnd).TotalMinutes,
+                        Filler = true
+                    };
+
+                    await filler.LoadAsync(this, this._eventState, this._getNowAction);
+
+                    modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
+                }
             }
 
             lock (this._fillerEvents)
@@ -307,8 +328,6 @@
 
         public async Task LoadAsync(EventState eventState, Func<DateTime> getNowAction)
         {
-            Logger.Debug("Load event category: {0}", this.Key);
-
             this._eventState = eventState;
             this._getNowAction = getNowAction;
 
@@ -321,17 +340,11 @@
 
                 await Task.WhenAll(eventLoadTasks);
             }
-
-            Logger.Debug("Loaded event category: {0}", this.Key);
         }
 
         public void Unload()
         {
-            Logger.Debug("Unload event category: {0}", this.Key);
-
             this.Events.ForEach(ev => ev.Unload());
-
-            Logger.Debug("Unloaded event category: {0}", this.Key);
         }
-            }
+    }
 }

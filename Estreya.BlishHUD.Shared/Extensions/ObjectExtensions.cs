@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 using System.Reflection;
+using Estreya.BlishHUD.Shared.Attributes;
 
 public static class ObjectExtensions
 {
@@ -49,6 +50,12 @@ public static class ObjectExtensions
         return cloneObject;
     }
 
+    private static bool ShouldIgnoreField(FieldInfo fi)
+    {
+        var ignoreCopyAttribute = fi.GetCustomAttribute<IgnoreCopyAttribute>();
+        return ignoreCopyAttribute != null;
+    }
+
     private static void RecursiveCopyBaseTypePrivateFields(object originalObject, IDictionary<object, object> visited, object cloneObject, Type typeToReflect)
     {
         if (typeToReflect.BaseType != null)
@@ -64,6 +71,8 @@ public static class ObjectExtensions
         {
             if (filter != null && filter(fieldInfo) == false) continue;
             if (IsPrimitive(fieldInfo.FieldType)) continue;
+            if (ShouldIgnoreField(fieldInfo)) continue;
+
             var originalFieldValue = fieldInfo.GetValue(originalObject);
             var clonedFieldValue = InternalCopy(originalFieldValue, visited);
             fieldInfo.SetValue(cloneObject, clonedFieldValue);

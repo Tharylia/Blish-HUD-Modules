@@ -17,6 +17,9 @@
     {
         private const string WEB_SOURCE_URL = $"{EventTableModule.WEBSITE_FILE_ROOT_URL}/event-table/events.json";
 
+        public event EventHandler<NewEventFileVersionArgs> NewVersionAvailable;
+        public event EventHandler Updated;
+
         private TimeSpan updateInterval = TimeSpan.FromHours(1);
         private AsyncRef<double> timeSinceUpdate = 0;
 
@@ -29,7 +32,7 @@
         private readonly string _directoryPath;
         private readonly string _fileName;
 
-        public EventFileState(StateConfiguration configuration, string directoryPath, string fileName):base(configuration)
+        public EventFileState(StateConfiguration configuration, string directoryPath, string fileName) : base(configuration)
         {
             this._directoryPath = directoryPath;
             this._fileName = fileName;
@@ -42,7 +45,7 @@
 
         protected override async Task Initialize()
         {
-            if (!this.ExternalFileExists())
+            if (!this.LocalFileExists())
             {
                 await this.ExportFile();
             }
@@ -71,21 +74,28 @@
                 }
             }
 
-            if (await this.IsNewFileVersionAvaiable())
+            var onlineFile = await this.GetOnlineFile();
+
+            if (await this.IsNewFileVersionAvaiable(onlineFile))
             {
-                if (EventTableModule.ModuleInstance.ModuleSettings.AutomaticallyUpdateEventFile.Value)
+                var autoUpdate = EventTableModule.ModuleInstance.ModuleSettings.AutomaticallyUpdateEventFile.Value;
+
+                var localFile = await this.GetLocalFile();
+                this.NewVersionAvailable?.Invoke(this, new NewEventFileVersionArgs()
                 {
-                    await this.ExportFile();
-                    await EventTableModule.ModuleInstance.LoadEvents();
+                    OldVersion = localFile.Version,
+                    NewVersion = onlineFile.Version,
+                    AlreadyNotified = _notified,
+                    IsSelfUpdate = autoUpdate
+                });
+
+                if (autoUpdate)
+                {
+                    await this.ExportFile(onlineFile);
+                    this.Updated?.Invoke(this, EventArgs.Empty);
                 }
                 else
                 {
-                    Controls.ScreenNotification.ShowNotification(new string[]
-                    {
-                    "A new version of the event file is available.",
-                    "Please update it from the settings window."
-                    }, duration: 10);
-
                     lock (_lockObject)
                     {
                         this._notified = true;
@@ -94,7 +104,7 @@
             }
         }
 
-        private bool ExternalFileExists()
+        private bool LocalFileExists()
         {
             try
             {
@@ -107,7 +117,7 @@
             }
         }
 
-        public async Task<EventSettingsFile> GetInternalFile()
+        public async Task<EventSettingsFile> GetOnlineFile()
         {
             try
             {
@@ -138,7 +148,7 @@
 
             return null;
         }
-        public async Task<EventSettingsFile> GetExternalFile()
+        public async Task<EventSettingsFile> GetLocalFile()
         {
             try
             {
@@ -155,12 +165,18 @@
 
         private async Task<bool> IsNewFileVersionAvaiable()
         {
+            EventSettingsFile onlineFile = await this.GetOnlineFile();
+
+            return await this.IsNewFileVersionAvaiable(onlineFile);
+        }
+
+        private async Task<bool> IsNewFileVersionAvaiable(EventSettingsFile onlineFile)
+        {
             try
             {
-                EventSettingsFile internalEventFile = await this.GetInternalFile();
-                EventSettingsFile externalEventFile = await this.GetExternalFile();
+                EventSettingsFile localFile = await this.GetLocalFile();
 
-                return internalEventFile?.Version > externalEventFile?.Version;
+                return onlineFile?.Version > localFile?.Version;
             }
             catch (Exception ex)
             {
@@ -181,7 +197,7 @@
 
         public async Task ExportFile()
         {
-            EventSettingsFile eventSettingsFile = await this.GetInternalFile();
+            EventSettingsFile eventSettingsFile = await this.GetOnlineFile();
             await this.ExportFile(eventSettingsFile);
         }
 
@@ -194,5 +210,13 @@
 
             return Task.CompletedTask;
         }
+    }
+
+    public class NewEventFileVersionArgs
+    {
+        public bool IsSelfUpdate { get; set; }
+        public bool AlreadyNotified { get; set; }
+        public SemVer.Version OldVersion { get; set; }
+        public SemVer.Version NewVersion { get; set; }
     }
 }
