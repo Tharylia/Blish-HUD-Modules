@@ -4,9 +4,9 @@
     using Blish_HUD.Input;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Models;
-    using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.Shared.Models.Drawers;
     using Estreya.BlishHUD.Shared.Settings;
+    using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Utils;
     using Newtonsoft.Json;
     using System;
@@ -45,7 +45,7 @@
 
         protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
         {
-            this.AutomaticallyUpdateEventFile = this.GlobalSettings.DefineSetting(nameof(this.AutomaticallyUpdateEventFile), true, () => Strings.Setting_AutomaticallyUpdateEventFile_Name, () => Strings.Setting_AutomaticallyUpdateEventFile_Description);
+            this.AutomaticallyUpdateEventFile = this.GlobalSettings.DefineSetting(nameof(this.AutomaticallyUpdateEventFile), true, () => "Automatically Update Event File", () => "Whether the module should automatically update the event file.");
             this.AutomaticallyUpdateEventFile.SettingChanged += this.SettingChanged;
 
             this.MapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.MapKeybinding), new KeyBinding(Microsoft.Xna.Framework.Input.Keys.M), () => "Open Map Hotkey", () => "Defines the key used to open the fullscreen map.");
@@ -116,6 +116,26 @@
             this.DrawerSettings.UndefineSetting($"{name}-acceptWaypointPrompt");
             this.DrawerSettings.UndefineSetting($"{name}-completionAction");
             this.DrawerSettings.UndefineSetting($"{name}-activeEventKeys");
+        }
+
+        public override void UpdateLocalization(TranslationState translationState)
+        {
+            base.UpdateLocalization(translationState);
+
+            var automaticallyUpdateEventFileDisplayNameDefault = this.AutomaticallyUpdateEventFile.DisplayName;
+            var automaticallyUpdateEventFileDescriptionDefault = this.AutomaticallyUpdateEventFile.Description;
+            this.AutomaticallyUpdateEventFile.GetDisplayNameFunc = () => translationState.GetTranslation("setting-automaticallyUpdateEventFile-name", automaticallyUpdateEventFileDisplayNameDefault);
+            this.AutomaticallyUpdateEventFile.GetDescriptionFunc = () => translationState.GetTranslation("setting-automaticallyUpdateEventFile-description", automaticallyUpdateEventFileDescriptionDefault);
+
+            var mapKeybindingDisplayNameDefault = this.MapKeybinding.DisplayName;
+            var mapKeybindingDescriptionDefault = this.MapKeybinding.Description;
+            this.MapKeybinding.GetDisplayNameFunc = () => translationState.GetTranslation("setting-mapKeybinding-name", mapKeybindingDisplayNameDefault);
+            this.MapKeybinding.GetDescriptionFunc = () => translationState.GetTranslation("setting-mapKeybinding-description", mapKeybindingDescriptionDefault);
+        }
+
+        public void UpdateDrawerLocalization(EventAreaConfiguration drawerConfiguration, TranslationState translationState)
+        {
+            base.UpdateDrawerLocalization(drawerConfiguration, translationState);
         }
     }
 }

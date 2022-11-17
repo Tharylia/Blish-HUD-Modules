@@ -23,12 +23,12 @@ public class GitHubCreateIssueView : BaseView
     public event AsyncEventHandler<(string Title, string Message, string DiscordName, bool IncludeSystemInformation)> CreateClicked;
     public event EventHandler CancelClicked;
 
-    public GitHubCreateIssueView(string moduleName, IconState iconState, BitmapFont font = null) : base(null,iconState, font)
+    public GitHubCreateIssueView(string moduleName, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(null,iconState, translationState, font)
     {
         this._moduleName = moduleName;
     }
 
-    public GitHubCreateIssueView(string moduleName, IconState iconState, BitmapFont font = null, string title = null, string message = null) : this(moduleName, iconState,font)
+    public GitHubCreateIssueView(string moduleName, IconState iconState, TranslationState translationState, BitmapFont font = null, string title = null, string message = null) : this(moduleName, iconState,translationState, font)
     {
         this._title = title;
         this._message = message;

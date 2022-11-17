@@ -26,7 +26,7 @@ public class GitHubHelper : IDisposable
     private readonly string _moduleName;
     private readonly PasswordManager _passwordManager;
     private readonly IconState _iconState;
-
+    private readonly TranslationState _translationState;
     private StandardWindow _window;
     private readonly GitHubClient _github;
 
@@ -34,7 +34,7 @@ public class GitHubHelper : IDisposable
     private GitHubCreateIssueView _issueView;
     #endregion
 
-    public GitHubHelper(string owner, string repository, string clientId, string moduleName, PasswordManager passwordManager, IconState iconState)
+    public GitHubHelper(string owner, string repository, string clientId, string moduleName, PasswordManager passwordManager, IconState iconState, TranslationState translationState)
     {
         this._owner = owner;
         this._repository = repository;
@@ -42,7 +42,7 @@ public class GitHubHelper : IDisposable
         this._moduleName = moduleName;
         this._passwordManager = passwordManager;
         this._iconState = iconState;
-
+        this._translationState = translationState;
         this._github = new GitHubClient(new ProductHeaderValue(moduleName.Dehumanize()));
         this.CreateWindow();
     }
@@ -128,7 +128,7 @@ public class GitHubHelper : IDisposable
     {
         this.UnloadIssueView();
 
-        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconState, GameService.Content.DefaultFont18, title, message);
+        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconState, this._translationState, GameService.Content.DefaultFont18, title, message);
         this._issueView.CreateClicked += this.IssueView_CreateClicked;
         this._issueView.CancelClicked += this.IssueView_CancelClicked;
 

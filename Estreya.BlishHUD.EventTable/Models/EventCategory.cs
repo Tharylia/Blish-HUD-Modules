@@ -1,10 +1,10 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Models
 {
     using Blish_HUD;
-    using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.EventTable.State;
     using Estreya.BlishHUD.Shared.Attributes;
     using Estreya.BlishHUD.Shared.Helpers;
+    using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Newtonsoft.Json;
@@ -51,34 +51,14 @@
         }
 
         [JsonIgnore]
-        private bool? _isDisabled;
-
-        [JsonIgnore]
-        private EventState _eventState;
-
-        [JsonIgnore]
         private Func<DateTime> _getNowAction;
-
-        [JsonIgnore]
-        public bool IsDisabled
-        {
-            get
-            {
-                if (_isDisabled == null)
-                {
-                    this._isDisabled = this._eventState?.Contains(this.Key, EventState.EventStates.Hidden) ?? false;
-                }
-
-                return _isDisabled.Value;
-            }
-        }
 
         public EventCategory()
         {
             this.timeSinceUpdate = this.updateInterval.TotalMilliseconds;
         }
 
-        public async Task UpdateEventOccurences(DateTime now, DateTime min, DateTime max)
+        public async Task UpdateEventOccurences(DateTime now, DateTime min, DateTime max, List<string> activeEventKeys, Func<Event, bool> isDisabledFunc)
         {
             lock (this._fillerEvents)
             {
@@ -90,8 +70,8 @@
                 this.Events.ForEach(ev => ev.UpdateOccurences(now, min, max));
             }
 
-            //var activeEvents = this.Events.Where(e => eventSettings.Find(eventSetting => eventSetting.EntryKey == e.Name).Value).ToList();
-            List<Event> activeEvents = this._originalEvents.Where(e => !e.IsDisabled).ToList();
+            var activeEvents = this._originalEvents.Where(e => !isDisabledFunc(e)&& activeEventKeys.Contains(e.SettingKey)).ToList();
+            //List<Event> activeEvents = this._originalEvents.Where(e => !e.IsDisabled).ToList();
 
             List<KeyValuePair<DateTime, Event>> activeEventStarts = new List<KeyValuePair<DateTime, Event>>();
 
@@ -126,7 +106,7 @@
                         Filler = true
                     };
 
-                    await filler.LoadAsync(this, this._eventState, this._getNowAction);
+                    await filler.LoadAsync(this,  this._getNowAction);
 
                     modifiedEventStarts.Insert(i + 1, new KeyValuePair<DateTime, Event>(currentEnd, filler));
                 }
@@ -160,7 +140,7 @@
                             Duration = (int)(nextStart - lastEvent.Key).TotalMinutes
                         };
 
-                        await filler.LoadAsync(this, this._eventState, this._getNowAction);
+                        await filler.LoadAsync(this,  this._getNowAction);
 
                         modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(lastEvent.Key + TimeSpan.FromMinutes(lastEvent.Value.Duration), filler));
                     }
@@ -188,7 +168,7 @@
                             Duration = (int)(firstEvent.Key - prevEnd).TotalMinutes
                         };
 
-                        await filler.LoadAsync(this, this._eventState, this._getNowAction);
+                        await filler.LoadAsync(this,  this._getNowAction);
 
                         modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
                     }
@@ -222,7 +202,7 @@
                             Duration = (int)(nextStart - currentEnd).TotalMinutes
                         };
 
-                        await filler.LoadAsync(this, this._eventState, this._getNowAction);
+                        await filler.LoadAsync(this,  this._getNowAction);
 
                         modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(currentEnd, filler));
                     }
@@ -250,7 +230,7 @@
                             Duration = (int)(currentStart - prevEnd).TotalMinutes
                         };
 
-                        await filler.LoadAsync(this, this._eventState, this._getNowAction);
+                        await filler.LoadAsync(this,  this._getNowAction);
 
                         modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
                     }
@@ -285,7 +265,7 @@
                         Filler = true
                     };
 
-                    await filler.LoadAsync(this, this._eventState, this._getNowAction);
+                    await filler.LoadAsync(this,  this._getNowAction);
 
                     modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
                 }
@@ -300,6 +280,7 @@
 
             //return modifiedEventStarts.OrderBy(mes => mes.Key).ToList();
         }
+        /*
         public void Hide()
         {
             DateTime now = this._getNowAction().ToUniversalTime();
@@ -325,17 +306,22 @@
 
             return finished;
         }
+        */
 
-        public async Task LoadAsync(EventState eventState, Func<DateTime> getNowAction)
+        public async Task LoadAsync(Func<DateTime> getNowAction, TranslationState translationState = null)
         {
-            this._eventState = eventState;
             this._getNowAction = getNowAction;
+
+            if (translationState != null)
+            {
+                this.Name = translationState.GetTranslation($"eventCategory-{this.Key}-name", this.Name);
+            }
 
             using (await this._eventLock.LockAsync())
             {
                 var eventLoadTasks = this.Events.Select(ev =>
                 {
-                    return ev.LoadAsync(this, eventState, getNowAction);
+                    return ev.LoadAsync(this,  getNowAction, translationState);
                 });
 
                 await Task.WhenAll(eventLoadTasks);

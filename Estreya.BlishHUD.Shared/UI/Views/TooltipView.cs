@@ -16,12 +16,12 @@
         private string Title { get; set; }
         private string Description { get; set; }
         private AsyncTexture2D Icon { get; set; }
-        public TooltipView(string title, string description, Gw2ApiManager apiManager = null, IconState iconState = null) : base(apiManager, iconState)
+        public TooltipView(string title, string description, TranslationState translationState, Gw2ApiManager apiManager = null, IconState iconState = null) : base(apiManager, iconState, translationState)
         {
             this.Title = title;
             this.Description = description;
         }
-        public TooltipView(string title, string description, AsyncTexture2D icon, Gw2ApiManager apiManager = null, IconState iconState = null) : this(title, description, apiManager, iconState)
+        public TooltipView(string title, string description, AsyncTexture2D icon, TranslationState translationState,Gw2ApiManager apiManager = null, IconState iconState = null) : this(title, description,translationState, apiManager, iconState)
         {
             this.Icon = icon;
         }

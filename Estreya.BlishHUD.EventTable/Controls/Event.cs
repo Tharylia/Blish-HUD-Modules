@@ -1,11 +1,8 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
-using Blish_HUD._Extensions;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
-using Blish_HUD.Settings;
-using Estreya.BlishHUD.EventTable.Resources;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
@@ -14,33 +11,41 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class Event : RenderTargetControl
 {
     public Models.Event Ev { get; private set; }
     private readonly IconState _iconState;
+    private readonly TranslationState _translationState;
     private readonly Func<DateTime> _getNowAction;
     private readonly DateTime _startTime;
     private readonly DateTime _endTime;
     private readonly Func<BitmapFont> _getFontAction;
-    private readonly SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> _textColorSetting;
+    private readonly Func<bool> _getDrawBorders;
+    private readonly Func<bool> _getDrawCrossout;
+    private readonly Func<Color> _getTextColor;
     private readonly Func<Color> _getColorAction;
 
     private Tooltip _tooltip;
 
-    public Event(Models.Event ev, IconState iconState, Func<DateTime> getNowAction, DateTime startTime, DateTime endTime, Func<BitmapFont> getFontAction, SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> textColorSetting, Func<Color> getColorAction)
+    public Event(Models.Event ev, IconState iconState, TranslationState translationState,
+        Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
+        Func<BitmapFont> getFontAction,
+        Func<bool> getDrawBorders,
+        Func<bool> getDrawCrossout,
+        Func<Color> getTextColor,
+        Func<Color> getColorAction)
     {
         this.Ev = ev;
         this._iconState = iconState;
+        this._translationState = translationState;
         this._getNowAction = getNowAction;
         this._startTime = startTime;
         this._endTime = endTime;
         this._getFontAction = getFontAction;
-        this._textColorSetting = textColorSetting;
+        this._getDrawBorders = getDrawBorders;
+        this._getDrawCrossout = getDrawCrossout;
+        this._getTextColor = getTextColor;
         this._getColorAction = getColorAction;
     }
 
@@ -58,58 +63,59 @@ public class Event : RenderTargetControl
 
     private void BuildOrUpdateTooltip()
     {
-        var now = _getNowAction();
+        DateTime now = this._getNowAction();
 
         // Relative
-        bool isPrev = _startTime.AddMinutes(this.Ev.Duration) < now;
-        bool isNext = !isPrev && _startTime > now;
+        bool isPrev = this._startTime.AddMinutes(this.Ev.Duration) < now;
+        bool isNext = !isPrev && this._startTime > now;
         bool isCurrent = !isPrev && !isNext;
 
-       string description = $"{this.Ev.Location}{(!string.IsNullOrWhiteSpace(this.Ev.Location) ? "\n" : string.Empty)}\n";
+        string description = $"{this.Ev.Location}{(!string.IsNullOrWhiteSpace(this.Ev.Location) ? "\n" : string.Empty)}\n";
 
         if (isPrev)
         {
-            var finishedSince = now - _startTime.AddMinutes(this.Ev.Duration);
-            description += $"{Strings.Event_Tooltip_FinishedSince}: {finishedSince:hh\\:mm\\:ss}";
+            TimeSpan finishedSince = now - this._startTime.AddMinutes(this.Ev.Duration);
+            description += $"{this._translationState.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatTime(finishedSince)}";
         }
         else if (isNext)
         {
-            var startsIn = _startTime - now;
-            description += $"{Strings.Event_Tooltip_StartsIn}: {startsIn:hh\\:mm\\:ss}";
+            TimeSpan startsIn = this._startTime - now;
+            description += $"{this._translationState.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatTime(startsIn)}";
         }
         else if (isCurrent)
         {
-            var remaining = this.Ev.GetTimeRemaining(now);
-            description += $"{Strings.Event_Tooltip_Remaining}: {remaining:hh\\:mm\\:ss}";
+            TimeSpan remaining = this.Ev.GetTimeRemaining(now);
+            description += $"{this._translationState.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatTime(remaining)}";
         }
 
         // Absolute
-        description += $" ({Strings.Event_Tooltip_StartsAt}: {_startTime:hh\\:mm\\:ss})";
+        description += $" ({this._translationState.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatTime(this._startTime)})";
 
-        _tooltip = new Tooltip(new TooltipView(this.Ev.Name, description, this._iconState.GetIcon(this.Ev.Icon)));
+        this._tooltip = new Tooltip(new TooltipView(this.Ev.Name, description, this._iconState.GetIcon(this.Ev.Icon), this._translationState));
     }
 
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
-        var font = this._getFontAction();
+        BitmapFont font = this._getFontAction();
 
         this.DrawBackground(spriteBatch);
-        var nameWidth = this.Ev.Filler ? 0 : this.DrawName(spriteBatch, font);
+        int nameWidth = this.Ev.Filler ? 0 : this.DrawName(spriteBatch, font);
         this.DrawRemainingTime(spriteBatch, font, nameWidth);
+        this.DrawCrossout(spriteBatch);
     }
 
     private void DrawBackground(SpriteBatch spriteBatch)
     {
-        var backgroundRect = new Rectangle(0, 0, this.Width, this.Height);
-        spriteBatch.DrawRectangle(ContentService.Textures.Pixel, backgroundRect, _getColorAction());
+        Rectangle backgroundRect = new Rectangle(0, 0, this.Width, this.Height);
+        spriteBatch.DrawRectangle(ContentService.Textures.Pixel, backgroundRect, this._getColorAction(), this._getDrawBorders() ? 1 : 0, Color.Black);
     }
 
     private int DrawName(SpriteBatch spriteBatch, BitmapFont font)
     {
-        var nameWidth = (int)Math.Ceiling(font.MeasureString(this.Ev.Name).Width) + 10;
-        var nameRect = new Rectangle(0, 0, nameWidth, this.Height);
+        int nameWidth = MathHelper.Clamp((int)Math.Ceiling(font.MeasureString(this.Ev.Name).Width) + 10, 0, this.Width - 10);
+        Rectangle nameRect = new Rectangle(5, 0, nameWidth, this.Height);
 
-        var textColor = this._textColorSetting.Value.Id != 1 ? this._textColorSetting.Value.Cloth.ToXnaColor() : Color.Black;
+        Color textColor = this._getTextColor();
 
         spriteBatch.DrawString(this.Ev.Name, font, nameRect, textColor);
 
@@ -122,24 +128,42 @@ public class Event : RenderTargetControl
             return;
         }
 
-        var remainingTime = this.Ev.GetTimeRemaining(_getNowAction());
+        TimeSpan remainingTime = this.Ev.GetTimeRemaining(this._getNowAction());
         if (remainingTime == TimeSpan.Zero)
         {
             return;
         }
 
-        var remainingTimeString = this.FormatTimeRemaining(remainingTime);
-        var timeWidth = (int)Math.Ceiling(font.MeasureString(remainingTimeString).Width) + 10;
-        var maxWidth = this.Width - x;
-        var centerX = (maxWidth / 2) - (timeWidth / 2);
-        if (centerX < x) centerX = x + 10;
+        string remainingTimeString = this.FormatTimeRemaining(remainingTime);
+        int timeWidth = (int)Math.Ceiling(font.MeasureString(remainingTimeString).Width) + 10;
+        int maxWidth = this.Width - x;
+        int centerX = (maxWidth / 2) - (timeWidth / 2);
+        if (centerX < x)
+        {
+            centerX = x + 10;
+        }
 
-        if (centerX + timeWidth > this.Width) return;
-        var timeRect = new Rectangle(centerX, 0,  maxWidth, this.Height);
+        if (centerX + timeWidth > this.Width)
+        {
+            return;
+        }
 
-        var textColor = this._textColorSetting.Value.Id != 1 ? this._textColorSetting.Value.Cloth.ToXnaColor() : Color.Black;
+        Rectangle timeRect = new Rectangle(centerX, 0, maxWidth, this.Height);
+
+        Color textColor = this._getTextColor();
 
         spriteBatch.DrawString(remainingTimeString, font, timeRect, textColor);
+    }
+
+    private void DrawCrossout(SpriteBatch spriteBatch)
+    {
+        if (!this._getDrawCrossout())
+        {
+            return;
+        }
+
+        Rectangle fullRect = new Rectangle(0, 0, this.Width, this.Height);
+        spriteBatch.DrawCrossOut(ContentService.Textures.Pixel, fullRect, Color.Red);
     }
 
     private string FormatTimeRemaining(TimeSpan ts)
@@ -155,6 +179,23 @@ public class Event : RenderTargetControl
         else
         {
             return ts.ToString("mm\\:ss");
+        }
+    }
+
+    private string FormatTime(DateTime dt)
+    {
+        return this.FormatTime(dt.TimeOfDay);
+    }
+
+    private string FormatTime(TimeSpan ts)
+    {
+        if (ts.Days > 0)
+        {
+            return ts.ToString("dd\\.hh\\:mm\\:ss");
+        }
+        else
+        {
+            return ts.ToString("hh\\:mm\\:ss");
         }
     }
 }

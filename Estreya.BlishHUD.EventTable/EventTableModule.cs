@@ -10,7 +10,6 @@
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.Models.Settings;
-    using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.EventTable.State;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
@@ -55,23 +54,17 @@
         {
         }
 
-        protected override void Initialize()
-        {
-        }
-
         protected override async Task LoadAsync()
         {
             await base.LoadAsync();
+            this.MapNavigationUtil = new MapNavigationUtil(this.ModuleSettings.MapKeybinding.Value);
 
             Logger.Debug("Load events.");
             await this.LoadEvents();
 
-
             this.AddAllAreas();
 
             await this.SetAreaEvents();
-
-            this.MapNavigationUtil = new MapNavigationUtil(this.ModuleSettings.MapKeybinding.Value);
         }
 
         private async Task SetAreaEvents()
@@ -125,12 +118,12 @@
 
                     Logger.Info($"Loaded {eventCategoryCount} Categories with {eventCount} Events.");
 
-                    //IEnumerable<Task> eventCategoryLoadTasks = categories.Select(ec =>
-                    //{
-                    //    return ec.LoadAsync(this.EventState, () => this.DateTimeNow);
-                    //});
+                    IEnumerable<Task> eventCategoryLoadTasks = categories.Select(ec =>
+                    {
+                        return ec.LoadAsync( () => this.DateTimeNow, this.TranslationState);
+                    });
 
-                    //await Task.WhenAll(eventCategoryLoadTasks);
+                    await Task.WhenAll(eventCategoryLoadTasks);
 
                     this.EventCategories = categories;
 
@@ -209,7 +202,7 @@
         {
             if (this.ModuleSettings.EventAreaNames.Value.Count == 0)
             {
-                this.ModuleSettings.EventAreaNames.Value.Add("main");
+                this.ModuleSettings.EventAreaNames.Value.Add("Main");
             }
 
             foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
@@ -225,7 +218,18 @@
                 this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value) { configuration.Name };
             }
 
-            var area = new EventArea(configuration, this.IconState,this.EventState, this.WorldbossState, this.MapchestState, () => this.DateTimeNow)
+            this.ModuleSettings.UpdateDrawerLocalization(configuration, this.TranslationState);
+
+            var area = new EventArea(
+                configuration, 
+                this.IconState, 
+                this.TranslationState, 
+                this.EventState, 
+                this.WorldbossState, 
+                this.MapchestState, 
+                this.PointOfInterestState,
+                this.MapNavigationUtil, 
+                () => this.DateTimeNow)
             {
                 Parent = GameService.Graphics.SpriteScreen
             };
@@ -287,10 +291,19 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            
-            //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General Settings"));
+            // Reorder Icon: 605018
+
+
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
             //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
-            var areaSettingsView = new UI.Views.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+            var areaSettingsView = new UI.Views.AreaSettingsView(
+                () => this._areas.Values.Select(area => area.Configuration),
+                () => this.EventCategories,
+                this.Gw2ApiManager,
+                this.IconState,
+                this.TranslationState,
+                GameService.Content.DefaultFont16)
+            { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
                 this.AddArea(e.AreaConfiguration);
@@ -327,7 +340,7 @@
                 AwaitLoading = true,
                 Enabled = true,
                 SaveInterval = Timeout.InfiniteTimeSpan
-            }, directoryPath, "events.json");
+            }, this.WEBSITE_MODULE_FILE_URL, directoryPath, "events.json");
 
             this.EventFileState.NewVersionAvailable += this.EventFileState_NewVersionAvailable;
             this.EventFileState.Updated += this.EventFileState_Updated;
@@ -374,12 +387,12 @@
 
         protected override AsyncTexture2D GetEmblem()
         {
-            return this.IconState.GetIcon("102392.png");
+            return this.IconState.GetIcon(this.IsPrerelease ? "textures/emblem_demo.png" : "102392.png");
         }
 
         protected override AsyncTexture2D GetCornerIcon()
         {
-            return this.IconState.GetIcon("textures/event_boss_grey.png");
+            return this.IconState.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
         }
     }
 }

@@ -8,7 +8,6 @@
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.Models.Settings;
-    using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.Shared.Controls;
     using Microsoft.Xna.Framework;
     using Newtonsoft.Json;
@@ -27,6 +26,7 @@
 
         protected override void Build(Container buildPanel)
         {
+            /*
             this.Panel = new Panel
             {
                 Parent = buildPanel,
@@ -111,11 +111,12 @@
             };
 
             this.DrawEntries(listView);
-
+            */
         }
 
         private void DrawEntries(ListView<EventCategory> listView)
         {
+            /*
             listView.ClearChildren();
 
             //Random random = new Random();
@@ -141,6 +142,7 @@
                     });
                 }
             }
+            */
         }
     }
 }

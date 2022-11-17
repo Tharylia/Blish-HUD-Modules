@@ -4,10 +4,10 @@
     using Blish_HUD._Extensions;
     using Blish_HUD.Controls;
     using Blish_HUD.Settings;
-    using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.EventTable.State;
     using Estreya.BlishHUD.Shared.Attributes;
     using Estreya.BlishHUD.Shared.Extensions;
+    using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
@@ -26,7 +26,6 @@
     {
         [IgnoreCopy]
         private static readonly Logger Logger = Logger.GetLogger<Event>();
-        private EventState _eventState;
         private Func<DateTime> _getNowAction;
 
         [Description("Specifies the key of the event. Should be unique for a event category. Avoid changing it, as it resets saved settings and states.")]
@@ -83,23 +82,6 @@
         [JsonIgnore]
         public string SettingKey { get; private set; }
 
-        [JsonIgnore]
-        private bool? _isDisabled;
-
-        [JsonIgnore]
-        public bool IsDisabled
-        {
-            get
-            {
-                if (_isDisabled == null)
-                {
-                    this._isDisabled = this._eventState?.Contains(this.Key, EventState.EventStates.Hidden) ?? false;
-                }
-
-                return _isDisabled.Value;
-            }
-        }
-
         public void UpdateOccurences(DateTime now, DateTime min, DateTime max)
         {
             this.Occurences = this.GetStartOccurences(now, min.AddDays(-2), max.AddDays(2));
@@ -150,6 +132,7 @@
             var co = this.GetCurrentOccurence(now);
             return !co.HasValue ? TimeSpan.Zero : co.Value.AddMinutes(this.Duration) - now;
         }
+        /*
 
         public void Hide()
         {
@@ -176,6 +159,7 @@
 
             return finished;
         }
+        */
 
         public double CalculateXPosition(DateTime start, DateTime min, double pixelPerMinute)
         {
@@ -205,9 +189,8 @@
             return eventWidth;
         }
 
-        public Task LoadAsync(EventCategory ec, EventState eventState, Func<DateTime> getNowAction)
+        public Task LoadAsync(EventCategory ec, Func<DateTime> getNowAction, TranslationState translationState = null)
         {
-            this._eventState = eventState;
             this._getNowAction = getNowAction;
 
             // Prevent crash on older events.json files
@@ -222,6 +205,11 @@
             }
 
             this.SettingKey = $"{ec.Key}_{this.Key}";
+
+            if (translationState != null)
+            {
+                this.Name = translationState.GetTranslation($"event-{ec.Key}_{this.Key}-name", this.Name);
+            }
 
             return Task.CompletedTask;
         }

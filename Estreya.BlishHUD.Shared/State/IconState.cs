@@ -56,7 +56,7 @@ public class IconState : ManagedState
     {
         if (iconSources == null || iconSources.Count == 0) { return ContentService.Textures.Error; }
 
-        AsyncTexture2D icon = null;
+        AsyncTexture2D icon = new AsyncTexture2D();
 
         foreach (IconSource source in iconSources)
         {
@@ -73,11 +73,11 @@ public class IconState : ManagedState
                 {
                     case IconSource.Core:
                         Texture2D coreTexture = GameService.Content.GetTexture(sourceIdentifier);
-                        if (coreTexture != ContentService.Textures.Error) icon = coreTexture;
+                        if (coreTexture != ContentService.Textures.Error) icon.SwapTexture(coreTexture);
                         break;
                     case IconSource.Module:
                         Texture2D moduleTexture = this._contentsManager.GetTexture(sourceIdentifier);
-                        if (moduleTexture != ContentService.Textures.Error) icon = moduleTexture;
+                        if (moduleTexture != ContentService.Textures.Error) icon.SwapTexture(moduleTexture);
                         break;
                     case IconSource.RenderAPI:
                         icon = GameService.Content.GetRenderServiceTexture(sourceIdentifier);

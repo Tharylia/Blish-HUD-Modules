@@ -239,38 +239,40 @@ public class MapNavigationUtil
         return true;
     }
 
-    public Task<bool> NavigateToPosition(ContinentFloorRegionMapPoi poi)
+    public Task<NavigationResult> NavigateToPosition(ContinentFloorRegionMapPoi poi)
     {
         return this.NavigateToPosition(poi, false);
     }
 
-    public Task<bool> NavigateToPosition(ContinentFloorRegionMapPoi poi, bool directTeleport)
+    public Task<NavigationResult> NavigateToPosition(ContinentFloorRegionMapPoi poi, bool directTeleport)
     {
         return this.NavigateToPosition(poi.Coord.X, poi.Coord.Y, poi.Type == PoiType.Waypoint, directTeleport);
     }
 
-    public Task<bool> NavigateToPosition(double x, double y)
+    public Task<NavigationResult> NavigateToPosition(double x, double y)
     {
 
         return this.NavigateToPosition(x, y, false, false);
     }
 
-    public async Task<bool> NavigateToPosition(double x, double y, bool isWaypoint, bool directTeleport)
+    public async Task<NavigationResult> NavigateToPosition(double x, double y, bool isWaypoint, bool directTeleport)
     {
         try
         {
             if (!this.IsInGame())
             {
                 Logger.Debug("Not in game");
-                return false;
+                return new NavigationResult(false, "Not in game.");
             }
 
-            Controls.ScreenNotification.ShowNotification(new string[] { "DO NOT MOVE THE CURSOR!", "Close map to cancel." }, Controls.ScreenNotification.NotificationType.Warning, duration: 7);
 
             if (!await this.OpenFullscreenMap())
             {
                 Logger.Debug("Could not open map.");
+                return new NavigationResult(false, "Could not open map.");
             }
+
+            Controls.ScreenNotification.ShowNotification(new string[] { "DO NOT MOVE THE CURSOR!", "Close map to cancel." }, Controls.ScreenNotification.NotificationType.Warning, duration: 7);
 
             await this.WaitForTick();
 
@@ -278,19 +280,21 @@ public class MapNavigationUtil
 
             Mouse.SetPosition(GameService.Graphics.WindowWidth / 2, GameService.Graphics.WindowHeight / 2);
 
+            /* Fixed in game
             if (GameService.Gw2Mumble.CurrentMap.Id == 1206) // Mistlock Santuary
             {
                 if (!await this.ChangeMapLayer(ChangeMapLayerDirection.Down))
                 {
                     Logger.Debug("Changing map layer failed.");
-                    return false;
+                    return new NavigationResult(false, "Changing map layer failed.");
                 }
             }
+            */
 
             if (!await this.ZoomOut(6))
             {
                 Logger.Debug($"Zooming out did not work.");
-                return false;
+                return new NavigationResult(false, "Zooming out did not work.");
             }
 
             double totalDist = this.GetDistance(mapPos.X, mapPos.Y, x, y) / (this.GetMapScale() * 0.9d);
@@ -300,7 +304,7 @@ public class MapNavigationUtil
             if (!await this.MoveMap(x, y, 50))
             {
                 Logger.Debug($"Moving the map did not work.");
-                return false;
+                return new NavigationResult(false, "Moving the map did not work.");
             }
 
             await this.WaitForTick();
@@ -315,13 +319,13 @@ public class MapNavigationUtil
             if (!await this.ZoomIn(2))
             {
                 Logger.Debug($"Zooming in did not work.");
-                return false;
+                return new NavigationResult(false, "Zooming in did not work.");
             }
 
             if (!await this.MoveMap(x, y, 5))
             {
                 Logger.Debug($"Moving the map did not work.");
-                return false;
+                return new NavigationResult(false, "Moving the map did not work.");
             }
 
             if (isWaypoint)
@@ -348,12 +352,12 @@ public class MapNavigationUtil
                 }
             }
 
-            return true;
+            return new NavigationResult(true, null);
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Navigation to position failed:");
-            return false;
+            return new NavigationResult(false, ex.Message);
         }
     }
 
@@ -361,5 +365,17 @@ public class MapNavigationUtil
     {
         Up,
         Down
+    }
+
+    public class NavigationResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; }
+
+        public NavigationResult(bool success, string message)
+        {
+            this.Success = success;
+            this.Message = message;
+        }
     }
 }

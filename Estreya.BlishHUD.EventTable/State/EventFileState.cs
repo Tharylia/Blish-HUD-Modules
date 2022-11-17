@@ -15,8 +15,6 @@
 
     public class EventFileState : ManagedState
     {
-        private const string WEB_SOURCE_URL = $"{EventTableModule.WEBSITE_FILE_ROOT_URL}/event-table/events.json";
-
         public event EventHandler<NewEventFileVersionArgs> NewVersionAvailable;
         public event EventHandler Updated;
 
@@ -29,11 +27,13 @@
 
         private string _filePath => Path.Combine(this._directoryPath, this._fileName);
 
+        private readonly string _webSourceUrl;
         private readonly string _directoryPath;
         private readonly string _fileName;
 
-        public EventFileState(StateConfiguration configuration, string directoryPath, string fileName) : base(configuration)
+        public EventFileState(StateConfiguration configuration, string fileRootUrl, string directoryPath, string fileName) : base(configuration)
         {
+            this._webSourceUrl = $"{fileRootUrl.TrimEnd('/')}/events.json";
             this._directoryPath = directoryPath;
             this._fileName = fileName;
         }
@@ -66,14 +66,6 @@
 
         private async Task CheckAndNotifyOrUpdate(GameTime gameTime)
         {
-            lock (_lockObject)
-            {
-                if (this._notified)
-                {
-                    return;
-                }
-            }
-
             var onlineFile = await this.GetOnlineFile();
 
             if (await this.IsNewFileVersionAvaiable(onlineFile))
@@ -123,7 +115,7 @@
             {
                 Logger.Debug("Loading json from web source.");
 
-                string webJson = await EventTableModule.ModuleInstance.WebClient.DownloadStringTaskAsync(new Uri(WEB_SOURCE_URL));
+                string webJson = await EventTableModule.ModuleInstance.WebClient.DownloadStringTaskAsync(new Uri(_webSourceUrl));
 
                 Logger.Debug($"Got content (length): {webJson?.Length ?? 0}");
 
@@ -143,7 +135,7 @@
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Could not load internal file.");
+                Logger.Error(ex, "Could not load online file.");
             }
 
             return null;

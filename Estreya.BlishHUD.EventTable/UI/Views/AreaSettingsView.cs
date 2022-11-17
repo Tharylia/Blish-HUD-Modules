@@ -9,6 +9,7 @@ using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Humanizer;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.Generic;
@@ -22,9 +23,12 @@ public class AreaSettingsView : BaseSettingsView
     private const int PADDING_Y = 20;
 
     private readonly Func<IEnumerable<EventAreaConfiguration>> _areaConfigurationFunc;
+    private readonly Func<List<EventCategory>> _allEvents;
     private IEnumerable<EventAreaConfiguration> _areaConfigurations;
     private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private Panel _areaPanel;
+
+    private StandardWindow _manageEventsWindow;
 
     public class AddAreaEventArgs
     {
@@ -35,9 +39,10 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<EventAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
+        this._allEvents = allEvents;
     }
 
     private void LoadConfigurations()
@@ -109,6 +114,12 @@ public class AreaSettingsView : BaseSettingsView
         {
             this.BuildAddPanel(parent, areaPanelBounds, areaOverviewMenu);
         });
+
+        // TODO: Remove when tested
+        addButton.Icon = this.IconState.GetIcon("154982.png");
+        addButton.ResizeIcon = true;
+        addButton.Enabled = false;
+        // ----
 
         addButton.Location = new Point(areaOverviewPanel.Left, areaOverviewPanel.Bottom + 10);
         addButton.Width = areaOverviewPanel.Width;
@@ -239,13 +250,33 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderIntSetting(settingsPanel, areaConfiguration.Size.X);
-        //this.RenderIntSetting(settingsPanel, areaConfiguration.Size.Y);
 
-        //this.RenderEmptyLine(settingsPanel);
+        this.RenderEmptyLine(settingsPanel);
 
-        //this.RenderEnumSetting(settingsPanel, areaConfiguration.Curve);
-        //this.RenderIntSetting(settingsPanel, areaConfiguration.EventHeight);
-        //this.RenderFloatSetting(settingsPanel, areaConfiguration.ScrollSpeed);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.TimeSpan);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.DrawBorders);
+        this.RenderEnumSetting(settingsPanel, areaConfiguration.BuildDirection);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderEnumSetting(settingsPanel, areaConfiguration.LeftClickAction);
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.AcceptWaypointPrompt);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.ShowContextMenu);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderEnumSetting(settingsPanel, areaConfiguration.CompletionAcion);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.UseFiller);
+        this.RenderColorSetting(settingsPanel, areaConfiguration.FillerTextColor);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -254,6 +285,12 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
+        var lastAdded = settingsPanel.Children.Last();
+
+        var manageEventsButton = this.RenderButton(settingsPanel, "Manage Events", () =>
+        {
+            this.ManageEvents(areaConfiguration);
+        });
 
         StandardButton removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
         {
@@ -265,10 +302,55 @@ public class AreaSettingsView : BaseSettingsView
             this.LoadConfigurations();
         });
 
+        // TODO: Remove when tested
+        removeButton.Icon = this.IconState.GetIcon("154982.png");
+        removeButton.ResizeIcon = true;
+        removeButton.Enabled = false;
+        // ----
+
         removeButton.Top = areaName.Top;
         removeButton.Right = panelBounds.Right;
 
         areaName.Width = removeButton.Left - areaName.Left;
+    }
+
+    private void ManageEvents(EventAreaConfiguration configuration)
+    {
+        if (this._manageEventsWindow == null)
+        {
+            Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
+
+            Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
+            int contentRegionPaddingY = settingsWindowSize.Y - 15;
+            int contentRegionPaddingX = settingsWindowSize.X;
+            Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
+
+            this._manageEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
+            {
+                Parent = GameService.Graphics.SpriteScreen,
+                Title = "Manage Events",
+                SavesPosition = true,
+                Id = $"{this.GetType().Name}_7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"
+            };
+        }
+
+        if (_manageEventsWindow.CurrentView != null)
+        {
+            var manageEventView = _manageEventsWindow.CurrentView as ManageEventsView;
+            manageEventView.EventChanged -= this.View_EventChanged;
+        }
+
+        var view = new ManageEventsView(this._allEvents(), configuration, this.APIManager, this.IconState, this.TranslationState);
+        view.EventChanged += this.View_EventChanged;
+
+        _manageEventsWindow.Show(view);
+    }
+
+    private void View_EventChanged(object sender, EventChangedArgs e)
+    {
+        e.Configuration.ActiveEventKeys.Value = e.NewState
+            ? new List<string>(e.Configuration.ActiveEventKeys.Value) { e.EventSettingKey }
+            : new List<string>(e.Configuration.ActiveEventKeys.Value.Where(aek => aek != e.EventSettingKey));
     }
 
     private void ClearAreaPanel()
@@ -295,6 +377,8 @@ public class AreaSettingsView : BaseSettingsView
         this.ClearAreaPanel();
         this._areaConfigurations = null;
         this._menuItems?.Clear();
+        this._manageEventsWindow?.Dispose();
+        this._manageEventsWindow = null;
 
     }
 }

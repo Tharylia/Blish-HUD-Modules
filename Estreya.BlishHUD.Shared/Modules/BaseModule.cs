@@ -8,7 +8,6 @@ using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Helpers;
-using Estreya.BlishHUD.Shared.Resources;
 using Estreya.BlishHUD.Shared.Security;
 using Estreya.BlishHUD.Shared.Settings;
 using Estreya.BlishHUD.Shared.State;
@@ -30,7 +29,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected Logger Logger { get; }
 
     public const string WEBSITE_ROOT_URL = "https://blishhud.estreya.de";
-    public const string WEBSITE_FILE_ROOT_URL = "https://files.blishhud.estreya.de";
+    public const string WEBSITE_FILE_ROOT_URL = "https://files.estreya.de";
 
     protected const string GITHUB_OWNER = "Tharylia";
     protected const string GITHUB_REPOSITORY = "Blish-HUD-Modules";
@@ -41,6 +40,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected PasswordManager PasswordManager { get; private set; }
 
     public string WEBSITE_MODULE_URL => $"{WEBSITE_ROOT_URL}/modules/{this.WebsiteModuleName}";
+    public string WEBSITE_MODULE_FILE_URL => $"{WEBSITE_FILE_ROOT_URL}/blishhud/modules/{this.WebsiteModuleName}";
     public abstract string WebsiteModuleName { get; }
 
     protected static TModule Instance;
@@ -98,6 +98,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     private Collection<ManagedState> _states = new Collection<ManagedState>();
 
     public IconState IconState { get; private set; }
+    public TranslationState TranslationState { get; private set; }
     public WorldbossState WorldbossState { get; private set; }
     public MapchestState MapchestState { get; private set; }
     public PointOfInterestState PointOfInterestState { get; private set; }
@@ -138,7 +139,9 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Initialize states");
         await this.InitializeStates();
 
-        this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY,GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconState);
+        this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY,GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconState, this.TranslationState);
+
+        this.ModuleSettings.UpdateLocalization(this.TranslationState);
 
         this.ModuleSettings.ModuleSettingsChanged += this.ModuleSettings_ModuleSettingsChanged;
     }
@@ -182,6 +185,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 AwaitLoading = false
             }, this.ContentsManager);
             this._states.Add(this.IconState);
+
+            this.TranslationState = new TranslationState(new StateConfiguration()
+            {
+                Enabled = true,
+                AwaitLoading = true,
+            }, this.Webclient, this.WEBSITE_MODULE_FILE_URL);
+            this._states.Add(this.TranslationState);
 
             if (configurations.Items.Enabled)
             {
@@ -341,7 +351,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (this._defaultSettingView == null)
         {
-            this._defaultSettingView = new ModuleSettingsView(Strings.SettingsView_OpenSettings, this.IconState);
+            this._defaultSettingView = new ModuleSettingsView(this.TranslationState.GetTranslation("moduleSettingsView-openSettingsBtn", "Open Settings"), this.IconState, this.TranslationState);
             this._defaultSettingView.OpenClicked += this.DefaultSettingView_OpenClicked;
             this._defaultSettingView.CreateGithubIssueClicked += this.DefaultSettingView_CreateGithubIssueClicked;
         }
@@ -377,7 +387,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             Parent = GameService.Graphics.SpriteScreen,
             Title = this.Name,
-            Subtitle = Strings.SettingsWindow_Subtitle,
+            Subtitle = this.TranslationState.GetTranslation("settingsWindow-subtitle", "Settings"),
             SavesPosition = true,
             Id = $"{this.GetType().Name}_6bd04be4-dc19-4914-a2c3-8160ce76818b"
         };
@@ -403,7 +413,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             this.SettingsWindow.Tabs.Add(
                 new Tab(
                     this.IconState.GetIcon("155052.png"),
-                    () => new UI.Views.Settings.StateSettingsView(this._states, this.Gw2ApiManager, this.IconState, this.Font)
+                    () => new UI.Views.Settings.StateSettingsView(this._states, this.Gw2ApiManager, this.IconState, this.TranslationState, this.Font)
                     {
                         DefaultColor = this.ModuleSettings.DefaultGW2Color
                     },
@@ -587,6 +597,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Unload corner icon...");
 
         this.HandleCornerIcon(false);
+        this._loadingSpinner?.Dispose();
+        this._loadingSpinner = null;
 
         this.Logger.Debug("Unloaded corner icon.");
 
