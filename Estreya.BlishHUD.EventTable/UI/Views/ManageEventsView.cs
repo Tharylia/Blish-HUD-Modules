@@ -258,7 +258,7 @@
                         GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
                         {
                             var icon = this.IconState.GetIcon("102353.png");
-                            wikiButton.Tooltip = new Tooltip(new TooltipView("Wiki", "Copy to open wiki!", icon, this.TranslationState));
+                            wikiButton.Tooltip = new Tooltip(new TooltipView("Wiki", "Click to open wiki!", icon, this.TranslationState));
                             wikiButton.Icon = icon;
                         });
 
