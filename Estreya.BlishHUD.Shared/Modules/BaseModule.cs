@@ -13,6 +13,7 @@ using Estreya.BlishHUD.Shared.Settings;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
+using Flurl.Http;
 using Gw2Sharp.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -29,7 +30,9 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected Logger Logger { get; }
 
     public const string WEBSITE_ROOT_URL = "https://blishhud.estreya.de";
-    public const string WEBSITE_FILE_ROOT_URL = "https://files.estreya.de";
+    public const string FILE_ROOT_URL = "https://files.estreya.de";
+    public const string FILE_BLISH_ROOT_URL = $"{FILE_ROOT_URL}/blish-hud";
+    private const string API_ROOT_URL = "https://blish-hud.api.estreya.de";
 
     protected const string GITHUB_OWNER = "Tharylia";
     protected const string GITHUB_REPOSITORY = "Blish-HUD-Modules";
@@ -40,8 +43,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected PasswordManager PasswordManager { get; private set; }
 
     public string WEBSITE_MODULE_URL => $"{WEBSITE_ROOT_URL}/modules/{this.WebsiteModuleName}";
-    public string WEBSITE_MODULE_FILE_URL => $"{WEBSITE_FILE_ROOT_URL}/blishhud/modules/{this.WebsiteModuleName}";
+    public string WEBSITE_MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.WebsiteModuleName}";
+    public string API_URL => $"{API_ROOT_URL}/v{this.API_VERSION_NO}/{this.WebsiteModuleName}";
     public abstract string WebsiteModuleName { get; }
+
+    /// <summary>
+    /// Specifies the api version to use with <see cref="API_ROOT_URL"/>
+    /// </summary>
+    protected abstract string API_VERSION_NO { get; }
 
     protected static TModule Instance;
 
@@ -49,21 +58,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     private ModuleSettingsView _defaultSettingView;
 
-    private WebClient _webclient;
+    private FlurlClient _flurlClient;
 
-    protected WebClient Webclient
+    protected IFlurlClient GetFlurlClient()
     {
-        get
+        if (this._flurlClient == null)
         {
-            if (this._webclient == null)
-            {
-                this._webclient = new Net.WebClient();
-
-                this._webclient.Headers.Add("user-agent", $"{this.Name} {this.Version}");
-            }
-
-            return this._webclient;
+            this._flurlClient = new FlurlClient();
+            this._flurlClient.WithHeader("User-Agent", $"{this.Name} {this.Version}");
         }
+
+        return this._flurlClient;
     }
 
     #region Service Managers
@@ -139,7 +144,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Initialize states");
         await this.InitializeStates();
 
-        this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY,GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconState, this.TranslationState);
+        this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY, GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconState, this.TranslationState);
 
         this.ModuleSettings.UpdateLocalization(this.TranslationState);
 
@@ -190,7 +195,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 Enabled = true,
                 AwaitLoading = true,
-            }, this.Webclient, this.WEBSITE_MODULE_FILE_URL);
+            }, this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
             this._states.Add(this.TranslationState);
 
             if (configurations.Items.Enabled)
@@ -251,7 +256,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.SkillState = new SkillState(configurations.Skills, this.Gw2ApiManager, this.IconState, directoryPath, this.Webclient, WEBSITE_FILE_ROOT_URL);
+                this.SkillState = new SkillState(configurations.Skills, this.Gw2ApiManager, this.IconState, directoryPath, this.GetFlurlClient(), FILE_BLISH_ROOT_URL);
                 this._states.Add(this.SkillState);
             }
 
@@ -611,6 +616,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
 
         this.Logger.Debug("Unloaded states.");
+
+        this.Logger.Debug("Unload flurl client...");
+
+        this._flurlClient?.Dispose();
+
+        this.Logger.Debug("Unloaded flurl client.");
 
         this.Logger.Debug("Unload module instance...");
 

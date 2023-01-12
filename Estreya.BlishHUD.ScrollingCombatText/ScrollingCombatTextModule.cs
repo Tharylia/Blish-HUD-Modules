@@ -33,6 +33,8 @@
 
         internal GitHubHelper GitHubHelper => base.GithubHelper;
 
+        protected override string API_VERSION_NO => "1";
+
         private Dictionary<string, ScrollingTextArea> _areas = new Dictionary<string, ScrollingTextArea>();
 
         #region States
@@ -180,8 +182,8 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
-            var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
                 e.AreaConfiguration = this.AddArea(e.Name);

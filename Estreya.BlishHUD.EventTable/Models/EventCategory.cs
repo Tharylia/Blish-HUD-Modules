@@ -6,12 +6,17 @@
     using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Utils;
+    using Gw2Sharp.WebApi.V2.Models;
+    using Humanizer;
     using Microsoft.Xna.Framework;
     using Newtonsoft.Json;
+    using SharpDX.Text;
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using System.Threading.Tasks;
+    using static Humanizer.On;
 
     [Serializable]
     public class EventCategory
@@ -58,19 +63,39 @@
             this.timeSinceUpdate = this.updateInterval.TotalMilliseconds;
         }
 
-        public async Task UpdateEventOccurences(DateTime now, DateTime min, DateTime max, List<string> activeEventKeys, Func<Event, bool> isDisabledFunc)
+        public void UpdateFillers(List<Event> fillers)
         {
             lock (this._fillerEvents)
             {
                 this._fillerEvents.Clear();
+
+                if (fillers != null)
+                {
+                    this._fillerEvents.AddRange(fillers);
+                }
+            }
+        }
+
+            public async Task UpdateEventOccurences(List<Event> fillers, DateTime now, DateTime min, DateTime max, List<string> activeEventKeys, Func<Event, bool> isDisabledFunc)
+        {
+            lock (this._fillerEvents)
+            {
+                this._fillerEvents.Clear();
+
+                if (fillers != null)
+                {
+                    this._fillerEvents.AddRange(fillers);
+                }
             }
 
+            /*
             using (this._eventLock.Lock())
             {
-                this.Events.ForEach(ev => ev.UpdateOccurences(now, min, max));
+                this._originalEvents.ForEach(ev => ev.UpdateOccurences(now, min, max));
             }
-
-            var activeEvents = this._originalEvents.Where(e => !isDisabledFunc(e)&& activeEventKeys.Contains(e.SettingKey)).ToList();
+            */
+            /*
+            var activeEvents = this._originalEvents.Where(e => !isDisabledFunc(e) && activeEventKeys.Contains(e.SettingKey)).ToList();
             //List<Event> activeEvents = this._originalEvents.Where(e => !e.IsDisabled).ToList();
 
             List<KeyValuePair<DateTime, Event>> activeEventStarts = new List<KeyValuePair<DateTime, Event>>();
@@ -106,7 +131,7 @@
                         Filler = true
                     };
 
-                    await filler.LoadAsync(this,  this._getNowAction);
+                    await filler.LoadAsync(this, this._getNowAction);
 
                     modifiedEventStarts.Insert(i + 1, new KeyValuePair<DateTime, Event>(currentEnd, filler));
                 }
@@ -120,7 +145,7 @@
                 // We have a following event
                 KeyValuePair<DateTime, Event> nextEvent = activeEvents.Select(ae =>
                 {
-                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > lastEvent.Key && oc < max.AddDays(2))/*GetStartOccurences(now, max.AddDays(2), lastEvent.Key, limitsBetweenRanges: true)*/.FirstOrDefault(), ae);
+                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > lastEvent.Key && oc < max.AddDays(2)).FirstOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).First();
 
 
@@ -140,7 +165,7 @@
                             Duration = (int)(nextStart - lastEvent.Key).TotalMinutes
                         };
 
-                        await filler.LoadAsync(this,  this._getNowAction);
+                        await filler.LoadAsync(this, this._getNowAction);
 
                         modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(lastEvent.Key + TimeSpan.FromMinutes(lastEvent.Value.Duration), filler));
                     }
@@ -168,7 +193,7 @@
                             Duration = (int)(firstEvent.Key - prevEnd).TotalMinutes
                         };
 
-                        await filler.LoadAsync(this,  this._getNowAction);
+                        await filler.LoadAsync(this, this._getNowAction);
 
                         modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
                     }
@@ -183,7 +208,7 @@
                 // We have a following event
                 KeyValuePair<DateTime, Event> nextEvent = activeEvents.Select(ae =>
                 {
-                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > currentEnd && oc < max.AddDays(2))/*GetStartOccurences(now, max.AddDays(2), currentEnd, limitsBetweenRanges: true)*/.FirstOrDefault(), ae);
+                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > currentEnd && oc < max.AddDays(2)).FirstOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).First();
 
                 if (nextEvent.Key != default)
@@ -202,7 +227,7 @@
                             Duration = (int)(nextStart - currentEnd).TotalMinutes
                         };
 
-                        await filler.LoadAsync(this,  this._getNowAction);
+                        await filler.LoadAsync(this, this._getNowAction);
 
                         modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(currentEnd, filler));
                     }
@@ -211,7 +236,7 @@
                 // We have a previous event
                 KeyValuePair<DateTime, Event> prevEvent = activeEvents.Select(ae =>
                 {
-                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min.AddDays(-2) && oc < currentStart)/*GetStartOccurences(now, currentStart, min.AddDays(-2), limitsBetweenRanges: true)*/.LastOrDefault(), ae);
+                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min.AddDays(-2) && oc < currentStart).LastOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).Last();
 
                 if (prevEvent.Key != default)
@@ -230,7 +255,7 @@
                             Duration = (int)(currentStart - prevEnd).TotalMinutes
                         };
 
-                        await filler.LoadAsync(this,  this._getNowAction);
+                        await filler.LoadAsync(this, this._getNowAction);
 
                         modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
                     }
@@ -240,12 +265,12 @@
             {
                 KeyValuePair<DateTime, Event> prevEvent = activeEvents.Select(ae =>
                 {
-                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min.AddDays(-2) && oc < max)/*GetStartOccurences(now, now, min.AddDays(-2), limitsBetweenRanges: true)*/.LastOrDefault(), ae);
+                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min.AddDays(-2) && oc < max).LastOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).Last();
 
                 KeyValuePair<DateTime, Event> nextEvent = activeEvents.Select(ae =>
                 {
-                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min && oc < max.AddDays(2))/*GetStartOccurences(now, max.AddDays(2), now, limitsBetweenRanges: true)*/.FirstOrDefault(), ae);
+                    return new KeyValuePair<DateTime, Event>(ae.Occurences.Where(oc => oc > min && oc < max.AddDays(2)).FirstOrDefault(), ae);
                 }).OrderBy(aeo => aeo.Key).First();
 
                 if (prevEvent.Key != default && nextEvent.Key != default)
@@ -265,7 +290,7 @@
                         Filler = true
                     };
 
-                    await filler.LoadAsync(this,  this._getNowAction);
+                    await filler.LoadAsync(this, this._getNowAction);
 
                     modifiedEventStarts.Add(new KeyValuePair<DateTime, Event>(prevEnd, filler));
                 }
@@ -273,10 +298,12 @@
 
             lock (this._fillerEvents)
             {
-                modifiedEventStarts.Where(e => e.Value.Filler).ToList().ForEach(modEvent => modEvent.Value.Occurences.Add(modEvent.Key));
+                modifiedEventStarts.Where(e => e.Value.Filler).ToList().ForEach(modEvent => modEvent.Value.Occurences.Add(DateTime.SpecifyKind(modEvent.Key, DateTimeKind.Utc)));
                 IEnumerable<Event> modifiedEvents = modifiedEventStarts.Where(e => e.Value.Filler).Select(e => e.Value);
                 this._fillerEvents.AddRange(modifiedEvents);
             }
+            */
+
 
             //return modifiedEventStarts.OrderBy(mes => mes.Key).ToList();
         }
@@ -321,7 +348,7 @@
             {
                 var eventLoadTasks = this.Events.Select(ev =>
                 {
-                    return ev.LoadAsync(this,  getNowAction, translationState);
+                    return ev.LoadAsync(this, getNowAction, translationState);
                 });
 
                 await Task.WhenAll(eventLoadTasks);

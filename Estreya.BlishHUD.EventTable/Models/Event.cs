@@ -76,12 +76,13 @@
         [JsonIgnore]
         public bool Filler { get; set; }
 
-        [JsonIgnore]
+        [JsonProperty("occurences")]
         public List<DateTime> Occurences { get; private set; } = new List<DateTime>();
 
         [JsonIgnore]
         public string SettingKey { get; private set; }
 
+        /*
         public void UpdateOccurences(DateTime now, DateTime min, DateTime max)
         {
             this.Occurences = this.GetStartOccurences(now, min.AddDays(-2), max.AddDays(2));
@@ -107,7 +108,7 @@
 
                 if (inRange)
                 {
-                    startOccurences.Add(eventStart);
+                    startOccurences.Add( eventStart);
                 }
 
                 eventStart = this.Repeat.TotalMinutes == 0 ? eventStart.Add(TimeSpan.FromDays(1)) : eventStart.Add(this.Repeat);
@@ -115,6 +116,7 @@
 
             return startOccurences;
         }
+        */
 
         public DateTime? GetCurrentOccurence(DateTime now)
         {
@@ -220,7 +222,7 @@
 
         public override string ToString()
         {
-            var keySplit = this.SettingKey.Split('_');
+            var keySplit = this.SettingKey?.Split('_') ?? new string[] {string.Empty, this.Name};
             return $"Category: {keySplit[0]} - Name: {keySplit[1]} - Filler {this.Filler}";
         }
     }

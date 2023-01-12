@@ -1,8 +1,6 @@
 ﻿namespace Estreya.BlishHUD.EventTable.State
 {
     using Blish_HUD;
-    using Blish_HUD.Modules.Managers;
-    using Estreya.BlishHUD.EventTable.Models.Settings;
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Threading;
     using Estreya.BlishHUD.Shared.Utils;
@@ -10,8 +8,12 @@
     using Newtonsoft.Json;
     using System;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
+    using Estreya.BlishHUD.EventTable.Models.Settings;
+    using Flurl.Http;
+    using Estreya.BlishHUD.Shared.Extensions;
 
     public class EventFileState : ManagedState
     {
@@ -27,15 +29,17 @@
 
         private string _filePath => Path.Combine(this._directoryPath, this._fileName);
 
-        private readonly string _webSourceUrl;
         private readonly string _directoryPath;
         private readonly string _fileName;
+        private readonly string _fileRootUrl;
+        private IFlurlClient _flurlClient;
 
-        public EventFileState(StateConfiguration configuration, string fileRootUrl, string directoryPath, string fileName) : base(configuration)
+        public EventFileState(StateConfiguration configuration, string directoryPath, string fileName, IFlurlClient flurlClient, string fileRootUrl) : base(configuration)
         {
-            this._webSourceUrl = $"{fileRootUrl.TrimEnd('/')}/events.json";
             this._directoryPath = directoryPath;
             this._fileName = fileName;
+            this._fileRootUrl = fileRootUrl;
+            this._flurlClient = flurlClient;
         }
 
         protected override async Task InternalReload()
@@ -115,7 +119,7 @@
             {
                 Logger.Debug("Loading json from web source.");
 
-                string webJson = await EventTableModule.ModuleInstance.WebClient.DownloadStringTaskAsync(new Uri(_webSourceUrl));
+                string webJson = await this._flurlClient.Request(this._fileRootUrl,"v1", "events.json").GetStringAsync();
 
                 Logger.Debug($"Got content (length): {webJson?.Length ?? 0}");
 

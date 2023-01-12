@@ -6,10 +6,13 @@ using Blish_HUD.ArcDps.Models;
 using Blish_HUD.Controls;
 using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.EventTable.State;
+using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.Models;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
+using Flurl.Http;
+using Gw2Sharp.WebApi.Http;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -19,6 +22,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
 using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
 
@@ -42,6 +49,8 @@ public class EventArea : Container
     private MapchestState _mapchestState;
     private PointOfInterestState _pointOfInterestState;
     private MapNavigationUtil _mapNavigationUtil;
+    private IFlurlClient _flurlClient;
+    private string _apiRootUrl;
     private Func<DateTime> _getNowAction;
 
     private List<EventCategory> _allEvents = new List<EventCategory>();
@@ -58,7 +67,7 @@ public class EventArea : Container
         {
             int pixels = this.Size.X;
 
-            double pixelPerMinute = pixels / this.Configuration.TimeSpan.Value;
+            double pixelPerMinute = pixels / (double)this.Configuration.TimeSpan.Value;
 
             return pixelPerMinute;
         }
@@ -66,7 +75,7 @@ public class EventArea : Container
 
     public EventAreaConfiguration Configuration { get; private set; }
 
-    public EventArea(EventAreaConfiguration configuration, IconState iconState, TranslationState translationState, EventState eventState, WorldbossState worldbossState, MapchestState mapchestState, PointOfInterestState pointOfInterestState, MapNavigationUtil mapNavigationUtil, Func<DateTime> getNowAction)
+    public EventArea(EventAreaConfiguration configuration, IconState iconState, TranslationState translationState, EventState eventState, WorldbossState worldbossState, MapchestState mapchestState, PointOfInterestState pointOfInterestState, MapNavigationUtil mapNavigationUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction)
     {
         this.Configuration = configuration;
         this.Configuration.Size.X.SettingChanged += this.Size_SettingChanged;
@@ -93,6 +102,8 @@ public class EventArea : Container
         this._mapchestState = mapchestState;
         this._pointOfInterestState = pointOfInterestState;
         this._mapNavigationUtil = mapNavigationUtil;
+        this._flurlClient = flurlClient;
+        this._apiRootUrl = apiRootUrl;
 
         //this._eventState.
         if (this._worldbossState != null)
@@ -133,6 +144,8 @@ public class EventArea : Container
 
         await Task.WhenAll(this._allEvents.Select(ec => ec.LoadAsync(this._getNowAction, this._translationState)));
 
+        // Events should have occurences calculated already
+
         this.ReAddEvents();
     }
 
@@ -141,7 +154,7 @@ public class EventArea : Container
         List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
         events.ForEach(ev =>
         {
-            this._eventState.Remove(this.GetEventKey(ev));
+            this._eventState.Remove(this.GetEventStateKey(ev.SettingKey));
         });
     }
 
@@ -153,7 +166,7 @@ public class EventArea : Container
         List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
         events.ForEach(ev =>
         {
-            string areaEventKey = this.GetEventKey(ev);
+            string areaEventKey = this.GetEventStateKey(ev.SettingKey);
             switch (this.Configuration.CompletionAcion.Value)
             {
                 case EventCompletedAction.Crossout:
@@ -214,11 +227,6 @@ public class EventArea : Container
         return CaptureType.None;
     }
 
-    private string GetEventKey(Models.Event ev)
-    {
-        return $"{this.Configuration.Name}_{ev.SettingKey}";
-    }
-
     private List<IGrouping<string, string>> GetActiveEventKeysGroupedByCategory()
     {
         int i = 0;
@@ -261,7 +269,7 @@ public class EventArea : Container
     private (DateTime Now, DateTime Min, DateTime Max) GetTimes()
     {
         DateTime now = this._getNowAction();
-        int halveTimespan = this.Configuration.TimeSpan.Value / 2;
+        double halveTimespan = this.Configuration.TimeSpan.Value / 2;
         DateTime min = now.AddMinutes(-halveTimespan);
         DateTime max = now.AddMinutes(halveTimespan);
 
@@ -274,12 +282,85 @@ public class EventArea : Container
 
         List<Task> tasks = new List<Task>();
 
+        var fillers = await this.GetFillers(times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value.Where(ev => !this.EventDisabled(ev)).ToList());
         foreach (EventCategory ec in this._allEvents)
         {
-            tasks.Add(ec.UpdateEventOccurences(times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value, (ev) => this.EventDisabled(ev)));
+            tasks.Add(Task.Run(async () =>
+            {
+                if (fillers.TryGetValue(ec.Key, out var categoryFillers))
+                {
+                    await Task.WhenAll(categoryFillers.Select(cf => cf.LoadAsync(ec, this._getNowAction, this._translationState)));
+                }
+
+                ec.UpdateFillers(categoryFillers);
+                //await ec.UpdateEventOccurences(categoryFillers, times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value, (ev) => this.EventDisabled(ev));
+            }));
         }
 
         await Task.WhenAll(tasks);
+    }
+
+    private async Task<ConcurrentDictionary<string, List<Models.Event>>> GetFillers(DateTime now, DateTime min, DateTime max, List<string> activeEventKeys)
+    {
+        try
+        {
+            if (activeEventKeys == null || activeEventKeys.Count == 0)
+            {
+                return new ConcurrentDictionary<string, List<Models.Event>>();
+            }
+
+            var flurlRequest = this._flurlClient.Request(this._apiRootUrl, "fillers");
+
+            List<Models.Event> activeEvents = this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList();
+
+            var response = await flurlRequest.PostJsonAsync(new
+            {
+                module = new
+                {
+                    version = EventTableModule.ModuleInstance.Version.ToString(),
+                },
+                times = new
+                {
+                    now = now.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                    min = min.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                    max = max.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                },
+                eventKeys = activeEvents.Select(a => a.SettingKey)
+            });
+
+            var fillers = await response.GetJsonAsync<OnlineFillerCategory[]>();
+
+            var fillerList = fillers.ToList();
+            var parsedFillers = new ConcurrentDictionary<string, List<Models.Event>>();
+            for (int i = 0; i < fillerList.Count; i++)
+            {
+                var currentCategory = fillerList[i];
+
+                foreach (var fillerItem in currentCategory.Fillers)
+                {
+                    Models.Event filler = new Models.Event()
+                    {
+                        Name = $"{fillerItem.Name}",
+                        Duration = fillerItem.Duration,
+                        Filler = true
+                    };
+
+                    fillerItem.Occurences.ToList().ForEach(o => filler.Occurences.Add(/*DateTime.SpecifyKind(o.DateTime, DateTimeKind.Utc).ToLocalTime()*/ o.UtcDateTime));
+
+                    var prevFillers = parsedFillers.GetOrAdd(currentCategory.Key, (key) => new List<Models.Event>() { filler });
+                    prevFillers.Add(filler);
+                }
+            }
+
+            return parsedFillers;
+        }
+        catch (FlurlHttpException ex)
+        {
+            var error = await ex.GetResponseStringAsync();
+            Logger.Warn($"Could not load fillers from {ex.Call.Request.Url}: {error}");
+        }
+
+        return new ConcurrentDictionary<string, List<Models.Event>>();
     }
 
     private bool EventCategoryDisabled(EventCategory ec)
@@ -291,19 +372,24 @@ public class EventArea : Container
 
     private bool EventDisabled(Models.Event ev)
     {
-        var enabled = this.Configuration.ActiveEventKeys.Value.Contains(ev.SettingKey);
+        return !ev.Filler && this.EventDisabled(ev.SettingKey);
+    }
 
-        enabled &= !this._eventState.Contains(GetEventStateKey(ev), EventState.EventStates.Hidden);
+    private bool EventDisabled(string settingKey)
+    {
+        var enabled = this.Configuration.ActiveEventKeys.Value.Contains(settingKey);
+
+        enabled &= !this._eventState.Contains(GetEventStateKey(settingKey), EventState.EventStates.Hidden);
 
         return !enabled;
     }
 
-    private string GetEventStateKey(Models.Event ev)
+    private string GetEventStateKey(string settingKey)
     {
-        return $"{this.Configuration.Name}-{ev.SettingKey}";
+        return $"{this.Configuration.Name}-{settingKey}";
     }
 
-    private void UpdateEvents()
+    private void UpdateEventsOnScreen()
     {
         if (_clearing) return;
 
@@ -316,13 +402,14 @@ public class EventArea : Container
 
             foreach ((DateTime Occurence, Event Event) controlEvent in controlEventPairs)
             {
+                bool disabled = this.EventDisabled(controlEvent.Event.Ev);
                 int x = (int)Math.Ceiling(controlEvent.Event.Ev.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute));
                 int width = (int)Math.Ceiling(controlEvent.Event.Ev.CalculateWidth(controlEvent.Occurence, times.Min, this.Width, this.PixelPerMinute));
 
                 controlEvent.Event.Left = x < 0 ? 0 : x;
                 controlEvent.Event.Width = width;
 
-                if (width <= 0)
+                if (width <= 0 || disabled)
                 {
                     // Control can be deleted
                     toDelete.Add(controlEvent);
@@ -332,6 +419,7 @@ public class EventArea : Container
             foreach (var delete in toDelete)
             {
                 Logger.Debug($"Deleted event {delete.Event.Ev.Name}");
+                delete.Event.LeftMouseButtonPressed -= this.EventControl_LeftMouseButtonPressed;
                 delete.Event.Dispose();
                 controlEventPairs.Remove(delete);
             }
@@ -359,6 +447,11 @@ public class EventArea : Container
 
             foreach (Models.Event ev in validEvents)
             {
+                if (this.EventDisabled(ev))
+                {
+                    continue;
+                }
+
                 IEnumerable<DateTime> validOccurences = ev.Occurences.Where(oc => oc.AddMinutes(ev.Duration) >= times.Min && oc <= times.Max);
                 foreach (DateTime occurence in validOccurences)
                 {
@@ -371,7 +464,7 @@ public class EventArea : Container
                     int x = (int)Math.Ceiling(ev.CalculateXPosition(occurence, times.Min, this.PixelPerMinute));
                     int width = (int)Math.Ceiling(ev.CalculateWidth(occurence, times.Min, this.Width, this.PixelPerMinute));
 
-                    if (x > this.Width || width < 0)
+                    if (x > this.Width || width <= 0)
                     {
                         continue;
                     }
@@ -384,7 +477,7 @@ public class EventArea : Container
                         occurence.AddMinutes(ev.Duration),
                         () => _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular)),
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
-                        () => this._eventState.Contains(ev.SettingKey, EventState.EventStates.Completed),
+                        () => this._eventState.Contains(this.GetEventStateKey(ev.SettingKey), EventState.EventStates.Completed),
                         () =>
                         {
                             var defaultTextColor = Color.Black;
@@ -484,7 +577,7 @@ public class EventArea : Container
     public override void UpdateContainer(GameTime gameTime)
     {
         _ = UpdateUtil.UpdateAsync(this.UpdateEventOccurences, gameTime, _updateEventOccurencesInterval.TotalMilliseconds, this._lastEventOccurencesUpdate);
-        UpdateUtil.Update(this.UpdateEvents, gameTime, _updateEventInterval.TotalMilliseconds, ref _lastEventUpdate);
+        UpdateUtil.Update(this.UpdateEventsOnScreen, gameTime, _updateEventInterval.TotalMilliseconds, ref _lastEventUpdate);
     }
 
     private void ClearEventControls()
@@ -522,6 +615,9 @@ public class EventArea : Container
         this._eventState = null;
         this._mapNavigationUtil = null;
         this._pointOfInterestState = null;
+
+        this._flurlClient = null;
+        this._apiRootUrl = null;
 
         this.Configuration.Size.X.SettingChanged -= this.Size_SettingChanged;
         this.Configuration.Size.Y.SettingChanged -= this.Size_SettingChanged;
