@@ -35,7 +35,7 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<ScrollingTextAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
+    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState,TranslationState translationState,  BitmapFont font = null) : base(apiManager, iconState, translationState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
     }

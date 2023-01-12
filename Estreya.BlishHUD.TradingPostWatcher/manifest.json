@@ -4,9 +4,9 @@
   "namespace": "estreya.bh.tradingPostWatcher",
   "package": "Estreya.BlishHUD.TradingPostWatcher.dll",
   "manifest_version": 1,
-  "description": "NEEDS BlishHUD >=0.11.8-ci.275\nProvides functionality to display your current buy and sell transactions and highlights them whether they are highest price or outbid.\nAllows the user to track items and get notified when they reached the set best price.",
+  "description": "Provides functionality to display your current buy and sell transactions and highlights them whether they are highest price or outbid.\nAllows the user to track items and get notified when they reached the set best price.",
   "dependencies": {
-    "bh.blishhud": ">=0.11.8"
+    "bh.blishhud": ">=1.0.0"
   },
   "url": "https://github.com/Tharylia/Blish-HUD-Modules",
   "contributors": [
