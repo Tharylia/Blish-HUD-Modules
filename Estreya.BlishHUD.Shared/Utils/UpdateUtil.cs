@@ -82,10 +82,14 @@
 
                 Logger.Debug("Start running update function '{0}'.", methodName);
 
-                var task = call.Invoke();
-                await task;
-
-                _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
+                try
+                {
+                    var task = call.Invoke();
+                    await task;
+                } finally
+                {
+                    _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
+                }
 
                 Logger.Debug("Update function '{0}' finished running.", methodName);
 

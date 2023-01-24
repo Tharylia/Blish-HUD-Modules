@@ -138,6 +138,7 @@
             this.GlobalDrawerVisibleHotkey.SettingChanged += this.SettingChanged;
             this.GlobalDrawerVisibleHotkey.Value.Enabled = globalHotkeyEnabled;
             this.GlobalDrawerVisibleHotkey.Value.Activated += this.GlobalEnabledHotkey_Activated;
+            this.GlobalDrawerVisibleHotkey.Value.IgnoreWhenInTextField = true;
             this.GlobalDrawerVisibleHotkey.Value.BlockSequenceFromGw2 = globalHotkeyEnabled;
 
             this.RegisterCornerIcon = this.GlobalSettings.DefineSetting(nameof(this.RegisterCornerIcon), true, () => "Register Corner Icon", () => "Whether the module should register a corner icon.");
@@ -185,6 +186,10 @@
             int maxWidth = 1920;
 
             var enabled = this.DrawerSettings.DefineSetting($"{name}-enabled", true, () => "Enabled", () => "Whether the drawer is enabled.");
+            var enabledKeybinding = this.DrawerSettings.DefineSetting($"{name}-enabledKeybinding", new KeyBinding(), () => "Enabled Keybinding", () => "Defines the keybinding to toggle this drawer on and off.");
+            enabledKeybinding.Value.Enabled = true;
+            enabledKeybinding.Value.IgnoreWhenInTextField = true;
+            enabledKeybinding.Value.BlockSequenceFromGw2 = true;
 
             var locationX = this.DrawerSettings.DefineSetting($"{name}-locationX", (int)(maxWidth * 0.1), () => "Location X", () => "Defines the position on the x axis.");
             locationX.SetRange(0, maxWidth);
@@ -206,6 +211,7 @@
             {
                 Name = name,
                 Enabled = enabled,
+                EnabledKeybinding = enabledKeybinding,
                 Location = new DrawerLocation()
                 {
                     X = locationX,
@@ -229,6 +235,7 @@
         public void RemoveDrawer(string name)
         {
             this.DrawerSettings.UndefineSetting($"{name}-enabled");
+            this.DrawerSettings.UndefineSetting($"{name}-enabledKeybinding");
             this.DrawerSettings.UndefineSetting($"{name}-locationX");
             this.DrawerSettings.UndefineSetting($"{name}-locationY");
             this.DrawerSettings.UndefineSetting($"{name}-width");

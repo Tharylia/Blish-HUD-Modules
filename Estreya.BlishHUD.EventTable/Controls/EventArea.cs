@@ -18,6 +18,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
 using Newtonsoft.Json;
+using SemVer;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -27,13 +28,12 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using static Blish_HUD.ContentService;
 
 public class EventArea : Container
 {
     private static readonly Logger Logger = Logger.GetLogger<EventArea>();
-
-    private const int EVENT_HEIGHT = 30;
 
     private static TimeSpan _updateEventOccurencesInterval = TimeSpan.FromMinutes(15);
     private AsyncRef<double> _lastEventOccurencesUpdate = new AsyncRef<double>(0);
@@ -48,11 +48,11 @@ public class EventArea : Container
     private WorldbossState _worldbossState;
     private MapchestState _mapchestState;
     private PointOfInterestState _pointOfInterestState;
-    private MapNavigationUtil _mapNavigationUtil;
+    private MapUtil _mapUtil;
     private IFlurlClient _flurlClient;
     private string _apiRootUrl;
     private Func<DateTime> _getNowAction;
-
+    private readonly Func<SemVer.Version> _getVersion;
     private List<EventCategory> _allEvents = new List<EventCategory>();
 
     private ConcurrentDictionary<string, List<(DateTime Occurence, Event Event)>> _controlEvents = new ConcurrentDictionary<string, List<(DateTime Occurence, Event Event)>>();
@@ -75,9 +75,11 @@ public class EventArea : Container
 
     public EventAreaConfiguration Configuration { get; private set; }
 
-    public EventArea(EventAreaConfiguration configuration, IconState iconState, TranslationState translationState, EventState eventState, WorldbossState worldbossState, MapchestState mapchestState, PointOfInterestState pointOfInterestState, MapNavigationUtil mapNavigationUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction)
+    public EventArea(EventAreaConfiguration configuration, IconState iconState, TranslationState translationState, EventState eventState, WorldbossState worldbossState, MapchestState mapchestState, PointOfInterestState pointOfInterestState, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<SemVer.Version> getVersion)
     {
         this.Configuration = configuration;
+
+        this.Configuration.EnabledKeybinding.Value.Activated += this.EnabledKeybinding_Activated;
         this.Configuration.Size.X.SettingChanged += this.Size_SettingChanged;
         this.Configuration.Size.Y.SettingChanged += this.Size_SettingChanged;
         this.Configuration.Location.X.SettingChanged += this.Location_SettingChanged;
@@ -86,7 +88,7 @@ public class EventArea : Container
         this.Configuration.BackgroundColor.SettingChanged += this.BackgroundColor_SettingChanged;
         this.Configuration.UseFiller.SettingChanged += this.UseFiller_SettingChanged;
         this.Configuration.BuildDirection.SettingChanged += this.BuildDirection_SettingChanged;
-        this.Configuration.ActiveEventKeys.SettingChanged += this.ActiveEventKeys_SettingChanged;
+        this.Configuration.DisabledEventKeys.SettingChanged += this.DisabledEventKeys_SettingChanged;
 
         this.Location_SettingChanged(this, null);
         this.Size_SettingChanged(this, null);
@@ -94,14 +96,14 @@ public class EventArea : Container
         this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color>(null, this.Configuration.BackgroundColor.Value));
 
         this._getNowAction = getNowAction;
-
+        this._getVersion = getVersion;
         this._iconState = iconState;
         this._translationState = translationState;
         this._eventState = eventState;
         this._worldbossState = worldbossState;
         this._mapchestState = mapchestState;
         this._pointOfInterestState = pointOfInterestState;
-        this._mapNavigationUtil = mapNavigationUtil;
+        this._mapUtil = mapUtil;
         this._flurlClient = flurlClient;
         this._apiRootUrl = apiRootUrl;
 
@@ -119,7 +121,12 @@ public class EventArea : Container
         }
     }
 
-    private void ActiveEventKeys_SettingChanged(object sender, ValueChangedEventArgs<List<string>> e)
+    private void EnabledKeybinding_Activated(object sender, EventArgs e)
+    {
+        this.Configuration.Enabled.Value = !this.Configuration.Enabled.Value;
+    }
+
+    private void DisabledEventKeys_SettingChanged(object sender, ValueChangedEventArgs<List<string>> e)
     {
         this.ReAddEvents();
     }
@@ -154,28 +161,17 @@ public class EventArea : Container
         List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
         events.ForEach(ev =>
         {
-            this._eventState.Remove(this.GetEventStateKey(ev.SettingKey));
+            this._eventState.Remove(this.Configuration.Name, ev.SettingKey);
         });
     }
 
     private void Event_Completed(object sender, string apiCode)
     {
-        DateTime now = this._getNowAction().ToUniversalTime();
-        DateTime until = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, System.DateTimeKind.Utc).AddDays(1);
-
+        var until = this.GetNextReset();
         List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
         events.ForEach(ev =>
         {
-            string areaEventKey = this.GetEventStateKey(ev.SettingKey);
-            switch (this.Configuration.CompletionAcion.Value)
-            {
-                case EventCompletedAction.Crossout:
-                    this._eventState.Add(areaEventKey, until, EventState.EventStates.Completed);
-                    break;
-                case EventCompletedAction.Hide:
-                    this._eventState.Add(areaEventKey, until, EventState.EventStates.Hidden);
-                    break;
-            }
+            this.FinishEvent(ev, until);
         });
     }
 
@@ -244,7 +240,16 @@ public class EventArea : Container
             return new List<IGrouping<string, string>>();
         }
 
-        return this.Configuration.ActiveEventKeys.Value.OrderBy(x => order[x]).GroupBy(aek => aek.Split('_')[0]).ToList();
+        var activeSettingKeys = this.GetActiveEventKeys();
+
+        return activeSettingKeys.OrderBy(x => order[x]).GroupBy(aek => aek.Split('_')[0]).ToList();
+    }
+
+    private List<string> GetActiveEventKeys()
+    {
+        var activeSettingKeys = this._allEvents.SelectMany(ae => ae.Events).Where(e => !e.Filler).Select(e => e.SettingKey).Where(sk => !this.Configuration.DisabledEventKeys.Value.Contains(sk));
+
+        return activeSettingKeys.ToList();
     }
 
     private void ReAddEvents()
@@ -282,7 +287,9 @@ public class EventArea : Container
 
         List<Task> tasks = new List<Task>();
 
-        var fillers = await this.GetFillers(times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value.Where(ev => !this.EventDisabled(ev)).ToList());
+        var activeEventKeys = this.GetActiveEventKeys();
+
+        var fillers = await this.GetFillers(times.Now, times.Min, times.Max, activeEventKeys.Where(ev => !this.EventDisabled(ev)).ToList());
         foreach (EventCategory ec in this._allEvents)
         {
             tasks.Add(Task.Run(async () =>
@@ -313,19 +320,19 @@ public class EventArea : Container
 
             List<Models.Event> activeEvents = this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList();
 
-            var response = await flurlRequest.PostJsonAsync(new
+            var response = await flurlRequest.PostJsonAsync(new OnlineFillerRequest()
             {
-                module = new
+                Module = new OnlineFillerRequest.OnlineFillerRequestModule()
                 {
-                    version = EventTableModule.ModuleInstance.Version.ToString(),
+                    Version = this._getVersion().ToString(),
                 },
-                times = new
+                Times = new OnlineFillerRequest.OnlineFillerRequestTimes()
                 {
-                    now = now.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
-                    min = min.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
-                    max = max.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                    Now_UTC_ISO = now.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                    Min_UTC_ISO = min.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
+                    Max_UTC_ISO = max.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
                 },
-                eventKeys = activeEvents.Select(a => a.SettingKey)
+                EventKeys = activeEvents.Select(a => a.SettingKey).ToArray()
             });
 
             var fillers = await response.GetJsonAsync<OnlineFillerCategory[]>();
@@ -365,7 +372,7 @@ public class EventArea : Container
 
     private bool EventCategoryDisabled(EventCategory ec)
     {
-        var finished = this._eventState?.Contains(ec.Key, EventState.EventStates.Completed) ?? false;
+        var finished = this._eventState?.Contains(this.Configuration.Name, ec.Key, EventState.EventStates.Completed) ?? false;
 
         return finished;
     }
@@ -377,16 +384,11 @@ public class EventArea : Container
 
     private bool EventDisabled(string settingKey)
     {
-        var enabled = this.Configuration.ActiveEventKeys.Value.Contains(settingKey);
+        var enabled = !this.Configuration.DisabledEventKeys.Value.Contains(settingKey);
 
-        enabled &= !this._eventState.Contains(GetEventStateKey(settingKey), EventState.EventStates.Hidden);
+        enabled &= !this._eventState.Contains(this.Configuration.Name, settingKey, EventState.EventStates.Hidden);
 
         return !enabled;
-    }
-
-    private string GetEventStateKey(string settingKey)
-    {
-        return $"{this.Configuration.Name}-{settingKey}";
     }
 
     private void UpdateEventsOnScreen()
@@ -403,11 +405,19 @@ public class EventArea : Container
             foreach ((DateTime Occurence, Event Event) controlEvent in controlEventPairs)
             {
                 bool disabled = this.EventDisabled(controlEvent.Event.Ev);
+                if (disabled)
+                {
+                    // Control can be deleted
+                    toDelete.Add(controlEvent);
+                    continue;
+                }
+
                 int x = (int)Math.Ceiling(controlEvent.Event.Ev.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute));
                 int width = (int)Math.Ceiling(controlEvent.Event.Ev.CalculateWidth(controlEvent.Occurence, times.Min, this.Width, this.PixelPerMinute));
 
                 controlEvent.Event.Left = x < 0 ? 0 : x;
                 controlEvent.Event.Width = width;
+                controlEvent.Event.Height = this.Configuration.EventHeight.Value;
 
                 if (width <= 0 || disabled)
                 {
@@ -419,7 +429,7 @@ public class EventArea : Container
             foreach (var delete in toDelete)
             {
                 Logger.Debug($"Deleted event {delete.Event.Ev.Name}");
-                delete.Event.LeftMouseButtonPressed -= this.EventControl_LeftMouseButtonPressed;
+                this.RemoveEventHooks(delete.Event);
                 delete.Event.Dispose();
                 controlEventPairs.Remove(delete);
             }
@@ -477,7 +487,7 @@ public class EventArea : Container
                         occurence.AddMinutes(ev.Duration),
                         () => _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular)),
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
-                        () => this._eventState.Contains(this.GetEventStateKey(ev.SettingKey), EventState.EventStates.Completed),
+                        () => this._eventState.Contains(this.Configuration.Name,ev.SettingKey, EventState.EventStates.Completed),
                         () =>
                         {
                             var defaultTextColor = Color.Black;
@@ -499,12 +509,12 @@ public class EventArea : Container
                     {
                         Parent = this,
                         Top = y,
-                        Height = EVENT_HEIGHT,
+                        Height = this.Configuration.EventHeight.Value,
                         Width = width,
                         Left = x < 0 ? 0 : x
                     };
 
-                    newEventControl.LeftMouseButtonPressed += this.EventControl_LeftMouseButtonPressed;
+                    this.AddEventHooks(newEventControl);
 
                     Logger.Debug($"Added event {ev.Name} with occurence {occurence}");
 
@@ -517,7 +527,7 @@ public class EventArea : Container
 
             if (renderedAny)
             {
-                y += EVENT_HEIGHT; // TODO: Make setting
+                y += this.Configuration.EventHeight.Value; // TODO: Make setting
             }
         }
 
@@ -563,7 +573,7 @@ public class EventArea : Container
 
                 _ = Task.Run(async () =>
                 {
-                    var result = await (_mapNavigationUtil?.NavigateToPosition(poi, this.Configuration.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapNavigationUtil.NavigationResult(false, "Variable null.")));
+                    var result = await (_mapUtil?.NavigateToPosition(poi, this.Configuration.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
                     if (!result.Success)
                     {
                         Shared.Controls.ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", Shared.Controls.ScreenNotification.NotificationType.Error);
@@ -585,12 +595,77 @@ public class EventArea : Container
         this.Children.ToList().ForEach(child =>
         {
             var eventControl = child as Event;
-            eventControl.LeftMouseButtonPressed -= this.EventControl_LeftMouseButtonPressed;
+            this.RemoveEventHooks(eventControl);
             child.Dispose();
         });
 
+        this._allEvents.ForEach(a => a.UpdateFillers(new List<Models.Event>()));
+
         this.Children.Clear();
         this._controlEvents.Clear();
+    }
+
+    private void AddEventHooks(Event ev)
+    {
+        ev.LeftMouseButtonPressed += this.EventControl_LeftMouseButtonPressed;
+        ev.HideRequested += this.Ev_HideRequested;
+        ev.FinishRequested += this.Ev_FinishRequested;
+        ev.DisableRequested += this.Ev_DisableRequested;
+    }
+
+    private void RemoveEventHooks(Event ev)
+    {
+        ev.LeftMouseButtonPressed -= this.EventControl_LeftMouseButtonPressed;
+        ev.HideRequested -= this.Ev_HideRequested;
+        ev.FinishRequested -= this.Ev_FinishRequested;
+        ev.DisableRequested -= this.Ev_DisableRequested;
+    }
+
+    private void Ev_FinishRequested(object sender, EventArgs e)
+    {
+        var ev = sender as Event;
+        this.FinishEvent(ev.Ev, this.GetNextReset());
+    }
+
+    private void FinishEvent(Models.Event ev, DateTime until)
+    {
+        switch (this.Configuration.CompletionAcion.Value)
+        {
+            case EventCompletedAction.Crossout:
+                this._eventState.Add(this.Configuration.Name, ev.SettingKey, until, EventState.EventStates.Completed);
+                break;
+            case EventCompletedAction.Hide:
+                this.HideEvent(ev, until);
+                break;
+        }
+    }
+
+    private void HideEvent(Models.Event ev, DateTime until)
+    {
+        this._eventState.Add(this.Configuration.Name,ev.SettingKey, until, EventState.EventStates.Hidden);
+        this.ReAddEvents();
+    }
+
+    private void Ev_HideRequested(object sender, EventArgs e)
+    {
+        var ev = sender as Event;
+        this.HideEvent(ev.Ev, this.GetNextReset());
+    }
+
+    private void Ev_DisableRequested(object sender, EventArgs e)
+    {
+        var ev = sender as Event;
+        if (!this.Configuration.DisabledEventKeys.Value.Contains(ev.Ev.SettingKey))
+        {
+            this.Configuration.DisabledEventKeys.Value = new List<string>(this.Configuration.DisabledEventKeys.Value) { ev.Ev.SettingKey };
+        }
+    }
+
+    private DateTime GetNextReset()
+    {
+        var nowUTC = this._getNowAction().ToUniversalTime();
+
+        return new DateTime(nowUTC.Year, nowUTC.Month, nowUTC.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1);
     }
 
     protected override void DisposeControl()
@@ -613,12 +688,13 @@ public class EventArea : Container
         this._worldbossState = null;
         this._mapchestState = null;
         this._eventState = null;
-        this._mapNavigationUtil = null;
+        this._mapUtil = null;
         this._pointOfInterestState = null;
 
         this._flurlClient = null;
         this._apiRootUrl = null;
 
+        this.Configuration.EnabledKeybinding.Value.Activated -= this.EnabledKeybinding_Activated;
         this.Configuration.Size.X.SettingChanged -= this.Size_SettingChanged;
         this.Configuration.Size.Y.SettingChanged -= this.Size_SettingChanged;
         this.Configuration.Location.X.SettingChanged -= this.Location_SettingChanged;

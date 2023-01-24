@@ -1,8 +1,10 @@
 ﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
+    using Blish_HUD.ArcDps.Models;
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
+    using Blish_HUD.Input;
     using Blish_HUD.Modules;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Controls;
@@ -28,7 +30,7 @@
     {
         public override string WebsiteModuleName => "event-table";
 
-        internal static EventTableModule ModuleInstance => Instance;
+        //internal static EventTableModule ModuleInstance => Instance;
 
         private Dictionary<string, EventArea> _areas = new Dictionary<string, EventArea>();
 
@@ -40,10 +42,10 @@
 
         #region States
         public EventState EventState { get; private set; }
-        public EventFileState EventFileState { get; private set; }
+        public DynamicEventState DynamicEventState { get; private set; }
         #endregion
 
-        internal MapNavigationUtil MapNavigationUtil { get; private set; }
+        internal MapUtil MapUtil { get; private set; }
 
         protected override string API_VERSION_NO => "1";
 
@@ -55,7 +57,7 @@
         protected override async Task LoadAsync()
         {
             await base.LoadAsync();
-            this.MapNavigationUtil = new MapNavigationUtil(this.ModuleSettings.MapKeybinding.Value);
+            this.MapUtil = new MapUtil(this.ModuleSettings.MapKeybinding.Value, this.Gw2ApiManager);
 
             this.Logger.Debug("Load events.");
             await this.LoadEvents();
@@ -63,6 +65,27 @@
             this.AddAllAreas();
 
             await this.SetAreaEvents();
+
+#if DEBUG
+            GameService.Input.Keyboard.KeyPressed += this.Keyboard_KeyPressed;
+#endif
+        }
+
+        private void Keyboard_KeyPressed(object sender, KeyboardEventArgs e)
+        {
+            if (e.EventType != Blish_HUD.Input.KeyboardEventType.KeyDown) return;
+            if (GameService.Input.Keyboard.TextFieldIsActive()) return;
+
+            if (e.Key == Microsoft.Xna.Framework.Input.Keys.U)
+            {
+                var mapId = GameService.Gw2Mumble.CurrentMap.Id;
+                var ev = this.DynamicEventState.GetEventsByMap(mapId).First();
+                Task.Run(async () =>
+                {
+                    var coords = await this.MapUtil.MapCoordinatesToContinentCoordinates(mapId, new double[] { ev.Location.Center[0], ev.Location.Center[1] });
+                    await this.MapUtil.DrawCircle(coords.X, coords.Y, 1);
+                });
+            }
         }
 
         private async Task SetAreaEvents()
@@ -177,7 +200,7 @@
             }
 
             _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
-        }
+                    }
 
         private void AddAllAreas()
         {
@@ -209,10 +232,11 @@
                 this.WorldbossState,
                 this.MapchestState,
                 this.PointOfInterestState,
-                this.MapNavigationUtil,
+                this.MapUtil,
                 this.GetFlurlClient(),
                 this.API_URL,
-                () => /*DateTime.Parse("2023-01-11T16:00:00"))*/ this.DateTimeNow.ToUniversalTime())
+                () => /*DateTime.Parse("2023-01-11T16:00:00"))*/ this.DateTimeNow.ToUniversalTime(),
+                () => this.Version)
             {
                 Parent = GameService.Graphics.SpriteScreen
             };
@@ -255,9 +279,6 @@
 
             this.Logger.Debug("Unloaded event categories.");
 
-            //this.EventFileState.NewVersionAvailable -= this.EventFileState_NewVersionAvailable;
-            //this.EventFileState.Updated -= this.EventFileState_Updated;
-
             this.Logger.Debug("Unload base.");
 
             base.Unload();
@@ -276,8 +297,7 @@
         {
             // Reorder Icon: 605018
 
-
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
             //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
             UI.Views.AreaSettingsView areaSettingsView = new UI.Views.AreaSettingsView(
                 () => this._areas.Values.Select(area => area.Configuration),
@@ -285,6 +305,7 @@
                 this.Gw2ApiManager,
                 this.IconState,
                 this.TranslationState,
+                this.EventState,
                 GameService.Content.DefaultFont16)
             { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
@@ -321,18 +342,6 @@
         {
             Collection<ManagedState> additionalStates = new Collection<ManagedState>();
 
-            /*
-            this.EventFileState = new EventFileState(new StateConfiguration()
-            {
-                AwaitLoading = true,
-                Enabled = true,
-                SaveInterval = Timeout.InfiniteTimeSpan
-            },  directoryPath, "events.json", this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
-
-            this.EventFileState.NewVersionAvailable += this.EventFileState_NewVersionAvailable;
-            this.EventFileState.Updated += this.EventFileState_Updated;
-            */
-
             this.EventState = new EventState(new StateConfiguration()
             {
                 AwaitLoading = false,
@@ -340,37 +349,17 @@
                 SaveInterval = TimeSpan.FromSeconds(30)
             }, directoryPath, () => this.DateTimeNow);
 
-            //additionalStates.Add(this.EventFileState);
+            this.DynamicEventState = new DynamicEventState(new StateConfiguration()
+            {
+                AwaitLoading = false,
+                Enabled = true,
+                SaveInterval = Timeout.InfiniteTimeSpan
+            }, this.GetFlurlClient());
+
             additionalStates.Add(this.EventState);
+            additionalStates.Add(this.DynamicEventState);
 
             return additionalStates;
-        }
-
-        private void EventFileState_Updated(object sender, EventArgs e)
-        {
-            Task.Run(this.LoadEvents);
-        }
-
-        private void EventFileState_NewVersionAvailable(object sender, NewEventFileVersionArgs e)
-        {
-            if (e.IsSelfUpdate)
-            {
-                Shared.Controls.ScreenNotification.ShowNotification(new string[]
-                {
-                    $"The event file got auto updated: {e.OldVersion} -> {e.NewVersion}"
-                }, duration: 5);
-            }
-            else
-            {
-                if (!e.AlreadyNotified)
-                {
-                    Shared.Controls.ScreenNotification.ShowNotification(new string[]
-                    {
-                    $"Version {e.NewVersion} of the event file is available.",
-                    $"Please update it from the settings window. You are running {e.OldVersion}"
-                    }, duration: 10);
-                }
-            }
         }
 
         protected override AsyncTexture2D GetEmblem()

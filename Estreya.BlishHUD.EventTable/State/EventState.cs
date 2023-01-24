@@ -5,9 +5,11 @@
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
+    using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.Diagnostics.Eventing.Reader;
     using System.Globalization;
     using System.IO;
     using System.Linq;
@@ -27,14 +29,14 @@
 
         public struct VisibleStateInfo
         {
-            public string Key;
+            public string AreaName;
+            public string EventKey;
             public EventStates State;
             public DateTime Until;
         }
 
         private static readonly Logger Logger = Logger.GetLogger<EventState>();
-        private const string FILE_NAME = "event_states.txt";
-        private const string LINE_SPLIT = "<-->";
+        private const string FILE_NAME = "event_states.json";
         private bool dirty;
 
         private string _basePath { get; set; }
@@ -56,7 +58,7 @@
 
         private readonly Func<DateTime> _getNowAction;
 
-        private List<VisibleStateInfo> Instances { get; set; } = new List<VisibleStateInfo>();
+        public List<VisibleStateInfo> Instances { get; private set; } = new List<VisibleStateInfo>();
 
         public EventState(StateConfiguration configuration, string basePath, Func<DateTime> getNowAction) : base(configuration)
         {
@@ -84,25 +86,28 @@
 
                     if (remove)
                     {
-                        this.Remove(instance.Key);
+                        this.Remove(instance.AreaName, instance.EventKey);
                     }
                 }
             }
         }
 
-        public void Add(string name, DateTime until, EventStates state)
+        public void Add(string areaName, string eventKey, DateTime until, EventStates state)
         {
             lock (this.Instances)
             {
-                this.Remove(name);
+                this.Remove(areaName, eventKey);
 
                 until = until.ToUniversalTime();
+
+                var name = this.GetName(areaName, eventKey);
 
                 Logger.Info($"Add event state for \"{name}\" with \"{state}\" until \"{until.ToString(DATE_TIME_FORMAT)}\" UTC.");
 
                 var newInstance = new VisibleStateInfo()
                 {
-                    Key = name,
+                    AreaName = areaName,
+                    EventKey = eventKey,
                     State = state,
                     Until = until
                 };
@@ -122,16 +127,18 @@
             }
         }
 
-        public void Remove(string name)
+        public void Remove(string areaName, string eventKey)
         {
             lock (this.Instances)
             {
-                var instancesToRemove = this.Instances.Where(instance => instance.Key == name).ToList();
+                var instancesToRemove = this.Instances.Where(instance => instance.AreaName == areaName && instance.EventKey == eventKey).ToList();
 
                 if (instancesToRemove.Count == 0)
                 {
                     return;
                 }
+
+                var name = this.GetName(areaName, eventKey);
 
                 Logger.Info($"Remove event states for \"{name}\".");
 
@@ -153,6 +160,11 @@
             }
         }
 
+        private string GetName(string areaName, string eventKey)
+        {
+            return $"{areaName}-{eventKey}";
+        }
+
         protected override Task Clear()
         {
             lock (this.Instances)
@@ -161,7 +173,7 @@
 
                 for (int i = this.Instances.Count - 1; i >= 0; i--)
                 {
-                    this.Remove(this.Instances[i].Key);
+                    this.Remove(this.Instances[i].AreaName, this.Instances[i].EventKey);
                 }
 
                 this.dirty = true;
@@ -170,11 +182,11 @@
             return Task.CompletedTask;
         }
 
-        public bool Contains(string name, EventStates state)
+        public bool Contains(string areaName, string eventKey, EventStates state)
         {
             lock (this.Instances)
             {
-                return this.Instances.Any(instance => instance.Key == name && instance.State == state);
+                return this.Instances.Any(instance => instance.AreaName == areaName && instance.EventKey == eventKey && instance.State == state);
             }
         }
 
@@ -192,47 +204,54 @@
 
             try
             {
-                string[] lines = await FileUtil.ReadLinesAsync(this.Path);
+                string json = await FileUtil.ReadStringAsync(this.Path);
 
-                if (lines == null || lines.Length == 0)
+                if (string.IsNullOrWhiteSpace(json))
                 {
                     return;
                 }
 
-                lock (this.Instances)
+                var instances = JsonConvert.DeserializeObject<List<VisibleStateInfo>>(json);
+
+                foreach (var instance in instances)
                 {
-                    foreach (string line in lines)
-                    {
-                        string[] parts = line.Split(new[] { LINE_SPLIT }, StringSplitOptions.None);
-                        if (parts.Length == 0)
-                        {
-                            Logger.Warn("Line is empty.");
-                            continue;
-                        }
-
-                        string name = parts[0];
-
-                        try
-                        {
-                            EventStates state = (EventStates)Enum.Parse(typeof(EventStates), parts[1]);
-                            DateTime until = DateTime.ParseExact(parts[2], DATE_TIME_FORMAT, CultureInfo.InvariantCulture);
-                            until = DateTime.SpecifyKind(until, DateTimeKind.Utc);
-
-                            var newInstance = new VisibleStateInfo()
-                            {
-                                Key = name,
-                                Until = until,
-                                State = state
-                            };
-
-                            this.Add(name, until, state);
-                        }
-                        catch (Exception ex)
-                        {
-                            Logger.Error(ex, "Loading line \"{0}\" failed. Parts: {1}", name, string.Join(", ", parts));
-                        }
-                    }
+                    this.Add(instance.AreaName, instance.EventKey, instance.Until, instance.State);
                 }
+
+                //lock (this.Instances)
+                //{
+                    //foreach (string line in lines)
+                    //{
+                    //    string[] parts = line.Split(new[] { LINE_SPLIT }, StringSplitOptions.None);
+                    //    if (parts.Length == 0)
+                    //    {
+                    //        Logger.Warn("Line is empty.");
+                    //        continue;
+                    //    }
+
+                    //    string name = parts[0];
+
+                    //    try
+                    //    {
+                    //        EventStates state = (EventStates)Enum.Parse(typeof(EventStates), parts[1]);
+                    //        DateTime until = DateTime.ParseExact(parts[2], DATE_TIME_FORMAT, CultureInfo.InvariantCulture);
+                    //        until = DateTime.SpecifyKind(until, DateTimeKind.Utc);
+
+                    //        var newInstance = new VisibleStateInfo()
+                    //        {
+                    //            Key = name,
+                    //            Until = until,
+                    //            State = state
+                    //        };
+
+                    //        this.Add(name, until, state);
+                    //    }
+                    //    catch (Exception ex)
+                    //    {
+                    //        Logger.Error(ex, "Loading line \"{0}\" failed. Parts: {1}", name, string.Join(", ", parts));
+                    //    }
+                    //}
+                //}
             }
             catch (Exception ex)
             {
@@ -247,17 +266,25 @@
                 return;
             }
 
-            Collection<string> lines = new Collection<string>();
+            string json = null;
 
             lock (this.Instances)
             {
-                foreach (var instance in this.Instances)
-                {
-                    lines.Add($"{instance.Key}{LINE_SPLIT}{instance.State}{LINE_SPLIT}{instance.Until.ToString(DATE_TIME_FORMAT)}");
-                }
+                json = JsonConvert.SerializeObject(this.Instances, Formatting.Indented);
+                
+
+                //foreach (var instance in this.Instances)
+                //{
+                //    lines.Add($"{instance.Key}{LINE_SPLIT}{instance.State}{LINE_SPLIT}{instance.Until.ToString(DATE_TIME_FORMAT)}");
+                //}
             }
 
-            await FileUtil.WriteLinesAsync(this.Path, lines.ToArray());
+            if (!string.IsNullOrWhiteSpace(json))
+            {
+                await FileUtil.WriteStringAsync(this.Path, json);
+            }
+
+            //await FileUtil.WriteLinesAsync(this.Path, lines.ToArray());
             this.dirty = false;
         }
 

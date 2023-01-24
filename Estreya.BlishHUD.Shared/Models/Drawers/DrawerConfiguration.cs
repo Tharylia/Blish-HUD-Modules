@@ -1,5 +1,6 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.Drawers;
 
+using Blish_HUD.Input;
 using Blish_HUD.Settings;
 using Microsoft.Xna.Framework;
 using System;
@@ -14,6 +15,8 @@ public class DrawerConfiguration
     public string Name { get; set; }
 
     public SettingEntry<bool> Enabled { get; set; }
+
+    public SettingEntry<KeyBinding> EnabledKeybinding { get; set; }
 
     public DrawerLocation Location { get; set; }
 

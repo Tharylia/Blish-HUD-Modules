@@ -75,12 +75,16 @@
 
             var completionAction = this.DrawerSettings.DefineSetting($"{name}-completionAction", EventCompletedAction.Crossout, () => "Completion Action", () => "Defines the action to perform if an event has been completed.");
 
-            var activeEventKeys = this.DrawerSettings.DefineSetting($"{name}-activeEventKeys", eventCategories.SelectMany(ec => ec.Events.Select(ev => ev.SettingKey)).ToList(), () => "Active Event Keys", () => "Defines the active event keys.");
+            var disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", /*eventCategories.SelectMany(ec => ec.Events.Select(ev => ev.SettingKey)).ToList()*/ new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
+
+            var eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
+            eventHeight.SetRange(5, 30);
 
             return new EventAreaConfiguration()
             {
                 Name = drawer.Name,
                 Enabled = drawer.Enabled,
+                EnabledKeybinding = drawer.EnabledKeybinding,
                 BuildDirection = drawer.BuildDirection,
                 BackgroundColor = drawer.BackgroundColor,
                 FontSize = drawer.FontSize,
@@ -97,8 +101,9 @@
                 UseFiller = useFillers,
                 FillerTextColor = fillerTextColor,
                 AcceptWaypointPrompt = acceptWaypointPrompt,
-                ActiveEventKeys = activeEventKeys,
-                CompletionAcion = completionAction
+                DisabledEventKeys = disabledEventKeys,
+                CompletionAcion = completionAction,
+                EventHeight = eventHeight
             };
         }
 
@@ -115,7 +120,8 @@
             this.DrawerSettings.UndefineSetting($"{name}-useFillers");
             this.DrawerSettings.UndefineSetting($"{name}-acceptWaypointPrompt");
             this.DrawerSettings.UndefineSetting($"{name}-completionAction");
-            this.DrawerSettings.UndefineSetting($"{name}-activeEventKeys");
+            this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
+            this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
         }
 
         public override void UpdateLocalization(TranslationState translationState)

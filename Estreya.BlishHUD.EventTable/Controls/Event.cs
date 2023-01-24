@@ -14,6 +14,10 @@ using System;
 
 public class Event : RenderTargetControl
 {
+    public event EventHandler HideRequested;
+    public event EventHandler DisableRequested;
+    public event EventHandler FinishRequested;
+
     public Models.Event Ev { get; private set; }
     private readonly IconState _iconState;
     private readonly TranslationState _translationState;
@@ -47,6 +51,43 @@ public class Event : RenderTargetControl
         this._getDrawCrossout = getDrawCrossout;
         this._getTextColor = getTextColor;
         this._getColorAction = getColorAction;
+
+        this.BuildContextMenu();
+    }
+
+    private void BuildContextMenu()
+    {
+        this.Menu = new ContextMenuStrip();
+
+        var disableAction = new ContextMenuStripItem("Disable")
+        {
+            Parent = this.Menu,
+            BasicTooltipText = "Disables the event entirely."
+        };
+        disableAction.Click += (s, e) =>
+        {
+            this.DisableRequested?.Invoke(this, EventArgs.Empty);
+        };
+
+        var hideAction = new ContextMenuStripItem("Hide")
+        {
+            Parent = this.Menu,
+            BasicTooltipText = "Hides the event until the next reset."
+        };
+        hideAction.Click += (s, e) =>
+        {
+            this.HideRequested?.Invoke(this, EventArgs.Empty);
+        };
+
+        var finishAction = new ContextMenuStripItem("Finish")
+        {
+            Parent = this.Menu,
+            BasicTooltipText = "Completes the event until the next reset."
+        };
+        finishAction.Click += (s, e) =>
+        {
+            this.FinishRequested?.Invoke(this, EventArgs.Empty);
+        };
     }
 
     protected override void OnMouseEntered(MouseEventArgs e)

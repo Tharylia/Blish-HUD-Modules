@@ -4,24 +4,29 @@ using Blish_HUD;
 using Blish_HUD.Controls.Extern;
 using Blish_HUD.Controls.Intern;
 using Blish_HUD.Input;
+using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
+using Flurl.Util;
 using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
+using SharpDX.MediaFoundation;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-public class MapNavigationUtil
+public class MapUtil
 {
-    private static readonly Logger Logger = Logger.GetLogger(typeof(MapNavigationUtil));
+    private static readonly Logger Logger = Logger.GetLogger(typeof(MapUtil));
     private readonly KeyBinding _mapKeybinding;
+    private readonly Gw2ApiManager _apiManager;
 
     public static int MouseMoveAndClickDelay { get; set; } = 50;
     public static int KeyboardPressDelay { get; set; } = 20;
 
-    public MapNavigationUtil(KeyBinding mapKeybinding)
+    public MapUtil(KeyBinding mapKeybinding, Gw2ApiManager apiManager)
     {
         this._mapKeybinding = mapKeybinding;
+        this._apiManager = apiManager;
     }
 
     private double GetDistance(double x1, double y1, double x2, double y2)
@@ -169,6 +174,13 @@ public class MapNavigationUtil
         return GameService.Gw2Mumble.UI.MapScale * GameService.Graphics.UIScaleMultiplier;
     }
 
+    /// <summary>
+    /// Moves the map to the specified continent coordinates.
+    /// </summary>
+    /// <param name="x"></param>
+    /// <param name="y"></param>
+    /// <param name="targetDistance"></param>
+    /// <returns></returns>
     private async Task<bool> MoveMap(double x, double y, double targetDistance)
     {
         while (true)
@@ -280,7 +292,6 @@ public class MapNavigationUtil
 
             Mouse.SetPosition(GameService.Graphics.WindowWidth / 2, GameService.Graphics.WindowHeight / 2);
 
-            /* Fixed in game
             if (GameService.Gw2Mumble.CurrentMap.Id == 1206) // Mistlock Santuary
             {
                 if (!await this.ChangeMapLayer(ChangeMapLayerDirection.Down))
@@ -289,7 +300,6 @@ public class MapNavigationUtil
                     return new NavigationResult(false, "Changing map layer failed.");
                 }
             }
-            */
 
             if (!await this.ZoomOut(6))
             {
@@ -359,6 +369,41 @@ public class MapNavigationUtil
             Logger.Error(ex, "Navigation to position failed:");
             return new NavigationResult(false, ex.Message);
         }
+    }
+
+    public async Task<(double X, double Y)> MapCoordinatesToContinentCoordinates(int mapId, double[] coordinates)
+    {
+        var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(mapId);
+        var continent_rect = map.ContinentRect;
+        var map_rect = map.MapRect;
+
+        var x = Math.Round(continent_rect.TopLeft.X + (1 * (coordinates[0] - map_rect.BottomLeft.X) / (map_rect.TopRight.X - map_rect.BottomLeft.X) * (continent_rect.BottomRight.X - continent_rect.TopLeft.X)));
+        var y = Math.Round(continent_rect.TopLeft.Y + (-1 * (coordinates[1] - map_rect.TopRight.Y) / (map_rect.TopRight.Y - map_rect.BottomLeft.Y) * (continent_rect.BottomRight.Y - continent_rect.TopLeft.Y)));
+
+        return ( x, y );
+    }
+
+    public async Task<NavigationResult> DrawCircle(double x, double y, double radius)
+    {
+        var navResult = await this.NavigateToPosition(x, y);
+        if (!navResult.Success)
+        {
+            return navResult;
+        }
+
+        
+
+        return new NavigationResult(true, null);
+    }
+
+    private async Task<NavigationResult> MoveMouse(int x, int y, bool sendToSystem = false)
+    {
+        System.Drawing.Point startPos = Mouse.GetPosition();
+        Mouse.SetPosition(x, y, sendToSystem);
+
+        await this.WaitForTick();
+
+        return new NavigationResult(true, null);
     }
 
     public enum ChangeMapLayerDirection

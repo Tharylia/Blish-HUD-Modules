@@ -12,32 +12,35 @@
 
     public class GeneralSettingsView : BaseSettingsView
     {
-        public GeneralSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        private readonly ModuleSettings _moduleSettings;
+
+        public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
         {
+            this._moduleSettings = moduleSettings;
         }
 
         protected override void BuildView(Panel parent)
         {
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.GlobalDrawerVisible);
-            this.RenderKeybindingSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.GlobalDrawerVisibleHotkey);
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.RegisterCornerIcon);
+            this.RenderBoolSetting(parent, _moduleSettings.GlobalDrawerVisible);
+            this.RenderKeybindingSetting(parent, _moduleSettings.GlobalDrawerVisibleHotkey);
+            this.RenderBoolSetting(parent, _moduleSettings.RegisterCornerIcon);
 
             this.RenderEmptyLine(parent);
 
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.AutomaticallyUpdateEventFile);
-            this.RenderKeybindingSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.MapKeybinding);
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.AutomaticallyUpdateEventFile);
+            this.RenderBoolSetting(parent, _moduleSettings.AutomaticallyUpdateEventFile);
+            this.RenderKeybindingSetting(parent, _moduleSettings.MapKeybinding);
+            this.RenderBoolSetting(parent, _moduleSettings.AutomaticallyUpdateEventFile);
 
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.HideOnMissingMumbleTicks);
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.HideOnOpenMap);
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.HideInPvE_OpenWorld);
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.HideInPvE_Competetive);
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.HideInWvW);
-            this.RenderBoolSetting(parent, EventTableModule.ModuleInstance.ModuleSettings.HideInPvP);
+            this.RenderBoolSetting(parent, _moduleSettings.HideOnMissingMumbleTicks);
+            this.RenderBoolSetting(parent, _moduleSettings.HideOnOpenMap);
+            this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_OpenWorld);
+            this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_Competetive);
+            this.RenderBoolSetting(parent, _moduleSettings.HideInWvW);
+            this.RenderBoolSetting(parent, _moduleSettings.HideInPvP);
 
             //this.RenderEmptyLine(parent);
 
-            //this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.BuildDirection);
+            //this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.BuildDirection);
 
         }
 

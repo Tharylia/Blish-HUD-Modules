@@ -9,8 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 public class EventAreaConfiguration : DrawerConfiguration
-{
-    public SettingEntry<List<string>> ActiveEventKeys { get; set; }
+{    public SettingEntry<List<string>> DisabledEventKeys { get; set; }
     public SettingEntry<EventCompletedAction> CompletionAcion { get; set; }
 
     public SettingEntry<bool> ShowTooltips { get; set; }
@@ -22,4 +21,5 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<bool> DrawBorders { get; set; } 
     public SettingEntry<bool> UseFiller { get; set; }
     public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> FillerTextColor { get; set; }
+    public SettingEntry<int> EventHeight { get; set; } 
 }

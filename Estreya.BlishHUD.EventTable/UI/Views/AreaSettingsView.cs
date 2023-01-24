@@ -4,6 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.EventTable.Models;
+using Estreya.BlishHUD.EventTable.State;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
@@ -24,6 +25,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private readonly Func<IEnumerable<EventAreaConfiguration>> _areaConfigurationFunc;
     private readonly Func<List<EventCategory>> _allEvents;
+    private readonly EventState _eventState;
     private IEnumerable<EventAreaConfiguration> _areaConfigurations;
     private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private Panel _areaPanel;
@@ -39,10 +41,11 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<EventAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, EventState eventState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
+        this._eventState = eventState;
     }
 
     private void LoadConfigurations()
@@ -242,6 +245,8 @@ public class AreaSettingsView : BaseSettingsView
         };
 
         this.RenderBoolSetting(settingsPanel, areaConfiguration.Enabled);
+        this.RenderKeybindingSetting(settingsPanel, areaConfiguration.EnabledKeybinding);
+
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderIntSetting(settingsPanel, areaConfiguration.Location.X);
@@ -250,6 +255,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderIntSetting(settingsPanel, areaConfiguration.Size.X);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.EventHeight);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -259,6 +265,7 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderBoolSetting(settingsPanel, areaConfiguration.DrawBorders);
         this.RenderEnumSetting(settingsPanel, areaConfiguration.BuildDirection);
+        this.RenderEnumSetting(settingsPanel, areaConfiguration.FontSize);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -267,9 +274,9 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.ShowContextMenu);
+        //this.RenderBoolSetting(settingsPanel, areaConfiguration.ShowContextMenu);
 
-        this.RenderEmptyLine(settingsPanel);
+        //this.RenderEmptyLine(settingsPanel);
 
         this.RenderEnumSetting(settingsPanel, areaConfiguration.CompletionAcion);
 
@@ -287,10 +294,13 @@ public class AreaSettingsView : BaseSettingsView
 
         var lastAdded = settingsPanel.Children.Last();
 
-        var manageEventsButton = this.RenderButton(settingsPanel, "Manage Events", () =>
+        var manageEventsButton = this.RenderButton(this._areaPanel, "Manage Events", () =>
         {
             this.ManageEvents(areaConfiguration);
         });
+
+        manageEventsButton.Top = areaName.Top;
+        manageEventsButton.Left = settingsPanel.Left;
 
         StandardButton removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
         {
@@ -311,6 +321,7 @@ public class AreaSettingsView : BaseSettingsView
         removeButton.Top = areaName.Top;
         removeButton.Right = panelBounds.Right;
 
+        areaName.Left = manageEventsButton.Right;
         areaName.Width = removeButton.Left - areaName.Left;
     }
 
@@ -340,7 +351,7 @@ public class AreaSettingsView : BaseSettingsView
             manageEventView.EventChanged -= this.View_EventChanged;
         }
 
-        var view = new ManageEventsView(this._allEvents(), configuration, this.APIManager, this.IconState, this.TranslationState);
+        var view = new ManageEventsView(this._allEvents(), configuration, this.APIManager, this.IconState, this.TranslationState, this._eventState.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventState.EventStates.Hidden).Select(x => x.EventKey).ToList());
         view.EventChanged += this.View_EventChanged;
 
         _manageEventsWindow.Show(view);
@@ -348,9 +359,9 @@ public class AreaSettingsView : BaseSettingsView
 
     private void View_EventChanged(object sender, EventChangedArgs e)
     {
-        e.Configuration.ActiveEventKeys.Value = e.NewState
-            ? new List<string>(e.Configuration.ActiveEventKeys.Value) { e.EventSettingKey }
-            : new List<string>(e.Configuration.ActiveEventKeys.Value.Where(aek => aek != e.EventSettingKey));
+        e.Configuration.DisabledEventKeys.Value = e.NewState
+            ? new List<string>(e.Configuration.DisabledEventKeys.Value.Where(aek => aek != e.EventSettingKey)) 
+            : new List<string>(e.Configuration.DisabledEventKeys.Value) { e.EventSettingKey };
     }
 
     private void ClearAreaPanel()

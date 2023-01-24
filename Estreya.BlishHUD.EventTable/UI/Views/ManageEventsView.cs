@@ -26,11 +26,13 @@
         private static readonly Logger Logger = Logger.GetLogger<ManageEventsView>();
         private readonly List<EventCategory> allEvents;
         private readonly EventAreaConfiguration _eventAreaConfiguration;
+        private readonly List<string> _hiddenEventKeys;
 
-        public ManageEventsView(List<EventCategory> allEvents, EventAreaConfiguration eventAreaConfiguration,  Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState,translationState, font)
+        public ManageEventsView(List<EventCategory> allEvents, EventAreaConfiguration eventAreaConfiguration,  Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, List<string> hiddenEventKeys, BitmapFont font = null) : base(apiManager, iconState,translationState, font)
         {
             this.allEvents = allEvents;
             this._eventAreaConfiguration = eventAreaConfiguration;
+            this._hiddenEventKeys = hiddenEventKeys;
         }
 
         public Panel Panel { get; private set; }
@@ -40,8 +42,8 @@
             GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
             {
                 button.Icon = button.Checked
-                    ? EventTableModule.ModuleInstance.IconState.GetIcon("784259.png")
-                    : EventTableModule.ModuleInstance.IconState.GetIcon("784261.png");
+                    ? this.IconState.GetIcon("784259.png")
+                    : this.IconState.GetIcon("784261.png");
             });
         }
 
@@ -96,7 +98,7 @@
                 Parent = Panel
             };
 
-            eventPanel.Size = new Point(contentRegion.Width - eventPanel.Left - MAIN_PADDING.X, contentRegion.Height - (int)(StandardButton.STANDARD_CONTROL_HEIGHT * 1.25));
+            eventPanel.Size = new Point(contentRegion.Width - eventPanel.Location.X - MAIN_PADDING.X, contentRegion.Height - (int)(StandardButton.STANDARD_CONTROL_HEIGHT * 1.25));
 
             searchBox.TextChanged += (s, e) =>
             {
@@ -209,7 +211,7 @@
                         continue;
                     }
 
-                    bool enabled = this._eventAreaConfiguration.ActiveEventKeys.Value.Contains(e.SettingKey);
+                    bool enabled = !this._eventAreaConfiguration.DisabledEventKeys.Value.Contains(e.SettingKey);
 
                     EventDetailsButton button = new EventDetailsButton()
                     {
@@ -265,6 +267,19 @@
                         wikiButton.Click += (s, eventArgs) =>
                         {
                             //e.OpenWiki();
+                        };
+                    }
+
+                    if (this._hiddenEventKeys.Contains(e.SettingKey))
+                    {
+                        //155018.png
+                        GlowButton wikiButton = new GlowButton()
+                        {
+                            Parent = button,
+                            ToggleGlow = false,
+                            Icon = this.IconState.GetIcon("155018.png"),
+                            BasicTooltipText = "This event is currently hidden due to dynamic states.",
+                            Enabled = false
                         };
                     }
 
