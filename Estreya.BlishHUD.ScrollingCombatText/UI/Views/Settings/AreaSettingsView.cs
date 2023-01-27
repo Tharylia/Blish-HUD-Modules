@@ -26,17 +26,28 @@ public class AreaSettingsView : BaseSettingsView
     private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private Panel _areaPanel;
 
-    public event EventHandler<ScrollingTextAreaConfiguration> AddArea;
+    public class AddAreaEventArgs
+    {
+        public string Name { get; set; }
+        public ScrollingTextAreaConfiguration AreaConfiguration { get; set; }
+    }
+
+    public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<ScrollingTextAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
+    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState,TranslationState translationState,  BitmapFont font = null) : base(apiManager, iconState, translationState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
     }
 
-    protected override void BuildView(Panel parent)
+    private void LoadConfigurations()
     {
         this._areaConfigurations = this._areaConfigurationFunc.Invoke().ToList();
+    }
+
+    protected override void BuildView(Panel parent)
+    {
+        this.LoadConfigurations();
 
         Panel newParent = this.GetPanel(parent.Parent);
         newParent.Location = parent.Location;
@@ -140,15 +151,25 @@ public class AreaSettingsView : BaseSettingsView
                     return;
                 }
 
-                ScrollingTextAreaConfiguration configuration = ScrollingCombatTextModule.ModuleInstance.ModuleSettings.AddDrawer(name);
+                AddAreaEventArgs addAreaEventArgs = new AddAreaEventArgs()
+                {
+                    Name = name
+                };
+
+                this.AddArea?.Invoke(this, addAreaEventArgs);
+
+                ScrollingTextAreaConfiguration configuration = addAreaEventArgs.AreaConfiguration;
+
+                if (configuration == null)
+                {
+                    throw new ArgumentNullException("Area configuration could not be created.");
+                }
 
                 MenuItem menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
                 {
                     this.BuildEditPanel(parent, bounds, menuItem, configuration);
                 };
-
-                this.AddArea?.Invoke(this, configuration);
 
                 this.BuildEditPanel(parent, bounds, menuItem, configuration);
             }
@@ -157,8 +178,15 @@ public class AreaSettingsView : BaseSettingsView
                 this.ShowError(ex.Message);
             }
         });
+        saveButton.Enabled = false;
         saveButton.Right = panelBounds.Right - 20;
         saveButton.Bottom = panelBounds.Bottom - 20;
+
+        areaName.TextChanged += (s, e) =>
+        {
+            var textBox = s as TextBox;
+            saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
+        };
 
         StandardButton cancelButton = this.RenderButton(this._areaPanel, "Cancel", () =>
         {
@@ -351,6 +379,7 @@ public class AreaSettingsView : BaseSettingsView
             menu.RemoveChild(menuItem);
             this._menuItems.Remove(areaConfiguration.Name);
             this.ClearAreaPanel();
+            this.LoadConfigurations();
         });
 
         removeButton.Top = areaName.Top;

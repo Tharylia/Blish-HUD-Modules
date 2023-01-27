@@ -12,7 +12,7 @@
 
     public class GeneralSettingsView : BaseSettingsView
     {
-        public GeneralSettingsView(Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
+        public GeneralSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
         {
         }
 

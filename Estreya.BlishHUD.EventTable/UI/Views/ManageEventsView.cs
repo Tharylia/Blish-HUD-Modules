@@ -8,7 +8,6 @@
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
-    using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Microsoft.Xna.Framework;
@@ -22,10 +21,18 @@
     {
         private static Point MAIN_PADDING = new Point(20, 20);
 
-        private static readonly Logger Logger = Logger.GetLogger<ManageEventsView>();
+        public event EventHandler<EventChangedArgs> EventChanged;
 
-        public ManageEventsView(Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font)
+        private static readonly Logger Logger = Logger.GetLogger<ManageEventsView>();
+        private readonly List<EventCategory> allEvents;
+        private readonly EventAreaConfiguration _eventAreaConfiguration;
+        private readonly List<string> _hiddenEventKeys;
+
+        public ManageEventsView(List<EventCategory> allEvents, EventAreaConfiguration eventAreaConfiguration,  Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, List<string> hiddenEventKeys, BitmapFont font = null) : base(apiManager, iconState,translationState, font)
         {
+            this.allEvents = allEvents;
+            this._eventAreaConfiguration = eventAreaConfiguration;
+            this._hiddenEventKeys = hiddenEventKeys;
         }
 
         public Panel Panel { get; private set; }
@@ -34,14 +41,15 @@
         {
             GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
             {
-                button.Icon = button.Checked ? EventTableModule.ModuleInstance.IconState.GetIcon("images\\minus.png") : EventTableModule.ModuleInstance.IconState.GetIcon("images\\plus.png"); // TODO: Own icon
+                button.Icon = button.Checked
+                    ? this.IconState.GetIcon("784259.png")
+                    : this.IconState.GetIcon("784261.png");
             });
         }
 
 
         protected override void InternalBuild(Panel parent)
         {
-            /*
             this.Panel = new Panel
             {
                 Parent = parent,
@@ -53,19 +61,19 @@
 
             Rectangle contentRegion = this.Panel.ContentRegion;
 
-            var eventCategories = EventTableModule.ModuleInstance.EventCategories;
+            var eventCategories = this.allEvents;
 
             TextBox searchBox = new TextBox()
             {
                 Parent = Panel,
                 Width = Panel.MenuStandard.Size.X,
                 Location = new Point(0, contentRegion.Y),
-                PlaceholderText = Strings.ManageEventsView_SearchBox_Placeholder
+                PlaceholderText = "Search..."
             };
 
             Panel eventCategoriesPanel = new Panel
             {
-                Title = Strings.ManageEventsView_EventCategories_Title,
+                Title = "Event Categories",
                 Parent = Panel,
                 CanScroll = true,
                 ShowBorder = true,
@@ -90,7 +98,7 @@
                 Parent = Panel
             };
 
-            eventPanel.Size = new Point(contentRegion.Width - eventPanel.Left - MAIN_PADDING.X, contentRegion.Height - (int)(StandardButton.STANDARD_CONTROL_HEIGHT * 1.25));
+            eventPanel.Size = new Point(contentRegion.Width - eventPanel.Location.X - MAIN_PADDING.X, contentRegion.Height - (int)(StandardButton.STANDARD_CONTROL_HEIGHT * 1.25));
 
             searchBox.TextChanged += (s, e) =>
             {
@@ -104,7 +112,7 @@
 
             Dictionary<string, MenuItem> menus = new Dictionary<string, MenuItem>();
 
-            MenuItem allEvents = eventCategoryMenu.AddMenuItem(Strings.ManageEventsView_AllEvents);
+            MenuItem allEvents = eventCategoryMenu.AddMenuItem("All Events");
             allEvents.Select();
             menus.Add(nameof(allEvents), allEvents);
 
@@ -127,7 +135,7 @@
                         }
 
                         //IEnumerable<EventCategory> categories = EventCategories.Where(ec => ec.Events.Any(ev => ev.Name == detailsButton.Text));
-                        return category.Events.Any(ev => ev.EventCategory.Key == detailsButton.Event.EventCategory.Key && ev.Key == detailsButton.Event.Key);
+                        return category.Events.Any(ev => ev.SettingKey.Split('_')[0] == detailsButton.Event.SettingKey.Split('_')[0] && ev.Key == detailsButton.Event.Key);
                     });
                 }
             });
@@ -143,7 +151,7 @@
 
             StandardButton checkAllButton = new StandardButton()
             {
-                Text = Strings.ManageEventsView_CheckAll,
+                Text = "Check all",
                 Parent = buttons,
                 Right = buttons.Width,
                 Bottom = buttons.Height
@@ -169,7 +177,7 @@
 
             StandardButton uncheckAllButton = new StandardButton()
             {
-                Text = Strings.ManageEventsView_UncheckAll,
+                Text = "Uncheck all",
                 Parent = buttons,
                 Right = checkAllButton.Left,
                 Bottom = buttons.Height
@@ -195,19 +203,15 @@
 
             foreach (EventCategory category in eventCategories)
             {
-                IEnumerable<Event> events = category.ShowCombined ? category.Events.GroupBy(e => e.Key).Select(eg => eg.First()) : category.Events;
-                foreach (Event e in events)
+                IEnumerable<Models.Event> events = category.ShowCombined ? category.Events.GroupBy(e => e.Key).Select(eg => eg.First()) : category.Events;
+                foreach (Models.Event e in events)
                 {
                     if (e.Filler)
                     {
                         continue;
                     }
 
-                    // Check with .ToLower() because settings define is case insensitive
-                    IEnumerable<SettingEntry<bool>> settings = EventTableModule.ModuleInstance.ModuleSettings.AllEvents.ToList().FindAll(eventSetting => eventSetting.EntryKey.ToLowerInvariant() == e.SettingKey.ToLowerInvariant());
-
-                    SettingEntry<bool> setting = settings.First();
-                    bool enabled = setting.Value;
+                    bool enabled = !this._eventAreaConfiguration.DisabledEventKeys.Value.Contains(e.SettingKey);
 
                     EventDetailsButton button = new EventDetailsButton()
                     {
@@ -221,7 +225,7 @@
 
                     GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
                     {
-                        button.Icon = EventTableModule.ModuleInstance.IconState.GetIcon(e.Icon);
+                        button.Icon = this.IconState.GetIcon(e.Icon);
                     });
 
                     if (!string.IsNullOrWhiteSpace(e.Waypoint))
@@ -234,13 +238,14 @@
 
                         GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
                         {
-                            waypointButton.Tooltip = new Tooltip(new TooltipView(Strings.ManageEventsView_Waypoint_Title, Strings.ManageEventsView_Waypoint_Description, icon: "images\\waypoint.png"));
-                            waypointButton.Icon = EventTableModule.ModuleInstance.IconState.GetIcon("images\\waypoint.png");
+                            var icon = this.IconState.GetIcon("102348.png");
+                            waypointButton.Tooltip = new Tooltip(new TooltipView("Waypoint", "Click to copy waypoint!", icon, this.TranslationState));
+                            waypointButton.Icon = icon;
                         });
 
                         waypointButton.Click += (s, eventArgs) =>
                         {
-                            e.CopyWaypoint();
+                            //e.CopyWaypoint();
                         };
                     }
 
@@ -254,29 +259,29 @@
 
                         GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
                         {
-                            wikiButton.Tooltip = new Tooltip(new TooltipView(Strings.ManageEventsView_Wiki_Title, Strings.ManageEventsView_Wiki_Description, icon: "images\\wiki.png"));
-                            wikiButton.Icon = EventTableModule.ModuleInstance.IconState.GetIcon("images\\wiki.png");
+                            var icon = this.IconState.GetIcon("102353.png");
+                            wikiButton.Tooltip = new Tooltip(new TooltipView("Wiki", "Click to open wiki!", icon, this.TranslationState));
+                            wikiButton.Icon = icon;
                         });
 
                         wikiButton.Click += (s, eventArgs) =>
                         {
-                            e.OpenWiki();
+                            //e.OpenWiki();
                         };
                     }
 
-                    GlowButton editButton = new GlowButton()
+                    if (this._hiddenEventKeys.Contains(e.SettingKey))
                     {
-                        Parent = button,
-                        ToggleGlow = false
-                    };
-
-                    GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
-                    {
-                        editButton.Tooltip = new Tooltip(new TooltipView("Edit", "Edit the event", icon: "156684"));
-                        editButton.Icon = EventTableModule.ModuleInstance.IconState.GetIcon("156684", false);
-                    });
-
-                    editButton.Click += (s, eventArgs) => e.Edit();
+                        //155018.png
+                        GlowButton wikiButton = new GlowButton()
+                        {
+                            Parent = button,
+                            ToggleGlow = false,
+                            Icon = this.IconState.GetIcon("155018.png"),
+                            BasicTooltipText = "This event is currently hidden due to dynamic states.",
+                            Enabled = false
+                        };
+                    }
 
                     GlowButton toggleButton = new GlowButton()
                     {
@@ -289,13 +294,17 @@
 
                     toggleButton.CheckedChanged += (s, eventArgs) =>
                     {
-                        if (setting != null)
+                        this.EventChanged?.Invoke(this, new EventChangedArgs()
                         {
-                            setting.Value = eventArgs.Checked;
-                            toggleButton.Checked = setting.Value;
-                            //settings.Where(x => x.EntryKey != setting.EntryKey).ToList().ForEach(x => x.Value = setting.Value);
-                            this.UpdateToggleButton(toggleButton);
-                        }
+                            OldState = !eventArgs.Checked,
+                            NewState = eventArgs.Checked,
+                            EventSettingKey = button.Event.SettingKey,
+                            Configuration = _eventAreaConfiguration
+                        });
+
+                        toggleButton.Checked = eventArgs.Checked;
+                        //settings.Where(x => x.EntryKey != setting.EntryKey).ToList().ForEach(x => x.Value = setting.Value);
+                        this.UpdateToggleButton(toggleButton);
                     };
 
                     toggleButton.Click += (s, eventArgs) =>
@@ -304,12 +313,21 @@
                     };
                 }
             }
-            */
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)
         {
             return Task.FromResult(true);
         }
+    }
+
+    public class EventChangedArgs
+    {
+        public bool OldState { get; set; }
+        public bool NewState { get; set; }
+
+        public EventAreaConfiguration Configuration { get; set; }
+
+        public string EventSettingKey { get; set; }
     }
 }

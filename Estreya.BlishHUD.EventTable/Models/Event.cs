@@ -4,9 +4,10 @@
     using Blish_HUD._Extensions;
     using Blish_HUD.Controls;
     using Blish_HUD.Settings;
-    using Estreya.BlishHUD.EventTable.Resources;
     using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.Shared.Attributes;
     using Estreya.BlishHUD.Shared.Extensions;
+    using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
@@ -23,8 +24,8 @@
     [Serializable]
     public class Event
     {
+        [IgnoreCopy]
         private static readonly Logger Logger = Logger.GetLogger<Event>();
-        private EventState _eventState;
         private Func<DateTime> _getNowAction;
 
         [Description("Specifies the key of the event. Should be unique for a event category. Avoid changing it, as it resets saved settings and states.")]
@@ -75,32 +76,16 @@
         [JsonIgnore]
         public bool Filler { get; set; }
 
-        [JsonIgnore]
-        public List<DateTime> Occurences { get; private set; }
+        [JsonProperty("occurences")]
+        public List<DateTime> Occurences { get; private set; } = new List<DateTime>();
 
         [JsonIgnore]
         public string SettingKey { get; private set; }
 
-        [JsonIgnore]
-        private bool? _isDisabled;
-
-        [JsonIgnore]
-        public bool IsDisabled
-        {
-            get
-            {
-                if (_isDisabled == null)
-                {
-                    this._isDisabled = this._eventState?.Contains(this.Key, EventState.EventStates.Hidden) ?? false;
-                }
-
-                return _isDisabled.Value;
-            }
-        }
-
+        /*
         public void UpdateOccurences(DateTime now, DateTime min, DateTime max)
         {
-            this.Occurences = this.GetStartOccurences(now, min, max);
+            this.Occurences = this.GetStartOccurences(now, min.AddDays(-2), max.AddDays(2));
         }
 
         private List<DateTime> GetStartOccurences(DateTime now, DateTime min, DateTime max)
@@ -123,7 +108,7 @@
 
                 if (inRange)
                 {
-                    startOccurences.Add(eventStart);
+                    startOccurences.Add( eventStart);
                 }
 
                 eventStart = this.Repeat.TotalMinutes == 0 ? eventStart.Add(TimeSpan.FromDays(1)) : eventStart.Add(this.Repeat);
@@ -131,6 +116,25 @@
 
             return startOccurences;
         }
+        */
+
+        public DateTime? GetCurrentOccurence(DateTime now)
+        {
+            var occurences = this.Occurences.Where(oc => oc <= now && oc.AddMinutes(this.Duration) >= now);
+            return occurences.Any() ? occurences.First() : null;
+        }
+
+        public bool IsRunning(DateTime now)
+        {
+            return this.GetCurrentOccurence(now) != null;
+        }
+
+        public TimeSpan GetTimeRemaining(DateTime now)
+        {
+            var co = this.GetCurrentOccurence(now);
+            return !co.HasValue ? TimeSpan.Zero : co.Value.AddMinutes(this.Duration) - now;
+        }
+        /*
 
         public void Hide()
         {
@@ -157,12 +161,38 @@
 
             return finished;
         }
+        */
 
-        public Task LoadAsync(EventCategory ec, EventState eventState, Func<DateTime> getNowAction)
+        public double CalculateXPosition(DateTime start, DateTime min, double pixelPerMinute)
         {
-            Logger.Debug("Load event: {0}", this.Key);
+            double minutesSinceMin = start.Subtract(min).TotalMinutes;
+            return minutesSinceMin * pixelPerMinute;
+        }
 
-            this._eventState = eventState;
+        public double CalculateWidth(DateTime eventOccurence, DateTime min, int maxWidth, double pixelPerMinute)
+        {
+            double eventWidth = this.Duration * pixelPerMinute;
+
+            double x = this.CalculateXPosition(eventOccurence, min, pixelPerMinute);
+
+            if (x < 0)
+            {
+                eventWidth -= Math.Abs(x);
+            }
+
+            // Only draw event until end of form
+            if ((x > 0 ? x : 0) + eventWidth > maxWidth)
+            {
+                eventWidth = maxWidth - (x > 0 ? x : 0);
+            }
+
+            //eventWidth = Math.Min(eventWidth, bounds.Width/* - x*/);
+
+            return eventWidth;
+        }
+
+        public Task LoadAsync(EventCategory ec, Func<DateTime> getNowAction, TranslationState translationState = null)
+        {
             this._getNowAction = getNowAction;
 
             // Prevent crash on older events.json files
@@ -178,16 +208,22 @@
 
             this.SettingKey = $"{ec.Key}_{this.Key}";
 
-            Logger.Debug("Loaded event: {0}", this.Key);
+            if (translationState != null)
+            {
+                this.Name = translationState.GetTranslation($"event-{ec.Key}_{this.Key}-name", this.Name);
+            }
 
             return Task.CompletedTask;
         }
 
         public void Unload()
         {
-            Logger.Debug("Unload event: {0}", this.Key);
+        }
 
-            Logger.Debug("Unloaded event: {0}", this.Key);
+        public override string ToString()
+        {
+            var keySplit = this.SettingKey?.Split('_') ?? new string[] {string.Empty, this.Name};
+            return $"Category: {keySplit[0]} - Name: {keySplit[1]} - Filler {this.Filler}";
         }
     }
 }

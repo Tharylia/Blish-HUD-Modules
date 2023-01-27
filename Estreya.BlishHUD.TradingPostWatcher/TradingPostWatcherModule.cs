@@ -38,6 +38,8 @@
 
         #region States
         public TrackedTransactionState TrackedTransactionState { get; private set; }
+
+        protected override string API_VERSION_NO => "1";
         #endregion
 
         [ImportingConstructor]
@@ -71,7 +73,7 @@
 
         protected override void OnBeforeStatesStarted()
         {
-            this.Drawer = new TransactionDrawer(this.DrawerConfiguration, this.IconState, this.TradingPostState)
+            this.Drawer = new TransactionDrawer(this.DrawerConfiguration, this.IconState, this.TradingPostState, this.TranslationState)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Opacity = 0f,
@@ -168,7 +170,7 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this._trackedTransactionView = new TrackedTransactionView(() => this.TrackedTransactionState.TrackedTransactions, this.Gw2ApiManager, this.IconState, this.ItemState, this.Font)
+            this._trackedTransactionView = new TrackedTransactionView(() => this.TrackedTransactionState.TrackedTransactions, this.Gw2ApiManager, this.IconState, this.ItemState, this.TranslationState, this.Font)
             {
                 DefaultColor = this.ModuleSettings.DefaultGW2Color
             };
@@ -178,9 +180,9 @@
 
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => this._trackedTransactionView, "Tracked Transactions"));
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView(this.Gw2ApiManager, this.IconState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView(this.Gw2ApiManager, this.IconState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView(this.Gw2ApiManager, this.IconState,this.TranslationState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic"));
         }
 
         private void TrackedTransactionView_RemoveTracking(object sender, TrackedTransaction e)

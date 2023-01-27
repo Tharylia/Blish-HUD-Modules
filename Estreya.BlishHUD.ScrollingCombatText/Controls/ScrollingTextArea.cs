@@ -120,7 +120,7 @@ public class ScrollingTextArea : Container
 
         try
         {
-            CombatEventFormatRule rule = this.Configuration.FormatRules.Value.Find(rule => rule.Category == combatEvent.Category && rule.Type == combatEvent.Type);
+            CombatEventFormatRule rule = this.Configuration.FormatRules.Value.Find(rule => rule.Category == combatEvent.Category && rule.Type == combatEvent.Type && rule.State == combatEvent.State);
 
             if (!rule.Validate())
             {

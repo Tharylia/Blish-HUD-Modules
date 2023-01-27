@@ -3,6 +3,11 @@
 using Blish_HUD;
 using Blish_HUD.ArcDps;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
+using Estreya.BlishHUD.Shared.Models.ArcDPS.Buff;
+using Estreya.BlishHUD.Shared.Models.ArcDPS.Damage;
+using Estreya.BlishHUD.Shared.Models.ArcDPS.Heal;
+using Estreya.BlishHUD.Shared.Models.ArcDPS.Shield;
+using Estreya.BlishHUD.Shared.Models.ArcDPS.StateChange;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
 using Microsoft.Xna.Framework;
 using System;
@@ -273,12 +278,14 @@ public class ArcDPSState : ManagedState
             {
                 if (ev.OverStackValue != 0)
                 {
+                    // Subtract shield value from heal value
                     int buffDmg = ev.BuffDmg - (int)ev.OverStackValue;
                     ev = new Blish_HUD.ArcDps.Models.Ev(ev.Time, ev.SrcAgent, ev.DstAgent, ev.Value, buffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
                          ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
 
                     types.Add(CombatEventType.SHIELD_RECEIVE);
                 }
+
                 if (ev.BuffDmg > 0)
                 {
                     types.Add(CombatEventType.HOT);
@@ -309,26 +316,6 @@ public class ArcDPSState : ManagedState
                     }
                 }
             }
-            else
-            {
-                // Buff Dmg == 0
-                switch (ev.SkillId)
-                {
-                    case 717: types.Add(CombatEventType.PROTECTION); break;
-                    case 718: types.Add(CombatEventType.REGENERATION); break;
-                    case 719: types.Add(CombatEventType.SWIFTNESS); break;
-                    case 725: types.Add(CombatEventType.FURY); break;
-                    case 726: types.Add(CombatEventType.VIGOR); break;
-                    case 740: types.Add(CombatEventType.MIGHT); break;
-                    case 743: types.Add(CombatEventType.AEGIS); break;
-                    case 873: types.Add(CombatEventType.RESOLUTION); break;
-                    case 1122: types.Add(CombatEventType.STABILITY); break;
-                    case 1187: types.Add(CombatEventType.QUICKNESS); break;
-                    case 26980: types.Add(CombatEventType.RESISTENCE); break;
-                    case 30328: types.Add(CombatEventType.ALACRITY); break;
-                    default: types.Add(CombatEventType.BUFF); break;
-                }
-            }
         }
         else
         {
@@ -342,6 +329,7 @@ public class ArcDPSState : ManagedState
 
                     types.Add(CombatEventType.SHIELD_RECEIVE);
                 }
+
                 if (ev.Value > 0)
                 {
                     types.Add(CombatEventType.HEAL);
@@ -420,32 +408,171 @@ public class ArcDPSState : ManagedState
 
             foreach (CombatEventCategory category in categories)
             {
-                CombatEvent combatEvent = new CombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL);
+                CombatEvent combatEvent = this.GetCombatEvent(ev, src, dst, category, type);
 
-                combatEvents.Add(combatEvent);
+                if (combatEvent != null)
+                {
+                    combatEvents.Add(combatEvent);
+                }
             }
         }
 
         return combatEvents;
     }
 
+    private CombatEvent GetCombatEvent(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, CombatEventCategory category, CombatEventType type)
+    {
+        var state = CombatEvent.GetState(ev);
+
+        switch (state)
+        {
+            case CombatEventState.NORMAL:
+                return this.GetNormalCombatEvent(ev, src, dst, category, type);
+            case CombatEventState.ACTIVATION:
+                break;
+            case CombatEventState.STATECHANGE:
+                return this.GetStateChangeCombatEvent(ev, src, dst, category, type);
+            case CombatEventState.BUFFREMOVE:
+                return new BuffRemoveCombatEvent(ev, src, dst, category, type, CombatEventState.BUFFREMOVE);
+            case CombatEventState.BUFFAPPLY:
+                return new BuffApplyCombatEvent(ev, src, dst, category, type, CombatEventState.BUFFAPPLY);
+        }
+
+        return null;
+    }
+
+    private CombatEvent GetNormalCombatEvent(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, CombatEventCategory category, CombatEventType type)
+    {
+        switch (type)
+        {
+            case CombatEventType.NONE:
+            case CombatEventType.PHYSICAL:
+            case CombatEventType.CRIT:
+            case CombatEventType.BLEEDING:
+            case CombatEventType.BURNING:
+            case CombatEventType.POISON:
+            case CombatEventType.CONFUSION:
+            case CombatEventType.RETALIATION:
+            case CombatEventType.TORMENT:
+            case CombatEventType.DOT:
+            case CombatEventType.BLOCK:
+            case CombatEventType.EVADE:
+            case CombatEventType.INVULNERABLE:
+            case CombatEventType.MISS:
+                return new DamageCombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL);
+            case CombatEventType.HEAL:
+            case CombatEventType.HOT:
+                return new HealCombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL);
+            case CombatEventType.SHIELD_RECEIVE:
+            case CombatEventType.SHIELD_REMOVE:
+                return new BarrierCombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL);
+        }
+
+        return null;
+    }
+
+    private CombatEvent GetStateChangeCombatEvent(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, CombatEventCategory category, CombatEventType type)
+    {
+        switch (ev.IsStateChange)
+        {
+            case ArcDpsEnums.StateChange.EnterCombat:
+                return new EnterCombatEvent(ev, src, dst, category, type, CombatEventState.STATECHANGE);
+            case ArcDpsEnums.StateChange.ExitCombat:
+                return new ExitCombatEvent(ev, src, dst, category, type, CombatEventState.STATECHANGE);
+            case ArcDpsEnums.StateChange.ChangeUp:
+                break;
+            case ArcDpsEnums.StateChange.ChangeDead:
+                break;
+            case ArcDpsEnums.StateChange.ChangeDown:
+                break;
+            case ArcDpsEnums.StateChange.Spawn:
+                break;
+            case ArcDpsEnums.StateChange.Despawn:
+                break;
+            case ArcDpsEnums.StateChange.HealthUpdate:
+                break;
+            case ArcDpsEnums.StateChange.LogStart:
+                break;
+            case ArcDpsEnums.StateChange.LogEnd:
+                break;
+            case ArcDpsEnums.StateChange.WeaponSwap:
+                break;
+            case ArcDpsEnums.StateChange.MaxHealthUpdate:
+                break;
+            case ArcDpsEnums.StateChange.PointOfView:
+                break;
+            case ArcDpsEnums.StateChange.Language:
+                break;
+            case ArcDpsEnums.StateChange.GWBuild:
+                break;
+            case ArcDpsEnums.StateChange.ShardId:
+                break;
+            case ArcDpsEnums.StateChange.Reward:
+                break;
+            case ArcDpsEnums.StateChange.BuffInitial:
+                break;
+            case ArcDpsEnums.StateChange.Position:
+                break;
+            case ArcDpsEnums.StateChange.Velocity:
+                break;
+            case ArcDpsEnums.StateChange.Rotation:
+                break;
+            case ArcDpsEnums.StateChange.TeamChange:
+                break;
+            case ArcDpsEnums.StateChange.AttackTarget:
+                break;
+            case ArcDpsEnums.StateChange.Targetable:
+                break;
+            case ArcDpsEnums.StateChange.MapID:
+                break;
+            case ArcDpsEnums.StateChange.ReplInfo:
+                break;
+            case ArcDpsEnums.StateChange.StackActive:
+                break;
+            case ArcDpsEnums.StateChange.StackReset:
+                break;
+            case ArcDpsEnums.StateChange.Guild:
+                break;
+            case ArcDpsEnums.StateChange.BuffInfo:
+                break;
+            case ArcDpsEnums.StateChange.BuffFormula:
+                break;
+            case ArcDpsEnums.StateChange.SkillInfo:
+                break;
+            case ArcDpsEnums.StateChange.SkillTiming:
+                break;
+            case ArcDpsEnums.StateChange.BreakbarState:
+                break;
+            case ArcDpsEnums.StateChange.BreakbarPercent:
+                break;
+            case ArcDpsEnums.StateChange.Error:
+                break;
+            case ArcDpsEnums.StateChange.Tag:
+                break;
+            case ArcDpsEnums.StateChange.Unknown:
+                break;
+        }
+
+        return null;
+    }
+
     private void AddSkill(Models.ArcDPS.CombatEvent combatEvent, string skillNameByArcDPS)
     {
-        Skill skill = this._skillState.GetById((int)combatEvent.Ev.SkillId);
+        Skill skill = this._skillState.GetById((int)combatEvent.SkillId);
 
         if (skill == null)
         {
-            var added = this._skillState.AddMissingSkill((int)combatEvent.Ev.SkillId, skillNameByArcDPS);
+            var added = this._skillState.AddMissingSkill((int)combatEvent.SkillId, skillNameByArcDPS);
             if (added)
             {
-                this.Logger.Debug($"Failed to fetch skill \"{combatEvent.Ev.SkillId}\". ArcDPS reports: {skillNameByArcDPS}");
+                this.Logger.Debug($"Failed to fetch skill \"{combatEvent.SkillId}\". ArcDPS reports: {skillNameByArcDPS}");
             }
 
             skill = SkillState.UnknownSkill;
         }
         else
         {
-            this._skillState.RemoveMissingSkill((int)combatEvent.Ev.SkillId);
+            this._skillState.RemoveMissingSkill((int)combatEvent.SkillId);
         }
 
         combatEvent.Skill = skill;

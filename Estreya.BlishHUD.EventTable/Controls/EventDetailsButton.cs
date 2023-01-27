@@ -5,6 +5,6 @@
 
     public class EventDetailsButton : DetailsButton
     {
-        public Event Event { get; set; }
+        public Models.Event Event { get; set; }
     }
 }

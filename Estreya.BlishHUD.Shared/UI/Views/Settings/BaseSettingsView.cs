@@ -23,7 +23,7 @@
 
         private static readonly Logger Logger = Logger.GetLogger<BaseSettingsView>();
 
-        protected BaseSettingsView(Gw2ApiManager apiManager, IconState iconState, BitmapFont font = null) : base(apiManager, iconState, font) {
+        protected BaseSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font) {
             base.LABEL_WIDTH = 250;
             this.CONTROL_WIDTH = 250;
 

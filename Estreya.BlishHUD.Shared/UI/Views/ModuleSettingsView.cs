@@ -16,7 +16,7 @@
         public event EventHandler OpenClicked;
         public event EventHandler CreateGithubIssueClicked;
 
-        public ModuleSettingsView(string openSettingsText, IconState iconState): base(null, iconState)
+        public ModuleSettingsView(string openSettingsText, IconState iconState, TranslationState translationState): base(null, iconState, translationState)
         {
             this._openSettingsText = openSettingsText;
         }

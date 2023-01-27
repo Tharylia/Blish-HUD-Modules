@@ -6,7 +6,7 @@ using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 
-internal class WebClient : System.Net.WebClient
+public class WebClient : System.Net.WebClient
 {
     protected override WebRequest GetWebRequest(Uri address)
     {
@@ -18,6 +18,7 @@ internal class WebClient : System.Net.WebClient
 
         if (webRequest is HttpWebRequest httpWebRequest)
         {
+            httpWebRequest.AllowAutoRedirect = true;
             httpWebRequest.UserAgent = userAgent;
         }
 

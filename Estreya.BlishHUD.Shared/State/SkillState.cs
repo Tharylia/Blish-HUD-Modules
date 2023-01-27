@@ -7,6 +7,7 @@ using Estreya.BlishHUD.Shared.Modules;
 using Estreya.BlishHUD.Shared.Settings;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
+using Flurl.Http;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using System;
@@ -25,9 +26,9 @@ public class SkillState : APIState<Skill>
     private const string BASE_FOLDER_STRUCTURE = "skills";
     private const string FILE_NAME = "skills.json";
 
-    private const string WEBSITE_SKILL_FOLDER_NAME = "skills";
-    private const string WEBSITE_MISSING_SKILLS_FILE_NAME = "missing_skills.json";
-    private const string WEBSITE_REMAPPED_SKILLS_FILE_NAME = "remapped_skills.json";
+    private const string SKILL_FOLDER_NAME = "skills";
+    private const string MISSING_SKILLS_FILE_NAME = "missing_skills.json";
+    private const string REMAPPED_SKILLS_FILE_NAME = "remapped_skills.json";
 
     private const string LOCAL_MISSING_SKILL_FILE_NAME = "missingSkills.json";
     private const string LAST_UPDATED_FILE_NAME = "last_updated.txt";
@@ -36,8 +37,8 @@ public class SkillState : APIState<Skill>
 
     private IconState _iconState;
     private readonly string _baseFolderPath;
-    private readonly WebClient _webClient;
-    private readonly string _websiteFileRoot;
+    private IFlurlClient _flurlClient;
+    private readonly string _fileRootUrl;
     private AsyncRef<double> _lastSaveMissingSkill = new AsyncRef<double>(0);
 
     private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
@@ -157,12 +158,12 @@ public class SkillState : APIState<Skill>
 
     private ConcurrentDictionary<int, string> _missingSkillsFromAPIReportedByArcDPS;
 
-    public SkillState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IconState iconState, string baseFolderPath, WebClient webClient, string websiteFileRoot) : base(apiManager, configuration)
+    public SkillState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IconState iconState, string baseFolderPath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration)
     {
         this._iconState = iconState;
         this._baseFolderPath = baseFolderPath;
-        this._webClient = webClient;
-        this._websiteFileRoot = websiteFileRoot;
+        this._flurlClient = flurlClient;
+        this._fileRootUrl = fileRootUrl;
     }
 
     protected override Task DoInitialize()
@@ -176,6 +177,7 @@ public class SkillState : APIState<Skill>
         this._missingSkillsFromAPIReportedByArcDPS?.Clear();
         this._missingSkillsFromAPIReportedByArcDPS = null;
         this._iconState = null;
+        this._flurlClient = null;
     }
 
     protected override async Task Load()
@@ -397,7 +399,7 @@ public class SkillState : APIState<Skill>
 
     private async Task RemapSkillIds(List<Skill> skills)
     {
-        var remappedSkillsJson = await _webClient.DownloadStringTaskAsync(new Uri(new Uri(this._websiteFileRoot), $"{WEBSITE_SKILL_FOLDER_NAME}/{WEBSITE_REMAPPED_SKILLS_FILE_NAME}"));
+        var remappedSkillsJson = await this._flurlClient.Request(_fileRootUrl, SKILL_FOLDER_NAME, REMAPPED_SKILLS_FILE_NAME).GetStringAsync();
         var remappedSkills = JsonConvert.DeserializeObject<List<RemappedSkillID>>(remappedSkillsJson);
 
         foreach (var remappedSkill in remappedSkills)
@@ -423,7 +425,7 @@ public class SkillState : APIState<Skill>
 
     private async Task AddMissingSkills(List<Skill> skills)
     {
-        var missingSkillsJson = await _webClient.DownloadStringTaskAsync(new Uri(new Uri(this._websiteFileRoot), $"{WEBSITE_SKILL_FOLDER_NAME}/{WEBSITE_MISSING_SKILLS_FILE_NAME}"));
+        var missingSkillsJson = await this._flurlClient.Request(this._fileRootUrl, SKILL_FOLDER_NAME, MISSING_SKILLS_FILE_NAME).GetStringAsync();
         var missingSkills = JsonConvert.DeserializeObject<List<MissingSkill>>(missingSkillsJson);
 
         foreach (var missingSkill in missingSkills)
