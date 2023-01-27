@@ -1,6 +1,6 @@
 {
   "name": "Trading Post Watcher",
-  "version": "0.3.3",
+  "version": "1.0.0",
   "namespace": "estreya.bh.tradingPostWatcher",
   "package": "Estreya.BlishHUD.TradingPostWatcher.dll",
   "manifest_version": 1,
