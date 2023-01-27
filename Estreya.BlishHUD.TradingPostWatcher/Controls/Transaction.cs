@@ -35,7 +35,7 @@
 
         private readonly IconState _iconState;
         private readonly TradingPostState _tradingPostState;
-
+        private readonly TranslationState _translationState;
         private readonly SettingEntry<float> _opacitySetting;
         private readonly SettingEntry<bool> _showPriceSetting;
         private readonly SettingEntry<bool> _showPriceAsTotalSetting;
@@ -76,7 +76,7 @@
             set => this.SetProperty(ref this._heightSizingMode, value);
         }
 
-        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, TradingPostState tradingPostState,
+        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, TradingPostState tradingPostState, TranslationState translationState,
             SettingEntry<float> opacity, SettingEntry<bool> showPrice, SettingEntry<bool> showPriceAsTotal,
             SettingEntry<bool> showRemaining, SettingEntry<bool> showCreatedDate, SettingEntry<bool> showTooltips,
             SettingEntry<ContentService.FontSize> fontSize, SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> highestTransactionColorSetting,
@@ -85,7 +85,7 @@
             this._currentTransaction = commerceTransaction;
             this._iconState = iconState;
             this._tradingPostState = tradingPostState;
-
+            this._translationState = translationState;
             this._opacitySetting = opacity;
             this._showPriceSetting = showPrice;
             this._showPriceAsTotalSetting = showPriceAsTotal;
@@ -251,7 +251,7 @@
             {
                 var itemPrice = await _tradingPostState.GetPriceForItem(this._currentTransaction.ItemId, this._currentTransaction.Type);
                 var priceNote = this._showPriceAsTotalSetting?.Value ?? false ? $"You have enabled combined price display!" : null;
-                this.Tooltip = new Tooltip(new PriceTooltipView(this._currentTransaction.Item.Name, this._currentTransaction.Item.Description, itemPrice, priceNote, this._transactionTexture, null, this._iconState));
+                this.Tooltip = new Tooltip(new PriceTooltipView(this._currentTransaction.Item.Name, this._currentTransaction.Item.Description, itemPrice, priceNote, this._transactionTexture, null, this._iconState, this._translationState));
             }
         }
 

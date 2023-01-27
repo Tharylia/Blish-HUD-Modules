@@ -19,17 +19,17 @@ internal class PriceTooltipView : TooltipView
     private readonly int _coins;
     private readonly string _priceComment;
 
-    public PriceTooltipView(string title, string description, int coins, Gw2ApiManager apiManager, IconState iconState) : base(title, description, apiManager, iconState)
+    public PriceTooltipView(string title, string description, int coins, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState) : base(title, description, translationState, apiManager, iconState)
     {
         this._coins = coins;
     }
 
-    public PriceTooltipView(string title, string description, int coins, AsyncTexture2D icon, Gw2ApiManager apiManager, IconState iconState) : base(title, description, icon, apiManager, iconState)
+    public PriceTooltipView(string title, string description, int coins, AsyncTexture2D icon, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState) : base(title, description, icon, translationState, apiManager, iconState)
     {
         this._coins = coins;
     }
 
-    public PriceTooltipView(string title, string description, int coins, string priceComment, AsyncTexture2D icon, Gw2ApiManager apiManager, IconState iconState) : this(title, description,coins, icon, apiManager, iconState)
+    public PriceTooltipView(string title, string description, int coins, string priceComment, AsyncTexture2D icon, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState) : this(title, description,coins, icon, apiManager, iconState, translationState)
     {
         this._priceComment = priceComment;
     }

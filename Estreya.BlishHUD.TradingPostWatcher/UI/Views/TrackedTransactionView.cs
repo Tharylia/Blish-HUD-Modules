@@ -32,7 +32,7 @@
         public event EventHandler<TrackedTransaction> AddTracking;
         public event EventHandler<TrackedTransaction> RemoveTracking;
 
-        public TrackedTransactionView(Func<List<TrackedTransaction>> getTrackedTransactions, Gw2ApiManager apiManager, IconState iconState, ItemState itemState, BitmapFont font = null) : base(apiManager, iconState, font)
+        public TrackedTransactionView(Func<List<TrackedTransaction>> getTrackedTransactions, Gw2ApiManager apiManager, IconState iconState, ItemState itemState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
         {
             this._getTrackedTransactions = getTrackedTransactions;
             this._itemState = itemState;
