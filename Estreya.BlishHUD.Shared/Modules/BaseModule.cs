@@ -558,11 +558,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this._loadingSpinner ??= new LoadingSpinner()
         {
             Parent = GameService.Graphics.SpriteScreen,
-            Location = new Point(this.CornerIcon.Location.X, this.CornerIcon.Location.Y + this.CornerIcon.Height + 5),
             Size = this.CornerIcon.Size,
             Visible = false
         };
 
+        this._loadingSpinner.Location = new Point(this.CornerIcon.Location.X, this.CornerIcon.Location.Y + this.CornerIcon.Height + 5);
         this._loadingSpinner.BasicTooltipText = text;
         this._loadingSpinner.Visible = show;
     }
