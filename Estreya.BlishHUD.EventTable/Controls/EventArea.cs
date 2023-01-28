@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -364,7 +364,7 @@ public class EventArea : Container
         catch (FlurlHttpException ex)
         {
             var error = await ex.GetResponseStringAsync();
-            Logger.Warn($"Could not load fillers from {ex.Call.Request.Url}: {error}");
+            Logger.Warn($"Could not load fillers from {ex.Call.Request.RequestUri}: {error}");
         }
 
         return new ConcurrentDictionary<string, List<Models.Event>>();

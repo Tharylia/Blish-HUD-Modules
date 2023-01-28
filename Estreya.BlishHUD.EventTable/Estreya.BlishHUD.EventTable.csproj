@@ -24,7 +24,7 @@
 		<PackageReference Include="BlishHUD" Version="1.0.0">
 			<ExcludeAssets>runtime;contentFiles</ExcludeAssets>
 		</PackageReference>
-		<PackageReference Include="Flurl.Http" Version="3.2.4" />
+		<PackageReference Include="Flurl.Http" Version="2.4.2" />
 		<PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all" />
 		<PackageReference Include="Humanizer.Core.es" Version="2.6.2" PrivateAssets="all" />
 		<PackageReference Include="Humanizer.Core.fr" Version="2.6.2" PrivateAssets="all" />
