@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -398,6 +398,7 @@ public class EventArea : Container
         (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
         // Update and delete existing
+        int y = 0;
         foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in this._controlEvents.Values)
         {
             var toDelete = new List<(DateTime Occurence, Event Event)>();
@@ -415,9 +416,8 @@ public class EventArea : Container
                 int x = (int)Math.Ceiling(controlEvent.Event.Ev.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute));
                 int width = (int)Math.Ceiling(controlEvent.Event.Ev.CalculateWidth(controlEvent.Occurence, times.Min, this.Width, this.PixelPerMinute));
 
-                controlEvent.Event.Left = x < 0 ? 0 : x;
-                controlEvent.Event.Width = width;
-                controlEvent.Event.Height = this.Configuration.EventHeight.Value;
+                controlEvent.Event.Location = new Point(x < 0 ? 0 : x, y);
+                controlEvent.Event.Size = new Point(width, this.Configuration.EventHeight.Value);
 
                 if (width <= 0 || disabled)
                 {
@@ -433,10 +433,12 @@ public class EventArea : Container
                 delete.Event.Dispose();
                 controlEventPairs.Remove(delete);
             }
+
+            y += this.Configuration.EventHeight.Value;
         }
 
         // Add new
-        int y = 0;
+        y = 0;
         foreach (var activeEventGroup in this.GetActiveEventKeysGroupedByCategory())
         {
             string categoryKey = activeEventGroup.Key;
