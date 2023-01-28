@@ -318,7 +318,7 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156742.png"), () => areaSettingsView, "Event Areas"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"605018.png"), () => areaSettingsView, "Event Areas"));
         }
 
         protected override string GetDirectoryName()
