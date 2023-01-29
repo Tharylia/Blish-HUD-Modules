@@ -225,24 +225,36 @@ public class EventArea : Container
 
     private List<IGrouping<string, string>> GetActiveEventKeysGroupedByCategory()
     {
-        int i = 0;
-        var order = this._allEvents.Where(ec => !this.EventCategoryDisabled(ec)).SelectMany(x =>
-        {
-            var events = x.Events.Where(ev => !ev.Filler).Select(x => x.SettingKey).Distinct();
-            return events;
-        }).ToDictionary(x =>
-        {
-            return x;
-        }, x => i++);
+        var activeSettingKeys = this.GetActiveEventKeys();
+        var order = this.GetEventOrdering();
+
+        return activeSettingKeys.OrderBy(x => order.IndexOf(x)).GroupBy(aek => aek.Split('_')[0]).ToList();
+    }
+
+    private List<string> GetEventOrdering()
+    {
+        var order = this._allEvents
+            .SelectMany(ae => ae.Events)
+            .Where(e => !e.Filler)
+            .Select(e => e.SettingKey)
+            .ToList();
+        // Order is for now defined by order in events.json file returned by blish api.
 
         if (order == null || order.Count == 0)
         {
-            return new List<IGrouping<string, string>>();
-        }
+            return new List<string>();
+        };
 
         var activeSettingKeys = this.GetActiveEventKeys();
 
-        return activeSettingKeys.OrderBy(x => order[x]).GroupBy(aek => aek.Split('_')[0]).ToList();
+        return activeSettingKeys.OrderBy(x => order.IndexOf(x)).ToList();
+    }
+
+    private List<string> GetEventCategoryOrdering()
+    {
+        var order = this.GetEventOrdering();
+
+        return order.Select(x => x.Split('_')[0]).ToList();
     }
 
     private List<string> GetActiveEventKeys()
@@ -399,7 +411,9 @@ public class EventArea : Container
 
         // Update and delete existing
         int y = 0;
-        foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in this._controlEvents.Values)
+        var order = this.GetEventCategoryOrdering();
+        var oderedControlEvents = this._controlEvents.OrderBy(x => order.IndexOf(x.Key)).Select(x => x.Value).ToList();
+        foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in oderedControlEvents)
         {
             var toDelete = new List<(DateTime Occurence, Event Event)>();
 
@@ -489,7 +503,7 @@ public class EventArea : Container
                         occurence.AddMinutes(ev.Duration),
                         () => _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular)),
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
-                        () => this._eventState.Contains(this.Configuration.Name,ev.SettingKey, EventState.EventStates.Completed),
+                        () => this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed),
                         () =>
                         {
                             var defaultTextColor = Color.Black;
@@ -644,7 +658,7 @@ public class EventArea : Container
 
     private void HideEvent(Models.Event ev, DateTime until)
     {
-        this._eventState.Add(this.Configuration.Name,ev.SettingKey, until, EventState.EventStates.Hidden);
+        this._eventState.Add(this.Configuration.Name, ev.SettingKey, until, EventState.EventStates.Hidden);
         this.ReAddEvents();
     }
 

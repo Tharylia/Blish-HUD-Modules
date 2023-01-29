@@ -2,6 +2,7 @@
 
 using Blish_HUD;
 using Blish_HUD.Controls;
+using Blish_HUD.Controls.Intern;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.EventTable.State;
@@ -120,12 +121,20 @@ public class AreaSettingsView : BaseSettingsView
 
         // TODO: Remove when tested
         addButton.Icon = this.IconState.GetIcon("154982.png");
+        addButton.BasicTooltipText = "Disabled until basic functionality is tested.";
         addButton.ResizeIcon = true;
         addButton.Enabled = false;
         // ----
 
         addButton.Location = new Point(areaOverviewPanel.Left, areaOverviewPanel.Bottom + 10);
         addButton.Width = areaOverviewPanel.Width;
+
+        if (this._menuItems.Count > 0)
+        {
+            var menuItem = this._menuItems.First();
+            EventAreaConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
+            this.BuildEditPanel(parent, areaPanelBounds, menuItem.Value, areaConfiguration);
+        }
     }
     private void CreateAreaPanel(Panel parent, Rectangle bounds)
     {
@@ -314,6 +323,7 @@ public class AreaSettingsView : BaseSettingsView
 
         // TODO: Remove when tested
         removeButton.Icon = this.IconState.GetIcon("154982.png");
+        removeButton.BasicTooltipText = "Disabled until basic functionality is tested.";
         removeButton.ResizeIcon = true;
         removeButton.Enabled = false;
         // ----
