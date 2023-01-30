@@ -11,6 +11,8 @@ public class MissingSkill
 
     public string Name { get; set; }
 
+    public string[] NameAliases { get; set; }
+
     public string Comment { get; set; }
 
     public string Icon { get; set; }

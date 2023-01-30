@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+namespace Estreya.BlishHUD.Shared.State;
 
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
@@ -430,15 +430,28 @@ public class SkillState : APIState<Skill>
 
         foreach (var missingSkill in missingSkills)
         {
-            if (!skills.Exists(skill => skill.Id == missingSkill.ID))
-            {
+            //if (!skills.Exists(skill => skill.Id == missingSkill.ID))
+            //{
                 skills.Add(new Skill()
                 {
                     Id = missingSkill.ID,
                     Name = missingSkill.Name,
                     Icon = missingSkill.Icon
                 });
+
+            if (missingSkill.NameAliases != null)
+            {
+                foreach (var alias in missingSkill.NameAliases)
+                {
+                    skills.Add(new Skill()
+                    {
+                        Id = missingSkill.ID,
+                        Name = alias,
+                        Icon = missingSkill.Icon
+                    });
             }
+            }
+            //}
         }
     }
 
