@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.State;
 
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
@@ -189,7 +189,7 @@ public class SkillState : APIState<Skill>
             // TEST
 
             //List<MissingSkill> ms = new List<MissingSkill>();
-                 
+
             //foreach (var missingSkill in _missingSkills)
             //{
             //    ms.Add(new MissingSkill()
@@ -432,12 +432,12 @@ public class SkillState : APIState<Skill>
         {
             //if (!skills.Exists(skill => skill.Id == missingSkill.ID))
             //{
-                skills.Add(new Skill()
-                {
-                    Id = missingSkill.ID,
-                    Name = missingSkill.Name,
-                    Icon = missingSkill.Icon
-                });
+            skills.Add(new Skill()
+            {
+                Id = missingSkill.ID,
+                Name = missingSkill.Name,
+                Icon = missingSkill.Icon
+            });
 
             if (missingSkill.NameAliases != null)
             {
@@ -449,7 +449,7 @@ public class SkillState : APIState<Skill>
                         Name = alias,
                         Icon = missingSkill.Icon
                     });
-            }
+                }
             }
             //}
         }
@@ -533,12 +533,27 @@ public class SkillState : APIState<Skill>
         }
     }
 
+    public Skill GetBy(Predicate<Skill> predicate)
+    {
+        if (this.Loading)
+        {
+            return null;
+        }
+
+        using (this._apiObjectListLock.Lock())
+        {
+            return this.APIObjectList.Find(predicate);
+        }
+    }
+
     public Skill GetById(int id)
     {
         if (this.Loading)
         {
             return null;
         }
+
+        //var t = this.APIObjectList.GroupBy(c => c.Id).Where(g => g.Skip(1).Any()).SelectMany(c => c).Select(x => $"{x.Id}: {x.Name} - {x.Category.ToString()}").ToList();
 
         using (this._apiObjectListLock.Lock())
         {
