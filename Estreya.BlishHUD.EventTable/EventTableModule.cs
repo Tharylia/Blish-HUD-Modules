@@ -10,6 +10,7 @@
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
     using Estreya.BlishHUD.Shared.State;
@@ -79,12 +80,18 @@
             if (e.Key == Microsoft.Xna.Framework.Input.Keys.U)
             {
                 var mapId = GameService.Gw2Mumble.CurrentMap.Id;
-                var ev = this.DynamicEventState.GetEventsByMap(mapId).First();
-                Task.Run(async () =>
+                var ev = this.DynamicEventState.GetEventsByMap(mapId).FirstOrDefault();
+                if (ev != null)
                 {
-                    var coords = await this.MapUtil.MapCoordinatesToContinentCoordinates(mapId, new double[] { ev.Location.Center[0], ev.Location.Center[1] });
-                    await this.MapUtil.DrawCircle(coords.X, coords.Y, 1);
-                });
+                    Task.Run(async () =>
+                    {
+                        var coords = await this.MapUtil.MapCoordinatesToContinentCoordinates(mapId, new double[] { ev.Location.Center[0], ev.Location.Center[1] });
+                        await this.MapUtil.DrawCircle(coords.X, coords.Y, 1);
+                    });
+                }else
+                {
+                    ScreenNotification.ShowNotification("No events on this map", ScreenNotification.NotificationType.Error);
+                }
             }
         }
 
@@ -92,8 +99,13 @@
         {
             foreach (EventArea area in this._areas.Values)
             {
-                await area.UpdateAllEvents(this.EventCategories);
+                await this.SetAreaEvents(area);
             }
+        }
+
+        private async Task SetAreaEvents(EventArea area)
+        {
+            await area.UpdateAllEvents(this.EventCategories);
         }
 
         /// <summary>
@@ -102,25 +114,11 @@
         /// <returns></returns>
         public async Task LoadEvents()
         {
-            string threadName = $"{Thread.CurrentThread.ManagedThreadId}";
-            this.Logger.Debug("Try loading events from thread: {0}", threadName);
-
             using (await this._eventCategoryLock.LockAsync())
             {
-
-                this.Logger.Debug("Thread \"{0}\" started loading", threadName);
-
                 try
                 {
-                    if (this.EventCategories != null)
-                    {
-                        foreach (EventCategory ec in this.EventCategories)
-                        {
-                            ec.Unload();
-                        }
-
-                        this.EventCategories.Clear();
-                    }
+                    this.EventCategories?.Clear();
 
                     List<EventCategory> categories = await this.GetFlurlClient().Request(this.API_URL, "events").GetJsonAsync<List<EventCategory>>();
 
@@ -200,7 +198,7 @@
             }
 
             _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
-                    }
+        }
 
         private void AddAllAreas()
         {
@@ -211,8 +209,16 @@
 
             foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
             {
-                this.AddArea(this.ModuleSettings.AddDrawer(areaName, this.EventCategories));
+                this.AddArea(areaName);
             }
+        }
+
+        private EventAreaConfiguration AddArea(string name)
+        {
+            var config = this.ModuleSettings.AddDrawer(name, this.EventCategories);
+            this.AddArea(config);
+
+            return config;
         }
 
         private void AddArea(EventAreaConfiguration configuration)
@@ -254,38 +260,6 @@
             this.ModuleSettings.RemoveDrawer(configuration.Name);
         }
 
-        /// <inheritdoc />
-        protected override void Unload()
-        {
-            this.Logger.Debug("Unload module.");
-
-            this.Logger.Debug("Unload drawer.");
-
-            foreach (EventArea area in this._areas.Values)
-            {
-                area.Dispose();
-            }
-
-            this._areas.Clear();
-
-            this.Logger.Debug("Unloaded drawer.");
-
-            this.Logger.Debug("Unload event categories.");
-
-            foreach (EventCategory ec in this.EventCategories)
-            {
-                ec.Unload();
-            }
-
-            this.Logger.Debug("Unloaded event categories.");
-
-            this.Logger.Debug("Unload base.");
-
-            base.Unload();
-
-            this.Logger.Debug("Unloaded base.");
-        }
-
         protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
         {
             ModuleSettings moduleSettings = new ModuleSettings(settings);
@@ -310,7 +284,12 @@
             { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
-                this.AddArea(e.AreaConfiguration);
+                e.AreaConfiguration = this.AddArea(e.Name);
+                if (e.AreaConfiguration != null)
+                {
+                    var newArea = this._areas.Values.Where(x => x.Configuration.Name == e.Name).First();
+                    AsyncHelper.RunSync(async () => await this.SetAreaEvents(newArea));
+                }
             };
 
             areaSettingsView.RemoveArea += (s, e) =>
@@ -332,10 +311,6 @@
             configurations.Worldbosses.Enabled = true;
             configurations.Mapchests.Enabled = true;
             configurations.PointOfInterests.Enabled = true;
-        }
-
-        protected override void OnBeforeStatesStarted()
-        {
         }
 
         protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
@@ -370,6 +345,29 @@
         protected override AsyncTexture2D GetCornerIcon()
         {
             return this.IconState.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
+        }
+
+        /// <inheritdoc />
+        protected override void Unload()
+        {
+            this.Logger.Debug("Unload module.");
+
+            this.Logger.Debug("Unload drawer.");
+
+            foreach (EventArea area in this._areas.Values)
+            {
+                area?.Dispose();
+            }
+
+            this._areas?.Clear();
+
+            this.Logger.Debug("Unloaded drawer.");
+
+            this.Logger.Debug("Unload base.");
+
+            base.Unload();
+
+            this.Logger.Debug("Unloaded base.");
         }
     }
 }
