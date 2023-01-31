@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
@@ -19,7 +19,6 @@
     { 
 
         #region Global Settings
-        public SettingEntry<bool> AutomaticallyUpdateEventFile { get; private set; }
         public SettingEntry<KeyBinding> MapKeybinding { get; private set; }
         #endregion
 
@@ -45,9 +44,6 @@
 
         protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
         {
-            this.AutomaticallyUpdateEventFile = this.GlobalSettings.DefineSetting(nameof(this.AutomaticallyUpdateEventFile), true, () => "Automatically Update Event File", () => "Whether the module should automatically update the event file.");
-            this.AutomaticallyUpdateEventFile.SettingChanged += this.SettingChanged;
-
             this.MapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.MapKeybinding), new KeyBinding(Microsoft.Xna.Framework.Input.Keys.M), () => "Open Map Hotkey", () => "Defines the key used to open the fullscreen map.");
             this.MapKeybinding.SettingChanged += this.SettingChanged;
             this.MapKeybinding.Value.Enabled = true;
@@ -127,11 +123,6 @@
         public override void UpdateLocalization(TranslationState translationState)
         {
             base.UpdateLocalization(translationState);
-
-            var automaticallyUpdateEventFileDisplayNameDefault = this.AutomaticallyUpdateEventFile.DisplayName;
-            var automaticallyUpdateEventFileDescriptionDefault = this.AutomaticallyUpdateEventFile.Description;
-            this.AutomaticallyUpdateEventFile.GetDisplayNameFunc = () => translationState.GetTranslation("setting-automaticallyUpdateEventFile-name", automaticallyUpdateEventFileDisplayNameDefault);
-            this.AutomaticallyUpdateEventFile.GetDescriptionFunc = () => translationState.GetTranslation("setting-automaticallyUpdateEventFile-description", automaticallyUpdateEventFileDescriptionDefault);
 
             var mapKeybindingDisplayNameDefault = this.MapKeybinding.DisplayName;
             var mapKeybindingDescriptionDefault = this.MapKeybinding.Description;
