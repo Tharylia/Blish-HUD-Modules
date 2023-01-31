@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
@@ -76,6 +76,8 @@ namespace Estreya.BlishHUD.EventTable
             var eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
             eventHeight.SetRange(5, 30);
 
+            var eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
+
             return new EventAreaConfiguration()
             {
                 Name = drawer.Name,
@@ -99,7 +101,8 @@ namespace Estreya.BlishHUD.EventTable
                 AcceptWaypointPrompt = acceptWaypointPrompt,
                 DisabledEventKeys = disabledEventKeys,
                 CompletionAcion = completionAction,
-                EventHeight = eventHeight
+                EventHeight = eventHeight,
+                EventOrder = eventOrder
             };
         }
 
@@ -118,6 +121,7 @@ namespace Estreya.BlishHUD.EventTable
             this.DrawerSettings.UndefineSetting($"{name}-completionAction");
             this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
             this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
+            this.DrawerSettings.UndefineSetting($"{name}-eventOrder");
         }
 
         public override void UpdateLocalization(TranslationState translationState)

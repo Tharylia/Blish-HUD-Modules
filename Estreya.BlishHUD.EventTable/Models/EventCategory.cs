@@ -354,10 +354,5 @@
                 await Task.WhenAll(eventLoadTasks);
             }
         }
-
-        public void Unload()
-        {
-            this.Events.ForEach(ev => ev.Unload());
-        }
     }
 }

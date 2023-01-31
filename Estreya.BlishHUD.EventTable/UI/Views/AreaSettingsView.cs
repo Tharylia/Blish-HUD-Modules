@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -32,6 +32,7 @@ public class AreaSettingsView : BaseSettingsView
     private Panel _areaPanel;
 
     private StandardWindow _manageEventsWindow;
+    private StandardWindow _reorderEventsWindow;
 
     public class AddAreaEventArgs
     {
@@ -245,7 +246,7 @@ public class AreaSettingsView : BaseSettingsView
         FlowPanel settingsPanel = new FlowPanel()
         {
             Left = areaName.Left,
-            Top = areaName.Bottom + 50,
+            Top = areaName.Bottom + 75,
             Parent = this._areaPanel,
             HeightSizingMode = SizingMode.Fill,
             WidthSizingMode = SizingMode.Fill,
@@ -311,6 +312,14 @@ public class AreaSettingsView : BaseSettingsView
         manageEventsButton.Top = areaName.Top;
         manageEventsButton.Left = settingsPanel.Left;
 
+        var reorderEventsButton = this.RenderButton(this._areaPanel, "Reorder Events", () =>
+        {
+            this.ReorderEvents(areaConfiguration);
+        });
+
+        reorderEventsButton.Top = manageEventsButton.Bottom + 2;
+        reorderEventsButton.Left = manageEventsButton.Left;
+
         StandardButton removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
         {
             this.RemoveArea?.Invoke(this, areaConfiguration);
@@ -333,6 +342,43 @@ public class AreaSettingsView : BaseSettingsView
 
         areaName.Left = manageEventsButton.Right;
         areaName.Width = removeButton.Left - areaName.Left;
+    }
+
+    private void ReorderEvents(EventAreaConfiguration configuration)
+    {
+        if (this._reorderEventsWindow == null)
+        {
+            Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
+
+            Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
+            int contentRegionPaddingY = settingsWindowSize.Y - 15;
+            int contentRegionPaddingX = settingsWindowSize.X;
+            Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
+
+            this._reorderEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
+            {
+                Parent = GameService.Graphics.SpriteScreen,
+                Title = "Reorder Events",
+                SavesPosition = true,
+                Id = $"{this.GetType().Name}_b5cbbd99-f02d-4229-8dda-869b42ac242e"
+            };
+        }
+
+        if (_reorderEventsWindow.CurrentView != null)
+        {
+            var reorderEventView = _reorderEventsWindow.CurrentView as ReorderEventsView;
+            reorderEventView.SaveClicked -= this.ReorderView_SaveClicked;
+        }
+
+        var view = new ReorderEventsView(this._allEvents(),configuration.EventOrder.Value,  configuration, this.APIManager, this.IconState, this.TranslationState);
+        view.SaveClicked += this.ReorderView_SaveClicked;
+
+        _reorderEventsWindow.Show(view);
+    }
+
+    private void ReorderView_SaveClicked(object sender, (EventAreaConfiguration AreaConfiguration, string[] CategoryKeys) e)
+    {
+        e.AreaConfiguration.EventOrder.Value = new List<string>(e.CategoryKeys);
     }
 
     private void ManageEvents(EventAreaConfiguration configuration)
@@ -358,16 +404,16 @@ public class AreaSettingsView : BaseSettingsView
         if (_manageEventsWindow.CurrentView != null)
         {
             var manageEventView = _manageEventsWindow.CurrentView as ManageEventsView;
-            manageEventView.EventChanged -= this.View_EventChanged;
+            manageEventView.EventChanged -= this.ManageView_EventChanged;
         }
 
         var view = new ManageEventsView(this._allEvents(), configuration, this.APIManager, this.IconState, this.TranslationState, this._eventState.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventState.EventStates.Hidden).Select(x => x.EventKey).ToList());
-        view.EventChanged += this.View_EventChanged;
+        view.EventChanged += this.ManageView_EventChanged;
 
         _manageEventsWindow.Show(view);
     }
 
-    private void View_EventChanged(object sender, EventChangedArgs e)
+    private void ManageView_EventChanged(object sender, EventChangedArgs e)
     {
         e.Configuration.DisabledEventKeys.Value = e.NewState
             ? new List<string>(e.Configuration.DisabledEventKeys.Value.Where(aek => aek != e.EventSettingKey)) 
@@ -400,6 +446,9 @@ public class AreaSettingsView : BaseSettingsView
         this._menuItems?.Clear();
         this._manageEventsWindow?.Dispose();
         this._manageEventsWindow = null;
+
+        this._reorderEventsWindow?.Dispose();
+        this._reorderEventsWindow = null;
 
     }
 }

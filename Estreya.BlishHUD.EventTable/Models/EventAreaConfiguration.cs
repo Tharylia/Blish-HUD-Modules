@@ -22,4 +22,9 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<bool> UseFiller { get; set; }
     public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> FillerTextColor { get; set; }
     public SettingEntry<int> EventHeight { get; set; } 
+
+    /// <summary>
+    /// Defines the event orders. Contains a list of category names.
+    /// </summary>
+    public SettingEntry<List<string>> EventOrder { get; set; }
 }

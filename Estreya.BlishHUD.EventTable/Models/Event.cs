@@ -216,10 +216,6 @@
             return Task.CompletedTask;
         }
 
-        public void Unload()
-        {
-        }
-
         public override string ToString()
         {
             var keySplit = this.SettingKey?.Split('_') ?? new string[] {string.Empty, this.Name};
