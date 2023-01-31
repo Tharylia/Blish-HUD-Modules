@@ -277,8 +277,8 @@
 
             var globalDrawerVisibleHotkeyDisplayNameDefault = this.GlobalDrawerVisibleHotkey.DisplayName;
             var globalDrawerVisibleHotkeyDescriptionDefault = this.GlobalDrawerVisibleHotkey.Description;
-            this.GlobalDrawerVisibleHotkey.GetDisplayNameFunc = () => translationState.GetTranslation("setting-globalDrawerVisibleHotkey-name", globalDrawerVisibleDisplayNameDefault);
-            this.GlobalDrawerVisibleHotkey.GetDescriptionFunc = () => translationState.GetTranslation("setting-globalDrawerVisibleHotkey-description", globalDrawerVisibleDescriptionDefault);
+            this.GlobalDrawerVisibleHotkey.GetDisplayNameFunc = () => translationState.GetTranslation("setting-globalDrawerVisibleHotkey-name", globalDrawerVisibleHotkeyDisplayNameDefault);
+            this.GlobalDrawerVisibleHotkey.GetDescriptionFunc = () => translationState.GetTranslation("setting-globalDrawerVisibleHotkey-description", globalDrawerVisibleHotkeyDescriptionDefault);
 
             var registerCornerIconDisplayNameDefault = this.RegisterCornerIcon.DisplayName;
             var registerCornerIconDescriptionDefault = this.RegisterCornerIcon.Description;

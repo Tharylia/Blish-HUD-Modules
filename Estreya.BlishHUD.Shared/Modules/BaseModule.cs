@@ -352,7 +352,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.SettingsWindow.ToggleWindow();
     }
 
-    public sealed override IView GetSettingsView()
+    public override IView GetSettingsView()
     {
         if (this._defaultSettingView == null)
         {
@@ -558,11 +558,15 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this._loadingSpinner ??= new LoadingSpinner()
         {
             Parent = GameService.Graphics.SpriteScreen,
-            Size = this.CornerIcon.Size,
+            Size = this.CornerIcon?.Size ?? new Point(0,0),
             Visible = false
         };
 
-        this._loadingSpinner.Location = new Point(this.CornerIcon.Location.X, this.CornerIcon.Location.Y + this.CornerIcon.Height + 5);
+        if (this.CornerIcon != null)
+        {
+            this._loadingSpinner.Location = new Point(this.CornerIcon.Location.X, this.CornerIcon.Location.Y + this.CornerIcon.Height + 5);
+        }
+
         this._loadingSpinner.BasicTooltipText = text;
         this._loadingSpinner.Visible = show;
     }
