@@ -15,14 +15,19 @@ using System.Threading.Tasks;
 
 public class SettingsView : BaseSettingsView
 {
-    public SettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    private readonly ModuleSettings _moduleSettings;
+    private readonly Func<string> _getGuildId;
+
+    public SettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, ModuleSettings moduleSettings, Func<string> getGuildId, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
     {
+        this._moduleSettings = moduleSettings;
+        this._getGuildId = getGuildId;
     }
 
     protected override void BuildView(Panel parent)
     {
-        this.RenderEnumSetting(parent, LiveMapModule.Instance.ModuleSettings.PublishType);
-        this.RenderEnumSetting(parent, LiveMapModule.Instance.ModuleSettings.PlayerFacingType);
+        this.RenderEnumSetting(parent, _moduleSettings.PublishType);
+        this.RenderEnumSetting(parent, _moduleSettings.PlayerFacingType);
 
         this.RenderEmptyLine(parent);
 
@@ -33,8 +38,8 @@ public class SettingsView : BaseSettingsView
 
         this.RenderButton(parent, "Open Guild Map", () =>
         {
-            Process.Start(LiveMapModule.LIVE_MAP_GUILD_URL.FormatWith(LiveMapModule.Instance.GuildId));
-        }, () => string.IsNullOrWhiteSpace(LiveMapModule.Instance.GuildId));
+            Process.Start(LiveMapModule.LIVE_MAP_GUILD_URL.FormatWith(_getGuildId()));
+        }, () => string.IsNullOrWhiteSpace(_getGuildId()));
     }
 
     protected override Task<bool> InternalLoad(IProgress<string> progress)

@@ -4,35 +4,84 @@
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
     using Blish_HUD.Graphics.UI;
+    using Blish_HUD.Modules.Managers;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.Models.Settings;
     using Estreya.BlishHUD.Shared.Controls;
+    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.UI.Views;
     using Microsoft.Xna.Framework;
+    using MonoGame.Extended.BitmapFonts;
     using Newtonsoft.Json;
     using System;
     using System.Collections.Generic;
+    using System.Drawing.Text;
     using System.Linq;
     using System.Threading.Tasks;
 
-    public class ReorderEventsView : View
+    public class ReorderEventsView : BaseView
     {
         private static Point MAIN_PADDING = new Point(20, 20);
 
         private static readonly Logger Logger = Logger.GetLogger<ReorderEventsView>();
+        private readonly List<EventCategory> _allEvents;
+        private readonly List<string> _order;
+        private readonly EventAreaConfiguration _areaConfiguration;
 
-        public Panel Panel { get; private set; }
+        public event EventHandler<(EventAreaConfiguration AreaConfiguration, string[] CategoryKeys)> SaveClicked;
 
-        protected override void Build(Container buildPanel)
+        private Panel Panel { get; set; }
+
+        public ReorderEventsView(List<EventCategory> allEvents, List<string> order, EventAreaConfiguration areaConfiguration, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
         {
-            /*
+            this._allEvents = allEvents;
+            this._order = order;
+            this._areaConfiguration = areaConfiguration;
+        }
+
+        private void DrawEntries(ListView<EventCategory> listView)
+        {
+            
+            listView.ClearChildren();
+
+            //Random random = new Random();
+
+            foreach (EventCategory eventCategory in this._allEvents.GroupBy(ec => ec.Key).Select(g => g.First()).OrderBy(x => this._order.IndexOf(x.Key)))
+            {
+                ListEntry<EventCategory> entry = new(eventCategory.Name)
+                {
+                    Parent = listView,
+                    Width = listView.Width - 20,
+                    DragDrop = true,
+                    TextColor = Color.White,
+                    Data = eventCategory,
+                    Alignment = HorizontalAlignment.Center,
+                    //BackgroundColor = new Color(random.Next(0, 256), random.Next(0, 256), random.Next(0, 256))
+                };
+
+                if (eventCategory.Icon != null)
+                {
+                        entry.Icon = this.IconState.GetIcon(eventCategory.Icon);
+                }
+            }
+            
+        }
+
+        protected override Task<bool> InternalLoad(IProgress<string> progress)
+        {
+            return Task.FromResult(true);
+        }
+
+        protected override void InternalBuild(Panel parent)
+        {
             this.Panel = new Panel
             {
-                Parent = buildPanel,
+                Parent = parent,
                 Location = new Point(MAIN_PADDING.X, MAIN_PADDING.Y),
-                Width = buildPanel.ContentRegion.Width - MAIN_PADDING.Y,
-                Height = buildPanel.ContentRegion.Height - MAIN_PADDING.X,
+                Width = parent.ContentRegion.Width - MAIN_PADDING.Y,
+                Height = parent.ContentRegion.Height - MAIN_PADDING.X,
                 CanScroll = true
             };
 
@@ -57,7 +106,7 @@
 
             StandardButton saveButton = new StandardButton()
             {
-                Text =  Strings.ReorderEventsView_Save,
+                Text = "Save",
                 Parent = buttons,
                 Right = buttons.Width,
                 Bottom = buttons.Height
@@ -71,7 +120,7 @@
                 }).ToList();
 
                 // Get copy of current categories;
-                var currentCategories = EventTableModule.ModuleInstance.EventCategories.ToArray().ToList();
+                var currentCategories = this._allEvents;
 
                 foreach (EventCategory category in orderedCategories)
                 {
@@ -87,19 +136,21 @@
                     currentCategories.Insert(newIndex, category);
                 }
 
-                Logger.Debug("Load current external file.");
+                this.SaveClicked?.Invoke(this, (this._areaConfiguration, currentCategories.Select(x => x.Key).ToArray()));
+
+                /*Logger.Debug("Load current external file.");
                 EventSettingsFile eventSettingsFile = await EventTableModule.ModuleInstance.EventFileState.GetLocalFile();
                 eventSettingsFile.EventCategories = currentCategories;
                 Logger.Debug("Export updated file.");
                 await EventTableModule.ModuleInstance.EventFileState.ExportFile(eventSettingsFile);
                 Logger.Debug("Reload events.");
                 await EventTableModule.ModuleInstance.LoadEvents();
-                Shared.Controls.ScreenNotification.ShowNotification(Strings.ReorderEventsView_Save_Success);
+                Shared.Controls.ScreenNotification.ShowNotification(Strings.ReorderEventsView_Save_Success);*/
             };
 
             StandardButton resetButton = new StandardButton()
             {
-                Text = Strings.ReorderEventsView_Reset,
+                Text = "Reset",
                 Parent = buttons,
                 Right = saveButton.Left,
                 Bottom = buttons.Height
@@ -111,38 +162,6 @@
             };
 
             this.DrawEntries(listView);
-            */
-        }
-
-        private void DrawEntries(ListView<EventCategory> listView)
-        {
-            /*
-            listView.ClearChildren();
-
-            //Random random = new Random();
-
-            foreach (EventCategory eventCategory in EventTableModule.ModuleInstance.EventCategories.GroupBy(ec => ec.Key).Select(g => g.First()))
-            {
-                ListEntry<EventCategory> entry = new(eventCategory.Name)
-                {
-                    Parent = listView,
-                    Width = listView.Width - 20,
-                    DragDrop = true,
-                    TextColor = Color.White,
-                    Data = eventCategory,
-                    Alignment = HorizontalAlignment.Center,
-                    //BackgroundColor = new Color(random.Next(0, 256), random.Next(0, 256), random.Next(0, 256))
-                };
-
-                if (eventCategory.Icon != null)
-                {
-                    GameService.Graphics.QueueMainThreadRender(graphicsDevice =>
-                    {
-                        entry.Icon = EventTableModule.ModuleInstance.IconState.GetIcon(eventCategory.Icon);
-                    });
-                }
-            }
-            */
         }
     }
 }

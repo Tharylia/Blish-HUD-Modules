@@ -19,7 +19,6 @@
     { 
 
         #region Global Settings
-        public SettingEntry<bool> AutomaticallyUpdateEventFile { get; private set; }
         public SettingEntry<KeyBinding> MapKeybinding { get; private set; }
         #endregion
 
@@ -45,9 +44,6 @@
 
         protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
         {
-            this.AutomaticallyUpdateEventFile = this.GlobalSettings.DefineSetting(nameof(this.AutomaticallyUpdateEventFile), true, () => "Automatically Update Event File", () => "Whether the module should automatically update the event file.");
-            this.AutomaticallyUpdateEventFile.SettingChanged += this.SettingChanged;
-
             this.MapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.MapKeybinding), new KeyBinding(Microsoft.Xna.Framework.Input.Keys.M), () => "Open Map Hotkey", () => "Defines the key used to open the fullscreen map.");
             this.MapKeybinding.SettingChanged += this.SettingChanged;
             this.MapKeybinding.Value.Enabled = true;
@@ -80,6 +76,8 @@
             var eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
             eventHeight.SetRange(5, 30);
 
+            var eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
+
             return new EventAreaConfiguration()
             {
                 Name = drawer.Name,
@@ -103,7 +101,8 @@
                 AcceptWaypointPrompt = acceptWaypointPrompt,
                 DisabledEventKeys = disabledEventKeys,
                 CompletionAcion = completionAction,
-                EventHeight = eventHeight
+                EventHeight = eventHeight,
+                EventOrder = eventOrder
             };
         }
 
@@ -122,16 +121,12 @@
             this.DrawerSettings.UndefineSetting($"{name}-completionAction");
             this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
             this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
+            this.DrawerSettings.UndefineSetting($"{name}-eventOrder");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
         {
             base.UpdateLocalization(translationState);
-
-            var automaticallyUpdateEventFileDisplayNameDefault = this.AutomaticallyUpdateEventFile.DisplayName;
-            var automaticallyUpdateEventFileDescriptionDefault = this.AutomaticallyUpdateEventFile.Description;
-            this.AutomaticallyUpdateEventFile.GetDisplayNameFunc = () => translationState.GetTranslation("setting-automaticallyUpdateEventFile-name", automaticallyUpdateEventFileDisplayNameDefault);
-            this.AutomaticallyUpdateEventFile.GetDescriptionFunc = () => translationState.GetTranslation("setting-automaticallyUpdateEventFile-description", automaticallyUpdateEventFileDescriptionDefault);
 
             var mapKeybindingDisplayNameDefault = this.MapKeybinding.DisplayName;
             var mapKeybindingDescriptionDefault = this.MapKeybinding.Description;

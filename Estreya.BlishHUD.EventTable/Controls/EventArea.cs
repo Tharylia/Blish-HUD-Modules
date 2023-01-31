@@ -89,6 +89,7 @@ public class EventArea : Container
         this.Configuration.UseFiller.SettingChanged += this.UseFiller_SettingChanged;
         this.Configuration.BuildDirection.SettingChanged += this.BuildDirection_SettingChanged;
         this.Configuration.DisabledEventKeys.SettingChanged += this.DisabledEventKeys_SettingChanged;
+        this.Configuration.EventOrder.SettingChanged += this.EventOrder_SettingChanged;
 
         this.Location_SettingChanged(this, null);
         this.Size_SettingChanged(this, null);
@@ -119,6 +120,11 @@ public class EventArea : Container
             this._mapchestState.MapchestCompleted += this.Event_Completed;
             this._mapchestState.MapchestRemoved += this.Event_Removed;
         }
+    }
+
+    private void EventOrder_SettingChanged(object sender, ValueChangedEventArgs<List<string>> e)
+    {
+        this.ReAddEvents();
     }
 
     private void EnabledKeybinding_Activated(object sender, EventArgs e)
@@ -226,35 +232,14 @@ public class EventArea : Container
     private List<IGrouping<string, string>> GetActiveEventKeysGroupedByCategory()
     {
         var activeSettingKeys = this.GetActiveEventKeys();
-        var order = this.GetEventOrdering();
+        var order = this.GetEventCategoryOrdering();
 
-        return activeSettingKeys.OrderBy(x => order.IndexOf(x)).GroupBy(aek => aek.Split('_')[0]).ToList();
-    }
-
-    private List<string> GetEventOrdering()
-    {
-        var order = this._allEvents
-            .SelectMany(ae => ae.Events)
-            .Where(e => !e.Filler)
-            .Select(e => e.SettingKey)
-            .ToList();
-        // Order is for now defined by order in events.json file returned by blish api.
-
-        if (order == null || order.Count == 0)
-        {
-            return new List<string>();
-        };
-
-        var activeSettingKeys = this.GetActiveEventKeys();
-
-        return activeSettingKeys.OrderBy(x => order.IndexOf(x)).ToList();
+        return activeSettingKeys.OrderBy(x => order.IndexOf(x.Split('_')[0])).GroupBy(aek => aek.Split('_')[0]).ToList();
     }
 
     private List<string> GetEventCategoryOrdering()
     {
-        var order = this.GetEventOrdering();
-
-        return order.Select(x => x.Split('_')[0]).ToList();
+        return this.Configuration.EventOrder.Value.ToList();
     }
 
     private List<string> GetActiveEventKeys()
@@ -719,6 +704,7 @@ public class EventArea : Container
         this.Configuration.BackgroundColor.SettingChanged -= this.BackgroundColor_SettingChanged;
         this.Configuration.UseFiller.SettingChanged -= this.UseFiller_SettingChanged;
         this.Configuration.BuildDirection.SettingChanged -= this.BuildDirection_SettingChanged;
+        this.Configuration.EventOrder.SettingChanged -= this.EventOrder_SettingChanged;
 
         this.Configuration = null;
     }

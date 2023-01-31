@@ -1,4 +1,5 @@
 ﻿using Blish_HUD;
+using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
@@ -49,9 +50,9 @@ namespace Estreya.BlishHUD.Shared.Controls
             set => this.SetProperty(ref this._textColor, value, true);
         }
 
-        private Texture2D _icon;
+        private AsyncTexture2D _icon;
 
-        public Texture2D Icon
+        public AsyncTexture2D Icon
         {
             get => this._icon;
             set => this.SetProperty(ref this._icon, value, true);
@@ -172,7 +173,7 @@ namespace Estreya.BlishHUD.Shared.Controls
         {
             //RectangleF textBounds = new RectangleF(bounds.X, bounds.Y, this.DragDrop ? bounds.Width - DRAG_DROP_WIDTH : bounds.Width, bounds.Height);
 
-            if (this.Icon != null)
+            if (this.Icon != null && this.Icon.HasSwapped)
             {
                 spriteBatch.DrawOnCtrl(this, this.Icon, this.IconBounds);
             }

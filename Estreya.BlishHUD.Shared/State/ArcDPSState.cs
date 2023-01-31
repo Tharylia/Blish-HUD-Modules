@@ -558,7 +558,8 @@ public class ArcDPSState : ManagedState
 
     private void AddSkill(Models.ArcDPS.CombatEvent combatEvent, string skillNameByArcDPS)
     {
-        Skill skill = this._skillState.GetById((int)combatEvent.SkillId);
+        //Skill skill = this._skillState.GetById((int)combatEvent.SkillId);
+        Skill skill = this._skillState.GetBy(skill => skill.Id == (int)combatEvent.SkillId && skill.Name == skillNameByArcDPS);
 
         if (skill == null)
         {

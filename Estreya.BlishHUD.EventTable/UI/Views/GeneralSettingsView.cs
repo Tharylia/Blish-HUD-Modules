@@ -27,9 +27,7 @@
 
             this.RenderEmptyLine(parent);
 
-            this.RenderBoolSetting(parent, _moduleSettings.AutomaticallyUpdateEventFile);
             this.RenderKeybindingSetting(parent, _moduleSettings.MapKeybinding);
-            this.RenderBoolSetting(parent, _moduleSettings.AutomaticallyUpdateEventFile);
 
             this.RenderBoolSetting(parent, _moduleSettings.HideOnMissingMumbleTicks);
             this.RenderBoolSetting(parent, _moduleSettings.HideOnOpenMap);
