@@ -1,0 +1,120 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <SharedGUID>59fb4d68-f75f-49d1-8231-ba56266bcbe4</SharedGUID>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration">
+    <Import_RootNamespace>Estreya.BlishHUD.Shared</Import_RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Attributes\IgnoreCopyAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\ControlMover.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\KeybindingAssigner.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\ListEntry.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\ListView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Menu.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\RenderTargetControl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\ScreenNotification.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\TextArea.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\TextBoxSuggestions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\ArrayExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\EnumExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\HttpExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\IEnumerableExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\ObjectExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\ProcessExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\RectangleExtension.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\SettingEntryExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\StringExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\WaitHandleExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\AsyncHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\ColorHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\GitHubHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\MathHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Helpers\VSCodeHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\DateJsonConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\DateTimeJsonConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\SemanticRangeConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\SemanticVersionConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\TimeSpanJsonConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\Barrier\BarrierCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\Buff\BuffApplyCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\Buff\BuffRemoveCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\CombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\CombatEventCategory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\CombatEventResult.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\CombatEventState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\CombatEventType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\Damage\DamageCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\Heal\HealCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\EnterCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\ExitCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\StateChangeCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\BuildDirection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerConfiguration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerLocation.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerSize.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\CurrentTransaction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\TrackedTransaction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\Transaction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\TransactionType.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Converter\BottomUpRectangleConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Converter\CoordinatesConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Converter\RectangleConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Converter\TopDownRectangleConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Items\Item.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\PointOfInterest\ContinentDetails.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\PointOfInterest\ContinentFloorDetails.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\PointOfInterest\ContinentFloorRegionDetails.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\PointOfInterest\ContinentFloorRegionMapDetails.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\PointOfInterest\PointOfInterest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\MissingSkill.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\RemappedSkillID.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\Skill.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\SkillCategory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ScreenRegion.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)MumbleInfo\Map\MapInfo.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Net\WebClient.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)Security\PasswordManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Settings\BaseModuleSettings.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\AccountState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\APIState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\APIStateConfiguration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\APIState[T].cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\ArcDPSState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\IconState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\ItemState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\ManagedState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\MapchestState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\PointOfInterestState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\SkillState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\StateConfiguration.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\StateConfigurations.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\TradingPostState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\TranslationState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\WorldbossState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Threading\AsyncRef.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Threading\Events\AsyncEventHandler.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\BaseView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\EmptyLineView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\GitHubCreateIssueView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\ModuleSettingsView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\Settings\BaseSettingsView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\Settings\StateSettingsView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\StringTooltipView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\TooltipView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\AsyncLock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\DiscordUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\FileUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\GW2Utils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\MapUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\SpriteBatchUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\UpdateUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\WindowsUtil.cs" />
+  </ItemGroup>
+</Project>

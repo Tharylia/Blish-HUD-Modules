@@ -20,6 +20,11 @@
 		<PackageReference Include="BlishHUD" Version="1.0.0">
 			<ExcludeAssets>runtime;contentFiles</ExcludeAssets>
 		</PackageReference>
+		<PackageReference Include="Flurl.Http" Version="2.4.2" />
+		<PackageReference Include="Octokit" Version="3.0.0" />
+		<PackageReference Include="SemanticVersioning" Version="1.2.2">
+			<ExcludeAssets>runtime</ExcludeAssets>
+		</PackageReference>
 		<PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all" />
 		<PackageReference Include="Humanizer.Core.es" Version="2.6.2" PrivateAssets="all" />
 		<PackageReference Include="Humanizer.Core.fr" Version="2.6.2" PrivateAssets="all" />
@@ -29,7 +34,9 @@
 		<Reference Include="PresentationCore" />
 		<Reference Include="PresentationFramework" />
 		<Reference Include="System.ComponentModel.Composition" />
+		<Reference Include="System.Security" />
 		<Reference Include="System.Windows.Forms" />
+		<Reference Include="System.ServiceModel" />
 		<Reference Include="WindowsBase" />
 	</ItemGroup>
 
@@ -41,8 +48,6 @@
 	</ItemGroup>
 
 
-	<ItemGroup>
-	  <ProjectReference Include="..\Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.csproj" />
-	</ItemGroup>
+	<Import Project="..\Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems" Label="Shared" />
 	
 </Project>
