@@ -33,7 +33,7 @@
     public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     {
         private static readonly Logger Logger = Logger.GetLogger<LiveMapModule>();
-        private const string LIVE_MAP_BASE_API_URL = "http://localhost:3002/v1";
+        private const string LIVE_MAP_BASE_API_URL = "https://gw2map.api.estreya.de/v1";
         private const string LIVE_MAP_GLOBAL_API_URL = $"{LIVE_MAP_BASE_API_URL}/global/write";
         private const string LIVE_MAP_GUILD_API_URL = $"{LIVE_MAP_BASE_API_URL}/guild/write";
         public const string LIVE_MAP_GLOBAL_URL = "https://gw2map.estreya.de";
