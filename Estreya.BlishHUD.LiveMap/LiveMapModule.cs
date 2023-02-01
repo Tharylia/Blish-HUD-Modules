@@ -49,13 +49,11 @@
             Transport = SocketIOClient.Transport.TransportProtocol.WebSocket
         });
 
-        private View _settingsView;
-
-        private static TimeSpan _sendInterval = TimeSpan.FromMilliseconds(250);
-        private AsyncRef<double> _lastSend = new AsyncRef<double>(_sendInterval.TotalMilliseconds);
+        private TimeSpan _sendInterval = TimeSpan.FromMilliseconds(250);
+        private AsyncRef<double> _lastSend = new AsyncRef<double>(0);
         private Player _lastSendPlayer;
-        private static TimeSpan _guildFetchInterval = TimeSpan.FromSeconds(30);
-        private AsyncRef<double> _lastGuildFetch = new AsyncRef<double>(_guildFetchInterval.TotalMilliseconds);
+        private TimeSpan _guildFetchInterval = TimeSpan.FromSeconds(30);
+        private AsyncRef<double> _lastGuildFetch = new AsyncRef<double>(0);
 
         private string _accountName;
         private string _guildId;
@@ -71,8 +69,13 @@
 
         protected override void Initialize()
         {
+            base.Initialize();
+
             this.Gw2ApiManager.SubtokenUpdated += this.Gw2ApiManager_SubtokenUpdated;
             GameService.Gw2Mumble.PlayerCharacter.NameChanged += this.PlayerCharacter_NameChanged;
+
+            this._lastSend.Value = _sendInterval.TotalMilliseconds;
+            this._lastGuildFetch.Value = _guildFetchInterval.TotalMilliseconds;
 
             Instance = this;
         }
@@ -81,7 +84,13 @@
         {
             await base.LoadAsync();
 
+            this.GlobalSocket.On("interval", (resp) =>
+            {
+                var interval = resp.GetValue<int>();
+                _sendInterval = TimeSpan.FromMilliseconds(interval);
+            });
             await this.GlobalSocket.ConnectAsync();
+
             await this.GuildSocket.ConnectAsync();
             await this.FetchAccountName();
             await this.FetchGuildId();
@@ -207,7 +216,7 @@
 
         protected override void Update(GameTime gameTime)
         {
-            AsyncHelper.RunSync(this.SendPosition);
+            _ = UpdateUtil.UpdateAsync(this.SendPosition, gameTime, _sendInterval.TotalMilliseconds, _lastSend, false);
             _ = UpdateUtil.UpdateAsync(this.FetchGuildId, gameTime, _guildFetchInterval.TotalMilliseconds, _lastGuildFetch);
         }
 
@@ -226,7 +235,8 @@
 
         public override IView GetSettingsView()
         {
-            return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.ModuleSettings, () => this.GuildId);
+            return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.ModuleSettings,
+                () => this.GuildId, () => GameService.Gw2Mumble.UI.MapPosition.X, () => GameService.Gw2Mumble.UI.MapPosition.Y);
         }
 
         protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
@@ -236,7 +246,7 @@
 
         protected override string GetDirectoryName()
         {
-            return "live-map";
+            return null;
         }
 
         protected override AsyncTexture2D GetEmblem()

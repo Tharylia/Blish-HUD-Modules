@@ -35,7 +35,7 @@
             }
         }
 
-        public static async Task UpdateAsync(Func<GameTime, Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck)
+        public static async Task UpdateAsync(Func<GameTime, Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true)
         {
             lastCheck.Value += gameTime.ElapsedGameTime.TotalMilliseconds;
 
@@ -51,20 +51,31 @@
 
                 var methodName = $"{call.Target.GetType().FullName}.{call.Method.Name}()";
 
-                Logger.Debug("Start running update function '{0}'.", methodName);
+                if (doLogging)
+                {
+                    Logger.Debug("Start running update function '{0}'.", methodName);
+                }
 
-                var task = call.Invoke(gameTime);
-                await task;
+                try
+                {
+                    var task = call.Invoke(gameTime);
+                    await task;
+                }
+                finally
+                {
+                    _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
+                }
 
-                _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
-
-                Logger.Debug("Update function '{0}' finished running.", methodName);
+                if (doLogging)
+                {
+                    Logger.Debug("Update function '{0}' finished running.", methodName);
+                }
 
                 lastCheck.Value = 0;
             }
         }
 
-        public static async Task UpdateAsync(Func<Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck)
+        public static async Task UpdateAsync(Func<Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true)
         {
             lastCheck.Value += gameTime.ElapsedGameTime.TotalMilliseconds;
 
@@ -80,18 +91,25 @@
 
                 var methodName = $"{call.Target.GetType().FullName}.{call.Method.Name}()";
 
-                Logger.Debug("Start running update function '{0}'.", methodName);
+                if (doLogging)
+                {
+                    Logger.Debug("Start running update function '{0}'.", methodName);
+                }
 
                 try
                 {
                     var task = call.Invoke();
                     await task;
-                } finally
+                }
+                finally
                 {
                     _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
                 }
 
-                Logger.Debug("Update function '{0}' finished running.", methodName);
+                if (doLogging)
+                {
+                    Logger.Debug("Update function '{0}' finished running.", methodName);
+                }
 
                 lastCheck.Value = 0;
             }
