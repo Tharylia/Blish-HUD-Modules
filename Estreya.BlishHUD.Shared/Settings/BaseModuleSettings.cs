@@ -328,6 +328,12 @@
             drawerConfiguration.Enabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEnabled-name", enabledDisplayNameDefault);
             drawerConfiguration.Enabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEnabled-description", enabledDescriptionDefault);
 
+
+            var enabledKeybindingDisplayNameDefault = drawerConfiguration.EnabledKeybinding.DisplayName;
+            var enabledKeybindingDescriptionDefault = drawerConfiguration.EnabledKeybinding.Description;
+            drawerConfiguration.Enabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEnabledKeybinding-name", enabledKeybindingDisplayNameDefault);
+            drawerConfiguration.Enabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEnabledKeybinding-description", enabledKeybindingDescriptionDefault);
+
             var locationXDisplayNameDefault = drawerConfiguration.Location.X.DisplayName;
             var locationXDescriptionDefault = drawerConfiguration.Location.X.Description;
             drawerConfiguration.Location.X.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerLocationX-name", locationXDisplayNameDefault);
