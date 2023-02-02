@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\IgnoreCopyAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\ConfirmDialog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ControlMover.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\KeybindingAssigner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ListEntry.cs" />
