@@ -11,12 +11,15 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System;
+using System.Collections.Generic;
 
 public class Event : RenderTargetControl
 {
     public event EventHandler HideRequested;
     public event EventHandler DisableRequested;
     public event EventHandler FinishRequested;
+
+    public event EventHandler<TimeSpan> Reminder;
 
     public Models.Event Ev { get; private set; }
     private readonly IconState _iconState;
@@ -31,6 +34,8 @@ public class Event : RenderTargetControl
     private readonly Func<Color> _getColorAction;
 
     private Tooltip _tooltip;
+
+    private List<TimeSpan> _remindedFor = new List<TimeSpan>();
 
     public Event(Models.Event ev, IconState iconState, TranslationState translationState,
         Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
@@ -130,7 +135,7 @@ public class Event : RenderTargetControl
         }
 
         // Absolute
-        description += $" ({this._translationState.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatTime(this._startTime)})";
+        description += $" ({this._translationState.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatTime(this._startTime.ToLocalTime())})";
 
         this._tooltip = new Tooltip(new TooltipView(this.Ev.Name, description, this._iconState.GetIcon(this.Ev.Icon), this._translationState));
     }
@@ -220,6 +225,25 @@ public class Event : RenderTargetControl
         else
         {
             return ts.ToString("mm\\:ss");
+        }
+    }
+
+    protected override void InternalUpdate(GameTime gameTime)
+    {
+        if (Ev.Filler) return;
+
+        var now = this._getNowAction().ToUniversalTime();
+        foreach (var time in this.Ev.ReminderTimes)
+        {
+            if (this._remindedFor.Contains(time)) continue;
+
+            var remindAt = this._startTime.ToUniversalTime() - time;
+            var diff = now - remindAt;
+            if (remindAt <= now && Math.Abs(diff.TotalSeconds) <= 1)
+            {
+                this.Reminder?.Invoke(this, time);
+                this._remindedFor.Add(time);
+            }
         }
     }
 

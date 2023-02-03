@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\IgnoreCopyAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\ConfirmDialog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ControlMover.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\KeybindingAssigner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ListEntry.cs" />
@@ -21,8 +22,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextBoxSuggestions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ArrayExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\EnumExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\GW2APIExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\HttpExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\IEnumerableExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\MapExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ObjectExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ProcessExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\RectangleExtension.cs" />
@@ -114,6 +117,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Utils\GW2Utils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\MapUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\SpriteBatchUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\StreamerUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\UpdateUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\WindowsUtil.cs" />
   </ItemGroup>

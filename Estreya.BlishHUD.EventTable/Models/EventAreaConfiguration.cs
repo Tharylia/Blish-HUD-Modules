@@ -15,7 +15,6 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<bool> ShowTooltips { get; set; }
     public SettingEntry<LeftClickAction> LeftClickAction { get; set; }
     public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
-    public SettingEntry<bool> ShowContextMenu { get; set; }
     public SettingEntry<int> TimeSpan { get; set; } 
     public SettingEntry<int> HistorySplit { get; set; } 
     public SettingEntry<bool> DrawBorders { get; set; } 
@@ -27,4 +26,8 @@ public class EventAreaConfiguration : DrawerConfiguration
     /// Defines the event orders. Contains a list of category names.
     /// </summary>
     public SettingEntry<List<string>> EventOrder { get; set; }
+
+    public SettingEntry<bool> RemindersEnabled { get; set; }
+    public EventAreaReminderPositition ReminderPosition { get; set; }
+    public SettingEntry<float> ReminderDuration { get; set; } 
 }

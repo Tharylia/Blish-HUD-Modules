@@ -6,6 +6,7 @@ using Blish_HUD.Controls.Intern;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.EventTable.State;
+using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
@@ -18,6 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
+using Menu = Shared.Controls.Menu;
 
 public class AreaSettingsView : BaseSettingsView
 {
@@ -297,6 +299,13 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.RemindersEnabled);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.ReminderPosition.X);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.ReminderPosition.Y);
+        this.RenderFloatSetting(settingsPanel, areaConfiguration.ReminderDuration);
+
+        this.RenderEmptyLine(settingsPanel);
+
         this.RenderColorSetting(settingsPanel, areaConfiguration.BackgroundColor);
         this.RenderFloatSetting(settingsPanel, areaConfiguration.Opacity);
 
@@ -320,8 +329,25 @@ public class AreaSettingsView : BaseSettingsView
         reorderEventsButton.Top = manageEventsButton.Bottom + 2;
         reorderEventsButton.Left = manageEventsButton.Left;
 
-        StandardButton removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
+        StandardButton removeButton = this.RenderButtonAsync(this._areaPanel, "Remove", async () =>
         {
+            var dialog = new ConfirmDialog(
+                    $"Delete Event Area \"{areaConfiguration.Name}\"", $"Your are in the process of deleting the event area \"{areaConfiguration.Name}\".\nThis action will delete all settings.\n\nContinue?",
+                    this.IconState,
+                    new[]
+                    {
+                        new ButtonDefinition("Yes", System.Windows.Forms.DialogResult.Yes),
+                        new ButtonDefinition("No", System.Windows.Forms.DialogResult.No)
+                    })
+            {
+                SelectedButtonIndex = 1
+            };
+
+                var result = await dialog.ShowDialog();
+                dialog.Dispose();
+
+            if (result != System.Windows.Forms.DialogResult.Yes) return;
+
             this.RemoveArea?.Invoke(this, areaConfiguration);
             Menu menu = menuItem.Parent as Menu;
             menu.RemoveChild(menuItem);

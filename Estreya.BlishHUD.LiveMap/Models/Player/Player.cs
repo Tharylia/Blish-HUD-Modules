@@ -12,11 +12,17 @@ public class Player
     [JsonPropertyName("identification")]
     public PlayerIdentification Identification { get; set; }
 
-    [JsonPropertyName("position")]
-    public PlayerPosition Position { get; set; }
+    [JsonPropertyName("map")]
+    public PlayerMap Map { get; set; }
 
     [JsonPropertyName("facing")]
     public PlayerFacing Facing { get; set; }
+
+    [JsonPropertyName("wvw")]
+    public PlayerWvW WvW { get; set; }
+
+    [JsonPropertyName("commander")]
+    public bool Commander { get; set; }
 
     public override bool Equals(object obj)
     {
@@ -28,8 +34,10 @@ public class Player
         var equals = true;
 
         equals &= this.Identification.Equals(player.Identification);
-        equals &= this.Position.Equals(player.Position);
+        equals &= this.Map.Equals(player.Map);
         equals &= this.Facing.Equals(player.Facing);
+        equals &= this.Commander.Equals(player.Commander);
+        equals &= this.WvW.Equals(player.WvW);
 
         return equals;
     }

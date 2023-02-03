@@ -82,43 +82,49 @@
         [JsonIgnore]
         public string SettingKey { get; private set; }
 
-        /*
-        public void UpdateOccurences(DateTime now, DateTime min, DateTime max)
+        [JsonIgnore]
+        public TimeSpan[] ReminderTimes = new[]
         {
-            this.Occurences = this.GetStartOccurences(now, min.AddDays(-2), max.AddDays(2));
-        }
+            TimeSpan.FromMinutes(10)
+        };
 
-        private List<DateTime> GetStartOccurences(DateTime now, DateTime min, DateTime max)
+    /*
+    public void UpdateOccurences(DateTime now, DateTime min, DateTime max)
+    {
+        this.Occurences = this.GetStartOccurences(now, min.AddDays(-2), max.AddDays(2));
+    }
+
+    private List<DateTime> GetStartOccurences(DateTime now, DateTime min, DateTime max)
+    {
+        List<DateTime> startOccurences = new List<DateTime>();
+
+        DateTime zero = this.StartingDate ?? new DateTime(min.Year, min.Month, min.Day, 0, 0, 0).AddDays(this.Repeat.TotalMinutes == 0 ? 0 : -1);
+
+        TimeSpan offset = this.Offset.Add(TimeZone.CurrentTimeZone.GetUtcOffset(now));
+
+        DateTime eventStart = zero.Add(offset);
+
+        while (eventStart < max)
         {
-            List<DateTime> startOccurences = new List<DateTime>();
+            bool startAfterMin = eventStart > min;
+            bool startBeforeMax = eventStart < max;
+            bool endAfterMin = eventStart.AddMinutes(this.Duration) > min;
 
-            DateTime zero = this.StartingDate ?? new DateTime(min.Year, min.Month, min.Day, 0, 0, 0).AddDays(this.Repeat.TotalMinutes == 0 ? 0 : -1);
+            bool inRange = (startAfterMin || endAfterMin) && startBeforeMax;
 
-            TimeSpan offset = this.Offset.Add(TimeZone.CurrentTimeZone.GetUtcOffset(now));
-
-            DateTime eventStart = zero.Add(offset);
-
-            while (eventStart < max)
+            if (inRange)
             {
-                bool startAfterMin = eventStart > min;
-                bool startBeforeMax = eventStart < max;
-                bool endAfterMin = eventStart.AddMinutes(this.Duration) > min;
-
-                bool inRange = (startAfterMin || endAfterMin) && startBeforeMax;
-
-                if (inRange)
-                {
-                    startOccurences.Add( eventStart);
-                }
-
-                eventStart = this.Repeat.TotalMinutes == 0 ? eventStart.Add(TimeSpan.FromDays(1)) : eventStart.Add(this.Repeat);
+                startOccurences.Add( eventStart);
             }
 
-            return startOccurences;
+            eventStart = this.Repeat.TotalMinutes == 0 ? eventStart.Add(TimeSpan.FromDays(1)) : eventStart.Add(this.Repeat);
         }
-        */
 
-        public DateTime? GetCurrentOccurence(DateTime now)
+        return startOccurences;
+    }
+    */
+
+    public DateTime? GetCurrentOccurence(DateTime now)
         {
             var occurences = this.Occurences.Where(oc => oc <= now && oc.AddMinutes(this.Duration) >= now);
             return occurences.Any() ? occurences.First() : null;
@@ -218,7 +224,7 @@
 
         public override string ToString()
         {
-            var keySplit = this.SettingKey?.Split('_') ?? new string[] {string.Empty, this.Name};
+            var keySplit = this.SettingKey?.Split('_') ?? new string[] { string.Empty, this.Name };
             return $"Category: {keySplit[0]} - Name: {keySplit[1]} - Filler {this.Filler}";
         }
     }
