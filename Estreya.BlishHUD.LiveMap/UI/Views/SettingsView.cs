@@ -20,30 +20,36 @@ public class SettingsView : BaseSettingsView
     private readonly Func<string> _getGuildId;
     private readonly Func<double> _getPosX;
     private readonly Func<double> _getPosY;
+    private readonly Func<string> _getGlobalUrl;
+    private readonly Func<string> _getGuildUrl;
 
-    public SettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, ModuleSettings moduleSettings, Func<string> getGuildId, Func<double> getPosX, Func<double> getPosY, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public SettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, ModuleSettings moduleSettings, Func<string> getGuildId, Func<double> getPosX, Func<double> getPosY, Func<string> getGlobalUrl, Func<string> getGuildUrl, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
     {
         this._moduleSettings = moduleSettings;
         this._getGuildId = getGuildId;
         this._getPosX = getPosX;
         this._getPosY = getPosY;
+        this._getGlobalUrl = getGlobalUrl;
+        this._getGuildUrl = getGuildUrl;
     }
 
     protected override void BuildView(Panel parent)
     {
         this.RenderEnumSetting(parent, _moduleSettings.PublishType);
         this.RenderEnumSetting(parent, _moduleSettings.PlayerFacingType);
+        this.RenderBoolSetting(parent, _moduleSettings.HideCommander);
+        this.RenderBoolSetting(parent, _moduleSettings.StreamerModeEnabled);
 
         this.RenderEmptyLine(parent);
 
         this.RenderButton(parent, "Open Global Map", () =>
         {
-            Process.Start(FormatUrlWithPositions(LiveMapModule.LIVE_MAP_GLOBAL_URL));
+            Process.Start(FormatUrlWithPositions(_getGlobalUrl()));
         });
 
         this.RenderButton(parent, "Open Guild Map", () =>
         {
-            var url = LiveMapModule.LIVE_MAP_GUILD_URL.FormatWith(_getGuildId());
+            var url = _getGuildUrl().FormatWith(_getGuildId());
             Process.Start(FormatUrlWithPositions(url));
         }, () => string.IsNullOrWhiteSpace(_getGuildId()));
     }
