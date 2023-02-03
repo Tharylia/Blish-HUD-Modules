@@ -98,6 +98,7 @@
                     _ = this._waitHandle.Set();
                     break;
                 case Microsoft.Xna.Framework.Input.Keys.Enter:
+                case Microsoft.Xna.Framework.Input.Keys.Space:
                     this._dialogResult = this._buttons[this.SelectedButtonIndex].Result;
                     _ = this._waitHandle.Set();
                     break;

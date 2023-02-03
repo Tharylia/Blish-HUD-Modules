@@ -13,6 +13,7 @@ using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
 using Gw2Sharp.WebApi.Http;
+using Humanizer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
@@ -612,6 +613,7 @@ public class EventArea : Container
         ev.HideRequested += this.Ev_HideRequested;
         ev.FinishRequested += this.Ev_FinishRequested;
         ev.DisableRequested += this.Ev_DisableRequested;
+        ev.Reminder += this.Ev_Reminder;
     }
 
     private void RemoveEventHooks(Event ev)
@@ -620,6 +622,16 @@ public class EventArea : Container
         ev.HideRequested -= this.Ev_HideRequested;
         ev.FinishRequested -= this.Ev_FinishRequested;
         ev.DisableRequested -= this.Ev_DisableRequested;
+        ev.Reminder -= this.Ev_Reminder;
+    }
+
+    private void Ev_Reminder(object sender, TimeSpan e)
+    {
+        if (!this.Configuration.RemindersEnabled.Value) return;
+
+        var ev = sender as Event;
+        var notification = new EventNotification(ev.Ev, $"Starts in {e.Humanize()}!", this._iconState);
+        notification.Show(TimeSpan.FromSeconds(this.Configuration.ReminderDuration.Value), this.Configuration.ReminderPosition.X.Value, this.Configuration.ReminderPosition.Y.Value);
     }
 
     private void Ev_FinishRequested(object sender, EventArgs e)

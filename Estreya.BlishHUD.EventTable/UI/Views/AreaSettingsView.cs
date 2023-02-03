@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -296,6 +296,13 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderBoolSetting(settingsPanel, areaConfiguration.UseFiller);
         this.RenderColorSetting(settingsPanel, areaConfiguration.FillerTextColor);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.RemindersEnabled);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.ReminderPosition.X);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.ReminderPosition.Y);
+        this.RenderFloatSetting(settingsPanel, areaConfiguration.ReminderDuration);
 
         this.RenderEmptyLine(settingsPanel);
 

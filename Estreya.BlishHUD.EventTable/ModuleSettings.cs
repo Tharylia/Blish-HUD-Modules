@@ -4,6 +4,7 @@
     using Blish_HUD.Input;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Models;
+    using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Models.Drawers;
     using Estreya.BlishHUD.Shared.Settings;
     using Estreya.BlishHUD.Shared.State;
@@ -50,11 +51,21 @@
             this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
         }
 
+        public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)
+        {
+            base.CheckDrawerSizeAndPosition(configuration);
+
+            int maxResX = (int)(GameService.Graphics.Resolution.X / GameService.Graphics.UIScaleMultiplier);
+            int maxResY = (int)(GameService.Graphics.Resolution.Y / GameService.Graphics.UIScaleMultiplier);
+
+            configuration.ReminderPosition.X.SetRange(0, maxResX);
+            configuration.ReminderPosition.Y.SetRange(0, maxResY);
+        }
+
         public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories)
         {
             DrawerConfiguration drawer = base.AddDrawer(name);
 
-            var showContextMenu = this.DrawerSettings.DefineSetting($"{name}-showContextMenu", true, () => "Show Context Menu", () => "Whether a context menu should be displayed when right clicking.");
             var leftClickAction = this.DrawerSettings.DefineSetting($"{name}-leftClickAction", Models.LeftClickAction.CopyWaypoint, () => "Left Click Action", () => "Defines the action which is executed when left clicking.");
             var showTooltips = this.DrawerSettings.DefineSetting($"{name}-showTooltips", true, () => "Show Tooltips", () => "Whether a tooltip should be displayed when hovering.");
 
@@ -78,6 +89,16 @@
 
             var eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
 
+            var remindersEnabled = this.DrawerSettings.DefineSetting($"{name}-remindersEnabled", true, () => "Reminders Enabled", () => "Whether the drawer should display alerts before an event starts.");
+
+            var reminderPositionX = this.DrawerSettings.DefineSetting($"{name}-reminderPositionX", 200, () => "Location X", () => "Defines the position of reminders on the x axis.");
+            var reminderPositionY = this.DrawerSettings.DefineSetting($"{name}-reminderPositionY", 200, () => "Location Y", () => "Defines the position of reminders on the y axis.");
+
+            var reminderDurationMin = 1;
+            var reminderDurationMax = 15;
+            var reminderDuration = this.DrawerSettings.DefineSetting($"{name}-reminderDuration", 5f, () => "Reminder Duration", () => $"Defines the reminder duration. Min: {reminderDurationMin}s - Max: {reminderDurationMax}s");
+            reminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
+
             return new EventAreaConfiguration()
             {
                 Name = drawer.Name,
@@ -90,7 +111,6 @@
                 Location = drawer.Location,
                 Opacity = drawer.Opacity,
                 Size = drawer.Size,
-                ShowContextMenu = showContextMenu,
                 LeftClickAction = leftClickAction,
                 ShowTooltips = showTooltips,
                 DrawBorders = drawBorders,
@@ -102,7 +122,14 @@
                 DisabledEventKeys = disabledEventKeys,
                 CompletionAcion = completionAction,
                 EventHeight = eventHeight,
-                EventOrder = eventOrder
+                EventOrder = eventOrder,
+                RemindersEnabled = remindersEnabled,
+                ReminderPosition = new EventAreaReminderPositition()
+                {
+                    X = reminderPositionX,
+                    Y = reminderPositionY
+                },
+                ReminderDuration = reminderDuration
             };
         }
 
@@ -110,18 +137,21 @@
         {
             base.RemoveDrawer(name);
 
-            this.DrawerSettings.UndefineSetting($"{name}-showContextMenu");
             this.DrawerSettings.UndefineSetting($"{name}-leftClickAction");
             this.DrawerSettings.UndefineSetting($"{name}-showTooltips");
             this.DrawerSettings.UndefineSetting($"{name}-timespan");
             this.DrawerSettings.UndefineSetting($"{name}-historySplit");
             this.DrawerSettings.UndefineSetting($"{name}-drawBorders");
             this.DrawerSettings.UndefineSetting($"{name}-useFillers");
+            this.DrawerSettings.UndefineSetting($"{name}-fillerTextColor");
             this.DrawerSettings.UndefineSetting($"{name}-acceptWaypointPrompt");
             this.DrawerSettings.UndefineSetting($"{name}-completionAction");
             this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
             this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
             this.DrawerSettings.UndefineSetting($"{name}-eventOrder");
+            this.DrawerSettings.UndefineSetting($"{name}-remindersEnabled");
+            this.DrawerSettings.UndefineSetting($"{name}-reminderPositionX");
+            this.DrawerSettings.UndefineSetting($"{name}-reminderPositionY");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
@@ -137,6 +167,71 @@
         public void UpdateDrawerLocalization(EventAreaConfiguration drawerConfiguration, TranslationState translationState)
         {
             base.UpdateDrawerLocalization(drawerConfiguration, translationState);
+
+            var leftClickActionDisplayNameDefault = drawerConfiguration.LeftClickAction.DisplayName;
+            var leftClickActionDescriptionDefault = drawerConfiguration.LeftClickAction.Description;
+            drawerConfiguration.LeftClickAction.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerLeftClickAction-name", leftClickActionDisplayNameDefault);
+            drawerConfiguration.LeftClickAction.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerLeftClickAction-description", leftClickActionDescriptionDefault);
+
+            var showTooltipsDisplayNameDefault = drawerConfiguration.ShowTooltips.DisplayName;
+            var showTooltipsDescriptionDefault = drawerConfiguration.ShowTooltips.Description;
+            drawerConfiguration.ShowTooltips.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerShowTooltips-name", showTooltipsDisplayNameDefault);
+            drawerConfiguration.ShowTooltips.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerShowTooltips-description", showTooltipsDescriptionDefault);
+
+            var timespanDisplayNameDefault = drawerConfiguration.TimeSpan.DisplayName;
+            var timespanDescriptionDefault = drawerConfiguration.TimeSpan.Description;
+            drawerConfiguration.TimeSpan.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerTimespan-name", timespanDisplayNameDefault);
+            drawerConfiguration.TimeSpan.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerTimespan-description", timespanDescriptionDefault);
+
+            var historySplitDisplayNameDefault = drawerConfiguration.HistorySplit.DisplayName;
+            var historySplitDescriptionDefault = drawerConfiguration.HistorySplit.Description;
+            drawerConfiguration.HistorySplit.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerHistorySplit-name", historySplitDisplayNameDefault);
+            drawerConfiguration.HistorySplit.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerHistorySplit-description", historySplitDescriptionDefault);
+
+            var drawBordersDisplayNameDefault = drawerConfiguration.DrawBorders.DisplayName;
+            var drawBordersDescriptionDefault = drawerConfiguration.DrawBorders.Description;
+            drawerConfiguration.DrawBorders.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerDrawBorders-name", drawBordersDisplayNameDefault);
+            drawerConfiguration.DrawBorders.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerDrawBorders-description", drawBordersDescriptionDefault);
+
+            var useFillersDisplayNameDefault = drawerConfiguration.UseFiller.DisplayName;
+            var useFillersDescriptionDefault = drawerConfiguration.UseFiller.Description;
+            drawerConfiguration.UseFiller.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerUseFillers-name", useFillersDisplayNameDefault);
+            drawerConfiguration.UseFiller.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerUseFillers-description", useFillersDescriptionDefault);
+
+            var fillerTextColorDisplayNameDefault = drawerConfiguration.FillerTextColor.DisplayName;
+            var fillerTextColorDescriptionDefault = drawerConfiguration.FillerTextColor.Description;
+            drawerConfiguration.FillerTextColor.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerFillerTextColor-name", fillerTextColorDisplayNameDefault);
+            drawerConfiguration.FillerTextColor.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerFillerTextColor-description", fillerTextColorDescriptionDefault);
+
+            var acceptWaypointPromptDisplayNameDefault = drawerConfiguration.AcceptWaypointPrompt.DisplayName;
+            var acceptWaypointPromptDescriptionDefault = drawerConfiguration.AcceptWaypointPrompt.Description;
+            drawerConfiguration.AcceptWaypointPrompt.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerAcceptWaypointPrompt-name", acceptWaypointPromptDisplayNameDefault);
+            drawerConfiguration.AcceptWaypointPrompt.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerAcceptWaypointPrompt-description", acceptWaypointPromptDescriptionDefault);
+
+            var completionActionDisplayNameDefault = drawerConfiguration.CompletionAcion.DisplayName;
+            var completionActionDescriptionDefault = drawerConfiguration.CompletionAcion.Description;
+            drawerConfiguration.CompletionAcion.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerCompletionAction-name", completionActionDisplayNameDefault);
+            drawerConfiguration.CompletionAcion.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerCompletionAction-description", completionActionDescriptionDefault);
+
+            var disabledEventKeysDisplayNameDefault = drawerConfiguration.DisabledEventKeys.DisplayName;
+            var disabledEventKeysDescriptionDefault = drawerConfiguration.DisabledEventKeys.Description;
+            drawerConfiguration.DisabledEventKeys.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerDisabledEventKeys-name", disabledEventKeysDisplayNameDefault);
+            drawerConfiguration.DisabledEventKeys.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerDisabledEventKeys-description", disabledEventKeysDescriptionDefault);
+
+            var eventHeightDisplayNameDefault = drawerConfiguration.EventHeight.DisplayName;
+            var eventHeightDescriptionDefault = drawerConfiguration.EventHeight.Description;
+            drawerConfiguration.EventHeight.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventHeight-name", eventHeightDisplayNameDefault);
+            drawerConfiguration.EventHeight.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventHeight-description", eventHeightDescriptionDefault);
+
+            var eventOrderDisplayNameDefault = drawerConfiguration.EventOrder.DisplayName;
+            var eventOrderDescriptionDefault = drawerConfiguration.EventOrder.Description;
+            drawerConfiguration.EventOrder.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOrder-name", eventOrderDisplayNameDefault);
+            drawerConfiguration.EventOrder.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOrder-description", eventOrderDescriptionDefault);
+
+            var remindersEnabledDisplayNameDefault = drawerConfiguration.RemindersEnabled.DisplayName;
+            var remindersEnabledDescriptionDefault = drawerConfiguration.RemindersEnabled.Description;
+            drawerConfiguration.RemindersEnabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerRemindersEnabled-name", remindersEnabledDisplayNameDefault);
+            drawerConfiguration.RemindersEnabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerRemindersEnabled-description", remindersEnabledDescriptionDefault);
         }
     }
 }

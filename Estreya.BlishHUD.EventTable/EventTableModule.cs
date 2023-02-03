@@ -10,6 +10,7 @@
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
@@ -25,6 +26,7 @@
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Windows.Forms;
 
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
@@ -79,19 +81,22 @@
 
             if (e.Key == Microsoft.Xna.Framework.Input.Keys.U)
             {
-                var mapId = GameService.Gw2Mumble.CurrentMap.Id;
-                var ev = this.DynamicEventState.GetEventsByMap(mapId).FirstOrDefault();
-                if (ev != null)
-                {
-                    Task.Run(async () =>
-                    {
-                        var coords = await this.MapUtil.MapCoordinatesToContinentCoordinates(mapId, new double[] { ev.Location.Center[0], ev.Location.Center[1] });
-                        await this.MapUtil.DrawCircle(coords.X, coords.Y, 1);
-                    });
-                }else
-                {
-                    ScreenNotification.ShowNotification("No events on this map", ScreenNotification.NotificationType.Error);
-                }
+                var notification = new EventNotification(this.EventCategories.First().Events.First(), "Starts in 10 minutes! ajkshdkjahsdkjhaskjdhkajlshdkha", this.IconState);
+                notification.Show(TimeSpan.FromSeconds(5), 200, 200);
+
+                //var mapId = GameService.Gw2Mumble.CurrentMap.Id;
+                //var ev = this.DynamicEventState.GetEventsByMap(mapId).FirstOrDefault();
+                //if (ev != null)
+                //{
+                //    Task.Run(async () =>
+                //    {
+                //        var coords = await this.MapUtil.MapCoordinatesToContinentCoordinates(mapId, new double[] { ev.Location.Center[0], ev.Location.Center[1] });
+                //        await this.MapUtil.DrawCircle(coords.X, coords.Y, 1);
+                //    });
+                //}else
+                //{
+                //    ScreenNotification.ShowNotification("No events on this map", ScreenNotification.NotificationType.Error);
+                //}
             }
         }
 
