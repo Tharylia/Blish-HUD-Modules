@@ -21,8 +21,10 @@ public class TranslationState : ManagedState
     private readonly string _rootUrl;
     private static List<string> _locales = new List<string>()
     {
-        "en", // en
-        "de"
+        "en",
+        "de",
+        "es",
+        "fr"
     };
 
     public TranslationState(StateConfiguration configuration, IFlurlClient flurlClient, string rootUrl) : base(configuration)
@@ -82,7 +84,7 @@ public class TranslationState : ManagedState
                 }
 
                 string key = lineParts[0];
-                string value = lineParts[1];
+                string value = string.Join("=", lineParts.Skip(1));
 
                 var added = localeTranslations.TryAdd(key, value);
                 if (!added)
@@ -95,7 +97,7 @@ public class TranslationState : ManagedState
         }
         catch (Exception ex)
         {
-            var fail = ex.Message;
+            Logger.Warn(ex, $"Failed to load translations for locale {locale}:");
         }
     }
 

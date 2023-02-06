@@ -11,14 +11,11 @@
 
     public class ModuleSettingsView : BaseView
     {
-        private readonly string _openSettingsText;
-
         public event EventHandler OpenClicked;
         public event EventHandler CreateGithubIssueClicked;
 
-        public ModuleSettingsView(string openSettingsText, IconState iconState, TranslationState translationState): base(null, iconState, translationState)
+        public ModuleSettingsView(IconState iconState, TranslationState translationState): base(null, iconState, translationState)
         {
-            this._openSettingsText = openSettingsText;
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)
@@ -49,7 +46,7 @@
                 Parent = parentPanel
             };
 
-            string buttonText = _openSettingsText;
+            string buttonText = this.TranslationState.GetTranslation("moduleSettingsView-openSettingsBtn", "Open Settings");
 
             StandardButton openSettingsButton = new StandardButton()
             {
@@ -66,7 +63,7 @@
 
             openSettingsButton.Click += (s, e) => this.OpenClicked?.Invoke(this, EventArgs.Empty);
 
-            var githubIssueText = "Create Bug/Feature Issue";
+            var githubIssueText = this.TranslationState.GetTranslation("moduleSettingsView-createGitHubIssueBtn", "Create Bug/Feature Issue");
 
             StandardButton createGithubIssue = new StandardButton()
             {

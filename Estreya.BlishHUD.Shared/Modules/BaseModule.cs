@@ -356,7 +356,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (this._defaultSettingView == null)
         {
-            this._defaultSettingView = new ModuleSettingsView(this.TranslationState.GetTranslation("moduleSettingsView-openSettingsBtn", "Open Settings"), this.IconState, this.TranslationState);
+            this._defaultSettingView = new ModuleSettingsView( this.IconState, this.TranslationState);
             this._defaultSettingView.OpenClicked += this.DefaultSettingView_OpenClicked;
             this._defaultSettingView.CreateGithubIssueClicked += this.DefaultSettingView_CreateGithubIssueClicked;
         }
