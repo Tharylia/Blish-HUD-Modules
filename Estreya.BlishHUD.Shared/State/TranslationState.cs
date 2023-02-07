@@ -76,7 +76,7 @@ public class TranslationState : ManagedState
 
             foreach (var line in lines)
             {
-                var lineParts = line.Split('=');
+                var lineParts = line.Trim('\n', '\r').Split('=');
                 if (lineParts.Length < 2)
                 {
                     // Incomplete
