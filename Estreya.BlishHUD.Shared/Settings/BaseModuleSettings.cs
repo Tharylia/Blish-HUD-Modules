@@ -328,11 +328,10 @@
             drawerConfiguration.Enabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEnabled-name", enabledDisplayNameDefault);
             drawerConfiguration.Enabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEnabled-description", enabledDescriptionDefault);
 
-
             var enabledKeybindingDisplayNameDefault = drawerConfiguration.EnabledKeybinding.DisplayName;
             var enabledKeybindingDescriptionDefault = drawerConfiguration.EnabledKeybinding.Description;
-            drawerConfiguration.Enabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEnabledKeybinding-name", enabledKeybindingDisplayNameDefault);
-            drawerConfiguration.Enabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEnabledKeybinding-description", enabledKeybindingDescriptionDefault);
+            drawerConfiguration.EnabledKeybinding.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEnabledKeybinding-name", enabledKeybindingDisplayNameDefault);
+            drawerConfiguration.EnabledKeybinding.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEnabledKeybinding-description", enabledKeybindingDescriptionDefault);
 
             var locationXDisplayNameDefault = drawerConfiguration.Location.X.DisplayName;
             var locationXDescriptionDefault = drawerConfiguration.Location.X.Description;
@@ -394,16 +393,7 @@
             this.HideInPvE_Competetive.SettingChanged -= this.SettingChanged;
             this.HideInCombat.SettingChanged -= this.SettingChanged;
             this.HideInPvP.SettingChanged -= this.SettingChanged;
-            //this.BackgroundColor.SettingChanged -= this.SettingChanged;
-            //this.BackgroundColorOpacity.SettingChanged -= this.SettingChanged;
             this.DebugEnabled.SettingChanged -= this.SettingChanged;
-            //this.BuildDirection.SettingChanged -= this.SettingChanged;
-            //this.Opacity.SettingChanged -= this.SettingChanged;
-
-            for (int i = this.GlobalSettings.Entries.Count - 1; i >= 0; i--)
-            {
-                this.GlobalSettings.UndefineSetting(this.GlobalSettings.Entries[i].EntryKey);
-            }
         }
 
         protected void SettingChanged<T>(object sender, ValueChangedEventArgs<T> e)
