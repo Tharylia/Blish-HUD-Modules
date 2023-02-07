@@ -27,7 +27,7 @@ public class SettingsView : BaseSettingsView
         this._getGuildUrl = getGuildUrl;
     }
 
-    protected override void BuildView(Panel parent)
+    protected override void BuildView(FlowPanel parent)
     {
         this.RenderEnumSetting(parent, _moduleSettings.PublishType);
         this.RenderEnumSetting(parent, _moduleSettings.PlayerFacingType);

@@ -10,6 +10,7 @@
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.Utils;
     using Newtonsoft.Json;
+    using SharpDX;
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -17,7 +18,7 @@
     using System.Threading.Tasks;
 
     public class ModuleSettings : BaseModuleSettings
-    { 
+    {
 
         #region Global Settings
         public SettingEntry<KeyBinding> MapKeybinding { get; private set; }
@@ -31,6 +32,15 @@
         private const string EVENT_AREA_SETTINGS = "event-area-settings";
         public SettingCollection EventAreaSettings { get; private set; }
         public SettingEntry<List<string>> EventAreaNames { get; private set; }
+
+        public SettingEntry<bool> RemindersEnabled { get; set; }
+        public EventReminderPositition ReminderPosition { get; set; }
+        public SettingEntry<float> ReminderDuration { get; set; }
+
+        /// <summary>
+        /// Contains a list of event setting keys for which NO reminder should be displayed.
+        /// </summary>
+        public SettingEntry<List<string>> ReminderDisabledForEvents { get; set; }
 
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.E))
         {
@@ -49,17 +59,35 @@
             this.MapKeybinding.SettingChanged += this.SettingChanged;
             this.MapKeybinding.Value.Enabled = true;
             this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
+
+
+            this.RemindersEnabled = this.GlobalSettings.DefineSetting(nameof(this.RemindersEnabled), true, () => "Reminders Enabled", () => "Whether the drawer should display alerts before an event starts.");
+            this.ReminderPosition = new EventReminderPositition()
+            {
+                X = this.GlobalSettings.DefineSetting($"ReminderPositionX", 200, () => "Location X", () => "Defines the position of reminders on the x axis."),
+                Y = this.GlobalSettings.DefineSetting($"ReminderPositionY", 200, () => "Location Y", () => "Defines the position of reminders on the y axis.")
+            };
+
+            var reminderDurationMin = 1;
+            var reminderDurationMax = 15;
+            this.ReminderDuration = this.GlobalSettings.DefineSetting(nameof(this.ReminderDuration), 5f, () => "Reminder Duration", () => $"Defines the reminder duration. Min: {reminderDurationMin}s - Max: {reminderDurationMax}s");
+            this.ReminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
+
+            this.ReminderDisabledForEvents = this.GlobalSettings.DefineSetting(nameof(this.ReminderDisabledForEvents), new List<string>(), () => "Reminder disabled for Events", () => "Defines the events for which NO reminder should be displayed.");
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)
         {
             base.CheckDrawerSizeAndPosition(configuration);
+        }
 
+        public void CheckGlobalSizeAndPosition()
+        {
             int maxResX = (int)(GameService.Graphics.Resolution.X / GameService.Graphics.UIScaleMultiplier);
             int maxResY = (int)(GameService.Graphics.Resolution.Y / GameService.Graphics.UIScaleMultiplier);
 
-            configuration.ReminderPosition.X.SetRange(0, maxResX);
-            configuration.ReminderPosition.Y.SetRange(0, maxResY);
+            this.ReminderPosition?.X.SetRange(0, maxResX);
+            this.ReminderPosition?.Y.SetRange(0, maxResY);
         }
 
         public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories)
@@ -89,15 +117,6 @@
 
             var eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
 
-            var remindersEnabled = this.DrawerSettings.DefineSetting($"{name}-remindersEnabled", true, () => "Reminders Enabled", () => "Whether the drawer should display alerts before an event starts.");
-
-            var reminderPositionX = this.DrawerSettings.DefineSetting($"{name}-reminderPositionX", 200, () => "Location X", () => "Defines the position of reminders on the x axis.");
-            var reminderPositionY = this.DrawerSettings.DefineSetting($"{name}-reminderPositionY", 200, () => "Location Y", () => "Defines the position of reminders on the y axis.");
-
-            var reminderDurationMin = 1;
-            var reminderDurationMax = 15;
-            var reminderDuration = this.DrawerSettings.DefineSetting($"{name}-reminderDuration", 5f, () => "Reminder Duration", () => $"Defines the reminder duration. Min: {reminderDurationMin}s - Max: {reminderDurationMax}s");
-            reminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
 
             return new EventAreaConfiguration()
             {
@@ -122,14 +141,7 @@
                 DisabledEventKeys = disabledEventKeys,
                 CompletionAcion = completionAction,
                 EventHeight = eventHeight,
-                EventOrder = eventOrder,
-                RemindersEnabled = remindersEnabled,
-                ReminderPosition = new EventAreaReminderPositition()
-                {
-                    X = reminderPositionX,
-                    Y = reminderPositionY
-                },
-                ReminderDuration = reminderDuration
+                EventOrder = eventOrder
             };
         }
 
@@ -149,9 +161,6 @@
             this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
             this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
             this.DrawerSettings.UndefineSetting($"{name}-eventOrder");
-            this.DrawerSettings.UndefineSetting($"{name}-remindersEnabled");
-            this.DrawerSettings.UndefineSetting($"{name}-reminderPositionX");
-            this.DrawerSettings.UndefineSetting($"{name}-reminderPositionY");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
@@ -162,6 +171,11 @@
             var mapKeybindingDescriptionDefault = this.MapKeybinding.Description;
             this.MapKeybinding.GetDisplayNameFunc = () => translationState.GetTranslation("setting-mapKeybinding-name", mapKeybindingDisplayNameDefault);
             this.MapKeybinding.GetDescriptionFunc = () => translationState.GetTranslation("setting-mapKeybinding-description", mapKeybindingDescriptionDefault);
+
+            var remindersEnabledDisplayNameDefault = this.RemindersEnabled.DisplayName;
+            var remindersEnabledDescriptionDefault = this.RemindersEnabled.Description;
+            this.RemindersEnabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-remindersEnabled-name", remindersEnabledDisplayNameDefault);
+            this.RemindersEnabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-remindersEnabled-description", remindersEnabledDescriptionDefault);
         }
 
         public void UpdateDrawerLocalization(EventAreaConfiguration drawerConfiguration, TranslationState translationState)
@@ -227,11 +241,6 @@
             var eventOrderDescriptionDefault = drawerConfiguration.EventOrder.Description;
             drawerConfiguration.EventOrder.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOrder-name", eventOrderDisplayNameDefault);
             drawerConfiguration.EventOrder.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOrder-description", eventOrderDescriptionDefault);
-
-            var remindersEnabledDisplayNameDefault = drawerConfiguration.RemindersEnabled.DisplayName;
-            var remindersEnabledDescriptionDefault = drawerConfiguration.RemindersEnabled.Description;
-            drawerConfiguration.RemindersEnabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerRemindersEnabled-name", remindersEnabledDisplayNameDefault);
-            drawerConfiguration.RemindersEnabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerRemindersEnabled-description", remindersEnabledDescriptionDefault);
         }
     }
 }

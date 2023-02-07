@@ -18,6 +18,7 @@
     using Estreya.BlishHUD.Shared.Threading;
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Http;
+    using Humanizer;
     using Microsoft.Xna.Framework;
     using System;
     using System.Collections.Generic;
@@ -38,10 +39,12 @@
         private Dictionary<string, EventArea> _areas = new Dictionary<string, EventArea>();
 
         private AsyncLock _eventCategoryLock = new AsyncLock();
-        public List<EventCategory> EventCategories { get; private set; } = new List<EventCategory>();
+        private List<EventCategory> _eventCategories = new List<EventCategory>();
 
         private static TimeSpan _updateEventsInterval = TimeSpan.FromMinutes(30);
         private AsyncRef<double> _lastEventUpdate = new AsyncRef<double>(0);
+
+        private DateTime NowUTC => DateTime.UtcNow;
 
         #region States
         public EventState EventState { get; private set; }
@@ -81,7 +84,7 @@
 
             if (e.Key == Microsoft.Xna.Framework.Input.Keys.U)
             {
-                var notification = new EventNotification(this.EventCategories.First().Events.First(), "Starts in 10 minutes! ajkshdkjahsdkjhaskjdhkajlshdkha", this.IconState);
+                var notification = new EventNotification(this._eventCategories.First().Events.First(), "Starts in 10 minutes! ajkshdkjahsdkjhaskjdhkajlshdkha", this.IconState);
                 notification.Show(TimeSpan.FromSeconds(5), 200, 200);
 
                 //var mapId = GameService.Gw2Mumble.CurrentMap.Id;
@@ -110,7 +113,7 @@
 
         private async Task SetAreaEvents(EventArea area)
         {
-            await area.UpdateAllEvents(this.EventCategories);
+            await area.UpdateAllEvents(this._eventCategories);
         }
 
         /// <summary>
@@ -123,7 +126,7 @@
             {
                 try
                 {
-                    this.EventCategories?.Clear();
+                    this._eventCategories?.Clear();
 
                     List<EventCategory> categories = await this.GetFlurlClient().Request(this.API_URL, "events").GetJsonAsync<List<EventCategory>>();
 
@@ -134,12 +137,14 @@
 
                     IEnumerable<Task> eventCategoryLoadTasks = categories.Select(ec =>
                     {
-                        return ec.LoadAsync(() => this.DateTimeNow.ToUniversalTime(), this.TranslationState);
+                        return ec.LoadAsync(this.TranslationState);
                     });
 
                     await Task.WhenAll(eventCategoryLoadTasks);
 
-                    this.EventCategories = categories;
+                    this._eventCategories = categories;
+
+                    this._eventCategories.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.AddEventHooks(ev));
 
                     await this.SetAreaEvents();
                 }
@@ -197,12 +202,45 @@
 
             this.ToggleContainers(this.ShowUI);
 
+            this.ModuleSettings.CheckGlobalSizeAndPosition();
+
             foreach (EventArea area in this._areas.Values)
             {
                 this.ModuleSettings.CheckDrawerSizeAndPosition(area.Configuration);
             }
 
+            // Dont block update when we need to wait
+            if (this._eventCategoryLock.IsFree())
+            {
+                using (this._eventCategoryLock.Lock())
+                {
+                    var now = this.NowUTC;
+                    this._eventCategories.SelectMany(ec => ec.Events).ToList().ForEach(ev => ev.Update(now));
+                }
+            }
+
             _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
+        }
+
+        private void AddEventHooks(Models.Event ev)
+        {
+            ev.Reminder += this.Ev_Reminder;
+        }
+
+        private void RemoveEventHooks(Models.Event ev)
+        {
+            ev.Reminder -= this.Ev_Reminder;
+        }
+
+        private void Ev_Reminder(object sender, TimeSpan e)
+        {
+            var ev = sender as Models.Event;
+
+            if (!this.ModuleSettings.RemindersEnabled.Value || this.ModuleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey)) return;
+
+            var startsInTranslation = this.TranslationState.GetTranslation("eventArea-reminder-startsIn", "Starts in");
+            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize()}!", this.IconState);
+            notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value), this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value);
         }
 
         private void AddAllAreas()
@@ -220,7 +258,7 @@
 
         private EventAreaConfiguration AddArea(string name)
         {
-            var config = this.ModuleSettings.AddDrawer(name, this.EventCategories);
+            var config = this.ModuleSettings.AddDrawer(name, this._eventCategories);
             this.AddArea(config);
 
             return config;
@@ -246,7 +284,7 @@
                 this.MapUtil,
                 this.GetFlurlClient(),
                 this.API_URL,
-                () => /*DateTime.Parse("2023-01-11T16:00:00"))*/ this.DateTimeNow.ToUniversalTime(),
+                () => this.NowUTC,
                 () => this.Version)
             {
                 Parent = GameService.Graphics.SpriteScreen
@@ -280,7 +318,7 @@
             //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
             UI.Views.AreaSettingsView areaSettingsView = new UI.Views.AreaSettingsView(
                 () => this._areas.Values.Select(area => area.Configuration),
-                () => this.EventCategories,
+                () => this._eventCategories,
                 this.Gw2ApiManager,
                 this.IconState,
                 this.TranslationState,
@@ -302,7 +340,9 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"605018.png"), () => areaSettingsView, "Event Areas"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("841721.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.API_URL, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
         }
 
         protected override string GetDirectoryName()
@@ -327,7 +367,7 @@
                 AwaitLoading = false,
                 Enabled = true,
                 SaveInterval = TimeSpan.FromSeconds(30)
-            }, directoryPath, () => this.DateTimeNow);
+            }, directoryPath, () => this.NowUTC);
 
             this.DynamicEventState = new DynamicEventState(new StateConfiguration()
             {
@@ -367,6 +407,20 @@
             this._areas?.Clear();
 
             this.Logger.Debug("Unloaded drawer.");
+
+            this.Logger.Debug("Unload events.");
+
+            using (this._eventCategoryLock.Lock())
+            {
+                foreach (var ec in _eventCategories)
+                {
+                    ec.Events.ForEach(ev => this.RemoveEventHooks(ev));
+                }
+
+                this._eventCategories?.Clear();
+            }
+
+            this.Logger.Debug("Unloaded events.");
 
             this.Logger.Debug("Unload base.");
 

@@ -23,7 +23,7 @@
             this._reloadCalledAction = reloadCalledAction;
         }
 
-        protected override void BuildView(Panel parent)
+        protected override void BuildView(FlowPanel parent)
         {
             foreach (ManagedState state in _stateList)
             {

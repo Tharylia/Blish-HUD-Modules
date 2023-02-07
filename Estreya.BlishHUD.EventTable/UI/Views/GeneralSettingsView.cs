@@ -19,7 +19,7 @@
             this._moduleSettings = moduleSettings;
         }
 
-        protected override void BuildView(Panel parent)
+        protected override void BuildView(FlowPanel parent)
         {
             this.RenderBoolSetting(parent, _moduleSettings.GlobalDrawerVisible);
             this.RenderKeybindingSetting(parent, _moduleSettings.GlobalDrawerVisibleHotkey);

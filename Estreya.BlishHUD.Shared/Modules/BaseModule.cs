@@ -96,8 +96,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     public virtual BitmapFont Font => GameService.Content.DefaultFont16;
 
-    protected DateTime DateTimeNow => DateTime.Now;
-
     #region States
     private readonly AsyncLock _stateLock = new AsyncLock();
     private Collection<ManagedState> _states = new Collection<ManagedState>();

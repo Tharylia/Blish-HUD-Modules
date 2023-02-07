@@ -49,7 +49,7 @@
             this.BuildView(parentPanel);
         }
 
-        protected abstract void BuildView(Panel parent);
+        protected abstract void BuildView(FlowPanel parent);
 
         protected (Panel Panel, Label label, ColorBox colorBox) RenderColorSetting(Panel parent, SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> settingEntry)
         {

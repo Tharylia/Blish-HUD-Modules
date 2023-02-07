@@ -26,8 +26,4 @@ public class EventAreaConfiguration : DrawerConfiguration
     /// Defines the event orders. Contains a list of category names.
     /// </summary>
     public SettingEntry<List<string>> EventOrder { get; set; }
-
-    public SettingEntry<bool> RemindersEnabled { get; set; }
-    public EventAreaReminderPositition ReminderPosition { get; set; }
-    public SettingEntry<float> ReminderDuration { get; set; } 
 }

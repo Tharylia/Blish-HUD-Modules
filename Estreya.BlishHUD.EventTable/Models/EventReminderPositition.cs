@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class EventAreaReminderPositition
+public class EventReminderPositition
 {
     public SettingEntry<int> X { get; set; }
     public SettingEntry<int> Y { get; set; }

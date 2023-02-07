@@ -19,8 +19,6 @@ public class Event : RenderTargetControl
     public event EventHandler DisableRequested;
     public event EventHandler FinishRequested;
 
-    public event EventHandler<TimeSpan> Reminder;
-
     public Models.Event Ev { get; private set; }
     private readonly IconState _iconState;
     private readonly TranslationState _translationState;
@@ -34,8 +32,6 @@ public class Event : RenderTargetControl
     private readonly Func<Color> _getColorAction;
 
     private Tooltip _tooltip;
-
-    private List<TimeSpan> _remindedFor = new List<TimeSpan>();
 
     public Event(Models.Event ev, IconState iconState, TranslationState translationState,
         Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
@@ -225,25 +221,6 @@ public class Event : RenderTargetControl
         else
         {
             return ts.ToString("mm\\:ss");
-        }
-    }
-
-    protected override void InternalUpdate(GameTime gameTime)
-    {
-        if (Ev.Filler) return;
-
-        var now = this._getNowAction().ToUniversalTime();
-        foreach (var time in this.Ev.ReminderTimes)
-        {
-            if (this._remindedFor.Contains(time)) continue;
-
-            var remindAt = this._startTime.ToUniversalTime() - time;
-            var diff = now - remindAt;
-            if (remindAt <= now && Math.Abs(diff.TotalSeconds) <= 1)
-            {
-                this.Reminder?.Invoke(this, time);
-                this._remindedFor.Add(time);
-            }
         }
     }
 

@@ -13,6 +13,7 @@
     using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
@@ -25,14 +26,15 @@
 
         private static readonly Logger Logger = Logger.GetLogger<ManageEventsView>();
         private readonly List<EventCategory> allEvents;
-        private readonly EventAreaConfiguration _eventAreaConfiguration;
-        private readonly List<string> _hiddenEventKeys;
+        private readonly Dictionary<string,object> _additionalData;
+        private readonly Func<List<string>> _getDisabledEventKeys;
 
-        public ManageEventsView(List<EventCategory> allEvents, EventAreaConfiguration eventAreaConfiguration,  Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, List<string> hiddenEventKeys, BitmapFont font = null) : base(apiManager, iconState,translationState, font)
+
+        public ManageEventsView(List<EventCategory> allEvents, Dictionary<string,object> additionalData, Func<List<string>> getDisabledEventKeys,  Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState,translationState, font)
         {
             this.allEvents = allEvents;
-            this._eventAreaConfiguration = eventAreaConfiguration;
-            this._hiddenEventKeys = hiddenEventKeys;
+            this._additionalData = additionalData ?? new Dictionary<string, object>();
+            this._getDisabledEventKeys = getDisabledEventKeys;
         }
 
         public Panel Panel { get; private set; }
@@ -211,7 +213,7 @@
                         continue;
                     }
 
-                    bool enabled = !this._eventAreaConfiguration.DisabledEventKeys.Value.Contains(e.SettingKey);
+                    bool enabled = !this._getDisabledEventKeys().Contains(e.SettingKey);
 
                     EventDetailsButton button = new EventDetailsButton()
                     {
@@ -270,7 +272,7 @@
                         };
                     }
 
-                    if (this._hiddenEventKeys.Contains(e.SettingKey))
+                    if (this._additionalData.ContainsKey("hiddenEventKeys") && this._additionalData["hiddenEventKeys"] is List<string> hiddenEventKeys && hiddenEventKeys.Contains(e.SettingKey))
                     {
                         //155018.png
                         GlowButton wikiButton = new GlowButton()
@@ -299,7 +301,7 @@
                             OldState = !eventArgs.Checked,
                             NewState = eventArgs.Checked,
                             EventSettingKey = button.Event.SettingKey,
-                            Configuration = _eventAreaConfiguration
+                            AdditionalData = this._additionalData
                         });
 
                         toggleButton.Checked = eventArgs.Checked;
@@ -326,7 +328,7 @@
         public bool OldState { get; set; }
         public bool NewState { get; set; }
 
-        public EventAreaConfiguration Configuration { get; set; }
+        public Dictionary<string,object> AdditionalData { get; set; }
 
         public string EventSettingKey { get; set; }
     }

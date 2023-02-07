@@ -57,7 +57,7 @@ public class AreaSettingsView : BaseSettingsView
         this._areaConfigurations = this._areaConfigurationFunc.Invoke().ToList();
     }
 
-    protected override void BuildView(Panel parent)
+    protected override void BuildView(FlowPanel parent)
     {
         this.LoadConfigurations();
 
@@ -67,11 +67,9 @@ public class AreaSettingsView : BaseSettingsView
         newParent.HeightSizingMode = parent.HeightSizingMode;
         newParent.WidthSizingMode = parent.WidthSizingMode;
 
-        parent = newParent;
+        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, newParent.ContentRegion.Width - PADDING_X, newParent.ContentRegion.Height - PADDING_Y * 2);
 
-        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - PADDING_X, parent.ContentRegion.Height - PADDING_Y * 2);
-
-        Panel areaOverviewPanel = this.GetPanel(parent);
+        Panel areaOverviewPanel = this.GetPanel(newParent);
         areaOverviewPanel.ShowBorder = true;
         areaOverviewPanel.CanScroll = true;
         areaOverviewPanel.HeightSizingMode = SizingMode.Standard;
@@ -113,13 +111,13 @@ public class AreaSettingsView : BaseSettingsView
             menuItem.Value.Click += (s, e) =>
             {
                 EventAreaConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
-                this.BuildEditPanel(parent, areaPanelBounds, menuItem.Value, areaConfiguration);
+                this.BuildEditPanel(newParent, areaPanelBounds, menuItem.Value, areaConfiguration);
             };
         });
 
-        StandardButton addButton = this.RenderButton(parent, "Add", () =>
+        StandardButton addButton = this.RenderButton(newParent, "Add", () =>
         {
-            this.BuildAddPanel(parent, areaPanelBounds, areaOverviewMenu);
+            this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
 
         // TODO: Remove when tested
@@ -136,7 +134,7 @@ public class AreaSettingsView : BaseSettingsView
         {
             var menuItem = this._menuItems.First();
             EventAreaConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
-            this.BuildEditPanel(parent, areaPanelBounds, menuItem.Value, areaConfiguration);
+            this.BuildEditPanel(newParent, areaPanelBounds, menuItem.Value, areaConfiguration);
         }
     }
     private void CreateAreaPanel(Panel parent, Rectangle bounds)
@@ -299,13 +297,6 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.RemindersEnabled);
-        this.RenderIntSetting(settingsPanel, areaConfiguration.ReminderPosition.X);
-        this.RenderIntSetting(settingsPanel, areaConfiguration.ReminderPosition.Y);
-        this.RenderFloatSetting(settingsPanel, areaConfiguration.ReminderDuration);
-
-        this.RenderEmptyLine(settingsPanel);
-
         this.RenderColorSetting(settingsPanel, areaConfiguration.BackgroundColor);
         this.RenderFloatSetting(settingsPanel, areaConfiguration.Opacity);
 
@@ -343,8 +334,8 @@ public class AreaSettingsView : BaseSettingsView
                 SelectedButtonIndex = 1
             };
 
-                var result = await dialog.ShowDialog();
-                dialog.Dispose();
+            var result = await dialog.ShowDialog();
+            dialog.Dispose();
 
             if (result != System.Windows.Forms.DialogResult.Yes) return;
 
@@ -396,7 +387,7 @@ public class AreaSettingsView : BaseSettingsView
             reorderEventView.SaveClicked -= this.ReorderView_SaveClicked;
         }
 
-        var view = new ReorderEventsView(this._allEvents(),configuration.EventOrder.Value,  configuration, this.APIManager, this.IconState, this.TranslationState);
+        var view = new ReorderEventsView(this._allEvents(), configuration.EventOrder.Value, configuration, this.APIManager, this.IconState, this.TranslationState);
         view.SaveClicked += this.ReorderView_SaveClicked;
 
         _reorderEventsWindow.Show(view);
@@ -433,7 +424,10 @@ public class AreaSettingsView : BaseSettingsView
             manageEventView.EventChanged -= this.ManageView_EventChanged;
         }
 
-        var view = new ManageEventsView(this._allEvents(), configuration, this.APIManager, this.IconState, this.TranslationState, this._eventState.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventState.EventStates.Hidden).Select(x => x.EventKey).ToList());
+        var view = new ManageEventsView(this._allEvents(), new Dictionary<string, object>() {
+            { "configuration", configuration },
+            { "hiddenEventKeys",  this._eventState.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventState.EventStates.Hidden).Select(x => x.EventKey).ToList() }
+        }, () => configuration.DisabledEventKeys.Value, this.APIManager, this.IconState, this.TranslationState);
         view.EventChanged += this.ManageView_EventChanged;
 
         _manageEventsWindow.Show(view);
@@ -441,9 +435,10 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ManageView_EventChanged(object sender, EventChangedArgs e)
     {
-        e.Configuration.DisabledEventKeys.Value = e.NewState
-            ? new List<string>(e.Configuration.DisabledEventKeys.Value.Where(aek => aek != e.EventSettingKey)) 
-            : new List<string>(e.Configuration.DisabledEventKeys.Value) { e.EventSettingKey };
+        var configuration = e.AdditionalData["configuration"] as EventAreaConfiguration;
+        configuration.DisabledEventKeys.Value = e.NewState
+            ? new List<string>(configuration.DisabledEventKeys.Value.Where(aek => aek != e.EventSettingKey))
+            : new List<string>(configuration.DisabledEventKeys.Value) { e.EventSettingKey };
     }
 
     private void ClearAreaPanel()

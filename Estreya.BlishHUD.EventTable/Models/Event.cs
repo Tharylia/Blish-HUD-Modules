@@ -2,6 +2,7 @@
 {
     using Blish_HUD;
     using Blish_HUD._Extensions;
+    using Blish_HUD.ArcDps.Models;
     using Blish_HUD.Controls;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.State;
@@ -15,6 +16,7 @@
     using MonoGame.Extended.BitmapFonts;
     using Newtonsoft.Json;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.ComponentModel;
     using System.Diagnostics;
@@ -26,7 +28,8 @@
     {
         [IgnoreCopy]
         private static readonly Logger Logger = Logger.GetLogger<Event>();
-        private Func<DateTime> _getNowAction;
+
+        public event EventHandler<TimeSpan> Reminder;
 
         [Description("Specifies the key of the event. Should be unique for a event category. Avoid changing it, as it resets saved settings and states.")]
         [JsonProperty("key")]
@@ -70,7 +73,7 @@
         [JsonProperty("apiType")]
         public APICodeType? APICodeType { get; set; }
 
-        [JsonProperty("api")]
+        [JsonProperty("apiCode")]
         public string APICode { get; set; }
 
         [JsonIgnore]
@@ -88,43 +91,11 @@
             TimeSpan.FromMinutes(10)
         };
 
-    /*
-    public void UpdateOccurences(DateTime now, DateTime min, DateTime max)
-    {
-        this.Occurences = this.GetStartOccurences(now, min.AddDays(-2), max.AddDays(2));
-    }
+        [JsonIgnore]
+        private ConcurrentDictionary<DateTime, List<TimeSpan>> _remindedFor = new ConcurrentDictionary<DateTime, List<TimeSpan>>();
 
-    private List<DateTime> GetStartOccurences(DateTime now, DateTime min, DateTime max)
-    {
-        List<DateTime> startOccurences = new List<DateTime>();
 
-        DateTime zero = this.StartingDate ?? new DateTime(min.Year, min.Month, min.Day, 0, 0, 0).AddDays(this.Repeat.TotalMinutes == 0 ? 0 : -1);
-
-        TimeSpan offset = this.Offset.Add(TimeZone.CurrentTimeZone.GetUtcOffset(now));
-
-        DateTime eventStart = zero.Add(offset);
-
-        while (eventStart < max)
-        {
-            bool startAfterMin = eventStart > min;
-            bool startBeforeMax = eventStart < max;
-            bool endAfterMin = eventStart.AddMinutes(this.Duration) > min;
-
-            bool inRange = (startAfterMin || endAfterMin) && startBeforeMax;
-
-            if (inRange)
-            {
-                startOccurences.Add( eventStart);
-            }
-
-            eventStart = this.Repeat.TotalMinutes == 0 ? eventStart.Add(TimeSpan.FromDays(1)) : eventStart.Add(this.Repeat);
-        }
-
-        return startOccurences;
-    }
-    */
-
-    public DateTime? GetCurrentOccurence(DateTime now)
+        public DateTime? GetCurrentOccurence(DateTime now)
         {
             var occurences = this.Occurences.Where(oc => oc <= now && oc.AddMinutes(this.Duration) >= now);
             return occurences.Any() ? occurences.First() : null;
@@ -140,34 +111,6 @@
             var co = this.GetCurrentOccurence(now);
             return !co.HasValue ? TimeSpan.Zero : co.Value.AddMinutes(this.Duration) - now;
         }
-        /*
-
-        public void Hide()
-        {
-            DateTime now = this._getNowAction().ToUniversalTime();
-            DateTime until = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, System.DateTimeKind.Utc).AddDays(1);
-            this._eventState?.Add(this.Key, until, EventState.EventStates.Hidden);
-        }
-
-        public void Finish()
-        {
-            DateTime now = this._getNowAction().ToUniversalTime();
-            DateTime until = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, System.DateTimeKind.Utc).AddDays(1);
-            this._eventState?.Add(this.Key, until, EventState.EventStates.Completed);
-        }
-
-        public void Unfinish()
-        {
-            this._eventState?.Remove(this.Key);
-        }
-
-        public bool IsFinished()
-        {
-            var finished = this._eventState?.Contains(this.Key, EventState.EventStates.Completed) ?? false;
-
-            return finished;
-        }
-        */
 
         public double CalculateXPosition(DateTime start, DateTime min, double pixelPerMinute)
         {
@@ -197,10 +140,8 @@
             return eventWidth;
         }
 
-        public Task LoadAsync(EventCategory ec, Func<DateTime> getNowAction, TranslationState translationState = null)
+        public Task LoadAsync(EventCategory ec, TranslationState translationState = null)
         {
-            this._getNowAction = getNowAction;
-
             // Prevent crash on older events.json files
             if (string.IsNullOrWhiteSpace(this.Key))
             {
@@ -220,6 +161,30 @@
             }
 
             return Task.CompletedTask;
+        }
+
+        public void Update(DateTime nowUTC)
+        {
+            if (this.Filler) return;
+
+            var occurences = this.Occurences.Where(o => o >= nowUTC);
+            foreach (var occurence in occurences)
+            {
+                var alreadyRemindedTimes = this._remindedFor.GetOrAdd(occurence, o => new List<TimeSpan>());
+
+                foreach (var time in this.ReminderTimes)
+                {
+                    if (alreadyRemindedTimes.Contains(time)) continue;
+
+                    var remindAt = occurence - time;
+                    var diff = nowUTC - remindAt;
+                    if (remindAt <= nowUTC && Math.Abs(diff.TotalSeconds) <= 1)
+                    {
+                        this.Reminder?.Invoke(this, time);
+                        alreadyRemindedTimes.Add(time);
+                    }
+                }
+            }
         }
 
         public override string ToString()
