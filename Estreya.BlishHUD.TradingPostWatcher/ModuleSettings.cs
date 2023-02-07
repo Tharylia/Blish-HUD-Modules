@@ -83,10 +83,5 @@
             this.DrawerSettings.UndefineSetting($"{name}-highestTransactionColor");
             this.DrawerSettings.UndefineSetting($"{name}-outbidTransactionColor");
         }
-
-        public override void Unload()
-        {
-            base.Unload();
-        }
     }
 }

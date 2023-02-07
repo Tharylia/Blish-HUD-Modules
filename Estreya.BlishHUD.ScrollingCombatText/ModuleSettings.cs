@@ -178,10 +178,5 @@
             this.DrawerSettings.UndefineSetting($"{name}-scrollSpeed");
             this.DrawerSettings.UndefineSetting($"{name}-formatRules");
         }
-
-        public override void Unload()
-        {
-            base.Unload();
-        }
     }
 }
