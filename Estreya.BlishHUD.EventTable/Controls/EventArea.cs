@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -270,7 +270,7 @@ public class EventArea : Container
 
     public override void PaintAfterChildren(SpriteBatch spriteBatch, Rectangle bounds)
     {
-        float middleLineX = this.Width / 2;
+        float middleLineX = this.Width * this.GetTimeSpanRatio();
         float width = 2;
         spriteBatch.DrawLineOnCtrl(this, ContentService.Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Color.LightGray);
     }
@@ -278,11 +278,17 @@ public class EventArea : Container
     private (DateTime Now, DateTime Min, DateTime Max) GetTimes()
     {
         DateTime now = this._getNowAction();
-        double halveTimespan = this.Configuration.TimeSpan.Value / 2;
-        DateTime min = now.AddMinutes(-halveTimespan);
-        DateTime max = now.AddMinutes(halveTimespan);
+
+        DateTime min = now.Subtract(TimeSpan.FromMinutes(this.Configuration.TimeSpan.Value * this.GetTimeSpanRatio()));
+        DateTime max = now.Add(TimeSpan.FromMinutes(this.Configuration.TimeSpan.Value * (1f - this.GetTimeSpanRatio())));
 
         return (now, min, max);
+    }
+
+    private float GetTimeSpanRatio()
+    {
+        float ratio = 0.5f + ((this.Configuration.HistorySplit.Value / 100f) - 0.5f);
+        return ratio;
     }
 
     private async Task UpdateEventOccurences()
@@ -296,13 +302,13 @@ public class EventArea : Container
         var fillers = await this.GetFillers(times.Now, times.Min, times.Max, activeEventKeys.Where(ev => !this.EventDisabled(ev)).ToList());
         foreach (EventCategory ec in this._allEvents)
         {
-                if (fillers.TryGetValue(ec.Key, out var categoryFillers))
-                {
+            if (fillers.TryGetValue(ec.Key, out var categoryFillers))
+            {
                 categoryFillers.ForEach(cf => cf.Load(ec, this._translationState));
-                }
+            }
 
-                ec.UpdateFillers(categoryFillers);
-                //await ec.UpdateEventOccurences(categoryFillers, times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value, (ev) => this.EventDisabled(ev));
+            ec.UpdateFillers(categoryFillers);
+            //await ec.UpdateEventOccurences(categoryFillers, times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value, (ev) => this.EventDisabled(ev));
         }
     }
 

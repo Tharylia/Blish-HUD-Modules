@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -270,6 +270,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderIntSetting(settingsPanel, areaConfiguration.TimeSpan);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.HistorySplit);
 
         this.RenderEmptyLine(settingsPanel);
 
