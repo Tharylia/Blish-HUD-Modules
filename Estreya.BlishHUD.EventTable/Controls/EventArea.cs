@@ -85,6 +85,7 @@ public class EventArea : Container
         this.Configuration.Size.Y.SettingChanged += this.Size_SettingChanged;
         this.Configuration.Location.X.SettingChanged += this.Location_SettingChanged;
         this.Configuration.Location.Y.SettingChanged += this.Location_SettingChanged;
+        this.Configuration.TimeSpan.SettingChanged += this.TimeSpan_SettingChanged;
         this.Configuration.Opacity.SettingChanged += this.Opacity_SettingChanged;
         this.Configuration.BackgroundColor.SettingChanged += this.BackgroundColor_SettingChanged;
         this.Configuration.UseFiller.SettingChanged += this.UseFiller_SettingChanged;
@@ -121,6 +122,11 @@ public class EventArea : Container
             this._mapchestState.MapchestCompleted += this.Event_Completed;
             this._mapchestState.MapchestRemoved += this.Event_Removed;
         }
+    }
+
+    private void TimeSpan_SettingChanged(object sender, ValueChangedEventArgs<int> e)
+    {
+        this.ReAddEvents();
     }
 
     private void EventOrder_SettingChanged(object sender, ValueChangedEventArgs<List<string>> e)
