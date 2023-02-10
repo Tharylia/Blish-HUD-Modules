@@ -31,6 +31,7 @@
 
             this.RenderBoolSetting(parent, _moduleSettings.HideOnMissingMumbleTicks);
             this.RenderBoolSetting(parent, _moduleSettings.HideOnOpenMap);
+            this.RenderBoolSetting(parent, _moduleSettings.HideInCombat);
             this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_OpenWorld);
             this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_Competetive);
             this.RenderBoolSetting(parent, _moduleSettings.HideInWvW);
