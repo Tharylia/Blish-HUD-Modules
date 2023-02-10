@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
@@ -117,6 +117,9 @@
 
             var eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
 
+            var eventOpacity = this.DrawerSettings.DefineSetting($"{name}-eventOpacity", 1f, () => "Event Opacity", () => "Defines the opacity of the individual events.");
+            eventOpacity.SetRange(0.1f, 1f);
+
 
             return new EventAreaConfiguration()
             {
@@ -141,7 +144,8 @@
                 DisabledEventKeys = disabledEventKeys,
                 CompletionAcion = completionAction,
                 EventHeight = eventHeight,
-                EventOrder = eventOrder
+                EventOrder = eventOrder,
+                EventOpacity = eventOpacity
             };
         }
 
@@ -161,6 +165,7 @@
             this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
             this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
             this.DrawerSettings.UndefineSetting($"{name}-eventOrder");
+            this.DrawerSettings.UndefineSetting($"{name}-eventOpacity");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
@@ -241,6 +246,11 @@
             var eventOrderDescriptionDefault = drawerConfiguration.EventOrder.Description;
             drawerConfiguration.EventOrder.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOrder-name", eventOrderDisplayNameDefault);
             drawerConfiguration.EventOrder.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOrder-description", eventOrderDescriptionDefault);
+
+            var eventOpacityDisplayNameDefault = drawerConfiguration.EventOpacity.DisplayName;
+            var eventOpacityDescriptionDefault = drawerConfiguration.EventOpacity.Description;
+            drawerConfiguration.EventOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-name", eventOpacityDisplayNameDefault);
+            drawerConfiguration.EventOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-description", eventOpacityDescriptionDefault);
         }
     }
 }

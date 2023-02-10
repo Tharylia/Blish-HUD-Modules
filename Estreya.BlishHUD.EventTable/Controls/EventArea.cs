@@ -501,7 +501,7 @@ public class EventArea : Container
                             }
 
                             System.Drawing.Color colorFromEvent = string.IsNullOrWhiteSpace(ev.BackgroundColorCode) ? System.Drawing.Color.White : System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
-                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B);
+                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * this.Configuration.EventOpacity.Value;
                         })
                     {
                         Parent = this,
