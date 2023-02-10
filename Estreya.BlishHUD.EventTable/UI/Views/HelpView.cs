@@ -182,6 +182,8 @@ public class HelpView : BaseView
             .CreatePart("- The backend service is currently not available.", builder => { })
             .CreatePart("\n    You can check the following url (if it responds, the backend service is fine): ", builder => { })
             .CreatePart("CLICK HERE", builder => { builder.SetHyperLink($"{_apiUrl.TrimEnd('/')}/events"); })
+            .CreatePart("\n", builder => { })
+            .CreatePart("- You have abused the backend and are currently ratelimited (same result as the above answer).", builder => { })
             .CreatePart("\n \n", builder => { })
             .CreatePart($"In case you can't figure it out, ping {DISCORD_USERNAME} on BlishHUD Discord.", builder => { builder.MakeBold(); });
 
