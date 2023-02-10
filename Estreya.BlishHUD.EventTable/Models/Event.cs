@@ -140,7 +140,7 @@
             return eventWidth;
         }
 
-        public Task LoadAsync(EventCategory ec, TranslationState translationState = null)
+        public void Load(EventCategory ec, TranslationState translationState = null)
         {
             // Prevent crash on older events.json files
             if (string.IsNullOrWhiteSpace(this.Key))
@@ -159,8 +159,6 @@
             {
                 this.Name = translationState.GetTranslation($"event-{ec.Key}_{this.Key}-name", this.Name);
             }
-
-            return Task.CompletedTask;
         }
 
         public void Update(DateTime nowUTC)

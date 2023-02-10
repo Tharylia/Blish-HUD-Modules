@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.ArcDps.Models;
@@ -70,7 +70,7 @@
 
             this.AddAllAreas();
 
-            await this.SetAreaEvents();
+            this.SetAreaEvents();
 
 #if DEBUG
             GameService.Input.Keyboard.KeyPressed += this.Keyboard_KeyPressed;
@@ -103,17 +103,17 @@
             }
         }
 
-        private async Task SetAreaEvents()
+        private void SetAreaEvents()
         {
             foreach (EventArea area in this._areas.Values)
             {
-                await this.SetAreaEvents(area);
+                this.SetAreaEvents(area);
             }
         }
 
-        private async Task SetAreaEvents(EventArea area)
+        private void SetAreaEvents(EventArea area)
         {
-            await area.UpdateAllEvents(this._eventCategories);
+            area.UpdateAllEvents(this._eventCategories);
         }
 
         /// <summary>
@@ -126,6 +126,7 @@
             {
                 try
                 {
+                    this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.RemoveEventHooks(ev));
                     this._eventCategories?.Clear();
 
                     List<EventCategory> categories = await this.GetFlurlClient().Request(this.API_URL, "events").GetJsonAsync<List<EventCategory>>();
@@ -135,18 +136,16 @@
 
                     this.Logger.Info($"Loaded {eventCategoryCount} Categories with {eventCount} Events.");
 
-                    IEnumerable<Task> eventCategoryLoadTasks = categories.Select(ec =>
+                    categories.ForEach(ec =>
                     {
-                        return ec.LoadAsync(this.TranslationState);
+                        ec.Load(this.TranslationState);
                     });
-
-                    await Task.WhenAll(eventCategoryLoadTasks);
 
                     this._eventCategories = categories;
 
                     this._eventCategories.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.AddEventHooks(ev));
 
-                    await this.SetAreaEvents();
+                    this.SetAreaEvents();
                 }
                 catch (Exception ex)
                 {
@@ -331,7 +330,7 @@
                 if (e.AreaConfiguration != null)
                 {
                     var newArea = this._areas.Values.Where(x => x.Configuration.Name == e.Name).First();
-                    AsyncHelper.RunSync(async () => await this.SetAreaEvents(newArea));
+                    this.SetAreaEvents(newArea);
                 }
             };
 

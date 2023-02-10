@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -148,7 +148,7 @@ public class EventArea : Container
         this.ReAddEvents();
     }
 
-    public async Task UpdateAllEvents(List<EventCategory> allEvents)
+    public void UpdateAllEvents(List<EventCategory> allEvents)
     {
         this._allEvents.Clear();
 
@@ -156,7 +156,7 @@ public class EventArea : Container
 
         (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
-        await Task.WhenAll(this._allEvents.Select(ec => ec.LoadAsync(this._translationState)));
+        this._allEvents.ForEach(ec => ec.Load(this._translationState));
 
         // Events should have occurences calculated already
 
@@ -290,19 +290,14 @@ public class EventArea : Container
         var fillers = await this.GetFillers(times.Now, times.Min, times.Max, activeEventKeys.Where(ev => !this.EventDisabled(ev)).ToList());
         foreach (EventCategory ec in this._allEvents)
         {
-            tasks.Add(Task.Run(async () =>
-            {
                 if (fillers.TryGetValue(ec.Key, out var categoryFillers))
                 {
-                    await Task.WhenAll(categoryFillers.Select(cf => cf.LoadAsync(ec, this._translationState)));
+                categoryFillers.ForEach(cf => cf.Load(ec, this._translationState));
                 }
 
                 ec.UpdateFillers(categoryFillers);
                 //await ec.UpdateEventOccurences(categoryFillers, times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value, (ev) => this.EventDisabled(ev));
-            }));
         }
-
-        await Task.WhenAll(tasks);
     }
 
     private async Task<ConcurrentDictionary<string, List<Models.Event>>> GetFillers(DateTime now, DateTime min, DateTime max, List<string> activeEventKeys)
