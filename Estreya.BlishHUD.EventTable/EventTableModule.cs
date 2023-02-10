@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.ArcDps.Models;
@@ -146,6 +146,11 @@ namespace Estreya.BlishHUD.EventTable
                     this._eventCategories.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.AddEventHooks(ev));
 
                     this.SetAreaEvents();
+                }
+                catch (FlurlHttpException ex)
+                {
+                    var message = await ex.GetResponseStringAsync();
+                    this.Logger.Warn(ex, $"Failed loading events: {message}");
                 }
                 catch (Exception ex)
                 {
