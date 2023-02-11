@@ -17,7 +17,7 @@
         private readonly Collection<ManagedState> _stateList;
         private readonly Func<Task> _reloadCalledAction;
 
-        public StateSettingsView(Collection<ManagedState> stateList, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null, Func<Task> reloadCalledAction = null) : base(apiManager, iconState,translationState, font)
+        public StateSettingsView(Collection<ManagedState> stateList, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null, Func<Task> reloadCalledAction = null) : base(apiManager, iconState,translationState, settingEventState, font)
         {
             this._stateList = stateList;
             this._reloadCalledAction = reloadCalledAction;

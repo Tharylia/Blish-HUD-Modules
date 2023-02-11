@@ -515,5 +515,8 @@ public abstract class BaseView : View
     protected override void Unload()
     {
         base.Unload();
+
+        this.MainPanel.Children?.ToList().ForEach(c => c?.Dispose());
+        this.MainPanel.Children?.Clear();
     }
 }

@@ -24,7 +24,7 @@ namespace Estreya.BlishHUD.EventTable.UI.Views
         private readonly Func<List<EventCategory>> _getEvents;
         private StandardWindow _manageEventsWindow;
 
-        public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
         {
             this._moduleSettings = moduleSettings;
             this._getEvents = getEvents;

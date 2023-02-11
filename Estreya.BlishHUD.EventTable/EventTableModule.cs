@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.ArcDps.Models;
@@ -324,7 +324,7 @@ namespace Estreya.BlishHUD.EventTable
         {
             // Reorder Icon: 605018
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
             //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
             UI.Views.AreaSettingsView areaSettingsView = new UI.Views.AreaSettingsView(
                 () => this._areas.Values.Select(area => area.Configuration),
@@ -332,6 +332,7 @@ namespace Estreya.BlishHUD.EventTable
                 this.Gw2ApiManager,
                 this.IconState,
                 this.TranslationState,
+                this.SettingEventState,
                 this.EventState,
                 GameService.Content.DefaultFont16)
             { DefaultColor = this.ModuleSettings.DefaultGW2Color };
@@ -351,8 +352,8 @@ namespace Estreya.BlishHUD.EventTable
             };
 
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("841721.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.API_URL, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("841721.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.API_URL, this.Gw2ApiManager, this.IconState, this.TranslationState,  GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
         }
 
         protected override string GetDirectoryName()

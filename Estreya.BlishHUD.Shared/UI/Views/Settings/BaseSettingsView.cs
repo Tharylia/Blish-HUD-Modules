@@ -22,12 +22,14 @@
         private readonly Point CONTROL_LOCATION;
 
         private static readonly Logger Logger = Logger.GetLogger<BaseSettingsView>();
+        private readonly SettingEventState _settingEventState;
 
-        protected BaseSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font) {
+        protected BaseSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, font) {
             base.LABEL_WIDTH = 250;
             this.CONTROL_WIDTH = 250;
 
             this.CONTROL_LOCATION = new Point(base.LABEL_WIDTH + 20, 0);
+            this._settingEventState = settingEventState;
         }
 
         protected sealed override void InternalBuild(Panel parent)
@@ -93,6 +95,22 @@
 
             trackbar.BasicTooltipText = settingEntry.Description;
 
+            _settingEventState.AddForRangeCheck(settingEntry);
+            _settingEventState.RangeUpdated += (s, e) =>
+            {
+                if (e.SettingEntry.EntryKey == settingEntry.EntryKey)
+                {
+                    var range = (IntRangeRangeComplianceRequisite)e.NewCompliance;
+                    trackbar.MinValue = range.MinValue;
+                    trackbar.MaxValue = range.MaxValue;
+                }
+            };
+
+            trackbar.Disposed += (s, e) =>
+            {
+                _settingEventState.RemoveFromRangeCheck(settingEntry);
+            };
+
             return (panel, label.TitleLabel, trackbar);
         }
 
@@ -109,6 +127,22 @@
             });
 
             trackbar.BasicTooltipText = settingEntry.Description;
+
+            _settingEventState.AddForRangeCheck(settingEntry);
+            _settingEventState.RangeUpdated += (s, e) =>
+            {
+                if (e.SettingEntry.EntryKey == settingEntry.EntryKey)
+                {
+                    var range = (FloatRangeRangeComplianceRequisite)e.NewCompliance;
+                    trackbar.MinValue = range.MinValue;
+                    trackbar.MaxValue = range.MaxValue;
+                }
+            };
+
+            trackbar.Disposed += (s, e) =>
+            {
+                _settingEventState.RemoveFromRangeCheck(settingEntry);
+            };
 
             return (panel, label.TitleLabel, trackbar);
         }
@@ -170,6 +204,9 @@
         protected override void Unload()
         {
             base.Unload();
+
+            this.MainPanel.Children?.ToList().ForEach(c => c?.Dispose());
+            this.MainPanel.Children?.Clear();
         }
     }
 }

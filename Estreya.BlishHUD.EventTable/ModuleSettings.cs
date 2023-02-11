@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
@@ -86,8 +86,13 @@
             int maxResX = (int)(GameService.Graphics.Resolution.X / GameService.Graphics.UIScaleMultiplier);
             int maxResY = (int)(GameService.Graphics.Resolution.Y / GameService.Graphics.UIScaleMultiplier);
 
-            this.ReminderPosition?.X.SetRange(0, maxResX);
-            this.ReminderPosition?.Y.SetRange(0, maxResY);
+            int minLocationX = 0;
+            int maxLocationX = maxResX - EventNotification.NOTIFICATION_WIDTH;
+            int minLocationY = 0;
+            int maxLocationY = maxResY - EventNotification.NOTIFICATION_HEIGHT;
+
+            this.ReminderPosition?.X.SetRange(minLocationX, maxLocationX);
+            this.ReminderPosition?.Y.SetRange(minLocationY, maxLocationY);
         }
 
         public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories)
