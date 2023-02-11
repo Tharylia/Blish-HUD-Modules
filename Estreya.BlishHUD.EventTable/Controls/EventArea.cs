@@ -520,7 +520,8 @@ public class EventArea : Container
                         Top = y,
                         Height = this.Configuration.EventHeight.Value,
                         Width = width,
-                        Left = x < 0 ? 0 : x
+                        Left = x < 0 ? 0 : x,
+                        ClipsBounds = false
                     };
 
                     this.AddEventHooks(newEventControl);

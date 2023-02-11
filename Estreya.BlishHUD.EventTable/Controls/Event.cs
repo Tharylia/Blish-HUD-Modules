@@ -41,8 +41,6 @@ public class Event : RenderTargetControl
         Func<Color> getTextColor,
         Func<Color> getColorAction)
     {
-        this.ClipsBounds = false;
-
         this.Ev = ev;
         this._iconState = iconState;
         this._translationState = translationState;
