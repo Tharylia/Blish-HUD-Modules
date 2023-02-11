@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views
+namespace Estreya.BlishHUD.EventTable.UI.Views
 {
     using Blish_HUD;
     using Blish_HUD.Controls;
@@ -77,10 +77,13 @@
                 var reminder = new EventNotification(new Models.Event()
                 {
                     Name = "Test Event",
-                    Icon = "textures/maintenance.png"
-                }, "Test description!", this.IconState);
+                    Icon = "textures/maintenance.png",
+                }, "Test description!", _moduleSettings.ReminderPosition.X.Value, _moduleSettings.ReminderPosition.Y.Value, this.IconState)
+                {
+                    BackgroundOpacity = _moduleSettings.ReminderOpacity.Value
+                };
 
-                reminder.Show(TimeSpan.FromSeconds(_moduleSettings.ReminderDuration.Value), _moduleSettings.ReminderPosition.X.Value, _moduleSettings.ReminderPosition.Y.Value);
+                reminder.Show(TimeSpan.FromSeconds(_moduleSettings.ReminderDuration.Value));
             });
 
             //var lastChild = parent.Children.Last();

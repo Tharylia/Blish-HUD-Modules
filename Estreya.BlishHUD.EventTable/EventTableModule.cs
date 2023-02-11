@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.ArcDps.Models;
@@ -84,8 +84,11 @@
 
             if (e.Key == Microsoft.Xna.Framework.Input.Keys.U)
             {
-                var notification = new EventNotification(this._eventCategories.First().Events.First(), "Starts in 10 minutes! ajkshdkjahsdkjhaskjdhkajlshdkha", this.IconState);
-                notification.Show(TimeSpan.FromSeconds(5), 200, 200);
+                var notification = new EventNotification(this._eventCategories.First().Events.First(), "Starts in 10 minutes! ajkshdkjahsdkjhaskjdhkajlshdkha", 200, 200, this.IconState)
+                {
+                    BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value
+                };
+                notification.Show(TimeSpan.FromSeconds(5));
 
                 //var mapId = GameService.Gw2Mumble.CurrentMap.Id;
                 //var ev = this.DynamicEventState.GetEventsByMap(mapId).FirstOrDefault();
@@ -243,8 +246,11 @@
             if (!this.ModuleSettings.RemindersEnabled.Value || this.ModuleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey)) return;
 
             var startsInTranslation = this.TranslationState.GetTranslation("eventArea-reminder-startsIn", "Starts in");
-            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize()}!", this.IconState);
-            notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value), this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value);
+            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize()}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)
+            {
+                BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value
+            };
+            notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
         }
 
         private void AddAllAreas()
