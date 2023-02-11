@@ -95,6 +95,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)State\ManagedState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\MapchestState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\PointOfInterestState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\SettingEventState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\SkillState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\StateConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\StateConfigurations.cs" />

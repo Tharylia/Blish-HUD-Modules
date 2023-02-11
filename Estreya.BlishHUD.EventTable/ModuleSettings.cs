@@ -3,6 +3,7 @@
     using Blish_HUD;
     using Blish_HUD.Input;
     using Blish_HUD.Settings;
+    using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Models.Drawers;
@@ -33,9 +34,11 @@
         public SettingCollection EventAreaSettings { get; private set; }
         public SettingEntry<List<string>> EventAreaNames { get; private set; }
 
-        public SettingEntry<bool> RemindersEnabled { get; set; }
-        public EventReminderPositition ReminderPosition { get; set; }
-        public SettingEntry<float> ReminderDuration { get; set; }
+        public SettingEntry<bool> RemindersEnabled { get; private set; }
+        public EventReminderPositition ReminderPosition { get; private set; }
+        public SettingEntry<float> ReminderDuration { get; private set; }
+
+        public SettingEntry<float> ReminderOpacity { get; private set; }
 
         /// <summary>
         /// Contains a list of event setting keys for which NO reminder should be displayed.
@@ -74,6 +77,9 @@
             this.ReminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
 
             this.ReminderDisabledForEvents = this.GlobalSettings.DefineSetting(nameof(this.ReminderDisabledForEvents), new List<string>(), () => "Reminder disabled for Events", () => "Defines the events for which NO reminder should be displayed.");
+
+            this.ReminderOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderOpacity), 0.5f, () => "Reminder Opacity", () => "Defines the background opacity for reminders.");
+            this.ReminderOpacity.SetRange(0.1f, 1f);
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)
@@ -86,8 +92,13 @@
             int maxResX = (int)(GameService.Graphics.Resolution.X / GameService.Graphics.UIScaleMultiplier);
             int maxResY = (int)(GameService.Graphics.Resolution.Y / GameService.Graphics.UIScaleMultiplier);
 
-            this.ReminderPosition?.X.SetRange(0, maxResX);
-            this.ReminderPosition?.Y.SetRange(0, maxResY);
+            int minLocationX = 0;
+            int maxLocationX = maxResX - EventNotification.NOTIFICATION_WIDTH;
+            int minLocationY = 0;
+            int maxLocationY = maxResY - EventNotification.NOTIFICATION_HEIGHT;
+
+            this.ReminderPosition?.X.SetRange(minLocationX, maxLocationX);
+            this.ReminderPosition?.Y.SetRange(minLocationY, maxLocationY);
         }
 
         public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories)
@@ -98,6 +109,7 @@
             var showTooltips = this.DrawerSettings.DefineSetting($"{name}-showTooltips", true, () => "Show Tooltips", () => "Whether a tooltip should be displayed when hovering.");
 
             var timespan = this.DrawerSettings.DefineSetting($"{name}-timespan", 120, () => "Timespan", () => "Defines the timespan the event drawer covers.");
+            timespan.SetRange(60, 240);
 
             var historySplit = this.DrawerSettings.DefineSetting($"{name}-historySplit", 50, () => "History Split", () => "Defines how much history the timespan should contain.");
             historySplit.SetRange(0, 75);
@@ -116,6 +128,9 @@
             eventHeight.SetRange(5, 30);
 
             var eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
+
+            var eventOpacity = this.DrawerSettings.DefineSetting($"{name}-eventOpacity", 1f, () => "Event Opacity", () => "Defines the opacity of the individual events.");
+            eventOpacity.SetRange(0.1f, 1f);
 
 
             return new EventAreaConfiguration()
@@ -141,7 +156,8 @@
                 DisabledEventKeys = disabledEventKeys,
                 CompletionAcion = completionAction,
                 EventHeight = eventHeight,
-                EventOrder = eventOrder
+                EventOrder = eventOrder,
+                EventOpacity = eventOpacity
             };
         }
 
@@ -161,6 +177,7 @@
             this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
             this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
             this.DrawerSettings.UndefineSetting($"{name}-eventOrder");
+            this.DrawerSettings.UndefineSetting($"{name}-eventOpacity");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
@@ -241,6 +258,11 @@
             var eventOrderDescriptionDefault = drawerConfiguration.EventOrder.Description;
             drawerConfiguration.EventOrder.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOrder-name", eventOrderDisplayNameDefault);
             drawerConfiguration.EventOrder.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOrder-description", eventOrderDescriptionDefault);
+
+            var eventOpacityDisplayNameDefault = drawerConfiguration.EventOpacity.DisplayName;
+            var eventOpacityDescriptionDefault = drawerConfiguration.EventOpacity.Description;
+            drawerConfiguration.EventOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-name", eventOpacityDisplayNameDefault);
+            drawerConfiguration.EventOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-description", eventOpacityDescriptionDefault);
         }
     }
 }

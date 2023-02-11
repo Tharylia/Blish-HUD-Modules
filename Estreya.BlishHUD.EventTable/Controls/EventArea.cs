@@ -85,6 +85,7 @@ public class EventArea : Container
         this.Configuration.Size.Y.SettingChanged += this.Size_SettingChanged;
         this.Configuration.Location.X.SettingChanged += this.Location_SettingChanged;
         this.Configuration.Location.Y.SettingChanged += this.Location_SettingChanged;
+        this.Configuration.TimeSpan.SettingChanged += this.TimeSpan_SettingChanged;
         this.Configuration.Opacity.SettingChanged += this.Opacity_SettingChanged;
         this.Configuration.BackgroundColor.SettingChanged += this.BackgroundColor_SettingChanged;
         this.Configuration.UseFiller.SettingChanged += this.UseFiller_SettingChanged;
@@ -123,6 +124,11 @@ public class EventArea : Container
         }
     }
 
+    private void TimeSpan_SettingChanged(object sender, ValueChangedEventArgs<int> e)
+    {
+        this.ReAddEvents();
+    }
+
     private void EventOrder_SettingChanged(object sender, ValueChangedEventArgs<List<string>> e)
     {
         this.ReAddEvents();
@@ -148,7 +154,7 @@ public class EventArea : Container
         this.ReAddEvents();
     }
 
-    public async Task UpdateAllEvents(List<EventCategory> allEvents)
+    public void UpdateAllEvents(List<EventCategory> allEvents)
     {
         this._allEvents.Clear();
 
@@ -156,7 +162,7 @@ public class EventArea : Container
 
         (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
-        await Task.WhenAll(this._allEvents.Select(ec => ec.LoadAsync(this._translationState)));
+        this._allEvents.ForEach(ec => ec.Load(this._translationState));
 
         // Events should have occurences calculated already
 
@@ -264,7 +270,7 @@ public class EventArea : Container
 
     public override void PaintAfterChildren(SpriteBatch spriteBatch, Rectangle bounds)
     {
-        float middleLineX = this.Width / 2;
+        float middleLineX = this.Width * this.GetTimeSpanRatio();
         float width = 2;
         spriteBatch.DrawLineOnCtrl(this, ContentService.Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Color.LightGray);
     }
@@ -272,11 +278,17 @@ public class EventArea : Container
     private (DateTime Now, DateTime Min, DateTime Max) GetTimes()
     {
         DateTime now = this._getNowAction();
-        double halveTimespan = this.Configuration.TimeSpan.Value / 2;
-        DateTime min = now.AddMinutes(-halveTimespan);
-        DateTime max = now.AddMinutes(halveTimespan);
+
+        DateTime min = now.Subtract(TimeSpan.FromMinutes(this.Configuration.TimeSpan.Value * this.GetTimeSpanRatio()));
+        DateTime max = now.Add(TimeSpan.FromMinutes(this.Configuration.TimeSpan.Value * (1f - this.GetTimeSpanRatio())));
 
         return (now, min, max);
+    }
+
+    private float GetTimeSpanRatio()
+    {
+        float ratio = 0.5f + ((this.Configuration.HistorySplit.Value / 100f) - 0.5f);
+        return ratio;
     }
 
     private async Task UpdateEventOccurences()
@@ -290,19 +302,14 @@ public class EventArea : Container
         var fillers = await this.GetFillers(times.Now, times.Min, times.Max, activeEventKeys.Where(ev => !this.EventDisabled(ev)).ToList());
         foreach (EventCategory ec in this._allEvents)
         {
-            tasks.Add(Task.Run(async () =>
+            if (fillers.TryGetValue(ec.Key, out var categoryFillers))
             {
-                if (fillers.TryGetValue(ec.Key, out var categoryFillers))
-                {
-                    await Task.WhenAll(categoryFillers.Select(cf => cf.LoadAsync(ec, this._translationState)));
-                }
+                categoryFillers.ForEach(cf => cf.Load(ec, this._translationState));
+            }
 
-                ec.UpdateFillers(categoryFillers);
-                //await ec.UpdateEventOccurences(categoryFillers, times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value, (ev) => this.EventDisabled(ev));
-            }));
+            ec.UpdateFillers(categoryFillers);
+            //await ec.UpdateEventOccurences(categoryFillers, times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value, (ev) => this.EventDisabled(ev));
         }
-
-        await Task.WhenAll(tasks);
     }
 
     private async Task<ConcurrentDictionary<string, List<Models.Event>>> GetFillers(DateTime now, DateTime min, DateTime max, List<string> activeEventKeys)
@@ -506,14 +513,15 @@ public class EventArea : Container
                             }
 
                             System.Drawing.Color colorFromEvent = string.IsNullOrWhiteSpace(ev.BackgroundColorCode) ? System.Drawing.Color.White : System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
-                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B);
+                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * this.Configuration.EventOpacity.Value;
                         })
                     {
                         Parent = this,
                         Top = y,
                         Height = this.Configuration.EventHeight.Value,
                         Width = width,
-                        Left = x < 0 ? 0 : x
+                        Left = x < 0 ? 0 : x,
+                        ClipsBounds = false
                     };
 
                     this.AddEventHooks(newEventControl);

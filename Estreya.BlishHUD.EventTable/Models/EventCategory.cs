@@ -65,21 +65,19 @@
             }
         }
 
-        public async Task LoadAsync(TranslationState translationState = null)
+        public void Load(TranslationState translationState = null)
         {
             if (translationState != null)
             {
                 this.Name = translationState.GetTranslation($"eventCategory-{this.Key}-name", this.Name);
             }
 
-            using (await this._eventLock.LockAsync())
+            using (this._eventLock.Lock())
             {
-                var eventLoadTasks = this.Events.Select(ev =>
+                this.Events.ForEach(ev =>
                 {
-                    return ev.LoadAsync(this, translationState);
+                    ev.Load(this, translationState);
                 });
-
-                await Task.WhenAll(eventLoadTasks);
             }
         }
     }

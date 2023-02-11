@@ -97,7 +97,7 @@ public class TranslationState : ManagedState
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex, $"Failed to load translations for locale {locale}:");
+            Logger.Debug(ex, $"Failed to load translations for locale {locale}:");
         }
     }
 

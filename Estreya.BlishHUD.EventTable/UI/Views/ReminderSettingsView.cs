@@ -24,7 +24,7 @@
         private readonly Func<List<EventCategory>> _getEvents;
         private StandardWindow _manageEventsWindow;
 
-        public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
         {
             this._moduleSettings = moduleSettings;
             this._getEvents = getEvents;
@@ -37,6 +37,7 @@
             this.RenderIntSetting(parent, _moduleSettings.ReminderPosition.X);
             this.RenderIntSetting(parent, _moduleSettings.ReminderPosition.Y);
             this.RenderFloatSetting(parent, _moduleSettings.ReminderDuration);
+            this.RenderFloatSetting(parent, _moduleSettings.ReminderOpacity);
 
             this.RenderEmptyLine(parent);
 
@@ -77,10 +78,13 @@
                 var reminder = new EventNotification(new Models.Event()
                 {
                     Name = "Test Event",
-                    Icon = "textures/maintenance.png"
-                }, "Test description!", this.IconState);
+                    Icon = "textures/maintenance.png",
+                }, "Test description!", _moduleSettings.ReminderPosition.X.Value, _moduleSettings.ReminderPosition.Y.Value, this.IconState)
+                {
+                    BackgroundOpacity = _moduleSettings.ReminderOpacity.Value
+                };
 
-                reminder.Show(TimeSpan.FromSeconds(_moduleSettings.ReminderDuration.Value), _moduleSettings.ReminderPosition.X.Value, _moduleSettings.ReminderPosition.Y.Value);
+                reminder.Show(TimeSpan.FromSeconds(_moduleSettings.ReminderDuration.Value));
             });
 
             //var lastChild = parent.Children.Last();

@@ -23,6 +23,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : Settings.BaseModuleSettings where TModule : class
@@ -102,6 +103,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     public IconState IconState { get; private set; }
     public TranslationState TranslationState { get; private set; }
+    public SettingEventState SettingEventState { get; private set; }
     public WorldbossState WorldbossState { get; private set; }
     public MapchestState MapchestState { get; private set; }
     public PointOfInterestState PointOfInterestState { get; private set; }
@@ -195,6 +197,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 AwaitLoading = true,
             }, this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
             this._states.Add(this.TranslationState);
+
+            this.SettingEventState = new SettingEventState(new StateConfiguration()
+            {
+                Enabled = true,
+                AwaitLoading = false,
+                SaveInterval = Timeout.InfiniteTimeSpan
+            });
+            this._states.Add(this.SettingEventState);
 
             if (configurations.Items.Enabled)
             {
@@ -416,7 +426,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             this.SettingsWindow.Tabs.Add(
                 new Tab(
                     this.IconState.GetIcon("155052.png"),
-                    () => new UI.Views.Settings.StateSettingsView(this._states, this.Gw2ApiManager, this.IconState, this.TranslationState, this.Font)
+                    () => new UI.Views.Settings.StateSettingsView(this._states, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.Font)
                     {
                         DefaultColor = this.ModuleSettings.DefaultGW2Color
                     },

@@ -28,7 +28,6 @@
         private static readonly BitmapFont _messageFont = GameService.Content.DefaultFont18;
 
         private EventWaitHandle _waitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private AsyncTexture2D _backgroundImage;
         private Rectangle _shadowRect;
         private Rectangle _confirmRect;
         private Rectangle _titleRect;
@@ -82,8 +81,6 @@
             this.Height = this.Parent.Height;
             this.ZIndex = int.MaxValue;
             this.Visible = false;
-
-            this._backgroundImage = this._iconState.GetIcon("155963.png");
 
             GameService.Input.Keyboard.KeyPressed += this.Keyboard_KeyPressed;
 
@@ -244,10 +241,7 @@
         {
             spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, this._shadowRect, Color.LightGray * 0.8f);
 
-            if (this._backgroundImage != null && this._backgroundImage.HasSwapped)
-            {
-                spriteBatch.DrawOnCtrl(this, this._backgroundImage, this._confirmRect);
-            }
+            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, this._confirmRect, Color.Black * 0.9f);
 
             spriteBatch.DrawStringOnCtrl(this, this._parsedTitle, _titleFont, this._titleRect, Color.White, horizontalAlignment: Blish_HUD.Controls.HorizontalAlignment.Center, verticalAlignment: VerticalAlignment.Top);
 
@@ -284,7 +278,6 @@
             _ = this._waitHandle?.Set();
             this._waitHandle?.Dispose();
             this._waitHandle = null;
-            this._backgroundImage = null;
         }
     }
 

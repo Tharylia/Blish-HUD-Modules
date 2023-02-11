@@ -14,7 +14,7 @@
     {
         private readonly ModuleSettings _moduleSettings;
 
-        public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
         {
             this._moduleSettings = moduleSettings;
         }
@@ -31,6 +31,7 @@
 
             this.RenderBoolSetting(parent, _moduleSettings.HideOnMissingMumbleTicks);
             this.RenderBoolSetting(parent, _moduleSettings.HideOnOpenMap);
+            this.RenderBoolSetting(parent, _moduleSettings.HideInCombat);
             this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_OpenWorld);
             this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_Competetive);
             this.RenderBoolSetting(parent, _moduleSettings.HideInWvW);

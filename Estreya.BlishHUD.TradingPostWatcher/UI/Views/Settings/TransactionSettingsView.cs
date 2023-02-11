@@ -12,11 +12,11 @@
 
     public class TransactionSettingsView : BaseSettingsView
     {
-        public TransactionSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public TransactionSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState,SettingEventState settingEventState,  BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
         {
         }
 
-        protected override void BuildView(Panel parent)
+        protected override void BuildView(FlowPanel parent)
         {
             this.RenderIntSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.MaxTransactions);
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.ShowBuyTransactions);

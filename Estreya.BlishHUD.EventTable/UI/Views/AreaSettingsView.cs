@@ -45,7 +45,7 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<EventAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, EventState eventState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, EventState eventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
@@ -270,6 +270,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderIntSetting(settingsPanel, areaConfiguration.TimeSpan);
+        this.RenderIntSetting(settingsPanel, areaConfiguration.HistorySplit);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -299,6 +300,7 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderColorSetting(settingsPanel, areaConfiguration.BackgroundColor);
         this.RenderFloatSetting(settingsPanel, areaConfiguration.Opacity);
+        this.RenderFloatSetting(settingsPanel, areaConfiguration.EventOpacity);
 
         this.RenderEmptyLine(settingsPanel);
 

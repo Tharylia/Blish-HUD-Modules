@@ -21,8 +21,8 @@ using Blish_HUD.Controls;
 
 public class EventNotification : RenderTargetControl
 {
-    private const int NOTIFICATION_WIDTH = 350;
-    private const int NOTIFICATION_HEIGHT = 96;
+    public const int NOTIFICATION_WIDTH = 350;
+    public const int NOTIFICATION_HEIGHT = 96;
     private const int ICON_SIZE = 64;
 
     private static int _shownNotifications = 0;
@@ -32,6 +32,9 @@ public class EventNotification : RenderTargetControl
     private IconState _iconState;
     private AsyncTexture2D _eventIcon;
 
+    private int _x;
+    private int _y;
+
     private static BitmapFont _titleFont = GameService.Content.DefaultFont18;
     private static BitmapFont _messageFont = GameService.Content.DefaultFont16;
 
@@ -40,10 +43,14 @@ public class EventNotification : RenderTargetControl
     private static Rectangle _titleRect = new Rectangle(_iconRect.Right + 5, 10, _fullRect.Width - (_iconRect.Right + 5), _titleFont.LineHeight);
     private static Rectangle _messageRect = new Rectangle(_iconRect.Right + 5, _titleRect.Bottom, _fullRect.Width - (_iconRect.Right + 5), NOTIFICATION_HEIGHT - _titleRect.Height);
 
-    public EventNotification(Models.Event ev, string message, IconState iconState)
+    public float BackgroundOpacity { get; set; } = 1f;
+
+    public EventNotification(Models.Event ev, string message, int x, int y,  IconState iconState)
     {
         this._event = ev;
         this._message = message;
+        this._x = x;
+        this._y = y;
         this._iconState = iconState;
 
         this._eventIcon = this._iconState?.GetIcon(ev.Icon);
@@ -55,11 +62,11 @@ public class EventNotification : RenderTargetControl
         this.Parent = GameService.Graphics.SpriteScreen;
     }
 
-    public void Show(TimeSpan duration, int x, int y)
+    public void Show(TimeSpan duration)
     {
         _shownNotifications++;
 
-        this.Location = new Microsoft.Xna.Framework.Point (x, y +( (NOTIFICATION_HEIGHT+ 15) * _shownNotifications));
+        this.Location = new Microsoft.Xna.Framework.Point (this._x, this._y +( (NOTIFICATION_HEIGHT+ 15) * _shownNotifications));
         base.Show();
 
         _ = GameService.Animation.Tweener.Tween(this, new { Opacity = 1f }, 0.2f)
@@ -86,7 +93,7 @@ public class EventNotification : RenderTargetControl
 
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
-            spriteBatch.Draw(ContentService.Textures.Pixel, _fullRect, Color.Black * 0.4f);
+            spriteBatch.Draw(ContentService.Textures.Pixel, _fullRect, Color.Black * this.BackgroundOpacity);
 
         if (this._eventIcon != null && this._eventIcon.HasSwapped)
         {
