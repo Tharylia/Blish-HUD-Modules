@@ -1,8 +1,9 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
     using Blish_HUD.Settings;
+    using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Models.Drawers;
@@ -33,9 +34,11 @@ namespace Estreya.BlishHUD.EventTable
         public SettingCollection EventAreaSettings { get; private set; }
         public SettingEntry<List<string>> EventAreaNames { get; private set; }
 
-        public SettingEntry<bool> RemindersEnabled { get; set; }
-        public EventReminderPositition ReminderPosition { get; set; }
-        public SettingEntry<float> ReminderDuration { get; set; }
+        public SettingEntry<bool> RemindersEnabled { get; private set; }
+        public EventReminderPositition ReminderPosition { get; private set; }
+        public SettingEntry<float> ReminderDuration { get; private set; }
+
+        public SettingEntry<float> ReminderOpacity { get; private set; }
 
         /// <summary>
         /// Contains a list of event setting keys for which NO reminder should be displayed.
@@ -74,6 +77,9 @@ namespace Estreya.BlishHUD.EventTable
             this.ReminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
 
             this.ReminderDisabledForEvents = this.GlobalSettings.DefineSetting(nameof(this.ReminderDisabledForEvents), new List<string>(), () => "Reminder disabled for Events", () => "Defines the events for which NO reminder should be displayed.");
+
+            this.ReminderOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderOpacity), 0.5f, () => "Reminder Opacity", () => "Defines the background opacity for reminders.");
+            this.ReminderOpacity.SetRange(0.1f, 1f);
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)

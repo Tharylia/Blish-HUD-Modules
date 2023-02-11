@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views
 {
     using Blish_HUD;
     using Blish_HUD.Controls;
@@ -37,6 +37,7 @@ namespace Estreya.BlishHUD.EventTable.UI.Views
             this.RenderIntSetting(parent, _moduleSettings.ReminderPosition.X);
             this.RenderIntSetting(parent, _moduleSettings.ReminderPosition.Y);
             this.RenderFloatSetting(parent, _moduleSettings.ReminderDuration);
+            this.RenderFloatSetting(parent, _moduleSettings.ReminderOpacity);
 
             this.RenderEmptyLine(parent);
 
