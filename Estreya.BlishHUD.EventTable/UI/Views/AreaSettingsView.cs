@@ -115,7 +115,7 @@ public class AreaSettingsView : BaseSettingsView
             };
         });
 
-        StandardButton addButton = this.RenderButton(newParent, "Add", () =>
+        StandardButton addButton = this.RenderButton(newParent, this.TranslationState.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
         {
             this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
@@ -163,7 +163,7 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
-        StandardButton saveButton = this.RenderButton(this._areaPanel, "Save", () =>
+        StandardButton saveButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
         {
             try
             {
@@ -212,7 +212,7 @@ public class AreaSettingsView : BaseSettingsView
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
-        StandardButton cancelButton = this.RenderButton(this._areaPanel, "Cancel", () =>
+        StandardButton cancelButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
         {
             this.ClearAreaPanel();
         });
@@ -306,7 +306,7 @@ public class AreaSettingsView : BaseSettingsView
 
         var lastAdded = settingsPanel.Children.Last();
 
-        var manageEventsButton = this.RenderButton(this._areaPanel, "Manage Events", () =>
+        var manageEventsButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-manageEvents-btn", "Manage Events"), () =>
         {
             this.ManageEvents(areaConfiguration);
         });
@@ -314,7 +314,7 @@ public class AreaSettingsView : BaseSettingsView
         manageEventsButton.Top = areaName.Top;
         manageEventsButton.Left = settingsPanel.Left;
 
-        var reorderEventsButton = this.RenderButton(this._areaPanel, "Reorder Events", () =>
+        var reorderEventsButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-reorderEvents-btn", "Reorder Events"), () =>
         {
             this.ReorderEvents(areaConfiguration);
         });
@@ -322,7 +322,7 @@ public class AreaSettingsView : BaseSettingsView
         reorderEventsButton.Top = manageEventsButton.Bottom + 2;
         reorderEventsButton.Left = manageEventsButton.Left;
 
-        StandardButton removeButton = this.RenderButtonAsync(this._areaPanel, "Remove", async () =>
+        StandardButton removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
         {
             var dialog = new ConfirmDialog(
                     $"Delete Event Area \"{areaConfiguration.Name}\"", $"Your are in the process of deleting the event area \"{areaConfiguration.Name}\".\nThis action will delete all settings.\n\nContinue?",
