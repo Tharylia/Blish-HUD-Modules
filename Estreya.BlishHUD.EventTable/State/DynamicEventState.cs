@@ -1,5 +1,6 @@
 ﻿namespace Estreya.BlishHUD.EventTable.State;
 
+using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.State;
 using Flurl.Http;
 using Microsoft.Xna.Framework;
@@ -11,7 +12,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class DynamicEventState : ManagedState
+public class DynamicEventState : APIState
 {
     private const string BASE_URL = "https://api.guildwars2.com/v1";
     private readonly IFlurlClient _flurlClient;
@@ -19,28 +20,9 @@ public class DynamicEventState : ManagedState
     public Map[] Maps { get; private set; }
     public DynamicEvent[] Events { get; private set; }
 
-    public DynamicEventState(StateConfiguration configuration, IFlurlClient flurlClient) : base(configuration)
+    public DynamicEventState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IFlurlClient flurlClient) : base(apiManager, configuration)
     {
         this._flurlClient = flurlClient;
-    }
-
-    protected override Task Initialize()
-    {
-        return Task.CompletedTask;
-    }
-
-    protected override void InternalUnload()
-    {
-    }
-
-    protected override void InternalUpdate(GameTime gameTime)
-    {
-    }
-
-    protected override async Task Load()
-    {
-        this.Maps = await this.GetMaps();
-        this.Events = await this.GetEvents();
     }
 
     public Map GetMap(int id)
@@ -50,12 +32,12 @@ public class DynamicEventState : ManagedState
 
     public DynamicEvent[] GetEventsByMap(int mapId)
     {
-        return this.Events.Where(e => e.MapId == mapId).ToArray();
+        return this.Events?.Where(e => e.MapId == mapId).ToArray();
     }
 
     public DynamicEvent GetEventById(string eventId)
     {
-        return this.Events.Where(e => e.ID == eventId).FirstOrDefault();
+        return this.Events?.Where(e => e.ID == eventId).FirstOrDefault();
     }
 
     private async Task<Map[]> GetMaps()
@@ -83,6 +65,12 @@ public class DynamicEventState : ManagedState
 
             return x.Value;
         }).ToArray();
+    }
+
+    protected override async Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress)
+    {
+        this.Maps = await this.GetMaps();
+        this.Events = await this.GetEvents();
     }
 
     public class Map

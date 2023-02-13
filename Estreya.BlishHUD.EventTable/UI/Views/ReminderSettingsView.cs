@@ -41,7 +41,7 @@
 
             this.RenderEmptyLine(parent);
 
-            this.RenderButton(parent, "Manage Reminders", () =>
+            this.RenderButton(parent, this.TranslationState.GetTranslation("reminderSettingsView-manageReminders-btn","Manage Reminders"), () =>
             {
                 if (this._manageEventsWindow == null)
                 {
@@ -73,7 +73,7 @@
                 _manageEventsWindow.Show(view);
             });
 
-            this.RenderButton(parent, "Test Reminder", () =>
+            this.RenderButton(parent, this.TranslationState.GetTranslation("reminderSettingsView-testReminder-btn","Test Reminder"), () =>
             {
                 var reminder = new EventNotification(new Models.Event()
                 {
@@ -86,56 +86,6 @@
 
                 reminder.Show(TimeSpan.FromSeconds(_moduleSettings.ReminderDuration.Value));
             });
-
-            //var lastChild = parent.Children.Last();
-
-            //var managePanel = new FlowPanel()
-            //{
-            //    Parent = parent,
-            //    ShowBorder = true,
-            //    CanScroll = true,
-            //    Width = parent.ContentRegion.Width - 50,
-            //    HeightSizingMode = SizingMode.Fill,
-            //    FlowDirection = ControlFlowDirection.LeftToRight
-            //};
-
-            //foreach (var ec in _getEvents())
-            //{
-            //    foreach (var ev in ec.Events)
-            //    {
-            //        var eventDetailButton = new EventDetailsButton()
-            //        {
-            //            Parent = managePanel,
-            //            Event = ev,
-            //            Icon = this.IconState.GetIcon(ev.Icon),
-            //            Text = ev.Name,
-            //        };
-
-            //        GlowButton toggleButton = new GlowButton()
-            //        {
-            //            Parent = eventDetailButton,
-            //            Checked = !_moduleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey),
-            //        };
-
-            //        this.UpdateToggleButton(toggleButton);
-
-            //        toggleButton.CheckedChanged += (s, eventArgs) =>
-            //        {
-            //            _moduleSettings.ReminderDisabledForEvents.Value = eventArgs.Checked
-            //                ? new List<string>(_moduleSettings.ReminderDisabledForEvents.Value) { ev.SettingKey }
-            //                : new List<string>(_moduleSettings.ReminderDisabledForEvents.Value.Where(s => s != ev.SettingKey));
-
-            //            this.UpdateToggleButton(toggleButton);
-            //        };
-
-            //        toggleButton.Click += (s, eventArgs) =>
-            //        {
-            //            toggleButton.Checked = !toggleButton.Checked;
-            //        };
-            //    }
-            //}
-
-            //managePanel.Height = managePanel.Height--;
         }
 
         private void ManageView_EventChanged(object sender, EventChangedArgs e)
@@ -143,16 +93,6 @@
             this._moduleSettings.ReminderDisabledForEvents.Value = e.NewState
                 ? new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value.Where(s => s != e.EventSettingKey))
                 : new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value) { e.EventSettingKey };
-        }
-
-        private void UpdateToggleButton(GlowButton button)
-        {
-            GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
-            {
-                button.Icon = button.Checked
-                    ? this.IconState.GetIcon("784259.png")
-                    : this.IconState.GetIcon("784261.png");
-            });
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)

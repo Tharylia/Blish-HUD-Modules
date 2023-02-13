@@ -40,6 +40,8 @@
 
         public SettingEntry<float> ReminderOpacity { get; private set; }
 
+        public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
+
         /// <summary>
         /// Contains a list of event setting keys for which NO reminder should be displayed.
         /// </summary>
@@ -63,8 +65,7 @@
             this.MapKeybinding.Value.Enabled = true;
             this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
 
-
-            this.RemindersEnabled = this.GlobalSettings.DefineSetting(nameof(this.RemindersEnabled), true, () => "Reminders Enabled", () => "Whether the drawer should display alerts before an event starts.");
+            this.RemindersEnabled = this.GlobalSettings.DefineSetting(nameof(this.RemindersEnabled), true, () => "Reminders Enabled", () => "Whether the module should display alerts before an event starts.");
             this.ReminderPosition = new EventReminderPositition()
             {
                 X = this.GlobalSettings.DefineSetting($"ReminderPositionX", 200, () => "Location X", () => "Defines the position of reminders on the x axis."),
@@ -73,13 +74,15 @@
 
             var reminderDurationMin = 1;
             var reminderDurationMax = 15;
-            this.ReminderDuration = this.GlobalSettings.DefineSetting(nameof(this.ReminderDuration), 5f, () => "Reminder Duration", () => $"Defines the reminder duration. Min: {reminderDurationMin}s - Max: {reminderDurationMax}s");
+            this.ReminderDuration = this.GlobalSettings.DefineSetting(nameof(this.ReminderDuration), 5f, () => "Reminder Duration", () => $"Defines the reminder duration.");
             this.ReminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
 
             this.ReminderDisabledForEvents = this.GlobalSettings.DefineSetting(nameof(this.ReminderDisabledForEvents), new List<string>(), () => "Reminder disabled for Events", () => "Defines the events for which NO reminder should be displayed.");
 
             this.ReminderOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderOpacity), 0.5f, () => "Reminder Opacity", () => "Defines the background opacity for reminders.");
             this.ReminderOpacity.SetRange(0.1f, 1f);
+
+            this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)
@@ -122,7 +125,7 @@
 
             var completionAction = this.DrawerSettings.DefineSetting($"{name}-completionAction", EventCompletedAction.Crossout, () => "Completion Action", () => "Defines the action to perform if an event has been completed.");
 
-            var disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", /*eventCategories.SelectMany(ec => ec.Events.Select(ev => ev.SettingKey)).ToList()*/ new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
+            var disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys",new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
 
             var eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
             eventHeight.SetRange(5, 30);
@@ -193,6 +196,26 @@
             var remindersEnabledDescriptionDefault = this.RemindersEnabled.Description;
             this.RemindersEnabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-remindersEnabled-name", remindersEnabledDisplayNameDefault);
             this.RemindersEnabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-remindersEnabled-description", remindersEnabledDescriptionDefault);
+
+            var reminderPositionXDisplayNameDefault = this.ReminderPosition.X.DisplayName;
+            var reminderPositionXDescriptionDefault = this.ReminderPosition.X.Description;
+            this.ReminderPosition.X.GetDisplayNameFunc = () => translationState.GetTranslation("setting-reminderPositionX-name", reminderPositionXDisplayNameDefault);
+            this.ReminderPosition.X.GetDescriptionFunc = () => translationState.GetTranslation("setting-reminderPositionX-description", reminderPositionXDescriptionDefault);
+
+            var reminderPositionYDisplayNameDefault = this.ReminderPosition.Y.DisplayName;
+            var reminderPositionYDescriptionDefault = this.ReminderPosition.Y.Description;
+            this.ReminderPosition.Y.GetDisplayNameFunc = () => translationState.GetTranslation("setting-reminderPositionY-name", reminderPositionYDisplayNameDefault);
+            this.ReminderPosition.Y.GetDescriptionFunc = () => translationState.GetTranslation("setting-reminderPositionY-description", reminderPositionYDescriptionDefault);
+
+            var reminderDurationDisplayNameDefault = this.ReminderDuration.DisplayName;
+            var reminderDurationDescriptionDefault = this.ReminderDuration.Description;
+            this.ReminderDuration.GetDisplayNameFunc = () => translationState.GetTranslation("setting-reminderDuration-name", reminderDurationDisplayNameDefault);
+            this.ReminderDuration.GetDescriptionFunc = () => translationState.GetTranslation("setting-reminderDuration-description", reminderDurationDescriptionDefault);
+
+            var reminderOpacityDisplayNameDefault = this.ReminderOpacity.DisplayName;
+            var reminderOpacityDescriptionDefault = this.ReminderOpacity.Description;
+            this.ReminderOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-reminderOpacity-name", reminderOpacityDisplayNameDefault);
+            this.ReminderOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-reminderOpacity-description", reminderOpacityDescriptionDefault);
         }
 
         public void UpdateDrawerLocalization(EventAreaConfiguration drawerConfiguration, TranslationState translationState)
@@ -244,20 +267,10 @@
             drawerConfiguration.CompletionAcion.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerCompletionAction-name", completionActionDisplayNameDefault);
             drawerConfiguration.CompletionAcion.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerCompletionAction-description", completionActionDescriptionDefault);
 
-            var disabledEventKeysDisplayNameDefault = drawerConfiguration.DisabledEventKeys.DisplayName;
-            var disabledEventKeysDescriptionDefault = drawerConfiguration.DisabledEventKeys.Description;
-            drawerConfiguration.DisabledEventKeys.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerDisabledEventKeys-name", disabledEventKeysDisplayNameDefault);
-            drawerConfiguration.DisabledEventKeys.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerDisabledEventKeys-description", disabledEventKeysDescriptionDefault);
-
             var eventHeightDisplayNameDefault = drawerConfiguration.EventHeight.DisplayName;
             var eventHeightDescriptionDefault = drawerConfiguration.EventHeight.Description;
             drawerConfiguration.EventHeight.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventHeight-name", eventHeightDisplayNameDefault);
             drawerConfiguration.EventHeight.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventHeight-description", eventHeightDescriptionDefault);
-
-            var eventOrderDisplayNameDefault = drawerConfiguration.EventOrder.DisplayName;
-            var eventOrderDescriptionDefault = drawerConfiguration.EventOrder.Description;
-            drawerConfiguration.EventOrder.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOrder-name", eventOrderDisplayNameDefault);
-            drawerConfiguration.EventOrder.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOrder-description", eventOrderDescriptionDefault);
 
             var eventOpacityDisplayNameDefault = drawerConfiguration.EventOpacity.DisplayName;
             var eventOpacityDescriptionDefault = drawerConfiguration.EventOpacity.Description;
