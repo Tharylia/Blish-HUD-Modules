@@ -5,6 +5,8 @@ using Blish_HUD.Controls.Extern;
 using Blish_HUD.Controls.Intern;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Controls.Map;
 using Estreya.BlishHUD.Shared.Extensions;
 using Flurl.Util;
 using Gw2Sharp.WebApi.V2.Models;
@@ -14,7 +16,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 
-public class MapUtil
+public class MapUtil : IDisposable
 {
     private static readonly Logger Logger = Logger.GetLogger(typeof(MapUtil));
     private readonly KeyBinding _mapKeybinding;
@@ -23,10 +25,17 @@ public class MapUtil
     public static int MouseMoveAndClickDelay { get; set; } = 50;
     public static int KeyboardPressDelay { get; set; } = 20;
 
+    private FlatMap _flatMap;
+
     public MapUtil(KeyBinding mapKeybinding, Gw2ApiManager apiManager)
     {
         this._mapKeybinding = mapKeybinding;
         this._apiManager = apiManager;
+
+        this._flatMap = new FlatMap()
+        {
+            Parent = GameService.Graphics.SpriteScreen
+        };
     }
 
     private double GetDistance(double x1, double y1, double x2, double y2)
@@ -45,6 +54,14 @@ public class MapUtil
         while (GameService.Gw2Mumble.Tick - tick < ticks * 2)
         {
             await Task.Delay(10);
+        }
+    }
+
+    public async Task WaitForMapClose(int delay = 10)
+    {
+        while (GameService.Gw2Mumble.UI.IsMapOpen)
+        {
+            await Task.Delay(delay);
         }
     }
 
@@ -371,7 +388,7 @@ public class MapUtil
         }
     }
 
-    public async Task<(double X, double Y)> MapCoordinatesToContinentCoordinates(int mapId, double[] coordinates)
+    public async Task<(double X, double Y)> EventMapCoordinatesToContinentCoordinates(int mapId, double[] coordinates)
     {
         var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(mapId);
         var continent_rect = map.ContinentRect;
@@ -383,17 +400,37 @@ public class MapUtil
         return ( x, y );
     }
 
-    public async Task<NavigationResult> DrawCircle(double x, double y, double radius)
+    public async Task<double> EventMapLengthToContinentLength(int mapId, double length)
     {
-        var navResult = await this.NavigateToPosition(x, y);
-        if (!navResult.Success)
-        {
-            return navResult;
-        }
+        var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(mapId);
+        var map_rect = map.MapRect;
 
-        
+        length /= 1d / 24d;
 
-        return new NavigationResult(true, null);
+        var scalex = (length - map_rect.BottomLeft.X) / (map_rect.TopRight.X - map_rect.BottomLeft.X);
+        var scaley = (length - map_rect.BottomLeft.Y) / (map_rect.TopRight.Y - map_rect.BottomLeft.Y);
+        return Math.Sqrt((scalex * scalex) + (scaley * scaley));
+    }
+
+    public MapEntity AddCircle(double x, double y, double radius, Microsoft.Xna.Framework.Color color, float thickness = 1)
+    {
+        MapCircle circle = new MapCircle((float)x, (float)y, (float)radius, color, thickness);
+        this._flatMap.AddEntity(circle);
+
+        return circle;
+    }
+
+    public MapEntity AddBorder(double x, double y, float[][] points, Microsoft.Xna.Framework.Color color, float thickness = 1)
+    {
+        MapBorder border = new MapBorder((float)x, (float)y, points, color, thickness);
+        this._flatMap.AddEntity(border);
+
+        return border;
+    }
+
+    public void ClearMapEntities()
+    {
+        this._flatMap.ClearEntities();
     }
 
     private async Task<NavigationResult> MoveMouse(int x, int y, bool sendToSystem = false)
@@ -404,6 +441,12 @@ public class MapUtil
         await this.WaitForTick();
 
         return new NavigationResult(true, null);
+    }
+
+    public void Dispose()
+    {
+        this._flatMap?.Dispose();
+        this._flatMap = null;
     }
 
     public enum ChangeMapLayerDirection

@@ -10,11 +10,15 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\IgnoreCopyAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapBorder.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapCircle.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ConfirmDialog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ControlMover.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\FlatMap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\KeybindingAssigner.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ListEntry.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ListView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapEntity.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Menu.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\RenderTargetControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ScreenNotification.cs" />

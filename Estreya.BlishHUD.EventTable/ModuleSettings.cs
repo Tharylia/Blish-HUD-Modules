@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
@@ -40,6 +40,8 @@
 
         public SettingEntry<float> ReminderOpacity { get; private set; }
 
+        public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
+
         /// <summary>
         /// Contains a list of event setting keys for which NO reminder should be displayed.
         /// </summary>
@@ -80,6 +82,8 @@
 
             this.ReminderOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderOpacity), 0.5f, () => "Reminder Opacity", () => "Defines the background opacity for reminders.");
             this.ReminderOpacity.SetRange(0.1f, 1f);
+
+            this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)
