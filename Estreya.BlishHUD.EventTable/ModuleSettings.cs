@@ -40,12 +40,22 @@
 
         public SettingEntry<float> ReminderOpacity { get; private set; }
 
-        public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
-
         /// <summary>
         /// Contains a list of event setting keys for which NO reminder should be displayed.
         /// </summary>
         public SettingEntry<List<string>> ReminderDisabledForEvents { get; set; }
+
+        public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
+
+        public SettingEntry<bool> ShowDynamicEventInWorld { get; private set; }
+
+        public SettingEntry<bool> ShowDynamicEventsInWorldOnlyWhenInside { get; private set; }
+
+        public SettingEntry<bool> IgnoreZAxisOnDynamicEventsInWorld { get; private set; }
+
+        public SettingEntry<int> DynamicEventsRenderDistance { get; private set; }
+
+        public SettingEntry<List<string>> DisabledDynamicEventIds { get; private set; }
 
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.E))
         {
@@ -83,6 +93,38 @@
             this.ReminderOpacity.SetRange(0.1f, 1f);
 
             this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
+
+            this.ShowDynamicEventInWorld = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventInWorld), false, () => "Show Dynamic Events in World", () => "Whether dynamic events should be shown inside the world.");
+            this.ShowDynamicEventInWorld.SettingChanged += this.ShowDynamicEventInWorld_SettingChanged;
+
+            this.ShowDynamicEventsInWorldOnlyWhenInside = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsInWorldOnlyWhenInside), true, () => "Show only when inside.", () => "Whether the dynamic events inside the world should only show up when the player is inside.");
+            this.ShowDynamicEventsInWorldOnlyWhenInside.SettingChanged += this.ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged;
+
+            this.IgnoreZAxisOnDynamicEventsInWorld = this.GlobalSettings.DefineSetting(nameof(this.IgnoreZAxisOnDynamicEventsInWorld), true, () => "Ignore Z Axis", () => "Defines whether the z axis should be ignored when calculating the visibility of in world events.");
+
+            this.DynamicEventsRenderDistance = this.GlobalSettings.DefineSetting(nameof(this.DynamicEventsRenderDistance), 300, () => "Dynamic Event Render Distance", () => "Defines the distance in which dynamic events should be rendered");
+            this.DynamicEventsRenderDistance.SetRange(50, 500);
+
+            this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
+
+            this.HandleEnabledStates();
+        }
+
+        private void ShowDynamicEventInWorld_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+        {
+            this.HandleEnabledStates();
+        }
+
+        private void ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+        {
+            this.HandleEnabledStates();
+        }
+
+        private void HandleEnabledStates()
+        {
+            this.ShowDynamicEventsInWorldOnlyWhenInside.SetDisabled(!this.ShowDynamicEventInWorld.Value);
+            this.IgnoreZAxisOnDynamicEventsInWorld.SetDisabled(!this.ShowDynamicEventInWorld.Value || !this.ShowDynamicEventsInWorldOnlyWhenInside.Value);
+            this.DynamicEventsRenderDistance.SetDisabled(!this.ShowDynamicEventInWorld.Value || this.ShowDynamicEventsInWorldOnlyWhenInside.Value);
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)
@@ -276,6 +318,13 @@
             var eventOpacityDescriptionDefault = drawerConfiguration.EventOpacity.Description;
             drawerConfiguration.EventOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-name", eventOpacityDisplayNameDefault);
             drawerConfiguration.EventOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-description", eventOpacityDescriptionDefault);
+        }
+
+        public override void Unload()
+        {
+            base.Unload();
+            this.ShowDynamicEventInWorld.SettingChanged -= this.ShowDynamicEventInWorld_SettingChanged;
+            this.ShowDynamicEventsInWorldOnlyWhenInside.SettingChanged -= this.ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged;
         }
     }
 }

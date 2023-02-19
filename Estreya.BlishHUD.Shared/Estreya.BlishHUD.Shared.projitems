@@ -24,12 +24,17 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ScreenNotification.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextArea.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextBoxSuggestions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\World\VertexPositionNormal.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldEntity.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldPolygone.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldSphere.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ArrayExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\EnumExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\GW2APIExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\HttpExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\IEnumerableExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\MapExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\NumberExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ObjectExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ProcessExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\RectangleExtension.cs" />

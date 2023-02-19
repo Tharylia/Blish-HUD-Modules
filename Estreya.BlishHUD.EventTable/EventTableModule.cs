@@ -1,18 +1,18 @@
 ﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
-    using Blish_HUD.ArcDps.Models;
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
+    using Blish_HUD.Entities;
     using Blish_HUD.Input;
     using Blish_HUD.Modules;
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Controls;
+    using Estreya.BlishHUD.EventTable.Managers;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.State;
-    using Estreya.BlishHUD.Shared.Controls;
-    using Estreya.BlishHUD.Shared.Controls.Map;
-    using Estreya.BlishHUD.Shared.Helpers;
+    using Estreya.BlishHUD.Shared.Controls.World;
+    using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
     using Estreya.BlishHUD.Shared.State;
@@ -21,6 +21,9 @@
     using Flurl.Http;
     using Humanizer;
     using Microsoft.Xna.Framework;
+    using Microsoft.Xna.Framework.Graphics;
+    using SharpDX.MediaFoundation;
+    using SharpDX.X3DAudio;
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -28,7 +31,6 @@
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Windows.Forms;
 
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
@@ -52,7 +54,9 @@
         public DynamicEventState DynamicEventState { get; private set; }
         #endregion
 
-        internal MapUtil MapUtil { get; private set; }
+        private MapUtil MapUtil { get; set; }
+
+        private DynamicEventHandler DynamicEventHandler { get; set; }
 
         protected override string API_VERSION_NO => "1";
 
@@ -64,7 +68,12 @@
         protected override async Task LoadAsync()
         {
             await base.LoadAsync();
+
             this.MapUtil = new MapUtil(this.ModuleSettings.MapKeybinding.Value, this.Gw2ApiManager);
+            this.DynamicEventHandler = new DynamicEventHandler(this.MapUtil, this.DynamicEventState, this.Gw2ApiManager, this.ModuleSettings);
+
+            await this.DynamicEventHandler.AddDynamicEventsToMap();
+            await this.DynamicEventHandler.AddDynamicEventsToWorld();
 
             this.Logger.Debug("Load events.");
             await this.LoadEvents();
@@ -73,32 +82,12 @@
 
             this.SetAreaEvents();
 
-            await this.AddDynamicEventsToMap(false);
-
-            GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
-            this.ModuleSettings.ShowDynamicEventsOnMap.SettingChanged += this.ShowDynamicEventsOnMap_SettingChanged;
 #if DEBUG
             GameService.Input.Keyboard.KeyPressed += this.Keyboard_KeyPressed;
 #endif
         }
 
-        private async void ShowDynamicEventsOnMap_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
-        {
-            try
-            {
-                await this.AddDynamicEventsToMap(false);
-            }
-            catch (Exception) { }
-        }
-
-        private async void CurrentMap_MapChanged(object sender, ValueEventArgs<int> e)
-        {
-            try
-            {
-                await this.AddDynamicEventsToMap(false);
-            }
-            catch (Exception) { }
-        }
+        private List<IEntity> _worldEntites = new List<IEntity>();
 
         private void Keyboard_KeyPressed(object sender, KeyboardEventArgs e)
         {
@@ -107,65 +96,6 @@
 
             if (e.Key == Microsoft.Xna.Framework.Input.Keys.U)
             {
-            }
-        }
-
-        private async Task AddDynamicEventsToMap(bool removeAfterMapClose = true)
-        {
-            this.MapUtil.ClearMapEntities();
-
-            if (!this.ModuleSettings.ShowDynamicEventsOnMap.Value || !GameService.Gw2Mumble.IsAvailable) return;
-
-            await this.DynamicEventState.WaitForCompletion();
-            var events = this.DynamicEventState.GetEventsByMap(GameService.Gw2Mumble.CurrentMap.Id).OrderByDescending(d => d.Location.Points?.Length ?? 0 ).ThenByDescending(d => d.Location.Radius);
-            if (events != null)
-            {
-                var mapEntites = new List<MapEntity>();
-                foreach (var ev in events)
-                {
-                    try
-                    {
-                        var coords = await this.MapUtil.EventMapCoordinatesToContinentCoordinates(ev.MapId, new double[] { ev.Location.Center[0], ev.Location.Center[1] });
-                        switch (ev.Location.Type)
-                        {
-                            case "sphere":
-                            case "cylinder":
-                                var radius = await this.MapUtil.EventMapLengthToContinentLength(ev.MapId, ev.Location.Radius * 5); // TODO: Way is the radius so small??
-                                var circle = this.MapUtil.AddCircle(coords.X, coords.Y, radius, Color.DarkOrange, 3);
-                                circle.TooltipText = $"{ev.Name} (Level {ev.Level})";
-                                mapEntites.Add(circle);
-                                break;
-                            case "poly":
-                                var points = new List<float[]>();
-                                foreach (var item in ev.Location.Points)
-                                {
-                                    var polyCoords = await this.MapUtil.EventMapCoordinatesToContinentCoordinates(ev.MapId, item);
-
-                                    points.Add(new float[] { (float)polyCoords.X, (float)polyCoords.Y });
-                                }
-
-                                var border = this.MapUtil.AddBorder(coords.X, coords.Y, points.ToArray(), Color.DarkOrange, 4);
-                                border.TooltipText = $"{ev.Name} (Level {ev.Level})";
-                                mapEntites.Add(border);
-                                break;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Logger.Debug(ex, $"Failed to add {ev.Name} to map.");
-                    }
-                }
-
-                if (removeAfterMapClose)
-                {
-                    await this.MapUtil.WaitForMapClose(250);
-                    mapEntites.ForEach(m => m?.Dispose());
-                    mapEntites.Clear();
-                }
-            }
-            else
-            {
-                //Blish_HUD.Controls.ScreenNotification.ShowNotification("No events on this map", Blish_HUD.Controls.ScreenNotification.NotificationType.Error);
             }
         }
 
@@ -288,6 +218,8 @@
                     this._eventCategories.SelectMany(ec => ec.Events).ToList().ForEach(ev => ev.Update(now));
                 }
             }
+
+            this.DynamicEventHandler.Update(gameTime);
 
             _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
         }
@@ -416,7 +348,7 @@
 
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("841721.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventState, this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.API_URL, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
         }
 
@@ -448,7 +380,7 @@
                 AwaitLoading = false,
                 Enabled = true,
                 SaveInterval = Timeout.InfiniteTimeSpan
-            },this.Gw2ApiManager, this.GetFlurlClient());
+            }, this.Gw2ApiManager, this.GetFlurlClient());
 
             additionalStates.Add(this.EventState);
             additionalStates.Add(this.DynamicEventState);
@@ -470,9 +402,6 @@
         protected override void Unload()
         {
             this.Logger.Debug("Unload module.");
-
-            this.ModuleSettings.ShowDynamicEventsOnMap.SettingChanged -= this.ShowDynamicEventsOnMap_SettingChanged;
-            GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
 
             this.MapUtil?.Dispose();
             this.MapUtil = null;

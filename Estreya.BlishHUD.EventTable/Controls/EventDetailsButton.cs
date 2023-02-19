@@ -3,8 +3,12 @@
     using Blish_HUD.Controls;
     using Estreya.BlishHUD.EventTable.Models;
 
-    public class EventDetailsButton : DetailsButton
+    public class EventDetailsButton : DataDetailsButton<Models.Event>
     {
-        public Models.Event Event { get; set; }
+        public Models.Event Event
+        {
+            get => base.Data;
+            set => base.Data = value;
+        }
     }
 }

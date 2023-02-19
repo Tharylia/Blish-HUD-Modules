@@ -111,11 +111,11 @@ public class HelpView : BaseView
         };
 
         var labelBuilder = this.GetLabelBuilder(parent)
-            .CreatePart("Why can't I move my event areas to the border of the screen?", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20).MakeUnderlined(); })
+            .CreatePart("Why are my setting sliders moving when I move others?", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20).MakeUnderlined(); })
             .CreatePart("\n \n", builder => { })
-            .CreatePart("The sliders can't refresh automatically with their new values.", builder => { })
+            .CreatePart("Some sliders have a connection. For example:", builder => { })
             .CreatePart("\n", builder => { })
-            .CreatePart("Switch the settings tab back and fourth. The sliders will be updated.", builder => { });
+            .CreatePart("If you make the table bigger, it can't be moved as far to the right.", builder => { });
 
         var label = labelBuilder.Build();
         label.Parent = panel;

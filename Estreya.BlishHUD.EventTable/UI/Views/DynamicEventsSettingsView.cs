@@ -20,74 +20,62 @@
 
     public class DynamicEventsSettingsView : BaseSettingsView
     {
+        private readonly DynamicEventState _dynamicEventState;
         private readonly ModuleSettings _moduleSettings;
-        //private StandardWindow _manageEventsWindow;
+        private StandardWindow _manageEventsWindow;
 
-        public DynamicEventsSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+        public DynamicEventsSettingsView(DynamicEventState dynamicEventState, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
         {
+            this._dynamicEventState = dynamicEventState;
             this._moduleSettings = moduleSettings;
         }
 
         protected override void BuildView(FlowPanel parent)
         {
             this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventsOnMap);
+            this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventInWorld);
+            this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventsInWorldOnlyWhenInside);
+            this.RenderBoolSetting(parent, _moduleSettings.IgnoreZAxisOnDynamicEventsInWorld);
+            this.RenderIntSetting(parent, _moduleSettings.DynamicEventsRenderDistance);
 
-            //this.RenderIntSetting(parent, _moduleSettings.ReminderPosition.X);
-            //this.RenderIntSetting(parent, _moduleSettings.ReminderPosition.Y);
-            //this.RenderFloatSetting(parent, _moduleSettings.ReminderDuration);
-            //this.RenderFloatSetting(parent, _moduleSettings.ReminderOpacity);
+            this.RenderButton(parent, this.TranslationState.GetTranslation("dynamicEventsSettingsView-manageEvents-btn", "Manage Events"), () =>
+            {
+                if (this._manageEventsWindow == null)
+                {
+                    Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
 
-            //this.RenderEmptyLine(parent);
+                    Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
+                    int contentRegionPaddingY = settingsWindowSize.Y - 15;
+                    int contentRegionPaddingX = settingsWindowSize.X;
+                    Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
 
-            //this.RenderButton(parent, this.TranslationState.GetTranslation("reminderSettingsView-manageReminders-btn","Manage Reminders"), () =>
-            //{
-            //    if (this._manageEventsWindow == null)
-            //    {
-            //        Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
+                    this._manageEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
+                    {
+                        Parent = GameService.Graphics.SpriteScreen,
+                        Title = "Manage Events",
+                        SavesPosition = true,
+                        Id = $"{this.GetType().Name}_7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"
+                    };
+                }
 
-            //        Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-            //        int contentRegionPaddingY = settingsWindowSize.Y - 15;
-            //        int contentRegionPaddingX = settingsWindowSize.X;
-            //        Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
+                if (_manageEventsWindow.CurrentView != null)
+                {
+                    var manageEventView = _manageEventsWindow.CurrentView as ManageDynamicEventsSettingsView;
+                    manageEventView.EventChanged -= this.ManageView_EventChanged;
+                }
 
-            //        this._manageEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
-            //        {
-            //            Parent = GameService.Graphics.SpriteScreen,
-            //            Title = "Manage Events",
-            //            SavesPosition = true,
-            //            Id = $"{this.GetType().Name}_7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"
-            //        };
-            //    }
+                var view = new ManageDynamicEventsSettingsView(this._dynamicEventState, () => this._moduleSettings.DisabledDynamicEventIds.Value, this.APIManager, this.IconState, this.TranslationState);
+                view.EventChanged += this.ManageView_EventChanged;
 
-            //    if (_manageEventsWindow.CurrentView != null)
-            //    {
-            //        var manageEventView = _manageEventsWindow.CurrentView as ManageEventsView;
-            //        manageEventView.EventChanged -= this.ManageView_EventChanged;
-            //    }
-
-            //    var view = new ManageEventsView(this._getEvents(), null, () => _moduleSettings.ReminderDisabledForEvents.Value, this.APIManager, this.IconState, this.TranslationState);
-            //    view.EventChanged += this.ManageView_EventChanged;
-
-            //    _manageEventsWindow.Show(view);
-            //});
-
-            //this.RenderButton(parent, this.TranslationState.GetTranslation("reminderSettingsView-testReminder-btn","Test Reminder"), () =>
-            //{
-            //    var reminder = new EventNotification(new Models.Event()
-            //    {
-            //        Name = "Test Event",
-            //        Icon = "textures/maintenance.png",
-            //    }, "Test description!", _moduleSettings.ReminderPosition.X.Value, _moduleSettings.ReminderPosition.Y.Value, this.IconState)
-            //    {
-            //        BackgroundOpacity = _moduleSettings.ReminderOpacity.Value
-            //    };
-
-            //    reminder.Show(TimeSpan.FromSeconds(_moduleSettings.ReminderDuration.Value));
-            //});
+                _manageEventsWindow.Show(view);
+            });
         }
 
         private void ManageView_EventChanged(object sender, EventChangedArgs e)
         {
+            this._moduleSettings.DisabledDynamicEventIds.Value = e.NewState
+                ? new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value.Where(s => s != e.EventSettingKey))
+                : new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value) { e.EventSettingKey };
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)
@@ -99,13 +87,13 @@
         {
             base.Unload();
 
-            //if (this._manageEventsWindow?.CurrentView != null)
-            //{
-            //    (this._manageEventsWindow.CurrentView as ManageEventsView).EventChanged -= this.ManageView_EventChanged;
-            //}
+            if (this._manageEventsWindow?.CurrentView != null)
+            {
+                (this._manageEventsWindow.CurrentView as ManageDynamicEventsSettingsView).EventChanged -= this.ManageView_EventChanged;
+            }
 
-            //this._manageEventsWindow?.Dispose();
-            //this._manageEventsWindow = null;
+            this._manageEventsWindow?.Dispose();
+            this._manageEventsWindow = null;
         }
     }
 }

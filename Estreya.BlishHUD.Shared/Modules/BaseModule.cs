@@ -364,7 +364,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (this._defaultSettingView == null)
         {
-            this._defaultSettingView = new ModuleSettingsView( this.IconState, this.TranslationState);
+            this._defaultSettingView = new ModuleSettingsView(this.IconState, this.TranslationState);
             this._defaultSettingView.OpenClicked += this.DefaultSettingView_OpenClicked;
             this._defaultSettingView.CreateGithubIssueClicked += this.DefaultSettingView_CreateGithubIssueClicked;
         }
@@ -506,57 +506,52 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// <returns>The newly calculated ui visibility or the last value of <see cref="ShowUI"/>.</returns>
     protected virtual bool CalculateUIVisibility()
     {
-        if (GameService.Gw2Mumble.IsAvailable)
+        bool show = true;
+        if (this.ModuleSettings.HideOnOpenMap.Value)
         {
-            bool show = true;
-            if (this.ModuleSettings.HideOnOpenMap.Value)
-            {
-                show &= !GameService.Gw2Mumble.UI.IsMapOpen;
-            }
-
-            if (this.ModuleSettings.HideOnMissingMumbleTicks.Value)
-            {
-                show &= GameService.Gw2Mumble.TimeSinceTick.TotalSeconds < 0.5;
-            }
-
-            if (this.ModuleSettings.HideInCombat.Value)
-            {
-                show &= !GameService.Gw2Mumble.PlayerCharacter.IsInCombat;
-            }
-
-            // All maps not specified as competetive will be treated as open world
-            if (this.ModuleSettings.HideInPvE_OpenWorld.Value)
-            {
-                MapType[] pveOpenWorldMapTypes = new[] { MapType.Public, MapType.Instance, MapType.Tutorial, MapType.PublicMini };
-
-                show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
-            }
-
-            if (this.ModuleSettings.HideInPvE_Competetive.Value)
-            {
-                MapType[] pveCompetetiveMapTypes = new[] { MapType.Instance };
-
-                show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
-            }
-
-            if (this.ModuleSettings.HideInWvW.Value)
-            {
-                MapType[] wvwMapTypes = new[] { MapType.EternalBattlegrounds, MapType.GreenBorderlands, MapType.RedBorderlands, MapType.BlueBorderlands, MapType.EdgeOfTheMists };
-
-                show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && wvwMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
-            }
-
-            if (this.ModuleSettings.HideInPvP.Value)
-            {
-                MapType[] pvpMapTypes = new[] { MapType.Pvp, MapType.Tournament };
-
-                show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pvpMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
-            }
-
-            return show;
+            show &= !GameService.Gw2Mumble.UI.IsMapOpen;
         }
 
-        return this.ShowUI;
+        if (this.ModuleSettings.HideOnMissingMumbleTicks.Value)
+        {
+            show &= GameService.Gw2Mumble.TimeSinceTick.TotalSeconds < 0.5;
+        }
+
+        if (this.ModuleSettings.HideInCombat.Value)
+        {
+            show &= !GameService.Gw2Mumble.PlayerCharacter.IsInCombat;
+        }
+
+        // All maps not specified as competetive will be treated as open world
+        if (this.ModuleSettings.HideInPvE_OpenWorld.Value)
+        {
+            MapType[] pveOpenWorldMapTypes = new[] { MapType.Public, MapType.Instance, MapType.Tutorial, MapType.PublicMini };
+
+            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+        }
+
+        if (this.ModuleSettings.HideInPvE_Competetive.Value)
+        {
+            MapType[] pveCompetetiveMapTypes = new[] { MapType.Instance };
+
+            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+        }
+
+        if (this.ModuleSettings.HideInWvW.Value)
+        {
+            MapType[] wvwMapTypes = new[] { MapType.EternalBattlegrounds, MapType.GreenBorderlands, MapType.RedBorderlands, MapType.BlueBorderlands, MapType.EdgeOfTheMists };
+
+            show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && wvwMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
+        }
+
+        if (this.ModuleSettings.HideInPvP.Value)
+        {
+            MapType[] pvpMapTypes = new[] { MapType.Pvp, MapType.Tournament };
+
+            show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pvpMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
+        }
+
+        return show;
     }
 
     protected void HandleLoadingSpinner(bool show, string text = null)
@@ -566,7 +561,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this._loadingSpinner ??= new LoadingSpinner()
         {
             Parent = GameService.Graphics.SpriteScreen,
-            Size = this.CornerIcon?.Size ?? new Point(0,0),
+            Size = this.CornerIcon?.Size ?? new Point(0, 0),
             Visible = false
         };
 
