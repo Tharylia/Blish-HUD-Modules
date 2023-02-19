@@ -253,7 +253,8 @@ public class DynamicEventHandler : IDisposable, IUpdatable
                 default:
                     break;
             }
-            _worldEntities.AddOrUpdate(dynamicEvent.ID, entites, (_, _) => entites);
+
+            _worldEntities.AddOrUpdate(dynamicEvent.ID, entites, (_, prev) => prev.Concat(entites).ToList());
             GameService.Graphics.World.AddEntities(entites);
         }
         catch (Exception ex)
