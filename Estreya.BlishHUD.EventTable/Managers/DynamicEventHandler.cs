@@ -179,7 +179,16 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
     private bool WorldEventRenderCondition(WorldEntity worldEntity)
     {
-        return !this._moduleSettings.ShowDynamicEventsInWorldOnlyWhenInside.Value || worldEntity.IsPlayerInside(!this._moduleSettings.IgnoreZAxisOnDynamicEventsInWorld.Value);
+        if (this._moduleSettings.ShowDynamicEventsInWorldOnlyWhenInside.Value)
+        {
+            return worldEntity.IsPlayerInside(!this._moduleSettings.IgnoreZAxisOnDynamicEventsInWorld.Value);
+        }
+        else
+        {
+            return this._moduleSettings.DynamicEventsRenderDistance.Value >= worldEntity.DistanceToPlayer;
+        }
+
+        return true;
     }
 
     public async Task AddDynamicEventsToWorld()

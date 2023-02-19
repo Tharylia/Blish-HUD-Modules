@@ -53,6 +53,8 @@
 
         public SettingEntry<bool> IgnoreZAxisOnDynamicEventsInWorld { get; private set; }
 
+        public SettingEntry<int> DynamicEventsRenderDistance { get; private set; }
+
         public SettingEntry<List<string>> DisabledDynamicEventIds { get; private set; }
 
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.E))
@@ -100,6 +102,9 @@
 
             this.IgnoreZAxisOnDynamicEventsInWorld = this.GlobalSettings.DefineSetting(nameof(this.IgnoreZAxisOnDynamicEventsInWorld), true, () => "Ignore Z Axis", () => "Defines whether the z axis should be ignored when calculating the visibility of in world events.");
 
+            this.DynamicEventsRenderDistance = this.GlobalSettings.DefineSetting(nameof(this.DynamicEventsRenderDistance), 300, () => "Dynamic Event Render Distance", () => "Defines the distance in which dynamic events should be rendered");
+            this.DynamicEventsRenderDistance.SetRange(50, 500);
+
             this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
 
             this.HandleEnabledStates();
@@ -117,8 +122,9 @@
 
         private void HandleEnabledStates()
         {
-            this.ShowDynamicEventsInWorldOnlyWhenInside.SetDisabled(!ShowDynamicEventInWorld.Value);
-            this.IgnoreZAxisOnDynamicEventsInWorld.SetDisabled(!ShowDynamicEventInWorld.Value || !this.ShowDynamicEventsInWorldOnlyWhenInside.Value);
+            this.ShowDynamicEventsInWorldOnlyWhenInside.SetDisabled(!this.ShowDynamicEventInWorld.Value);
+            this.IgnoreZAxisOnDynamicEventsInWorld.SetDisabled(!this.ShowDynamicEventInWorld.Value || !this.ShowDynamicEventsInWorldOnlyWhenInside.Value);
+            this.DynamicEventsRenderDistance.SetDisabled(!this.ShowDynamicEventInWorld.Value || this.ShowDynamicEventsInWorldOnlyWhenInside.Value);
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)

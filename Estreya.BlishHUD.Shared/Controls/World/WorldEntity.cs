@@ -17,7 +17,7 @@
         private float _scale = 1f;
         protected float Scale => _scale;
 
-        protected float DistanceToPlayer { get; private set; }
+        public float DistanceToPlayer { get; private set; }
 
         protected BasicEffect RenderEffect { get; private set; }
 

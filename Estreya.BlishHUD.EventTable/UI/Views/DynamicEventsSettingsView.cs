@@ -36,6 +36,7 @@
             this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventInWorld);
             this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventsInWorldOnlyWhenInside);
             this.RenderBoolSetting(parent, _moduleSettings.IgnoreZAxisOnDynamicEventsInWorld);
+            this.RenderIntSetting(parent, _moduleSettings.DynamicEventsRenderDistance);
 
             this.RenderButton(parent, this.TranslationState.GetTranslation("dynamicEventsSettingsView-manageEvents-btn", "Manage Events"), () =>
             {
