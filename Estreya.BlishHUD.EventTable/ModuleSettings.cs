@@ -93,12 +93,32 @@
             this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 
             this.ShowDynamicEventInWorld = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventInWorld), false, () => "Show Dynamic Events in World", () => "Whether dynamic events should be shown inside the world.");
+            this.ShowDynamicEventInWorld.SettingChanged += this.ShowDynamicEventInWorld_SettingChanged;
 
             this.ShowDynamicEventsInWorldOnlyWhenInside = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsInWorldOnlyWhenInside), true, () => "Show only when inside.", () => "Whether the dynamic events inside the world should only show up when the player is inside.");
+            this.ShowDynamicEventsInWorldOnlyWhenInside.SettingChanged += this.ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged;
 
             this.IgnoreZAxisOnDynamicEventsInWorld = this.GlobalSettings.DefineSetting(nameof(this.IgnoreZAxisOnDynamicEventsInWorld), true, () => "Ignore Z Axis", () => "Defines whether the z axis should be ignored when calculating the visibility of in world events.");
 
             this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
+
+            this.HandleEnabledStates();
+        }
+
+        private void ShowDynamicEventInWorld_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+        {
+            this.HandleEnabledStates();
+        }
+
+        private void ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+        {
+            this.HandleEnabledStates();
+        }
+
+        private void HandleEnabledStates()
+        {
+            this.ShowDynamicEventsInWorldOnlyWhenInside.SetDisabled(!ShowDynamicEventInWorld.Value);
+            this.IgnoreZAxisOnDynamicEventsInWorld.SetDisabled(!ShowDynamicEventInWorld.Value || !this.ShowDynamicEventsInWorldOnlyWhenInside.Value);
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)
@@ -292,6 +312,13 @@
             var eventOpacityDescriptionDefault = drawerConfiguration.EventOpacity.Description;
             drawerConfiguration.EventOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-name", eventOpacityDisplayNameDefault);
             drawerConfiguration.EventOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-description", eventOpacityDescriptionDefault);
+        }
+
+        public override void Unload()
+        {
+            base.Unload();
+            this.ShowDynamicEventInWorld.SettingChanged -= this.ShowDynamicEventInWorld_SettingChanged;
+            this.ShowDynamicEventsInWorldOnlyWhenInside.SettingChanged -= this.ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged;
         }
     }
 }

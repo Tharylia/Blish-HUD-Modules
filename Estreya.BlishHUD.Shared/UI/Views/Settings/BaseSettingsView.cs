@@ -24,7 +24,8 @@
         private static readonly Logger Logger = Logger.GetLogger<BaseSettingsView>();
         private readonly SettingEventState _settingEventState;
 
-        protected BaseSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, font) {
+        protected BaseSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        {
             base.LABEL_WIDTH = 250;
             this.CONTROL_WIDTH = 250;
 
@@ -62,6 +63,9 @@
 
             colorBox.BasicTooltipText = settingEntry.Description;
 
+            this.SetControlEnabledState(colorBox, settingEntry);
+            this.AddControlForDisabledCheck(colorBox, settingEntry);
+
             return (panel, label.TitleLabel, colorBox);
         }
 
@@ -77,6 +81,9 @@
             });
 
             textBox.BasicTooltipText = settingEntry.Description;
+
+            this.SetControlEnabledState(textBox, settingEntry);
+            this.AddControlForDisabledCheck(textBox, settingEntry);
 
             return (panel, label.TitleLabel, textBox);
         }
@@ -111,6 +118,9 @@
                 _settingEventState.RemoveFromRangeCheck(settingEntry);
             };
 
+            this.SetControlEnabledState(trackbar, settingEntry);
+            this.AddControlForDisabledCheck(trackbar, settingEntry);
+
             return (panel, label.TitleLabel, trackbar);
         }
 
@@ -144,6 +154,9 @@
                 _settingEventState.RemoveFromRangeCheck(settingEntry);
             };
 
+            this.SetControlEnabledState(trackbar, settingEntry);
+            this.AddControlForDisabledCheck(trackbar, settingEntry);
+
             return (panel, label.TitleLabel, trackbar);
         }
 
@@ -153,12 +166,15 @@
 
             var label = base.RenderLabel(panel, settingEntry.DisplayName);
 
-            var checkbox = base.RenderCheckbox(panel, this.CONTROL_LOCATION, settingEntry.Value , onChangeAction: newValue =>
+            var checkbox = base.RenderCheckbox(panel, this.CONTROL_LOCATION, settingEntry.Value, onChangeAction: newValue =>
             {
                 settingEntry.Value = newValue;
             });
 
             checkbox.BasicTooltipText = settingEntry.Description;
+
+            this.SetControlEnabledState(checkbox, settingEntry);
+            this.AddControlForDisabledCheck(checkbox, settingEntry);
 
             return (panel, label.TitleLabel, checkbox);
         }
@@ -177,10 +193,13 @@
 
             keybindingAssigner.BasicTooltipText = settingEntry.Description;
 
+            this.SetControlEnabledState(keybindingAssigner, settingEntry);
+            this.AddControlForDisabledCheck(keybindingAssigner, settingEntry);
+
             return (panel, label.TitleLabel, keybindingAssigner);
         }
 
-        protected (Panel Panel, Label label, Dropdown dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T: Enum
+        protected (Panel Panel, Label label, Dropdown dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T : Enum
         {
             Panel panel = this.GetPanel(parent);
 
@@ -191,14 +210,44 @@
             var values = ((T[])Enum.GetValues(settingEntry.SettingType)).ToList();
             var formattedValues = values.Select(value => value.Humanize(casing)).ToArray();
 
-            var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, formattedValues,  settingEntry.Value.Humanize(casing), onChangeAction: newValue =>
+            var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, formattedValues, settingEntry.Value.Humanize(casing), onChangeAction: newValue =>
             {
                 settingEntry.Value = values[formattedValues.ToList().IndexOf(newValue)];
             });
 
             dropdown.BasicTooltipText = settingEntry.Description;
 
+            this.SetControlEnabledState(dropdown, settingEntry);
+            this.AddControlForDisabledCheck(dropdown, settingEntry);
+
             return (panel, label.TitleLabel, dropdown);
+        }
+
+        private void AddControlForDisabledCheck(Control control, SettingEntry settingEntry)
+        {
+            _settingEventState.AddForDisabledCheck(settingEntry);
+            _settingEventState.DisabledUpdated += (s, e) =>
+            {
+                if (e.SettingEntry.EntryKey == settingEntry.EntryKey)
+                {
+                    var disabled = (SettingDisabledComplianceRequisite)e.NewCompliance;
+                    control.Enabled = !disabled.Disabled;
+                }
+            };
+
+            control.Disposed += (s, e) =>
+            {
+                _settingEventState.RemoveFromDisabledCheck(settingEntry);
+            };
+        }
+
+        private void SetControlEnabledState(Control control, SettingEntry settingEntry)
+        {
+            var compliances = settingEntry.GetComplianceRequisite().Where(c => c is SettingDisabledComplianceRequisite).Select(c => (SettingDisabledComplianceRequisite)c);
+            if (compliances.Any())
+            {
+                control.Enabled = !compliances.First().Disabled;
+            }
         }
 
         protected override void Unload()
