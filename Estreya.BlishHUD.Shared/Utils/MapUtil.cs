@@ -388,30 +388,6 @@ public class MapUtil : IDisposable
         }
     }
 
-    public async Task<(double X, double Y)> EventMapCoordinatesToContinentCoordinates(int mapId, double[] coordinates)
-    {
-        var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(mapId);
-        var continent_rect = map.ContinentRect;
-        var map_rect = map.MapRect;
-
-        var x = Math.Round(continent_rect.TopLeft.X + (1 * (coordinates[0] - map_rect.BottomLeft.X) / (map_rect.TopRight.X - map_rect.BottomLeft.X) * (continent_rect.BottomRight.X - continent_rect.TopLeft.X)));
-        var y = Math.Round(continent_rect.TopLeft.Y + (-1 * (coordinates[1] - map_rect.TopRight.Y) / (map_rect.TopRight.Y - map_rect.BottomLeft.Y) * (continent_rect.BottomRight.Y - continent_rect.TopLeft.Y)));
-
-        return ( x, y );
-    }
-
-    public async Task<double> EventMapLengthToContinentLength(int mapId, double length)
-    {
-        var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(mapId);
-        var map_rect = map.MapRect;
-
-        length /= 1d / 24d;
-
-        var scalex = (length - map_rect.BottomLeft.X) / (map_rect.TopRight.X - map_rect.BottomLeft.X);
-        var scaley = (length - map_rect.BottomLeft.Y) / (map_rect.TopRight.Y - map_rect.BottomLeft.Y);
-        return Math.Sqrt((scalex * scalex) + (scaley * scaley));
-    }
-
     public MapEntity AddCircle(double x, double y, double radius, Microsoft.Xna.Framework.Color color, float thickness = 1)
     {
         MapCircle circle = new MapCircle((float)x, (float)y, (float)radius, color, thickness);
@@ -431,6 +407,11 @@ public class MapUtil : IDisposable
     public void ClearMapEntities()
     {
         this._flatMap.ClearEntities();
+    }
+
+    public void RemoveEntity(MapEntity mapEntity)
+    {
+        this._flatMap.RemoveEntity(mapEntity);
     }
 
     private async Task<NavigationResult> MoveMouse(int x, int y, bool sendToSystem = false)

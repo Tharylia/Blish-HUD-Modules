@@ -34,7 +34,7 @@
         {
             var location = this.GetScaledLocation(this._x, this._y, scale, offsetX, offsetY);
 
-            float radius = (this._radius * 2) / (float)scale;
+            float radius = this._radius / (float)scale;
 
             //Logger.Debug($"Location: {location} - OffsetX: {offsetX} - OffsetY: {offsetY} - Scale: {scale}");
 

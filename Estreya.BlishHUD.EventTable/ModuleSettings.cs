@@ -40,12 +40,20 @@
 
         public SettingEntry<float> ReminderOpacity { get; private set; }
 
-        public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
-
         /// <summary>
         /// Contains a list of event setting keys for which NO reminder should be displayed.
         /// </summary>
         public SettingEntry<List<string>> ReminderDisabledForEvents { get; set; }
+
+        public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
+
+        public SettingEntry<bool> ShowDynamicEventInWorld { get; private set; }
+
+        public SettingEntry<bool> ShowDynamicEventsInWorldOnlyWhenInside { get; private set; }
+
+        public SettingEntry<bool> IgnoreZAxisOnDynamicEventsInWorld { get; private set; }
+
+        public SettingEntry<List<string>> DisabledDynamicEventIds { get; private set; }
 
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.E))
         {
@@ -83,6 +91,14 @@
             this.ReminderOpacity.SetRange(0.1f, 1f);
 
             this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
+
+            this.ShowDynamicEventInWorld = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventInWorld), false, () => "Show Dynamic Events in World", () => "Whether dynamic events should be shown inside the world.");
+
+            this.ShowDynamicEventsInWorldOnlyWhenInside = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsInWorldOnlyWhenInside), true, () => "Show only when inside.", () => "Whether the dynamic events inside the world should only show up when the player is inside.");
+
+            this.IgnoreZAxisOnDynamicEventsInWorld = this.GlobalSettings.DefineSetting(nameof(this.IgnoreZAxisOnDynamicEventsInWorld), true, () => "Ignore Z Axis", () => "Defines whether the z axis should be ignored when calculating the visibility of in world events.");
+
+            this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
         }
 
         public void CheckDrawerSizeAndPosition(EventAreaConfiguration configuration)
