@@ -24,7 +24,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ScreenNotification.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextArea.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextBoxSuggestions.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Controls\World\GeometricPrimitive.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\VertexPositionNormal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldEntity.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldPolygone.cs" />
