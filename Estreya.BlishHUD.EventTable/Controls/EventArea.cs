@@ -408,6 +408,8 @@ public class EventArea : Container
         var oderedControlEvents = this._controlEvents.OrderBy(x => order.IndexOf(x.Key)).Select(x => x.Value).ToList();
         foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in oderedControlEvents)
         {
+            if (controlEventPairs.Count == 0) continue; // We dont have anything to render here
+
             var toDelete = new List<(DateTime Occurence, Event Event)>();
 
             foreach ((DateTime Occurence, Event Event) controlEvent in controlEventPairs)

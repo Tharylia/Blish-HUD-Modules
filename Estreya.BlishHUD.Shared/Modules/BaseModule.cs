@@ -30,7 +30,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 {
     protected Logger Logger { get; }
 
-    public const string WEBSITE_ROOT_URL = "https://blishhud.estreya.de";
     public const string FILE_ROOT_URL = "https://files.estreya.de";
     public const string FILE_BLISH_ROOT_URL = $"{FILE_ROOT_URL}/blish-hud";
     private const string API_ROOT_URL = "https://blish-hud.api.estreya.de";
@@ -43,7 +42,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected PasswordManager PasswordManager { get; private set; }
 
-    public string WEBSITE_MODULE_URL => $"{WEBSITE_ROOT_URL}/modules/{this.WebsiteModuleName}";
     public string WEBSITE_MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.WebsiteModuleName}";
     public string API_URL => $"{API_ROOT_URL}/v{this.API_VERSION_NO}/{this.WebsiteModuleName}";
     public abstract string WebsiteModuleName { get; }

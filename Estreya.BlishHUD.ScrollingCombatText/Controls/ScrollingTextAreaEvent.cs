@@ -15,7 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-public class ScrollingTextAreaEvent : RenderTargetControl
+public class ScrollingTextAreaEvent : IDisposable
 {
     private static readonly Logger Logger = Logger.GetLogger<ScrollingTextAreaEvent>();
 
@@ -29,8 +29,8 @@ public class ScrollingTextAreaEvent : RenderTargetControl
 
     private readonly int _textWidth = 0;
 
-    private Rectangle _imageRectangle;
-    private Rectangle _textRectangle;
+    private RectangleF _imageRectangle;
+    private RectangleF _textRectangle;
     private List<ScrollingTextAreaText> _scrollingTexts;
 
     private BitmapFont _font { get; set; }
@@ -39,61 +39,65 @@ public class ScrollingTextAreaEvent : RenderTargetControl
 
     public Color BaseTextColor { get; set; } = Color.White;
 
-    public ScrollingTextAreaEvent(Shared.Models.ArcDPS.CombatEvent combatEvent, CombatEventFormatRule formatRule, BitmapFont font)
+    public float Width { get; private set; }
+
+    public float Height { get; private set; }
+
+    public event EventHandler Disposed;
+
+    public ScrollingTextAreaEvent(Shared.Models.ArcDPS.CombatEvent combatEvent, CombatEventFormatRule formatRule, BitmapFont font, float width, float height)
     {
         this._combatEvent = combatEvent;
         this._formatRule = formatRule;
         this._font = font;
+        this.Width = width;
+        this.Height = height;
 
         this._textWidth = (int)(this._font?.MeasureString(this.ToString()).Width ?? 0);
+        this.CalculateLayout();
+        this.CalculateScrollingTexts();
     }
 
-    protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
+    public void Render(SpriteBatch spriteBatch, RectangleF bounds, float opacity)
     {
-        if (this._imageRectangle == null || this._textRectangle == null || this._scrollingTexts == null)
-        {
-            this.CalculateLayout();
-            this.CalculateScrollingTexts();
-        }
 
         if (this._combatEvent?.Skill?.IconTexture != null)
         {
-            spriteBatch.Draw(this._combatEvent.Skill?.IconTexture, this._imageRectangle, Color.White);
+            var rect = new RectangleF(this._imageRectangle.Position, this._imageRectangle.Size);
+            rect.Offset(bounds.X, bounds.Y);
+            spriteBatch.Draw(this._combatEvent.Skill?.IconTexture, rect, Color.White* opacity);
         }
 
         if (this._font != null && this._scrollingTexts != null && this._scrollingTexts.Count > 0)
         {
             foreach (var scrollingText in this._scrollingTexts)
             {
-                spriteBatch.DrawString(scrollingText.Text, this._font, scrollingText.Rectangle, scrollingText.Color, verticalAlignment: VerticalAlignment.Middle);
+                var rect = new RectangleF(scrollingText.Rectangle.Position, scrollingText.Rectangle.Size);
+                rect.Offset(bounds.X, bounds.Y);
+                spriteBatch.DrawString(scrollingText.Text, this._font, rect, scrollingText.Color * opacity, verticalAlignment: VerticalAlignment.Middle);
             }
         }
     }
 
     public void CalculateLayout()
     {
-        this._imageRectangle = new Rectangle(0, 0, this.Height, this.Height);
+        this._imageRectangle = new RectangleF(0, 0, this.Height, this.Height);
 
         int textWidth = this._textWidth;
-        textWidth = MathHelper.Clamp(textWidth, 0, (this.Parent?.Width ?? int.MaxValue) - this.Location.X);
+        textWidth = MathHelper.Clamp(textWidth, 0, (int)Math.Floor(this.Width - _imageRectangle.Right));
 
-        int x = this._imageRectangle.Right + 10;
-        this._textRectangle = new Rectangle(x, 0, textWidth, this.Height);
-
-        this.Width = this._textRectangle.Right;
+        var x = this._imageRectangle.Right + 10;
+        this._textRectangle = new RectangleF(x, _imageRectangle.Y, textWidth, this.Height);
     }
 
-    protected override CaptureType CapturesInput()
-    {
-        return CaptureType.None;
-    }
-
-    protected override void InternalDispose()
+    public void Dispose()
     {
         this._font = null;
         //this._combatEvent?.Dispose();
         this._combatEvent = null;
         this._formatRule = null;
+
+        this.Disposed?.Invoke(this, EventArgs.Empty);
     }
 
     public void CalculateScrollingTexts()
@@ -134,7 +138,7 @@ public class ScrollingTextAreaEvent : RenderTargetControl
             {
                 var changedPart = formattedTemplatePart;
 
-                Point lastPoint = this._scrollingTexts.Count > 0 ? new Point(this._scrollingTexts.Last().Rectangle.Right, 0) : new Point(this._textRectangle.X, 0);
+                Vector2 lastPoint = this._scrollingTexts.Count > 0 ? new Vector2(this._scrollingTexts.Last().Rectangle.Right, 0) : new Vector2(this._textRectangle.X, 0);
                 var maxWidth = MathHelper.Clamp(this._textRectangle.Width - lastPoint.X, 0, this._textRectangle.Width);
 
                 bool added = false;
@@ -155,7 +159,7 @@ public class ScrollingTextAreaEvent : RenderTargetControl
                         {
                             Text = changedPart,
                             Color = new Color(hexColor.R, hexColor.G, hexColor.B),
-                            Rectangle = new Rectangle(lastPoint.X, lastPoint.Y, MathHelper.Clamp((int)this._font.MeasureString(changedPart).Width, 0, maxWidth), this._textRectangle.Height)
+                            Rectangle = new RectangleF(lastPoint.X, lastPoint.Y, MathHelper.Clamp((int)this._font.MeasureString(changedPart).Width, 0, maxWidth), this._textRectangle.Height)
                         });
 
                         added = true;
@@ -168,7 +172,7 @@ public class ScrollingTextAreaEvent : RenderTargetControl
                     {
                         Text = changedPart,
                         Color = this.BaseTextColor,
-                        Rectangle = new Rectangle(lastPoint.X, lastPoint.Y, MathHelper.Clamp((int)this._font.MeasureString(changedPart).Width, 0, maxWidth), this._textRectangle.Height)
+                        Rectangle = new RectangleF(lastPoint.X, lastPoint.Y, MathHelper.Clamp((int)this._font.MeasureString(changedPart).Width, 0, maxWidth), this._textRectangle.Height)
                     });
                 }
             }
@@ -221,7 +225,7 @@ public class ScrollingTextAreaEvent : RenderTargetControl
     private struct ScrollingTextAreaText
     {
         public string Text;
-        public Rectangle Rectangle;
+        public RectangleF Rectangle;
         public Color Color;
     }
 }

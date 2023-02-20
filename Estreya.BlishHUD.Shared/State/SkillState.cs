@@ -215,7 +215,7 @@ public class SkillState : APIState<Skill>
 
             //await FileUtil.WriteStringAsync(@"C:\temp\remapped_skills.json", JsonConvert.SerializeObject(rs, Formatting.Indented));
 
-            await UnknownSkill.LoadTexture(this._iconState, this._cancellationTokenSource.Token);
+            UnknownSkill.LoadTexture(this._iconState);
 
             bool shouldLoadFiles = await this.ShouldLoadFiles();
 
@@ -229,7 +229,7 @@ public class SkillState : APIState<Skill>
 
                 Logger.Debug("Loading skill icons..");
 
-                await this.LoadSkillIcons(this.APIObjectList);
+                this.LoadSkillIcons(this.APIObjectList);
 
                 Logger.Debug("Loaded skill icons..");
             }
@@ -247,7 +247,7 @@ public class SkillState : APIState<Skill>
 
                     await this.RemapSkillIds(skills);
 
-                    await this.LoadSkillIcons(skills);
+                    this.LoadSkillIcons(skills);
 
                     using (await this._apiObjectListLock.LockAsync())
                     {
@@ -430,8 +430,6 @@ public class SkillState : APIState<Skill>
 
         foreach (var missingSkill in missingSkills)
         {
-            //if (!skills.Exists(skill => skill.Id == missingSkill.ID))
-            //{
             skills.Add(new Skill()
             {
                 Id = missingSkill.ID,
@@ -451,18 +449,15 @@ public class SkillState : APIState<Skill>
                     });
                 }
             }
-            //}
         }
     }
 
-    private async Task LoadSkillIcons(List<Skill> skills)
+    private void LoadSkillIcons(List<Skill> skills)
     {
-        IEnumerable<Task> skillLoadTasks = skills.Select(skill =>
+        skills.ForEach(skill =>
         {
-            return skill.LoadTexture(this._iconState, this._cancellationTokenSource.Token);
+            skill.LoadTexture(this._iconState);
         });
-
-        await Task.WhenAll(skillLoadTasks);
     }
 
     protected override async Task Save()

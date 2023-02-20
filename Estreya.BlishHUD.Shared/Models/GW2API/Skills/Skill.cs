@@ -5,6 +5,7 @@ using Estreya.BlishHUD.Shared.State;
 using Gw2Sharp;
 using Gw2Sharp.WebApi.V2.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,6 +14,7 @@ using System.Threading.Tasks;
 
 public class Skill : IDisposable
 {
+    [JsonConverter(typeof(StringEnumConverter))]
     public SkillCategory Category { get; set; }
 
     /// <summary>
@@ -51,12 +53,14 @@ public class Skill : IDisposable
     /// The skill type.
     /// If the skill does not have a type, this value is <see langword="null"/>.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public SkillType Type { get; set; }
 
     /// <summary>
     /// The weapon type.
     /// If the skill does not have a weapon type, this value is <see langword="null"/>.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public SkillWeaponType WeaponType { get; set; }
 
     /// <summary>
@@ -69,12 +73,14 @@ public class Skill : IDisposable
     /// The skill slot.
     /// If the skill does not have a slot, this value is <see langword="null"/>.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public SkillSlot Slot { get; set; }
 
     /// <summary>
     /// The dual attunement.
     /// If the skill does not have a dual attunement, this value is <see langword="null"/>.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public Attunement DualAttunement { get; set; }
 
     /// <summary>
@@ -113,6 +119,7 @@ public class Skill : IDisposable
     /// The attunement for elementalist weapon skills.
     /// If the skill isn't an elementalist weapon skill, this value is <see langword="null"/>.
     /// </summary>
+    [JsonConverter(typeof(StringEnumConverter))]
     public Attunement Attunement { get; set; }
 
     /// <summary>
@@ -273,11 +280,11 @@ public class Skill : IDisposable
         this.IconTexture = null;
     }
 
-    public async Task LoadTexture(IconState iconState, CancellationToken cancellationToken)
+    public void LoadTexture(IconState iconState)
     {
         if (!string.IsNullOrWhiteSpace(this.Icon))
         {
-            this.IconTexture = await iconState.GetIconAsync(this.Icon, cancellationToken);
+            this.IconTexture = iconState.GetIcon(this.Icon);
         }
     }
 }

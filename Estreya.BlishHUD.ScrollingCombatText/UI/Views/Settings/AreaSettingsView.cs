@@ -35,7 +35,7 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<ScrollingTextAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState,TranslationState translationState,  BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState,TranslationState translationState, SettingEventState settingEventState,  BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
     }
@@ -45,7 +45,7 @@ public class AreaSettingsView : BaseSettingsView
         this._areaConfigurations = this._areaConfigurationFunc.Invoke().ToList();
     }
 
-    protected override void BuildView(Panel parent)
+    protected override void BuildView(FlowPanel parent)
     {
         this.LoadConfigurations();
 
@@ -55,11 +55,9 @@ public class AreaSettingsView : BaseSettingsView
         newParent.HeightSizingMode = parent.HeightSizingMode;
         newParent.WidthSizingMode = parent.WidthSizingMode;
 
-        parent = newParent;
+        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, newParent.ContentRegion.Width - PADDING_X, newParent.ContentRegion.Height - PADDING_Y * 2);
 
-        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - PADDING_X, parent.ContentRegion.Height - PADDING_Y * 2);
-
-        Panel areaOverviewPanel = this.GetPanel(parent);
+        Panel areaOverviewPanel = this.GetPanel(newParent);
         areaOverviewPanel.ShowBorder = true;
         areaOverviewPanel.CanScroll = true;
         areaOverviewPanel.HeightSizingMode = SizingMode.Standard;
@@ -101,13 +99,13 @@ public class AreaSettingsView : BaseSettingsView
             menuItem.Value.Click += (s, e) =>
             {
                 ScrollingTextAreaConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
-                this.BuildEditPanel(parent, areaPanelBounds, menuItem.Value, areaConfiguration);
+                this.BuildEditPanel(newParent, areaPanelBounds, menuItem.Value, areaConfiguration);
             };
         });
 
-        StandardButton addButton = this.RenderButton(parent, "Add", () =>
+        StandardButton addButton = this.RenderButton(newParent, "Add", () =>
         {
-            this.BuildAddPanel(parent, areaPanelBounds, areaOverviewMenu);
+            this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
 
         addButton.Location = new Point(areaOverviewPanel.Left, areaOverviewPanel.Bottom + 10);
@@ -402,11 +400,15 @@ public class AreaSettingsView : BaseSettingsView
         Action changedAction = () => areaConfiguration.FormatRules.Value = new List<CombatEventFormatRule>(areaConfiguration.FormatRules.Value);
 
         Panel formatRulesMenuPanel = this.GetPanel(parent);
+        //formatRulesMenuPanel.HeightSizingMode = SizingMode.Standard;
+        //formatRulesMenuPanel.Height = 500;
+        //formatRulesMenuPanel.CanScroll = true;
         formatRulesMenuPanel.ShowBorder = true;
         Shared.Controls.Menu formatRulesMenu = new Shared.Controls.Menu()
         {
             Parent = formatRulesMenuPanel,
-            Width = Panel.MenuStandard.Size.X
+            Width = Panel.MenuStandard.Size.X - 75,
+            MenuItemHeight = 40,
         };
 
         Rectangle formatRuleAreaBounds = new Rectangle(formatRulesMenu.Right + Panel.MenuStandard.PanelOffset.X, formatRulesMenu.Top, bounds.Width - formatRulesMenu.Right - Panel.MenuStandard.PanelOffset.X, 600);
