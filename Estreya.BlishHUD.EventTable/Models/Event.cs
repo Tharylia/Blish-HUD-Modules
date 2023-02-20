@@ -93,24 +93,7 @@
 
         [JsonIgnore]
         private ConcurrentDictionary<DateTime, List<TimeSpan>> _remindedFor = new ConcurrentDictionary<DateTime, List<TimeSpan>>();
-
-
-        public DateTime? GetCurrentOccurence(DateTime now)
-        {
-            var occurences = this.Occurences.Where(oc => oc <= now && oc.AddMinutes(this.Duration) >= now);
-            return occurences.Any() ? occurences.First() : null;
-        }
-
-        public bool IsRunning(DateTime now)
-        {
-            return this.GetCurrentOccurence(now) != null;
-        }
-
-        public TimeSpan GetTimeRemaining(DateTime now)
-        {
-            var co = this.GetCurrentOccurence(now);
-            return !co.HasValue ? TimeSpan.Zero : co.Value.AddMinutes(this.Duration) - now;
-        }
+               
 
         public double CalculateXPosition(DateTime start, DateTime min, double pixelPerMinute)
         {

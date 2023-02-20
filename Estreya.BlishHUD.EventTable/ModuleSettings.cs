@@ -177,6 +177,14 @@
             var eventOpacity = this.DrawerSettings.DefineSetting($"{name}-eventOpacity", 1f, () => "Event Opacity", () => "Defines the opacity of the individual events.");
             eventOpacity.SetRange(0.1f, 1f);
 
+            var drawShadows = this.DrawerSettings.DefineSetting($"{name}-drawShadows", false, () => "Draw Shadows", () => "Whether the text should have shadows");
+
+            var shadowColor = this.DrawerSettings.DefineSetting($"{name}-shadowColor", this.DefaultGW2Color, () => "Shadow Color", () => "Defines the color of the shadows");
+
+            var drawShadowsForFiller = this.DrawerSettings.DefineSetting($"{name}-drawShadowsForFiller", false, () => "Draw Shadows for Filler", () => "Whether the filler text should have shadows");
+
+            var fillerShadowColor = this.DrawerSettings.DefineSetting($"{name}-fillerShadowColor", this.DefaultGW2Color, () => "Filler Shadow Color", () => "Defines the color of the shadows for fillers");
+
 
             return new EventAreaConfiguration()
             {
@@ -202,7 +210,11 @@
                 CompletionAcion = completionAction,
                 EventHeight = eventHeight,
                 EventOrder = eventOrder,
-                EventOpacity = eventOpacity
+                EventOpacity = eventOpacity,
+                DrawShadows = drawShadows,
+                ShadowColor= shadowColor,
+                DrawShadowsForFiller = drawShadowsForFiller,
+                FillerShadowColor = fillerShadowColor
             };
         }
 
@@ -223,6 +235,10 @@
             this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
             this.DrawerSettings.UndefineSetting($"{name}-eventOrder");
             this.DrawerSettings.UndefineSetting($"{name}-eventOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-drawShadows");
+            this.DrawerSettings.UndefineSetting($"{name}-shadowColor");
+            this.DrawerSettings.UndefineSetting($"{name}-drawShadowsForFiller");
+            this.DrawerSettings.UndefineSetting($"{name}-fillerShadowColor");
         }
 
         public override void UpdateLocalization(TranslationState translationState)

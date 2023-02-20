@@ -516,7 +516,15 @@ public class EventArea : Container
 
                             System.Drawing.Color colorFromEvent = string.IsNullOrWhiteSpace(ev.BackgroundColorCode) ? System.Drawing.Color.White : System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
                             return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * this.Configuration.EventOpacity.Value;
+                        },
+                        () => ev.Filler ? this.Configuration.DrawShadowsForFiller.Value : this.Configuration.DrawShadows.Value,
+                        () =>
+                        {
+                            return ev.Filler
+                            ? this.Configuration.FillerShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.FillerShadowColor.Value.Cloth.ToXnaColor()
+                            : this.Configuration.ShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.ShadowColor.Value.Cloth.ToXnaColor();
                         })
+
                     {
                         Parent = this,
                         Top = y,

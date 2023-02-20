@@ -20,6 +20,8 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<bool> DrawBorders { get; set; } 
     public SettingEntry<bool> UseFiller { get; set; }
     public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> FillerTextColor { get; set; }
+    public SettingEntry<bool> DrawShadowsForFiller { get; set; }
+    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> FillerShadowColor { get; set; }
     public SettingEntry<int> EventHeight { get; set; } 
 
     /// <summary>
@@ -28,4 +30,6 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<List<string>> EventOrder { get; set; }
 
     public SettingEntry<float> EventOpacity { get; set; }
+    public SettingEntry<bool> DrawShadows { get; set; }
+    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> ShadowColor { get; set; }
 }

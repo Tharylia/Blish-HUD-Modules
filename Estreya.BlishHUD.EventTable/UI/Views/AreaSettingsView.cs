@@ -277,6 +277,9 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderBoolSetting(settingsPanel, areaConfiguration.DrawBorders);
         this.RenderEnumSetting(settingsPanel, areaConfiguration.BuildDirection);
         this.RenderEnumSetting(settingsPanel, areaConfiguration.FontSize);
+        this.RenderColorSetting(settingsPanel, areaConfiguration.TextColor);
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.DrawShadows);
+        this.RenderColorSetting(settingsPanel, areaConfiguration.ShadowColor);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -295,6 +298,8 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderBoolSetting(settingsPanel, areaConfiguration.UseFiller);
         this.RenderColorSetting(settingsPanel, areaConfiguration.FillerTextColor);
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.DrawShadowsForFiller);
+        this.RenderColorSetting(settingsPanel, areaConfiguration.FillerShadowColor);
 
         this.RenderEmptyLine(settingsPanel);
 

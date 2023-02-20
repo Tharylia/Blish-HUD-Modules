@@ -30,6 +30,8 @@ public class Event : RenderTargetControl
     private readonly Func<bool> _getDrawCrossout;
     private readonly Func<Color> _getTextColor;
     private readonly Func<Color> _getColorAction;
+    private readonly Func<bool> _getDrawShadowAction;
+    private readonly Func<Color> _getShadowColor;
 
     private Tooltip _tooltip;
 
@@ -39,7 +41,9 @@ public class Event : RenderTargetControl
         Func<bool> getDrawBorders,
         Func<bool> getDrawCrossout,
         Func<Color> getTextColor,
-        Func<Color> getColorAction)
+        Func<Color> getColorAction,
+        Func<bool> getDrawShadowAction,
+        Func<Color> getShadowColor)
     {
         this.Ev = ev;
         this._iconState = iconState;
@@ -52,6 +56,8 @@ public class Event : RenderTargetControl
         this._getDrawCrossout = getDrawCrossout;
         this._getTextColor = getTextColor;
         this._getColorAction = getColorAction;
+        this._getDrawShadowAction = getDrawShadowAction;
+        this._getShadowColor = getShadowColor;
 
         this.BuildContextMenu();
     }
@@ -126,7 +132,7 @@ public class Event : RenderTargetControl
         }
         else if (isCurrent)
         {
-            TimeSpan remaining = this.Ev.GetTimeRemaining(now);
+            TimeSpan remaining = this.GetTimeRemaining(now);
             description += $"{this._translationState.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatTime(remaining)}";
         }
 
@@ -157,9 +163,7 @@ public class Event : RenderTargetControl
         int nameWidth = MathHelper.Clamp((int)Math.Ceiling(font.MeasureString(this.Ev.Name).Width) + 10, 0, this.Width - 10);
         Rectangle nameRect = new Rectangle(5, 0, nameWidth, this.Height);
 
-        Color textColor = this._getTextColor();
-
-        spriteBatch.DrawString(this.Ev.Name, font, nameRect, textColor);
+        spriteBatch.DrawString(this.Ev.Name, font, nameRect, this._getTextColor(), false, this._getDrawShadowAction(), 1, this._getShadowColor());
 
         return nameRect.Width;
     }
@@ -170,7 +174,7 @@ public class Event : RenderTargetControl
             return;
         }
 
-        TimeSpan remainingTime = this.Ev.GetTimeRemaining(this._getNowAction());
+        TimeSpan remainingTime = this.GetTimeRemaining(this._getNowAction());
         if (remainingTime == TimeSpan.Zero)
         {
             return;
@@ -194,7 +198,12 @@ public class Event : RenderTargetControl
 
         Color textColor = this._getTextColor();
 
-        spriteBatch.DrawString(remainingTimeString, font, timeRect, textColor);
+        spriteBatch.DrawString(remainingTimeString, font, timeRect, textColor, false, this._getDrawShadowAction(), 1, this._getShadowColor());
+    }
+
+    private TimeSpan GetTimeRemaining(DateTime now)
+    {
+        return now <= _startTime || now >= _endTime ? TimeSpan.Zero : _startTime.AddMinutes(this.Ev.Duration) - now;
     }
 
     private void DrawCrossout(SpriteBatch spriteBatch)
