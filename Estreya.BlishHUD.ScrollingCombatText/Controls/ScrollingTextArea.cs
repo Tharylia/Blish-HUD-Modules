@@ -8,17 +8,19 @@ using Estreya.BlishHUD.Shared.Extensions;
 using Humanizer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
 
-public class ScrollingTextArea : Container
+public class ScrollingTextArea : Control
 {
     private static readonly Logger Logger = Logger.GetLogger<ScrollingTextArea>();
 
@@ -27,30 +29,6 @@ public class ScrollingTextArea : Container
     private const int MAX_CONCURRENT_EVENTS = 1000;
 
     private readonly SynchronizedCollection<ScrollingTextAreaEvent> _activeEvents = new SynchronizedCollection<ScrollingTextAreaEvent>();
-
-#if DEBUG
-    /// <summary>
-    /// Last time <see cref="_callsPerInterval"/> was updated.
-    /// </summary>
-    private DateTime _lastCallUpdate = DateTime.UtcNow;
-
-    /// <summary>
-    /// The time interval in which <see cref="_callsPerInterval"/> is calculated.
-    /// </summary>
-    private TimeSpan _callUpdateInterval = TimeSpan.FromMilliseconds(1000);
-
-    /// <summary>
-    /// Temporary amount of calls per interval. Gets swapped to <see cref="_callsPerInterval"/> after the specified interval of <see cref="_callUpdateInterval"/>.
-    /// </summary>
-    private int _tempCallsPerInterval;
-
-    /// <summary>
-    /// The calculated calls per interval specified by <see cref="_callUpdateInterval"/>.
-    /// </summary>
-    private int _callsPerInterval;
-
-    //private List<KeyValuePair<DateTime, int>> _callsPerIntervalHistory = new List<KeyValuePair<DateTime, int>>();
-#endif
 
     public new bool Enabled => this.Configuration?.Enabled.Value ?? false;
 
@@ -124,18 +102,11 @@ public class ScrollingTextArea : Container
                 textColor = rule.TextColor.Cloth.ToXnaColor();
             }
 
-            ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, font)
+            // Width is currently not respected 
+            ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, font, this.Width * 0.5f, this.Configuration.EventHeight.Value)
             {
-                Parent = this,
-                Height = this.Configuration.EventHeight.Value,
-                BaseTextColor = textColor,
-                Opacity = 0f,
-                Visible = true,
-                DrawInterval = TimeSpan.FromSeconds(30)
+                BaseTextColor = textColor
             };
-
-            scrollingTextAreaEvent.CalculateLayout();
-            scrollingTextAreaEvent.CalculateScrollingTexts();
 
             scrollingTextAreaEvent.Disposed += this.ScrollingTextAreaEvent_Disposed;
 
@@ -162,7 +133,51 @@ public class ScrollingTextArea : Container
         return CaptureType.None;
     }
 
-    private void UpdateEventPositions()
+    private float DistanceToTime(float timeNow, float actualScrollspeed, float distance)
+    {
+        float x = timeNow - (distance - (timeNow * actualScrollspeed)) / -actualScrollspeed;
+        return x;
+    }
+
+    private bool CheckConfiguration(Shared.Models.ArcDPS.CombatEvent combatEvent)
+    {
+        if (this.Configuration.Categories != null && !this.Configuration.Categories.Value.Contains(combatEvent.Category))
+        {
+            return false;
+        }
+
+        if (this.Configuration.Types != null && !this.Configuration.Types.Value.Contains(combatEvent.Type))
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    private void ScrollingTextAreaEvent_Disposed(object sender, EventArgs e)
+    {
+        ScrollingTextAreaEvent scrollingTextAreaEvent = sender as ScrollingTextAreaEvent;
+
+        scrollingTextAreaEvent.Disposed -= this.ScrollingTextAreaEvent_Disposed;
+
+        _ = this._activeEvents.Remove(scrollingTextAreaEvent);
+    }
+
+    protected override void DisposeControl()
+    {
+        this.Configuration.Size.X.SettingChanged -= this.Size_SettingChanged;
+        this.Configuration.Size.Y.SettingChanged -= this.Size_SettingChanged;
+        this.Configuration.Location.X.SettingChanged -= this.Location_SettingChanged;
+        this.Configuration.Location.Y.SettingChanged -= this.Location_SettingChanged;
+        this.Configuration.Opacity.SettingChanged -= this.Opacity_SettingChanged;
+        this.Configuration.BackgroundColor.SettingChanged -= this.BackgroundColor_SettingChanged;
+
+        this.Configuration = null;
+
+        this._activeEvents?.Clear();
+    }
+
+    protected override void Paint(SpriteBatch spriteBatch, Rectangle bounds)
     {
         try
         {
@@ -182,9 +197,6 @@ public class ScrollingTextArea : Container
 
             if (activeEvents == null || activeEvents.Count == 0)
             {
-#if DEBUG
-                this.CalculateUpdateRate(0);
-#endif
                 return;
             }
 
@@ -197,10 +209,6 @@ public class ScrollingTextArea : Container
                 return;
             }
 
-#if DEBUG
-            this.CalculateUpdateRate();
-#endif
-
             float now = this.GetNow();
             float actualScrollspeed = this.GetActualScrollspeed();
 
@@ -211,16 +219,16 @@ public class ScrollingTextArea : Container
                 for (int i = activeEvents.Count - 2; i >= 0; i--)
                 {
                     ScrollingTextAreaEvent activeEvent = activeEvents[i];
-                    if (lastChecked.Bottom > activeEvent.Top)
+                    if (lastChecked.Time < activeEvent.Time + this.DistanceToTime(now, actualScrollspeed, activeEvent.Height))
                     {
-                        activeEvent.Time -= this.DistanceToTime(now, actualScrollspeed, lastChecked.Bottom - activeEvent.Top);
+                        activeEvent.Time -= this.DistanceToTime(now, actualScrollspeed, lastChecked.Height);
                     }
 
                     lastChecked = activeEvent;
                 }
             }
 
-            float fadeLength = 0.10f;
+            float fadeLength = 0.20f;
             for (int i = 0; i < activeEvents.Count; i++)
             {
                 ScrollingTextAreaEvent activeEvent = activeEvents[i];
@@ -235,8 +243,12 @@ public class ScrollingTextArea : Container
                     continue;
                 }
 
-                float alpha = 1 - (percentage - 1f + fadeLength) / fadeLength;
-                activeEvent.Opacity = alpha;
+                float alpha = 1f;
+                if (percentage > 1f - fadeLength)
+                {
+                    alpha = 1 - (percentage - 1f + fadeLength) / fadeLength;
+                }
+                //activeEvent.Opacity = alpha;
 
                 float x = 0;
 
@@ -262,93 +274,15 @@ public class ScrollingTextArea : Container
                         break;
                 }
 
-                activeEvent.Location = new Point((int)x, (int)animatedHeight);
+
+
+                RectangleF childBounds = new RectangleF(x, animatedHeight, activeEvent.Width, activeEvent.Height);
+                activeEvent.Render(spriteBatch, childBounds.ToBounds(this.AbsoluteBounds), alpha);
             }
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex, $"{nameof(UpdateEventPositions)} failed:");
+            Logger.Warn(ex, $"{nameof(Paint)} failed:");
         }
-    }
-
-#if DEBUG
-    private void CalculateUpdateRate(int overrideUpdateRate = -1)
-    {
-        var now = DateTime.UtcNow;
-
-        if (overrideUpdateRate != -1)
-        {
-            this._callsPerInterval = overrideUpdateRate;
-            _tempCallsPerInterval = 0;
-            _lastCallUpdate = now;
-            return;
-        }
-
-        _tempCallsPerInterval++;
-
-        if ((now - _lastCallUpdate).TotalMilliseconds >= _callUpdateInterval.TotalMilliseconds)
-        {
-            _callsPerInterval = _tempCallsPerInterval;
-
-            _tempCallsPerInterval = 0;
-            _lastCallUpdate = now;
-
-            //this._callsPerIntervalHistory.Add(new KeyValuePair<DateTime, int>(now, _callsPerInterval));
-        }
-    }
-
-    public override void PaintBeforeChildren(SpriteBatch spriteBatch, Rectangle bounds)
-    {
-        spriteBatch.DrawStringOnCtrl(this, $"Calls per {_callUpdateInterval.Humanize()}: {_callsPerInterval:n0}", GameService.Content.DefaultFont16, new Rectangle(0, 0, this.Width, GameService.Content.DefaultFont16.LineHeight), Color.White);
-    }
-#endif
-
-    private float DistanceToTime(float timeNow, float actualScrollspeed, float distance)
-    {
-        float x = timeNow - (distance - (timeNow * actualScrollspeed)) / -actualScrollspeed;
-        return x;
-    }
-
-    private bool CheckConfiguration(Shared.Models.ArcDPS.CombatEvent combatEvent)
-    {
-        if (this.Configuration.Categories != null && !this.Configuration.Categories.Value.Contains(combatEvent.Category))
-        {
-            return false;
-        }
-
-        if (this.Configuration.Types != null && !this.Configuration.Types.Value.Contains(combatEvent.Type))
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    public override void UpdateContainer(GameTime gameTime)
-    {
-        this.UpdateEventPositions();
-    }
-
-    private void ScrollingTextAreaEvent_Disposed(object sender, EventArgs e)
-    {
-        ScrollingTextAreaEvent scrollingTextAreaEvent = sender as ScrollingTextAreaEvent;
-
-        scrollingTextAreaEvent.Disposed -= this.ScrollingTextAreaEvent_Disposed;
-
-        _ = this._activeEvents.Remove(scrollingTextAreaEvent);
-    }
-
-    protected override void DisposeControl()
-    {
-        this.Configuration.Size.X.SettingChanged -= this.Size_SettingChanged;
-        this.Configuration.Size.Y.SettingChanged -= this.Size_SettingChanged;
-        this.Configuration.Location.X.SettingChanged -= this.Location_SettingChanged;
-        this.Configuration.Location.Y.SettingChanged -= this.Location_SettingChanged;
-        this.Configuration.Opacity.SettingChanged -= this.Opacity_SettingChanged;
-        this.Configuration.BackgroundColor.SettingChanged -= this.BackgroundColor_SettingChanged;
-
-        this.Configuration = null;
-
-        this._activeEvents?.Clear();
     }
 }
