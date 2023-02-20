@@ -57,6 +57,10 @@
         {
             DrawStringOnCtrl(spriteBatch, null, text, font, destinationRectangle, color, wrap, stroke, strokeDistance, horizontalAlignment, verticalAlignment);
         }
+        public static void DrawString(this SpriteBatch spriteBatch, string text, BitmapFont font, RectangleF destinationRectangle, Color color, bool wrap, bool stroke, int strokeDistance, Color strokeColor, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
+        {
+            DrawStringOnCtrl(spriteBatch, null, text, font, destinationRectangle, color, wrap, stroke, strokeDistance, strokeColor, horizontalAlignment, verticalAlignment);
+        }
 
         public static void DrawLine(this SpriteBatch spriteBatch, Texture2D baseTexture, Rectangle coords, Color color)
         {
@@ -70,7 +74,7 @@
 
         public static void DrawCrossOut(this SpriteBatch spriteBatch, Texture2D baseTexture, RectangleF coords, Color color)
         {
-            DrawCrossOutOnCtrl(spriteBatch, null, baseTexture,coords, color);
+            DrawCrossOutOnCtrl(spriteBatch, null, baseTexture, coords, color);
         }
         public static void DrawAngledLine(this SpriteBatch spriteBatch, Texture2D baseTexture, Point2 start, Point2 end, Color color)
         {
@@ -131,6 +135,11 @@
 
         public static void DrawStringOnCtrl(this SpriteBatch spriteBatch, Blish_HUD.Controls.Control ctrl, string text, BitmapFont font, RectangleF destinationRectangle, Color color, bool wrap, bool stroke, int strokeDistance = 1, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
         {
+            DrawStringOnCtrl(spriteBatch, ctrl, text, font, destinationRectangle, color, wrap, stroke, strokeDistance, Color.Black, horizontalAlignment, verticalAlignment);
+        }
+
+        public static void DrawStringOnCtrl(this SpriteBatch spriteBatch, Blish_HUD.Controls.Control ctrl, string text, BitmapFont font, RectangleF destinationRectangle, Color color, bool wrap, bool stroke, int strokeDistance, Color strokeColor, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
+        {
             if (string.IsNullOrEmpty(text))
             {
                 return;
@@ -183,14 +192,14 @@
             float scale = ctrl != null ? ctrl.AbsoluteOpacity() : 1;
             if (stroke)
             {
-                spriteBatch.DrawString(font, text, vector2.OffsetBy(0f, -strokeDistance), Color.Black * scale);
-                spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, -strokeDistance), Color.Black * scale);
-                spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, 0f), Color.Black * scale);
-                spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, strokeDistance), Color.Black * scale);
-                spriteBatch.DrawString(font, text, vector2.OffsetBy(0f, strokeDistance), Color.Black * scale);
-                spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, strokeDistance), Color.Black * scale);
-                spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, 0f), Color.Black * scale);
-                spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, -strokeDistance), Color.Black * scale);
+                spriteBatch.DrawString(font, text, vector2.OffsetBy(0f, -strokeDistance), strokeColor * scale);
+                spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, -strokeDistance), strokeColor * scale);
+                spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, 0f), strokeColor * scale);
+                spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, strokeDistance), strokeColor * scale);
+                spriteBatch.DrawString(font, text, vector2.OffsetBy(0f, strokeDistance), strokeColor * scale);
+                spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, strokeDistance), strokeColor * scale);
+                spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, 0f), strokeColor * scale);
+                spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, -strokeDistance), strokeColor * scale);
             }
 
             spriteBatch.DrawString(font, text, vector2, color * scale);
@@ -216,7 +225,7 @@
             }
             else
             {
-                Draw(spriteBatch,baseTexture, coords, color);
+                Draw(spriteBatch, baseTexture, coords, color);
             }
         }
 
@@ -227,8 +236,8 @@
             Point2 bottomLeft = new Point2(coords.Left, coords.Bottom - 1.5f);
             Point2 bottomRight = new Point2(coords.Right, coords.Bottom - 1.5f);
 
-                DrawAngledLineOnCtrl(spriteBatch, control, baseTexture, topLeft, bottomRight, color);
-                DrawAngledLineOnCtrl(spriteBatch, control, baseTexture, bottomLeft, topRight, color);
+            DrawAngledLineOnCtrl(spriteBatch, control, baseTexture, topLeft, bottomRight, color);
+            DrawAngledLineOnCtrl(spriteBatch, control, baseTexture, bottomLeft, topRight, color);
         }
 
         public static void DrawAngledLineOnCtrl(this SpriteBatch spriteBatch, Control control, Texture2D baseTexture, Point2 start, Point2 end, Color color)
