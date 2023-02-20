@@ -34,8 +34,8 @@ public class PlayerMap
 
         equals &= this.Continent.Equals(playerMap.Continent);
         equals &= this.ID.Equals(playerMap.ID);
-        equals &= this.Name.Equals(playerMap.Name);
-        equals &= this.Position.Equals(playerMap.Position);
+        equals &= this.Name?.Equals(playerMap.Name) ?? this.Name is null && playerMap.Name is null;
+        equals &= this.Position?.Equals(playerMap.Position) ?? this.Position is null && playerMap.Position is null;
 
         return equals;
     }

@@ -20,7 +20,7 @@ public class SettingsView : BaseSettingsView
     private readonly Func<string> _getGlobalUrl;
     private readonly Func<string> _getGuildUrl;
 
-    public SettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, ModuleSettings moduleSettings,  Func<string> getGlobalUrl, Func<string> getGuildUrl, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public SettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, ModuleSettings moduleSettings,  Func<string> getGlobalUrl, Func<string> getGuildUrl, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
     {
         this._moduleSettings = moduleSettings;
         this._getGlobalUrl = getGlobalUrl;

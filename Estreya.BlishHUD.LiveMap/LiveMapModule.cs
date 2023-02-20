@@ -21,7 +21,6 @@
     using Humanizer;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
-    using Newtonsoft.Json;
     using Octokit;
     using SocketIOClient.JsonSerializer;
     using SocketIOClient.Messages;
@@ -29,9 +28,12 @@
     using System.Collections.Generic;
     using System.ComponentModel.Composition;
     using System.IO;
+    using System.IO.Compression;
     using System.Linq;
     using System.Net;
     using System.Security.Policy;
+    using System.Text;
+    using System.Text.Json;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Media.Animation;
@@ -40,17 +42,11 @@
     public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     {
         private static readonly Logger Logger = Logger.GetLogger<LiveMapModule>();
-        private const string LIVE_MAP_BASE_API_URL = "https://gw2map.api.estreya.de/v3";
-        private const string LIVE_MAP_GLOBAL_API_URL = $"{LIVE_MAP_BASE_API_URL}/global/write";
-        private const string LIVE_MAP_GUILD_API_URL = $"{LIVE_MAP_BASE_API_URL}/guild/write";
+        private const string LIVE_MAP_BASE_API_URL = "http://localhost:3004/v1/live-map";
+        private const string LIVE_MAP_GLOBAL_API_URL = $"{LIVE_MAP_BASE_API_URL}/write";
         public const string LIVE_MAP_GLOBAL_URL = $"https://gw2map.estreya.de/";
 
         private SocketIOClient.SocketIO GlobalSocket = new SocketIOClient.SocketIO(LIVE_MAP_GLOBAL_API_URL, new SocketIOClient.SocketIOOptions()
-        {
-            Transport = SocketIOClient.Transport.TransportProtocol.WebSocket
-        });
-
-        private SocketIOClient.SocketIO GuildSocket = new SocketIOClient.SocketIO(LIVE_MAP_GUILD_API_URL, new SocketIOClient.SocketIOOptions()
         {
             Transport = SocketIOClient.Transport.TransportProtocol.WebSocket
         });
@@ -114,11 +110,21 @@
             });
 
             _ = Task.Run(this.GlobalSocket.ConnectAsync);
-            _ = Task.Run(this.GuildSocket.ConnectAsync);
 
             await this.FetchAccountName();
             await this.FetchGuildId();
             await this.FetchWvW();
+        }
+
+        public static byte[] Compress(byte[] bytes)
+        {
+            using var memoryStream = new MemoryStream();
+            using (var gzipStream = new GZipStream(memoryStream, CompressionLevel.Optimal))
+            {
+                gzipStream.Write(bytes, 0, bytes.Length);
+            }
+
+            return memoryStream.ToArray();
         }
 
         protected override void OnModuleLoaded(EventArgs e)
@@ -233,19 +239,10 @@
 
             try
             {
-                switch (this.ModuleSettings.PublishType.Value)
-                {
-                    case LiveMap.Models.PublishType.Global:
-                        await this.PublishToGlobal(player);
-                        break;
-                    case LiveMap.Models.PublishType.Guild:
-                        await this.PublishToGuild(player);
-                        break;
-                    case LiveMap.Models.PublishType.Both:
-                        await this.PublishToGlobal(player);
-                        await this.PublishToGuild(player);
-                        break;
-                }
+                var orig = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(player));
+                var compressed = Compress(orig);
+
+                await this.PublishToGlobal(compressed);
             }
             catch (Exception ex)
             {
@@ -253,22 +250,12 @@
             }
         }
 
-        private async Task PublishToGlobal(Player player)
+        private async Task PublishToGlobal(byte[] data)
         {
             if (this.GlobalSocket.Connected)
             {
-                await this.GlobalSocket.EmitAsync("update", player);
+                await this.GlobalSocket.EmitAsync("update", data);
             }
-        }
-
-        private async Task PublishToGuild(Player player)
-        {
-            if (!this.GuildSocket.Connected || string.IsNullOrWhiteSpace(player.Identification.GuildId))
-            {
-                return;
-            }
-
-            await this.GuildSocket.EmitAsync("update", player);
         }
 
         protected override void Update(GameTime gameTime)
@@ -286,7 +273,6 @@
             GameService.Gw2Mumble.PlayerCharacter.NameChanged -= this.PlayerCharacter_NameChanged;
 
             AsyncHelper.RunSync(this.GlobalSocket.DisconnectAsync);
-            AsyncHelper.RunSync(this.GuildSocket.DisconnectAsync);
 
             Instance = null;
         }
@@ -382,7 +368,7 @@
 
         public override IView GetSettingsView()
         {
-            return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.ModuleSettings,
+            return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.ModuleSettings,
                () =>this.GetGlobalUrl(), () => this.GetGuildUrl() );
         }
 
