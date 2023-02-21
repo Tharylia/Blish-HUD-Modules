@@ -2,13 +2,9 @@
 {
     using Blish_HUD;
     using Blish_HUD.Content;
-    using Blish_HUD.Controls;
     using Blish_HUD.Graphics.UI;
-    using Blish_HUD.Gw2Mumble;
     using Blish_HUD.Modules;
-    using Blish_HUD.Modules.Managers;
     using Blish_HUD.Settings;
-    using Estreya.BlishHUD.LiveMap;
     using Estreya.BlishHUD.LiveMap.Models.Player;
     using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Helpers;
@@ -18,38 +14,24 @@
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Util;
     using Gw2Sharp.WebApi.V2.Models;
-    using Humanizer;
     using Microsoft.Xna.Framework;
-    using Microsoft.Xna.Framework.Graphics;
-    using Octokit;
-    using SocketIOClient.JsonSerializer;
-    using SocketIOClient.Messages;
     using System;
     using System.Collections.Generic;
     using System.ComponentModel.Composition;
     using System.IO;
     using System.IO.Compression;
     using System.Linq;
-    using System.Net;
-    using System.Security.Policy;
     using System.Text;
     using System.Text.Json;
-    using System.Threading;
     using System.Threading.Tasks;
-    using System.Windows.Media.Animation;
 
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     {
-        private static readonly Logger Logger = Logger.GetLogger<LiveMapModule>();
-        private const string LIVE_MAP_BASE_API_URL = "http://localhost:3004/v1/live-map";
-        private const string LIVE_MAP_GLOBAL_API_URL = $"{LIVE_MAP_BASE_API_URL}/write";
-        public const string LIVE_MAP_GLOBAL_URL = $"https://gw2map.estreya.de/";
+        private string LIVE_MAP_API_URL => $"{this.API_URL}/write";
+        public const string LIVE_MAP_BROWSER_URL = $"https://gw2map.estreya.de/";
 
-        private SocketIOClient.SocketIO GlobalSocket = new SocketIOClient.SocketIO(LIVE_MAP_GLOBAL_API_URL, new SocketIOClient.SocketIOOptions()
-        {
-            Transport = SocketIOClient.Transport.TransportProtocol.WebSocket
-        });
+        private SocketIOClient.SocketIO GlobalSocket;
 
         private TimeSpan _sendInterval = TimeSpan.FromMilliseconds(250);
         private AsyncRef<double> _lastSend = new AsyncRef<double>(0);
@@ -64,7 +46,7 @@
         private PlayerWvW _wvw;
         private Map _map;
 
-        public string GuildId => _guildId;
+        public string GuildId => this._guildId;
 
         public override string WebsiteModuleName => "live-map";
 
@@ -77,12 +59,17 @@
         {
             base.Initialize();
 
+            this.GlobalSocket = new SocketIOClient.SocketIO(this.LIVE_MAP_API_URL, new SocketIOClient.SocketIOOptions()
+            {
+                Transport = SocketIOClient.Transport.TransportProtocol.WebSocket
+            });
+
             this.Gw2ApiManager.SubtokenUpdated += this.Gw2ApiManager_SubtokenUpdated;
             GameService.Gw2Mumble.PlayerCharacter.NameChanged += this.PlayerCharacter_NameChanged;
             GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
 
-            this._lastSend.Value = _sendInterval.TotalMilliseconds;
-            this._lastGuildFetch.Value = _guildFetchInterval.TotalMilliseconds;
+            this._lastSend.Value = this._sendInterval.TotalMilliseconds;
+            this._lastGuildFetch.Value = this._guildFetchInterval.TotalMilliseconds;
 
             Instance = this;
         }
@@ -92,8 +79,12 @@
             this.Gw2ApiManager.Gw2ApiClient.V2.Maps.GetAsync(e.Value)
             .ContinueWith(response =>
             {
-                if (response.Exception != null || response.IsFaulted || response.IsCanceled) return;
-                var result = response.Result;
+                if (response.Exception != null || response.IsFaulted || response.IsCanceled)
+                {
+                    return;
+                }
+
+                Map result = response.Result;
 
                 this._map = result;
             });
@@ -105,8 +96,8 @@
 
             this.GlobalSocket.On("interval", (resp) =>
             {
-                var interval = resp.GetValue<int>();
-                _sendInterval = TimeSpan.FromMilliseconds(interval);
+                int interval = resp.GetValue<int>();
+                this._sendInterval = TimeSpan.FromMilliseconds(interval);
             });
 
             _ = Task.Run(this.GlobalSocket.ConnectAsync);
@@ -118,8 +109,8 @@
 
         public static byte[] Compress(byte[] bytes)
         {
-            using var memoryStream = new MemoryStream();
-            using (var gzipStream = new GZipStream(memoryStream, CompressionLevel.Optimal))
+            using MemoryStream memoryStream = new MemoryStream();
+            using (GZipStream gzipStream = new GZipStream(memoryStream, CompressionLevel.Optimal))
             {
                 gzipStream.Write(bytes, 0, bytes.Length);
             }
@@ -136,13 +127,13 @@
         private void Gw2ApiManager_SubtokenUpdated(object sender, ValueEventArgs<IEnumerable<TokenPermission>> e)
         {
             Task.Run(this.FetchAccountName);
-            _lastGuildFetch.Value = _guildFetchInterval.TotalMilliseconds;
-            _lastWvWFetch.Value = _wvwFetchInterval.TotalMilliseconds;
+            this._lastGuildFetch.Value = this._guildFetchInterval.TotalMilliseconds;
+            this._lastWvWFetch.Value = this._wvwFetchInterval.TotalMilliseconds;
         }
 
         private void PlayerCharacter_NameChanged(object sender, ValueEventArgs<string> e)
         {
-            _lastGuildFetch = _guildFetchInterval.TotalMilliseconds;
+            this._lastGuildFetch = this._guildFetchInterval.TotalMilliseconds;
         }
 
         private async Task FetchAccountName()
@@ -152,7 +143,7 @@
                 return;
             }
 
-            var account = await this.Gw2ApiManager.Gw2ApiClient.V2.Account.GetAsync();
+            Gw2Sharp.WebApi.V2.Models.Account account = await this.Gw2ApiManager.Gw2ApiClient.V2.Account.GetAsync();
             this._accountName = account.Name;
         }
 
@@ -165,29 +156,29 @@
 
             try
             {
-                var character = await this.Gw2ApiManager.Gw2ApiClient.V2.Characters.GetAsync(GameService.Gw2Mumble.PlayerCharacter.Name);
+                Character character = await this.Gw2ApiManager.Gw2ApiClient.V2.Characters.GetAsync(GameService.Gw2Mumble.PlayerCharacter.Name);
                 this._guildId = character.Guild.ToString();
             }
             catch (Exception ex)
             {
-                Logger.Debug(ex, "Failed to fetch guild id:");
+                this.Logger.Debug(ex, "Failed to fetch guild id:");
             }
         }
 
         private async Task FetchWvW()
         {
-            var color = "white";
-            var matchId = "0-0";
+            string color = "white";
+            string matchId = "0-0";
 
             if (this.Gw2ApiManager.HasPermissions(new[] { TokenPermission.Account }))
             {
                 try
                 {
-                    var account = await this.Gw2ApiManager.Gw2ApiClient.V2.Account.GetAsync();
-                    var worldId = account.World;
-                    var matches = await this.Gw2ApiManager.Gw2ApiClient.V2.Wvw.Matches.AllAsync();
+                    Gw2Sharp.WebApi.V2.Models.Account account = await this.Gw2ApiManager.Gw2ApiClient.V2.Account.GetAsync();
+                    int worldId = account.World;
+                    Gw2Sharp.WebApi.V2.IApiV2ObjectList<WvwMatch> matches = await this.Gw2ApiManager.Gw2ApiClient.V2.Wvw.Matches.AllAsync();
 
-                    var match = matches.Where(m => m.AllWorlds.Green.Contains(worldId)).FirstOrDefault();
+                    WvwMatch match = matches.Where(m => m.AllWorlds.Green.Contains(worldId)).FirstOrDefault();
                     if (match != null)
                     {
                         color = "green";
@@ -210,7 +201,7 @@
                 }
                 catch (Exception ex)
                 {
-                    Logger.Debug(ex, "Failed to fetch wvw team color:");
+                    this.Logger.Debug(ex, "Failed to fetch wvw team color:");
                 }
             }
 
@@ -223,30 +214,30 @@
 
         private async Task SendPosition()
         {
-            if (string.IsNullOrWhiteSpace(_accountName) || !GameService.Gw2Mumble.IsAvailable || GameService.Gw2Mumble.TimeSinceTick.TotalSeconds > 0.5 || (this.ModuleSettings.StreamerModeEnabled.Value && StreamerUtils.IsStreaming()))
+            if (string.IsNullOrWhiteSpace(this._accountName) || !GameService.Gw2Mumble.IsAvailable || GameService.Gw2Mumble.TimeSinceTick.TotalSeconds > 0.5 || (this.ModuleSettings.StreamerModeEnabled.Value && StreamerUtils.IsStreaming()))
             {
                 return;
             }
 
-            var player = this.GetPlayer();
+            Player player = this.GetPlayer();
 
-            if (_lastSendPlayer != null && player.Equals(_lastSendPlayer))
+            if (this._lastSendPlayer != null && player.Equals(this._lastSendPlayer))
             {
                 return;
             }
 
-            _lastSendPlayer = player;
+            this._lastSendPlayer = player;
 
             try
             {
-                var orig = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(player));
-                var compressed = Compress(orig);
+                byte[] orig = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(player));
+                byte[] compressed = Compress(orig);
 
                 await this.PublishToGlobal(compressed);
             }
             catch (Exception ex)
             {
-                Logger.Debug(ex.Message);
+                this.Logger.Debug(ex.Message);
             }
         }
 
@@ -260,9 +251,9 @@
 
         protected override void Update(GameTime gameTime)
         {
-            _ = UpdateUtil.UpdateAsync(this.SendPosition, gameTime, _sendInterval.TotalMilliseconds, _lastSend, false);
-            _ = UpdateUtil.UpdateAsync(this.FetchGuildId, gameTime, _guildFetchInterval.TotalMilliseconds, _lastGuildFetch);
-            _ = UpdateUtil.UpdateAsync(this.FetchWvW, gameTime, _wvwFetchInterval.TotalMilliseconds, _lastWvWFetch);
+            _ = UpdateUtil.UpdateAsync(this.SendPosition, gameTime, this._sendInterval.TotalMilliseconds, this._lastSend, false);
+            _ = UpdateUtil.UpdateAsync(this.FetchGuildId, gameTime, this._guildFetchInterval.TotalMilliseconds, this._lastGuildFetch);
+            _ = UpdateUtil.UpdateAsync(this.FetchWvW, gameTime, this._wvwFetchInterval.TotalMilliseconds, this._lastWvWFetch);
         }
 
         /// <inheritdoc />
@@ -279,16 +270,16 @@
 
         public Player GetPlayer()
         {
-            var position = this._map?.WorldMeterCoordsToMapCoords(GameService.Gw2Mumble.PlayerCharacter.Position) ?? Vector2.Zero;
+            Vector2 position = this._map?.WorldMeterCoordsToMapCoords(GameService.Gw2Mumble.PlayerCharacter.Position) ?? Vector2.Zero;
 
-            var cameraForward = this.ModuleSettings.PlayerFacingType.Value == LiveMap.Models.PlayerFacingType.Camera ? GameService.Gw2Mumble.PlayerCamera.Forward : GameService.Gw2Mumble.PlayerCharacter.Forward;
-            var cameraAngle = Math.Atan2(cameraForward.X, cameraForward.Y) * 180 / Math.PI;
+            Vector3 cameraForward = this.ModuleSettings.PlayerFacingType.Value == LiveMap.Models.PlayerFacingType.Camera ? GameService.Gw2Mumble.PlayerCamera.Forward : GameService.Gw2Mumble.PlayerCharacter.Forward;
+            double cameraAngle = Math.Atan2(cameraForward.X, cameraForward.Y) * 180 / Math.PI;
             if (cameraAngle < 0)
             {
                 cameraAngle += 360;
             }
 
-            var player = new Player()
+            Player player = new Player()
             {
                 Identification = new PlayerIdentification()
                 {
@@ -320,8 +311,8 @@
 
         private string GetGlobalUrl(bool formatPositions = true)
         {
-            var baseUrl = LIVE_MAP_GLOBAL_URL;
-            var url = baseUrl;
+            string baseUrl = LIVE_MAP_BROWSER_URL;
+            string url = baseUrl;
 
             if (this._map?.ContinentId == 1)
             {
@@ -345,12 +336,12 @@
 
         private string GetGuildUrl(bool formatPositions = true)
         {
-            var baseUrl = this.GetGlobalUrl(false);
-            var url = baseUrl;
+            string baseUrl = this.GetGlobalUrl(false);
+            string url = baseUrl;
 
-            if (!string.IsNullOrWhiteSpace(GuildId))
+            if (!string.IsNullOrWhiteSpace(this.GuildId))
             {
-                url = Path.Combine(url, "guild", GuildId);
+                url = Path.Combine(url, "guild", this.GuildId);
             }
             else
             {
@@ -362,14 +353,14 @@
 
         private string FormatUrlWithPosition(string url)
         {
-            var player = this.GetPlayer();
+            Player player = this.GetPlayer();
             return $"{url}?posX={player.Map.Position.X.ToInvariantString()}&posY={player.Map.Position.Y.ToInvariantString()}&zoom=6";
         }
 
         public override IView GetSettingsView()
         {
             return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.ModuleSettings,
-               () =>this.GetGlobalUrl(), () => this.GetGuildUrl() );
+               () => this.GetGlobalUrl(), () => this.GetGuildUrl());
         }
 
         protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
