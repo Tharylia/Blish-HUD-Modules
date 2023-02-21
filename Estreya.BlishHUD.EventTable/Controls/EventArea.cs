@@ -523,7 +523,8 @@ public class EventArea : Container
                             return ev.Filler
                             ? this.Configuration.FillerShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.FillerShadowColor.Value.Cloth.ToXnaColor()
                             : this.Configuration.ShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.ShadowColor.Value.Cloth.ToXnaColor();
-                        })
+                        },
+                        () => this.Configuration.ShowTooltips.Value)
 
                     {
                         Parent = this,

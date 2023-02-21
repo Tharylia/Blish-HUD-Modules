@@ -334,28 +334,61 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (show)
         {
-            this.CornerIcon = new CornerIcon()
+            this.CornerIcon ??= new CornerIcon()
             {
                 IconName = this.Name,
                 Icon = this.GetCornerIcon(),
             };
 
-            this.CornerIcon.Click += this.CornerIcon_Click;
+            this.OnCornerIconBuild();
         }
         else
         {
             if (this.CornerIcon != null)
             {
-                this.CornerIcon.Click -= this.CornerIcon_Click;
+                this.OnCornerIconDispose();
                 this.CornerIcon.Dispose();
                 this.CornerIcon = null;
             }
         }
     }
 
+    protected virtual void OnCornerIconBuild()
+    {
+        this.CornerIcon.Click += this.CornerIcon_Click;
+        this.CornerIcon.RightMouseButtonPressed += this.CornerIcon_RightMouseButtonPressed;
+    }
+
+    protected virtual void OnCornerIconDispose()
+    {
+        this.CornerIcon.Click -= this.CornerIcon_Click;
+        this.CornerIcon.RightMouseButtonPressed -= this.CornerIcon_RightMouseButtonPressed;
+    }
+
     private void CornerIcon_Click(object sender, Blish_HUD.Input.MouseEventArgs e)
     {
-        this.SettingsWindow.ToggleWindow();
+        switch (this.ModuleSettings.CornerIconLeftClickAction.Value)
+        {
+            case Models.CornerIconLeftClickAction.Settings:
+                this.SettingsWindow.ToggleWindow();
+                break;
+            case Models.CornerIconLeftClickAction.Visibility:
+                this.ModuleSettings.GlobalDrawerVisible.Value = !this.ModuleSettings.GlobalDrawerVisible.Value;
+                break;
+        }
+    }
+
+    private void CornerIcon_RightMouseButtonPressed(object sender, Blish_HUD.Input.MouseEventArgs e)
+    {
+        switch (this.ModuleSettings.CornerIconRightClickAction.Value)
+        {
+            case Models.CornerIconRightClickAction.Settings:
+                this.SettingsWindow.ToggleWindow();
+                break;
+            case Models.CornerIconRightClickAction.Visibility:
+                this.ModuleSettings.GlobalDrawerVisible.Value = !this.ModuleSettings.GlobalDrawerVisible.Value;
+                break;
+        }
     }
 
     public override IView GetSettingsView()

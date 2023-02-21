@@ -32,6 +32,7 @@ public class Event : RenderTargetControl
     private readonly Func<Color> _getColorAction;
     private readonly Func<bool> _getDrawShadowAction;
     private readonly Func<Color> _getShadowColor;
+    private readonly Func<bool> _getShowTooltips;
 
     private Tooltip _tooltip;
 
@@ -43,7 +44,8 @@ public class Event : RenderTargetControl
         Func<Color> getTextColor,
         Func<Color> getColorAction,
         Func<bool> getDrawShadowAction,
-        Func<Color> getShadowColor)
+        Func<Color> getShadowColor,
+        Func<bool> getShowTooltips)
     {
         this.Ev = ev;
         this._iconState = iconState;
@@ -58,6 +60,7 @@ public class Event : RenderTargetControl
         this._getColorAction = getColorAction;
         this._getDrawShadowAction = getDrawShadowAction;
         this._getShadowColor = getShadowColor;
+        this._getShowTooltips = getShowTooltips;
 
         this.BuildContextMenu();
     }
@@ -103,9 +106,16 @@ public class Event : RenderTargetControl
 
         if (!this.Ev.Filler)
         {
-            this.BuildOrUpdateTooltip();
+            if (this._getShowTooltips())
+            {
+                this.BuildOrUpdateTooltip();
 
-            this.Tooltip = this._tooltip;
+                this.Tooltip = this._tooltip;
+            }
+            else
+            {
+                this.Tooltip = null;
+            }
         }
     }
 

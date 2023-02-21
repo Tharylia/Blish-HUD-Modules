@@ -288,6 +288,10 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.ShowTooltips);
+
+        this.RenderEmptyLine(settingsPanel);
+
         //this.RenderBoolSetting(settingsPanel, areaConfiguration.ShowContextMenu);
 
         //this.RenderEmptyLine(settingsPanel);
