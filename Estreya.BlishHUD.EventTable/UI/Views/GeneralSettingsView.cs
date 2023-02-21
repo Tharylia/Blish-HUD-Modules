@@ -24,6 +24,8 @@
             this.RenderBoolSetting(parent, _moduleSettings.GlobalDrawerVisible);
             this.RenderKeybindingSetting(parent, _moduleSettings.GlobalDrawerVisibleHotkey);
             this.RenderBoolSetting(parent, _moduleSettings.RegisterCornerIcon);
+            this.RenderEnumSetting(parent, _moduleSettings.CornerIconLeftClickAction);
+            this.RenderEnumSetting(parent, _moduleSettings.CornerIconRightClickAction);
 
             this.RenderEmptyLine(parent);
 

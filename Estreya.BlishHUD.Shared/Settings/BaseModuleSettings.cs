@@ -37,6 +37,8 @@
         public SettingEntry<bool> GlobalDrawerVisible { get; private set; }
         public SettingEntry<KeyBinding> GlobalDrawerVisibleHotkey { get; private set; }
         public SettingEntry<bool> RegisterCornerIcon { get; private set; }
+        public SettingEntry<CornerIconLeftClickAction> CornerIconLeftClickAction { get; private set; }
+        public SettingEntry<CornerIconRightClickAction> CornerIconRightClickAction { get; private set; }
         public SettingEntry<bool> HideOnMissingMumbleTicks { get; private set; }
         public SettingEntry<bool> HideInCombat { get; private set; }
         public SettingEntry<bool> HideOnOpenMap { get; private set; }
@@ -143,6 +145,13 @@
 
             this.RegisterCornerIcon = this.GlobalSettings.DefineSetting(nameof(this.RegisterCornerIcon), true, () => "Register Corner Icon", () => "Whether the module should register a corner icon.");
             this.RegisterCornerIcon.SettingChanged += this.SettingChanged;
+            this.RegisterCornerIcon.SettingChanged += this.RegisterCornerIcon_SettingChanged;
+
+            this.CornerIconLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconLeftClickAction), Models.CornerIconLeftClickAction.Settings, () => "Corner Icon Left Click Action", () => "Defines the action of the corner icon when left clicked.");
+            this.CornerIconLeftClickAction.SettingChanged += this.SettingChanged;
+
+            this.CornerIconRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconRightClickAction), Models.CornerIconRightClickAction.None, () => "Corner Icon Right Click Action", () => "Defines the action of the corner icon when right clicked.");
+            this.CornerIconRightClickAction.SettingChanged += this.SettingChanged;
 
             this.HideOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideOnOpenMap), true, () => "Hide on open Map", () => "Whether the modules drawers should hide when the map is open.");
             this.HideOnOpenMap.SettingChanged += this.SettingChanged;
@@ -168,12 +177,24 @@
             this.DebugEnabled = this.GlobalSettings.DefineSetting(nameof(this.DebugEnabled), false, () => "Debug Enabled", () => "Whether the module runs in debug mode.");
             this.DebugEnabled.SettingChanged += this.SettingChanged;
 
+            this.HandleEnabledStates();
+
             this.DoInitializeGlobalSettings(this.GlobalSettings);
+        }
+
+        private void RegisterCornerIcon_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+        {
+            this.HandleEnabledStates();
         }
 
         private void GlobalEnabledHotkey_Activated(object sender, EventArgs e)
         {
             this.GlobalDrawerVisible.Value = !this.GlobalDrawerVisible.Value;
+        }
+        private void HandleEnabledStates()
+        {
+            this.CornerIconLeftClickAction.SetDisabled(!this.RegisterCornerIcon.Value);
+            this.CornerIconRightClickAction.SetDisabled(!this.RegisterCornerIcon.Value);
         }
 
         protected virtual void DoInitializeGlobalSettings(SettingCollection globalSettingCollection) { /* NOOP */ }
@@ -387,6 +408,7 @@
             this.GlobalDrawerVisibleHotkey.Value.Enabled = false;
             this.GlobalDrawerVisibleHotkey.Value.Activated -= this.GlobalEnabledHotkey_Activated;
             this.RegisterCornerIcon.SettingChanged -= this.SettingChanged;
+            this.RegisterCornerIcon.SettingChanged -= this.RegisterCornerIcon_SettingChanged;
             this.HideOnOpenMap.SettingChanged -= this.SettingChanged;
             this.HideOnMissingMumbleTicks.SettingChanged -= this.SettingChanged;
             this.HideInPvE_OpenWorld.SettingChanged -= this.SettingChanged;

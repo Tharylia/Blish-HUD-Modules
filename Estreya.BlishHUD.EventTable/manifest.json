@@ -1,6 +1,6 @@
 {
   "name": "Event Table",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "namespace": "estreya.bh.eventTable",
   "package": "Estreya.BlishHUD.EventTable.dll",
   "manifest_version": 1,

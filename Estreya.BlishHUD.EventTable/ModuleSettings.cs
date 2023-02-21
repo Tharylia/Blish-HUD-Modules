@@ -20,7 +20,6 @@
 
     public class ModuleSettings : BaseModuleSettings
     {
-
         #region Global Settings
         public SettingEntry<KeyBinding> MapKeybinding { get; private set; }
         #endregion
