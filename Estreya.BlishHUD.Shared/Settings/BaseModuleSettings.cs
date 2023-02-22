@@ -37,8 +37,8 @@
         public SettingEntry<bool> GlobalDrawerVisible { get; private set; }
         public SettingEntry<KeyBinding> GlobalDrawerVisibleHotkey { get; private set; }
         public SettingEntry<bool> RegisterCornerIcon { get; private set; }
-        public SettingEntry<CornerIconLeftClickAction> CornerIconLeftClickAction { get; private set; }
-        public SettingEntry<CornerIconRightClickAction> CornerIconRightClickAction { get; private set; }
+        public SettingEntry<CornerIconClickAction> CornerIconLeftClickAction { get; private set; }
+        public SettingEntry<CornerIconClickAction> CornerIconRightClickAction { get; private set; }
         public SettingEntry<bool> HideOnMissingMumbleTicks { get; private set; }
         public SettingEntry<bool> HideInCombat { get; private set; }
         public SettingEntry<bool> HideOnOpenMap { get; private set; }
@@ -147,10 +147,10 @@
             this.RegisterCornerIcon.SettingChanged += this.SettingChanged;
             this.RegisterCornerIcon.SettingChanged += this.RegisterCornerIcon_SettingChanged;
 
-            this.CornerIconLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconLeftClickAction), Models.CornerIconLeftClickAction.Settings, () => "Corner Icon Left Click Action", () => "Defines the action of the corner icon when left clicked.");
+            this.CornerIconLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconLeftClickAction), Models.CornerIconClickAction.Settings, () => "Corner Icon Left Click Action", () => "Defines the action of the corner icon when left clicked.");
             this.CornerIconLeftClickAction.SettingChanged += this.SettingChanged;
 
-            this.CornerIconRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconRightClickAction), Models.CornerIconRightClickAction.None, () => "Corner Icon Right Click Action", () => "Defines the action of the corner icon when right clicked.");
+            this.CornerIconRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconRightClickAction), Models.CornerIconClickAction.None, () => "Corner Icon Right Click Action", () => "Defines the action of the corner icon when right clicked.");
             this.CornerIconRightClickAction.SettingChanged += this.SettingChanged;
 
             this.HideOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideOnOpenMap), true, () => "Hide on open Map", () => "Whether the modules drawers should hide when the map is open.");

@@ -5,7 +5,7 @@
     using System.ComponentModel;
     using System.Text;
 
-    public enum CornerIconLeftClickAction
+    public enum CornerIconClickAction
     {
         None,
         [Description("Toggle Settingswindow")]
