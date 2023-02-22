@@ -156,7 +156,7 @@ public class SkillState : APIState<Skill>
         { 62554,("Cutter Burst","2479385.png") }, // Cutter Burst
     };
 
-    private ConcurrentDictionary<int, string> _missingSkillsFromAPIReportedByArcDPS;
+    private ConcurrentDictionary<int, (string Name, int HintId)> _missingSkillsFromAPIReportedByArcDPS;
 
     public SkillState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IconState iconState, string baseFolderPath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration)
     {
@@ -168,7 +168,7 @@ public class SkillState : APIState<Skill>
 
     protected override Task DoInitialize()
     {
-        this._missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, string>();
+        this._missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, (string Name, int HintId)>();
         return Task.CompletedTask;
     }
 
@@ -419,7 +419,7 @@ public class SkillState : APIState<Skill>
 
             skills.Add(skillToInsert);
 
-            Logger.Debug($"Remapped skill from {remappedSkill.OriginalID} to {remappedSkill.DestinationID}");
+            Logger.Debug($"Remapped skill from {remappedSkill.OriginalID} to {remappedSkill.DestinationID} ({remappedSkill.Comment})");
         }
     }
 
@@ -437,6 +437,8 @@ public class SkillState : APIState<Skill>
                 Icon = missingSkill.Icon
             });
 
+            Logger.Debug($"Added missing skill {missingSkill.ID} ({missingSkill.Name})");
+
             if (missingSkill.NameAliases != null)
             {
                 foreach (var alias in missingSkill.NameAliases)
@@ -447,6 +449,8 @@ public class SkillState : APIState<Skill>
                         Name = alias,
                         Icon = missingSkill.Icon
                     });
+
+                    Logger.Debug($"Added missing skill alias {missingSkill.ID} ({alias})");
                 }
             }
         }
@@ -494,11 +498,18 @@ public class SkillState : APIState<Skill>
         string missingSkillPath = Path.Combine(this.DirectoryPath, LOCAL_MISSING_SKILL_FILE_NAME);
         if (File.Exists(missingSkillPath))
         {
-            this._missingSkillsFromAPIReportedByArcDPS = JsonConvert.DeserializeObject<ConcurrentDictionary<int, string>>(await FileUtil.ReadStringAsync(missingSkillPath));
+            try
+            {
+                this._missingSkillsFromAPIReportedByArcDPS = JsonConvert.DeserializeObject<ConcurrentDictionary<int, (string Name, int HintId)>>(await FileUtil.ReadStringAsync(missingSkillPath));
+            }
+            catch (Exception)
+            {
+                // We dont care. Maybe schema changed
+            }
         }
         else
         {
-            this._missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, string>();
+            this._missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, (string Name, int HintId)>();
         }
     }
 
@@ -566,11 +577,24 @@ public class SkillState : APIState<Skill>
 
     public bool AddMissingSkill(int id, string name)
     {
-        return this._missingSkillsFromAPIReportedByArcDPS?.TryAdd(id, name) ?? false;
+        int hintId = -1;
+        using (this._apiObjectListLock.Lock())
+        {
+            foreach (Skill skill in this.APIObjectList)
+            {
+                if (skill.Name == name)
+                {
+                    hintId = skill.Id;
+                    break;
+                }
+            }
+        }
+
+        return this._missingSkillsFromAPIReportedByArcDPS?.TryAdd(id, (name, hintId) ) ?? false;
     }
 
     public void RemoveMissingSkill(int id)
     {
-        _ = this._missingSkillsFromAPIReportedByArcDPS?.TryRemove(id, out string _);
+        _ = this._missingSkillsFromAPIReportedByArcDPS?.TryRemove(id, out (string Name, int HintId) _);
     }
 }
