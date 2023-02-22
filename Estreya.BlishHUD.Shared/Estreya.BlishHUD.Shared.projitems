@@ -65,8 +65,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\ExitCombatEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\StateChangeCombatEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BuildDirection.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Models\CornerIconLeftClickAction.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Models\CornerIconRightClickAction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\CornerIconClickAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerLocation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerSize.cs" />

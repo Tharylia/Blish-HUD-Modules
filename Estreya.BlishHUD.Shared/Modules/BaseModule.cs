@@ -369,10 +369,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         switch (this.ModuleSettings.CornerIconLeftClickAction.Value)
         {
-            case Models.CornerIconLeftClickAction.Settings:
+            case Models.CornerIconClickAction.Settings:
                 this.SettingsWindow.ToggleWindow();
                 break;
-            case Models.CornerIconLeftClickAction.Visibility:
+            case Models.CornerIconClickAction.Visibility:
                 this.ModuleSettings.GlobalDrawerVisible.Value = !this.ModuleSettings.GlobalDrawerVisible.Value;
                 break;
         }
@@ -382,10 +382,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         switch (this.ModuleSettings.CornerIconRightClickAction.Value)
         {
-            case Models.CornerIconRightClickAction.Settings:
+            case Models.CornerIconClickAction.Settings:
                 this.SettingsWindow.ToggleWindow();
                 break;
-            case Models.CornerIconRightClickAction.Visibility:
+            case Models.CornerIconClickAction.Visibility:
                 this.ModuleSettings.GlobalDrawerVisible.Value = !this.ModuleSettings.GlobalDrawerVisible.Value;
                 break;
         }

@@ -22,6 +22,8 @@
             this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.GlobalDrawerVisible);
             this.RenderKeybindingSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.GlobalDrawerVisibleHotkey);
             this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.RegisterCornerIcon);
+            this.RenderEnumSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.CornerIconLeftClickAction);
+            this.RenderEnumSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.CornerIconRightClickAction);
 
             this.RenderEmptyLine(parent);
 
