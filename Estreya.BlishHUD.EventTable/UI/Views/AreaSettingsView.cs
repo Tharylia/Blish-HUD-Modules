@@ -256,6 +256,7 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderBoolSetting(settingsPanel, areaConfiguration.Enabled);
         this.RenderKeybindingSetting(settingsPanel, areaConfiguration.EnabledKeybinding);
+        this.RenderEnumSetting(settingsPanel, areaConfiguration.DrawInterval);
 
         this.RenderEmptyLine(settingsPanel);
 

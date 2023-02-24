@@ -32,4 +32,5 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<float> EventOpacity { get; set; }
     public SettingEntry<bool> DrawShadows { get; set; }
     public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> ShadowColor { get; set; }
+    public SettingEntry<DrawInterval> DrawInterval { get; set; }
 }

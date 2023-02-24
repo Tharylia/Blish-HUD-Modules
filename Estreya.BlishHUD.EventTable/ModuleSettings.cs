@@ -184,6 +184,8 @@
 
             var fillerShadowColor = this.DrawerSettings.DefineSetting($"{name}-fillerShadowColor", this.DefaultGW2Color, () => "Filler Shadow Color", () => "Defines the color of the shadows for fillers");
 
+            var drawInterval = this.DrawerSettings.DefineSetting($"{name}-drawInterval", DrawInterval.FAST, () => "Draw Interval", () => "Defines the refresh rate of the drawer.");
+
 
             return new EventAreaConfiguration()
             {
@@ -213,7 +215,8 @@
                 DrawShadows = drawShadows,
                 ShadowColor= shadowColor,
                 DrawShadowsForFiller = drawShadowsForFiller,
-                FillerShadowColor = fillerShadowColor
+                FillerShadowColor = fillerShadowColor,
+                DrawInterval = drawInterval
             };
         }
 
@@ -238,6 +241,7 @@
             this.DrawerSettings.UndefineSetting($"{name}-shadowColor");
             this.DrawerSettings.UndefineSetting($"{name}-drawShadowsForFiller");
             this.DrawerSettings.UndefineSetting($"{name}-fillerShadowColor");
+            this.DrawerSettings.UndefineSetting($"{name}-drawInterval");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
