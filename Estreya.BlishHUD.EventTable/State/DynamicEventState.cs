@@ -69,7 +69,10 @@ public class DynamicEventState : APIState
 
     protected override async Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress)
     {
+        progress.Report("Loading maps..");
         this.Maps = await this.GetMaps();
+
+        progress.Report("Loading events..");
         this.Events = await this.GetEvents();
     }
 
