@@ -457,7 +457,7 @@ public class EventArea : RenderTargetControl
         if (!ev.Filler && this.Configuration.LimitToCurrentMap.Value && GameService.Gw2Mumble.IsAvailable)
         {
             var mapId = GameService.Gw2Mumble.CurrentMap.Id;
-            if (ev.MapId != mapId && !(this.Configuration.AllowUnspecifiedMap.Value && ev.MapId == -1))
+            if (!ev.MapIds.Contains(mapId ) && !(this.Configuration.AllowUnspecifiedMap.Value && ev.MapIds.Length == 0))
             {
                 disabled = true;
             }
