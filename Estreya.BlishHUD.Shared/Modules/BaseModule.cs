@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.Modules;
+namespace Estreya.BlishHUD.Shared.Modules;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -614,6 +614,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             this.ModuleSettings.ModuleSettingsChanged -= this.ModuleSettings_ModuleSettingsChanged;
             this.ModuleSettings.Unload();
+            this.ModuleSettings = null;
         }
 
         this.Logger.Debug("Unloaded settings.");
@@ -634,6 +635,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.SettingsWindow?.Hide();
         this.SettingsWindow?.Dispose();
+        this.SettingsWindow = null;
 
         this.Logger.Debug("Unloaded settings window.");
 
@@ -651,6 +653,18 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             this._states.ToList().ForEach(state => state?.Dispose());
             this._states.Clear();
+
+            this.AccountState = null;
+            this.ArcDPSState = null;
+            this.IconState = null;
+            this.ItemState = null;
+            this.MapchestState = null;
+            this.WorldbossState = null;
+            this.PointOfInterestState = null;
+            this.SettingEventState = null;
+            this.SkillState = null;
+            this.TradingPostState = null;
+            this.TranslationState = null;
         }
 
         this.Logger.Debug("Unloaded states.");
@@ -658,6 +672,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Unload flurl client...");
 
         this._flurlClient?.Dispose();
+        this._flurlClient = null;
 
         this.Logger.Debug("Unloaded flurl client.");
 
