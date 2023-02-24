@@ -119,6 +119,8 @@ public class EventArea : RenderTargetControl
         this.Configuration.EventOrder.SettingChanged += this.EventOrder_SettingChanged;
         this.Configuration.DrawInterval.SettingChanged += this.DrawInterval_SettingChanged;
 
+        this.Click += this.OnLeftMouseButtonPressed;
+
         this.Location_SettingChanged(this, null);
         this.Size_SettingChanged(this, null);
         this.Opacity_SettingChanged(this, new ValueChangedEventArgs<float>(0f, this.Configuration.Opacity.Value));
@@ -573,9 +575,11 @@ public class EventArea : RenderTargetControl
                         {
                             Color defaultTextColor = Color.Black;
 
-                            return ev.Filler
+                            Color color = ev.Filler
                                 ? this.Configuration.FillerTextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.FillerTextColor.Value.Cloth.ToXnaColor()
                                 : this.Configuration.TextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.TextColor.Value.Cloth.ToXnaColor();
+
+                            return color * this.Configuration.EventOpacity.Value;
                         },
                         () =>
                         {
@@ -606,26 +610,29 @@ public class EventArea : RenderTargetControl
         }
     }
 
-    private void EventControl_LeftMouseButtonPressed(object sender, Blish_HUD.Input.MouseEventArgs e)
+    private void OnLeftMouseButtonPressed(object sender, Blish_HUD.Input.MouseEventArgs e)
     {
-        Event eventControl = sender as Event;
+        if (_activeEvent == null || _activeEvent.Ev.Filler)
+        {
+            return;
+        }
 
         switch (this.Configuration.LeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (!string.IsNullOrWhiteSpace(eventControl.Ev.Waypoint))
+                if (!string.IsNullOrWhiteSpace(_activeEvent.Ev.Waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(eventControl.Ev.Waypoint);
+                    ClipboardUtil.WindowsClipboardService.SetTextAsync(_activeEvent.Ev.Waypoint);
                     Shared.Controls.ScreenNotification.ShowNotification(new string[]
                     {
-                        eventControl.Ev.Name,
+                        _activeEvent.Ev.Name,
                         "Copied to clipboard!"
                     });
                 }
 
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (string.IsNullOrWhiteSpace(eventControl.Ev.Waypoint))
+                if (string.IsNullOrWhiteSpace(_activeEvent.Ev.Waypoint))
                 {
                     return;
                 }
@@ -636,10 +643,10 @@ public class EventArea : RenderTargetControl
                     return;
                 }
 
-                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this._pointOfInterestState.GetPointOfInterest(eventControl.Ev.Waypoint);
+                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this._pointOfInterestState.GetPointOfInterest(_activeEvent.Ev.Waypoint);
                 if (poi == null)
                 {
-                    Shared.Controls.ScreenNotification.ShowNotification($"{eventControl.Ev.Waypoint} not found!", Shared.Controls.ScreenNotification.NotificationType.Error);
+                    Shared.Controls.ScreenNotification.ShowNotification($"{_activeEvent.Ev.Waypoint} not found!", Shared.Controls.ScreenNotification.NotificationType.Error);
                     return;
                 }
 
@@ -674,7 +681,7 @@ public class EventArea : RenderTargetControl
     {
         float middleLineX = this.Width * this.GetTimeSpanRatio();
         float width = 2;
-        spriteBatch.DrawLine(ContentService.Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Color.LightGray);
+        spriteBatch.DrawLine(ContentService.Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Color.LightGray * this.Configuration.EventOpacity.Value);
     }
 
     private void ClearEventControls()
@@ -772,6 +779,8 @@ public class EventArea : RenderTargetControl
 
         this._flurlClient = null;
         this._apiRootUrl = null;
+
+        this.Click -= this.OnLeftMouseButtonPressed;
 
         this.Configuration.EnabledKeybinding.Value.Activated -= this.EnabledKeybinding_Activated;
         this.Configuration.Size.X.SettingChanged -= this.Size_SettingChanged;
