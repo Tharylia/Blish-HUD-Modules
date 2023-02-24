@@ -55,6 +55,9 @@
         [JsonProperty("location")]
         public string Location { get; set; }
 
+        [JsonProperty("mapId")]
+        public int MapId { get; set; }
+
         [JsonProperty("waypoint")]
         public string Waypoint { get; set; }
 

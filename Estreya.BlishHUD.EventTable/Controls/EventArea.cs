@@ -118,6 +118,9 @@ public class EventArea : RenderTargetControl
         this.Configuration.DisabledEventKeys.SettingChanged += this.DisabledEventKeys_SettingChanged;
         this.Configuration.EventOrder.SettingChanged += this.EventOrder_SettingChanged;
         this.Configuration.DrawInterval.SettingChanged += this.DrawInterval_SettingChanged;
+        this.Configuration.LimitToCurrentMap.SettingChanged += this.LimitToCurrentMap_SettingChanged;
+        this.Configuration.AllowUnspecifiedMap.SettingChanged += this.AllowUnspecifiedMap_SettingChanged;
+        GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
 
         this.Click += this.OnLeftMouseButtonPressed;
 
@@ -151,6 +154,27 @@ public class EventArea : RenderTargetControl
             this._mapchestState.MapchestCompleted += this.Event_Completed;
             this._mapchestState.MapchestRemoved += this.Event_Removed;
         }
+    }
+
+    private void CurrentMap_MapChanged(object sender, ValueEventArgs<int> e)
+    {
+        if (this.Configuration.LimitToCurrentMap.Value)
+        {
+            this.ReAddEvents();
+        }
+    }
+
+    private void AllowUnspecifiedMap_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+    {
+        if (this.Configuration.LimitToCurrentMap.Value)
+        {
+            this.ReAddEvents();
+        }
+    }
+
+    private void LimitToCurrentMap_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+    {
+        this.ReAddEvents();
     }
 
     private void DrawInterval_SettingChanged(object sender, ValueChangedEventArgs<DrawInterval> e)
@@ -290,7 +314,7 @@ public class EventArea : RenderTargetControl
 
     private List<string> GetActiveEventKeys()
     {
-        IEnumerable<string> activeSettingKeys = this._allEvents.SelectMany(ae => ae.Events).Where(e => !e.Filler).Select(e => e.SettingKey).Where(sk => !this.Configuration.DisabledEventKeys.Value.Contains(sk));
+        IEnumerable<string> activeSettingKeys = this._allEvents.SelectMany(ae => ae.Events).Where(e => !e.Filler && !this.EventTemporaryDisabled(e)).Select(e => e.SettingKey).Where(sk => !this.Configuration.DisabledEventKeys.Value.Contains(sk));
 
         return activeSettingKeys.ToList();
     }
@@ -332,7 +356,7 @@ public class EventArea : RenderTargetControl
 
         List<string> activeEventKeys = this.GetActiveEventKeys();
 
-        ConcurrentDictionary<string, List<Models.Event>> fillers = await this.GetFillers(times.Now, times.Min, times.Max, activeEventKeys.Where(ev => !this.EventDisabled(ev)).ToList());
+        ConcurrentDictionary<string, List<Models.Event>> fillers = await this.GetFillers(times.Now, times.Min, times.Max, activeEventKeys);
         foreach (EventCategory ec in this._allEvents)
         {
             if (fillers.TryGetValue(ec.Key, out List<Models.Event> categoryFillers))
@@ -357,6 +381,9 @@ public class EventArea : RenderTargetControl
             IFlurlRequest flurlRequest = this._flurlClient.Request(this._apiRootUrl, "fillers");
 
             List<Models.Event> activeEvents = this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList();
+
+            var eventKeys = activeEvents.Select(a => a.SettingKey);
+            Logger.Debug($"Fetch fillers with active keys: {string.Join(", ", eventKeys.ToArray())}");
 
             HttpResponseMessage response = await flurlRequest.PostJsonAsync(new OnlineFillerRequest()
             {
@@ -417,7 +444,26 @@ public class EventArea : RenderTargetControl
 
     private bool EventDisabled(Models.Event ev)
     {
-        return !ev.Filler && this.EventDisabled(ev.SettingKey);
+        bool disabled =  !ev.Filler && this.EventDisabled(ev.SettingKey);
+
+        disabled &= this.EventTemporaryDisabled(ev);
+
+        return disabled;
+    }
+
+    private bool EventTemporaryDisabled(Models.Event ev)
+    {
+        bool disabled = false;
+        if (!ev.Filler && this.Configuration.LimitToCurrentMap.Value && GameService.Gw2Mumble.IsAvailable)
+        {
+            var mapId = GameService.Gw2Mumble.CurrentMap.Id;
+            if (ev.MapId != mapId && !(this.Configuration.AllowUnspecifiedMap.Value && ev.MapId == -1))
+            {
+                disabled = true;
+            }
+        }
+
+        return disabled;
     }
 
     private bool EventDisabled(string settingKey)
@@ -497,7 +543,7 @@ public class EventArea : RenderTargetControl
         this._heightFromLastDraw = y;
 
 
-        if (this._activeEvent != null && this._lastActiveEvent?.Ev.Key != this._activeEvent.Ev.Key)
+        if (this._activeEvent != null && this._lastActiveEvent?.Ev?.Key != this._activeEvent.Ev.Key)
         {
             // Active event changed
             var isFiller = this._activeEvent?.Ev?.Filler ?? false;
@@ -517,6 +563,11 @@ public class EventArea : RenderTargetControl
 
     private void CheckForNewEventsForScreen()
     {
+        if (this._clearing)
+        {
+            return;
+        }
+
         (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
         foreach (IGrouping<string, string> activeEventGroup in this.GetActiveEventKeysGroupedByCategory())
         {
@@ -792,6 +843,10 @@ public class EventArea : RenderTargetControl
         this.Configuration.UseFiller.SettingChanged -= this.UseFiller_SettingChanged;
         this.Configuration.BuildDirection.SettingChanged -= this.BuildDirection_SettingChanged;
         this.Configuration.EventOrder.SettingChanged -= this.EventOrder_SettingChanged;
+        this.Configuration.DrawInterval.SettingChanged -= this.DrawInterval_SettingChanged;
+        this.Configuration.LimitToCurrentMap.SettingChanged -= this.LimitToCurrentMap_SettingChanged;
+        this.Configuration.AllowUnspecifiedMap.SettingChanged -= this.AllowUnspecifiedMap_SettingChanged;
+        GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
 
         this.Configuration = null;
     }

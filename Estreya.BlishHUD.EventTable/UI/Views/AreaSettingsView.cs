@@ -293,11 +293,12 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
-        //this.RenderBoolSetting(settingsPanel, areaConfiguration.ShowContextMenu);
-
-        //this.RenderEmptyLine(settingsPanel);
-
         this.RenderEnumSetting(settingsPanel, areaConfiguration.CompletionAcion);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.LimitToCurrentMap);
+        this.RenderBoolSetting(settingsPanel, areaConfiguration.AllowUnspecifiedMap);
 
         this.RenderEmptyLine(settingsPanel);
 
