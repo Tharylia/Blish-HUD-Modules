@@ -6,6 +6,7 @@
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Newtonsoft.Json;
+    using Newtonsoft.Json.Converters;
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
@@ -31,6 +32,7 @@
         {
             public string AreaName;
             public string EventKey;
+            [JsonConverter(typeof(StringEnumConverter))]
             public EventStates State;
             public DateTime Until;
         }

@@ -9,19 +9,21 @@ using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
 using System;
 using System.Collections.Generic;
+using System.Windows.Media.TextFormatting;
 
-public class Event : RenderTargetControl
+public class Event: IDisposable
 {
     public event EventHandler HideRequested;
     public event EventHandler DisableRequested;
     public event EventHandler FinishRequested;
 
     public Models.Event Ev { get; private set; }
-    private readonly IconState _iconState;
-    private readonly TranslationState _translationState;
+    private IconState _iconState;
+    private TranslationState _translationState;
     private readonly Func<DateTime> _getNowAction;
     private readonly DateTime _startTime;
     private readonly DateTime _endTime;
@@ -61,17 +63,15 @@ public class Event : RenderTargetControl
         this._getDrawShadowAction = getDrawShadowAction;
         this._getShadowColor = getShadowColor;
         this._getShowTooltips = getShowTooltips;
-
-        this.BuildContextMenu();
     }
 
-    private void BuildContextMenu()
+    public ContextMenuStrip BuildContextMenu()
     {
-        this.Menu = new ContextMenuStrip();
+        var menu = new ContextMenuStrip();
 
         var disableAction = new ContextMenuStripItem("Disable")
         {
-            Parent = this.Menu,
+            Parent = menu,
             BasicTooltipText = "Disables the event entirely."
         };
         disableAction.Click += (s, e) =>
@@ -81,7 +81,7 @@ public class Event : RenderTargetControl
 
         var hideAction = new ContextMenuStripItem("Hide")
         {
-            Parent = this.Menu,
+            Parent = menu,
             BasicTooltipText = "Hides the event until the next reset."
         };
         hideAction.Click += (s, e) =>
@@ -91,35 +91,18 @@ public class Event : RenderTargetControl
 
         var finishAction = new ContextMenuStripItem("Finish")
         {
-            Parent = this.Menu,
+            Parent = menu,
             BasicTooltipText = "Completes the event until the next reset."
         };
         finishAction.Click += (s, e) =>
         {
             this.FinishRequested?.Invoke(this, EventArgs.Empty);
         };
+
+        return menu;
     }
 
-    protected override void OnMouseEntered(MouseEventArgs e)
-    {
-        base.OnMouseEntered(e);
-
-        if (!this.Ev.Filler)
-        {
-            if (this._getShowTooltips())
-            {
-                this.BuildOrUpdateTooltip();
-
-                this.Tooltip = this._tooltip;
-            }
-            else
-            {
-                this.Tooltip = null;
-            }
-        }
-    }
-
-    private void BuildOrUpdateTooltip()
+    public Tooltip BuildTooltip()
     {
         DateTime now = this._getNowAction();
 
@@ -149,37 +132,53 @@ public class Event : RenderTargetControl
         // Absolute
         description += $" ({this._translationState.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatTime(this._startTime.ToLocalTime())})";
 
-        this._tooltip = new Tooltip(new TooltipView(this.Ev.Name, description, this._iconState.GetIcon(this.Ev.Icon), this._translationState));
+        return new Tooltip(new TooltipView(this.Ev.Name, description, this._iconState.GetIcon(this.Ev.Icon), this._translationState));
     }
 
-    protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
+    public void Render(SpriteBatch spriteBatch, RectangleF bounds)
     {
         BitmapFont font = this._getFontAction();
 
-        this.DrawBackground(spriteBatch);
-        int nameWidth = this.Ev.Filler ? 0 : this.DrawName(spriteBatch, font);
-        this.DrawRemainingTime(spriteBatch, font, nameWidth);
-        this.DrawCrossout(spriteBatch);
+        this.DrawBackground(spriteBatch, bounds);
+        float nameWidth = this.Ev.Filler ? 0 : this.DrawName(spriteBatch,bounds, font);
+        this.DrawRemainingTime(spriteBatch,bounds, font, nameWidth);
+        this.DrawCrossout(spriteBatch, bounds);
     }
 
-    private void DrawBackground(SpriteBatch spriteBatch)
+    private void DrawBackground(SpriteBatch spriteBatch, RectangleF bounds)
     {
-        Rectangle backgroundRect = new Rectangle(0, 0, this.Width, this.Height);
-        spriteBatch.DrawRectangle(ContentService.Textures.Pixel, backgroundRect, this._getColorAction(), this._getDrawBorders() ? 1 : 0, Color.Black);
+        spriteBatch.DrawRectangle(ContentService.Textures.Pixel, bounds, this._getColorAction(), this._getDrawBorders() ? 1 : 0, Color.Black);
     }
 
-    private int DrawName(SpriteBatch spriteBatch, BitmapFont font)
+    private float DrawName(SpriteBatch spriteBatch, RectangleF bounds, BitmapFont font)
     {
-        int nameWidth = MathHelper.Clamp((int)Math.Ceiling(font.MeasureString(this.Ev.Name).Width) + 10, 0, this.Width - 10);
-        Rectangle nameRect = new Rectangle(5, 0, nameWidth, this.Height);
+        float xOffset = 5;
+        float maxWidth = bounds.Width - xOffset * 2;
+        float nameWidth = 0;
+        string text = this.Ev.Name;
+        do {
+            nameWidth = (float)Math.Ceiling(font.MeasureString(text).Width) ;
 
-        spriteBatch.DrawString(this.Ev.Name, font, nameRect, this._getTextColor(), false, this._getDrawShadowAction(), 1, this._getShadowColor());
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return 0;
+            }
+
+            if (nameWidth > maxWidth)
+            {
+                text = text.Substring(0, text.Length - 1);
+            }
+        } while (nameWidth > maxWidth);
+
+        RectangleF nameRect = new RectangleF(bounds.X + xOffset, bounds.Y, nameWidth, bounds.Height);
+
+        spriteBatch.DrawString(text, font, nameRect, this._getTextColor(), false, this._getDrawShadowAction(), 1, this._getShadowColor());
 
         return nameRect.Width;
     }
-    private void DrawRemainingTime(SpriteBatch spriteBatch, BitmapFont font, int x)
+    private void DrawRemainingTime(SpriteBatch spriteBatch, RectangleF bounds, BitmapFont font, float nameWidth)
     {
-        if (x > this.Width)
+        if (nameWidth > bounds.Width)
         {
             return;
         }
@@ -191,20 +190,20 @@ public class Event : RenderTargetControl
         }
 
         string remainingTimeString = this.FormatTimeRemaining(remainingTime);
-        int timeWidth = (int)Math.Ceiling(font.MeasureString(remainingTimeString).Width) + 10;
-        int maxWidth = this.Width - x;
-        int centerX = (maxWidth / 2) - (timeWidth / 2);
-        if (centerX < x)
+        float timeWidth = (float)Math.Ceiling(font.MeasureString(remainingTimeString).Width);
+        float maxWidth = bounds.Width - nameWidth;
+        float centerX =(maxWidth / 2) - (timeWidth / 2);
+        if (centerX < nameWidth)
         {
-            centerX = x + 10;
+            centerX = nameWidth + 10;
         }
 
-        if (centerX + timeWidth > this.Width)
+        if (centerX + timeWidth > bounds.Width)
         {
             return;
         }
 
-        Rectangle timeRect = new Rectangle(centerX, 0, maxWidth, this.Height);
+        RectangleF timeRect = new RectangleF(centerX+ bounds.X, bounds.Y, maxWidth, bounds.Height);
 
         Color textColor = this._getTextColor();
 
@@ -216,15 +215,14 @@ public class Event : RenderTargetControl
         return now <= _startTime || now >= _endTime ? TimeSpan.Zero : _startTime.AddMinutes(this.Ev.Duration) - now;
     }
 
-    private void DrawCrossout(SpriteBatch spriteBatch)
+    private void DrawCrossout(SpriteBatch spriteBatch, RectangleF bounds)
     {
         if (!this._getDrawCrossout())
         {
             return;
         }
 
-        Rectangle fullRect = new Rectangle(0, 0, this.Width, this.Height);
-        spriteBatch.DrawCrossOut(ContentService.Textures.Pixel, fullRect, Color.Red);
+        spriteBatch.DrawCrossOut(ContentService.Textures.Pixel, bounds, Color.Red);
     }
 
     private string FormatTimeRemaining(TimeSpan ts)
@@ -258,5 +256,12 @@ public class Event : RenderTargetControl
         {
             return ts.ToString("hh\\:mm\\:ss");
         }
+    }
+
+    public void Dispose()
+    {
+        this._iconState = null;
+        this._translationState = null;
+        this.Ev = null;
     }
 }

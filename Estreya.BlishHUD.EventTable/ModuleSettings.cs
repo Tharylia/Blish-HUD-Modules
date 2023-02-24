@@ -184,6 +184,12 @@
 
             var fillerShadowColor = this.DrawerSettings.DefineSetting($"{name}-fillerShadowColor", this.DefaultGW2Color, () => "Filler Shadow Color", () => "Defines the color of the shadows for fillers");
 
+            var drawInterval = this.DrawerSettings.DefineSetting($"{name}-drawInterval", DrawInterval.FAST, () => "Draw Interval", () => "Defines the refresh rate of the drawer.");
+
+            var limitToCurrentMap = this.DrawerSettings.DefineSetting($"{name}-limitToCurrentMap", false, () => "Limit to current Map", () => "Whether the drawer should only show events from the current map.");
+
+            var allowUnspecifiedMap = this.DrawerSettings.DefineSetting($"{name}-allowUnspecifiedMap", true, () => "Allow from unspecified Maps", () => "Whether the table should show events which do not have a map id specified.");
+
 
             return new EventAreaConfiguration()
             {
@@ -213,7 +219,10 @@
                 DrawShadows = drawShadows,
                 ShadowColor= shadowColor,
                 DrawShadowsForFiller = drawShadowsForFiller,
-                FillerShadowColor = fillerShadowColor
+                FillerShadowColor = fillerShadowColor,
+                DrawInterval = drawInterval,
+                LimitToCurrentMap = limitToCurrentMap,
+                AllowUnspecifiedMap = allowUnspecifiedMap
             };
         }
 
@@ -238,6 +247,9 @@
             this.DrawerSettings.UndefineSetting($"{name}-shadowColor");
             this.DrawerSettings.UndefineSetting($"{name}-drawShadowsForFiller");
             this.DrawerSettings.UndefineSetting($"{name}-fillerShadowColor");
+            this.DrawerSettings.UndefineSetting($"{name}-drawInterval");
+            this.DrawerSettings.UndefineSetting($"{name}-limitToCurrentMap");
+            this.DrawerSettings.UndefineSetting($"{name}-allowUnspecifiedMap");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
