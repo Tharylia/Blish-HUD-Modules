@@ -28,7 +28,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     {
-        private string LIVE_MAP_API_URL => $"{this.API_URL}/write";
+        private string LIVE_MAP_API_URL => $"{this.API_URL}/write";//$"http://localhost:3004/v{this.API_VERSION_NO}/{this.WebsiteModuleName}/write";
         public const string LIVE_MAP_BROWSER_URL = $"https://gw2map.estreya.de/";
 
         private SocketIOClient.SocketIO GlobalSocket;
