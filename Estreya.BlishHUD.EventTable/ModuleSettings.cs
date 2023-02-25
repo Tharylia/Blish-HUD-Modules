@@ -173,8 +173,8 @@
 
             var eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
 
-            var eventOpacity = this.DrawerSettings.DefineSetting($"{name}-eventOpacity", 1f, () => "Event Opacity", () => "Defines the opacity of the individual events.");
-            eventOpacity.SetRange(0.1f, 1f);
+            var eventBackgroundOpacity = this.DrawerSettings.DefineSetting($"{name}-eventBackgroundOpacity", 1f, () => "Event Background Opacity", () => "Defines the opacity of the individual event backgrounds.");
+            eventBackgroundOpacity.SetRange(0.1f, 1f);
 
             var drawShadows = this.DrawerSettings.DefineSetting($"{name}-drawShadows", false, () => "Draw Shadows", () => "Whether the text should have shadows");
 
@@ -190,6 +190,20 @@
 
             var allowUnspecifiedMap = this.DrawerSettings.DefineSetting($"{name}-allowUnspecifiedMap", true, () => "Allow from unspecified Maps", () => "Whether the table should show events which do not have a map id specified.");
 
+            var timeLineOpacity = this.DrawerSettings.DefineSetting($"{name}-timeLineOpacity", 1f, () => "Timeline Opacity", () => "Defines the opacity of the time line bar.");
+            timeLineOpacity.SetRange(0.1f, 1f);
+
+            var eventTextOpacity = this.DrawerSettings.DefineSetting($"{name}-eventTextOpacity", 1f, () => "Event Text Opacity", () => "Defines the opacity of the event text.");
+            eventTextOpacity.SetRange(0.1f, 1f);
+
+            var fillerTextOpacity = this.DrawerSettings.DefineSetting($"{name}-fillerTextOpacity", 1f, () => "Filler Text Opacity", () => "Defines the opacity of filler event text.");
+            fillerTextOpacity.SetRange(0.1f, 1f);
+
+            var shadowOpacity = this.DrawerSettings.DefineSetting($"{name}-shadowOpacity", 1f, () => "Shadow Opacity", () => "Defines the opacity for shadows.");
+            shadowOpacity.SetRange(0.1f, 1f);
+
+            var fillerShadowOpacity = this.DrawerSettings.DefineSetting($"{name}-fillerShadowOpacity", 1f, () => "Filler Shadow Opacity", () => "Defines the opacity for filler shadows.");
+            fillerShadowOpacity.SetRange(0.1f, 1f);
 
             return new EventAreaConfiguration()
             {
@@ -215,14 +229,19 @@
                 CompletionAcion = completionAction,
                 EventHeight = eventHeight,
                 EventOrder = eventOrder,
-                EventOpacity = eventOpacity,
+                EventBackgroundOpacity = eventBackgroundOpacity,
                 DrawShadows = drawShadows,
                 ShadowColor= shadowColor,
                 DrawShadowsForFiller = drawShadowsForFiller,
                 FillerShadowColor = fillerShadowColor,
                 DrawInterval = drawInterval,
                 LimitToCurrentMap = limitToCurrentMap,
-                AllowUnspecifiedMap = allowUnspecifiedMap
+                AllowUnspecifiedMap = allowUnspecifiedMap,
+                TimeLineOpacity = timeLineOpacity,
+                EventTextOpacity= eventTextOpacity,
+                FillerTextOpacity=fillerTextOpacity,
+                ShadowOpacity=shadowOpacity,
+                FillerShadowOpacity=fillerShadowOpacity
             };
         }
 
@@ -242,7 +261,7 @@
             this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
             this.DrawerSettings.UndefineSetting($"{name}-eventHeight");
             this.DrawerSettings.UndefineSetting($"{name}-eventOrder");
-            this.DrawerSettings.UndefineSetting($"{name}-eventOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-eventBackgroundOpacity");
             this.DrawerSettings.UndefineSetting($"{name}-drawShadows");
             this.DrawerSettings.UndefineSetting($"{name}-shadowColor");
             this.DrawerSettings.UndefineSetting($"{name}-drawShadowsForFiller");
@@ -250,6 +269,11 @@
             this.DrawerSettings.UndefineSetting($"{name}-drawInterval");
             this.DrawerSettings.UndefineSetting($"{name}-limitToCurrentMap");
             this.DrawerSettings.UndefineSetting($"{name}-allowUnspecifiedMap");
+            this.DrawerSettings.UndefineSetting($"{name}-timeLineOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-eventTextOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-fillerTextOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-shadowOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-fillerShadowOpacity");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
@@ -341,10 +365,10 @@
             drawerConfiguration.EventHeight.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventHeight-name", eventHeightDisplayNameDefault);
             drawerConfiguration.EventHeight.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventHeight-description", eventHeightDescriptionDefault);
 
-            var eventOpacityDisplayNameDefault = drawerConfiguration.EventOpacity.DisplayName;
-            var eventOpacityDescriptionDefault = drawerConfiguration.EventOpacity.Description;
-            drawerConfiguration.EventOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-name", eventOpacityDisplayNameDefault);
-            drawerConfiguration.EventOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-description", eventOpacityDescriptionDefault);
+            var eventOpacityDisplayNameDefault = drawerConfiguration.EventBackgroundOpacity.DisplayName;
+            var eventOpacityDescriptionDefault = drawerConfiguration.EventBackgroundOpacity.Description;
+            drawerConfiguration.EventBackgroundOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-name", eventOpacityDisplayNameDefault);
+            drawerConfiguration.EventBackgroundOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-description", eventOpacityDescriptionDefault);
         }
 
         public override void Unload()
