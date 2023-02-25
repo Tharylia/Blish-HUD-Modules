@@ -120,13 +120,6 @@ public class AreaSettingsView : BaseSettingsView
             this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
 
-        // TODO: Remove when tested
-        //addButton.Icon = this.IconState.GetIcon("154982.png");
-        //addButton.BasicTooltipText = "Disabled until basic functionality is tested.";
-        //addButton.ResizeIcon = true;
-        //addButton.Enabled = false;
-        // ----
-
         addButton.Location = new Point(areaOverviewPanel.Left, areaOverviewPanel.Bottom + 10);
         addButton.Width = areaOverviewPanel.Width;
 
@@ -254,64 +247,29 @@ public class AreaSettingsView : BaseSettingsView
             CanScroll = true
         };
 
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.Enabled);
-        this.RenderKeybindingSetting(settingsPanel, areaConfiguration.EnabledKeybinding);
-        this.RenderEnumSetting(settingsPanel, areaConfiguration.DrawInterval);
+        settingsPanel.DoUpdate(GameService.Overlay.CurrentGameTime); // Dirty trick to get actual height and width
+
+        this.RenderEnabledSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderIntSetting(settingsPanel, areaConfiguration.Location.X);
-        this.RenderIntSetting(settingsPanel, areaConfiguration.Location.Y);
+        this.RenderLocationAndSizeSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderIntSetting(settingsPanel, areaConfiguration.Size.X);
-        this.RenderIntSetting(settingsPanel, areaConfiguration.EventHeight);
+        this.RenderLayoutSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderIntSetting(settingsPanel, areaConfiguration.TimeSpan);
-        this.RenderIntSetting(settingsPanel, areaConfiguration.HistorySplit);
+        this.RenderTextAndColorSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.DrawBorders);
-        this.RenderEnumSetting(settingsPanel, areaConfiguration.BuildDirection);
-        this.RenderEnumSetting(settingsPanel, areaConfiguration.FontSize);
-        this.RenderColorSetting(settingsPanel, areaConfiguration.TextColor);
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.DrawShadows);
-        this.RenderColorSetting(settingsPanel, areaConfiguration.ShadowColor);
+        this.RenderBehaviourSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderEnumSetting(settingsPanel, areaConfiguration.LeftClickAction);
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.AcceptWaypointPrompt);
-
-        this.RenderEmptyLine(settingsPanel);
-
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.ShowTooltips);
-
-        this.RenderEmptyLine(settingsPanel);
-
-        this.RenderEnumSetting(settingsPanel, areaConfiguration.CompletionAcion);
-
-        this.RenderEmptyLine(settingsPanel);
-
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.LimitToCurrentMap);
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.AllowUnspecifiedMap);
-
-        this.RenderEmptyLine(settingsPanel);
-
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.UseFiller);
-        this.RenderColorSetting(settingsPanel, areaConfiguration.FillerTextColor);
-        this.RenderBoolSetting(settingsPanel, areaConfiguration.DrawShadowsForFiller);
-        this.RenderColorSetting(settingsPanel, areaConfiguration.FillerShadowColor);
-
-        this.RenderEmptyLine(settingsPanel);
-
-        this.RenderColorSetting(settingsPanel, areaConfiguration.BackgroundColor);
-        this.RenderFloatSetting(settingsPanel, areaConfiguration.Opacity);
-        this.RenderFloatSetting(settingsPanel, areaConfiguration.EventOpacity);
+        this.RenderFillerSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -360,18 +318,172 @@ public class AreaSettingsView : BaseSettingsView
             this.LoadConfigurations();
         });
 
-        // TODO: Remove when tested
-        //removeButton.Icon = this.IconState.GetIcon("154982.png");
-        //removeButton.BasicTooltipText = "Disabled until basic functionality is tested.";
-        //removeButton.ResizeIcon = true;
-        //removeButton.Enabled = false;
-        // ----
-
         removeButton.Top = areaName.Top;
         removeButton.Right = panelBounds.Right;
 
         areaName.Left = manageEventsButton.Right;
         areaName.Width = removeButton.Left - areaName.Left;
+    }
+
+    private void RenderEnabledSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    {
+        FlowPanel groupPanel = new FlowPanel()
+        {
+            Parent = settingsPanel,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = settingsPanel.Width - 30,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = false,
+            Title = "Enabled"
+        };
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.Enabled);
+        this.RenderKeybindingSetting(groupPanel, areaConfiguration.EnabledKeybinding);
+        this.RenderEnumSetting(groupPanel, areaConfiguration.DrawInterval);
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+
+    private void RenderLocationAndSizeSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    {
+        FlowPanel groupPanel = new FlowPanel()
+        {
+            Parent = settingsPanel,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = settingsPanel.Width - 30,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = "Location & Size"
+        };
+
+        this.RenderIntSetting(groupPanel, areaConfiguration.Location.X);
+        this.RenderIntSetting(groupPanel, areaConfiguration.Location.Y);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderIntSetting(groupPanel, areaConfiguration.Size.X);
+        this.RenderIntSetting(groupPanel, areaConfiguration.EventHeight);
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+
+    private void RenderLayoutSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    {
+        FlowPanel groupPanel = new FlowPanel()
+        {
+            Parent = settingsPanel,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = settingsPanel.Width - 30,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = "Layout"
+        };
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.DrawBorders);
+        this.RenderEnumSetting(groupPanel, areaConfiguration.BuildDirection);
+        this.RenderIntSetting(groupPanel, areaConfiguration.TimeSpan);
+        this.RenderIntSetting(groupPanel, areaConfiguration.HistorySplit);
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+
+    private void RenderTextAndColorSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    {
+        FlowPanel groupPanel = new FlowPanel()
+        {
+            Parent = settingsPanel,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = settingsPanel.Width - 30,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = "Text & Color"
+        };
+
+        this.RenderEnumSetting(groupPanel, areaConfiguration.FontSize);
+        this.RenderColorSetting(groupPanel, areaConfiguration.TextColor);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.EventTextOpacity);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.DrawShadows);
+        this.RenderColorSetting(groupPanel, areaConfiguration.ShadowColor);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.ShadowOpacity);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderFloatSetting(groupPanel, areaConfiguration.TimeLineOpacity);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderColorSetting(groupPanel, areaConfiguration.BackgroundColor);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.Opacity);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.EventBackgroundOpacity);
+
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+    private void RenderBehaviourSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    {
+        FlowPanel groupPanel = new FlowPanel()
+        {
+            Parent = settingsPanel,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = settingsPanel.Width - 30,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = "Behaviours"
+        };
+
+        this.RenderEnumSetting(groupPanel, areaConfiguration.LeftClickAction);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.AcceptWaypointPrompt);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderEnumSetting(groupPanel, areaConfiguration.CompletionAcion);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTooltips);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.LimitToCurrentMap);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.AllowUnspecifiedMap);
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+    private void RenderFillerSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    {
+        FlowPanel groupPanel = new FlowPanel()
+        {
+            Parent = settingsPanel,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = settingsPanel.Width - 30,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = "Fillers"
+        };
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.UseFiller);
+        this.RenderColorSetting(groupPanel, areaConfiguration.FillerTextColor);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.FillerTextOpacity);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.DrawShadowsForFiller);
+        this.RenderColorSetting(groupPanel, areaConfiguration.FillerShadowColor);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.FillerShadowOpacity);
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
 
     private void ReorderEvents(EventAreaConfiguration configuration)
