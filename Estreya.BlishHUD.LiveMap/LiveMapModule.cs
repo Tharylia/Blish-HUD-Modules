@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.LiveMap
+﻿namespace Estreya.BlishHUD.LiveMap
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -21,6 +21,7 @@ namespace Estreya.BlishHUD.LiveMap
     using System.IO;
     using System.IO.Compression;
     using System.Linq;
+    using System.ServiceModel.Configuration;
     using System.Text;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -274,11 +275,11 @@ namespace Estreya.BlishHUD.LiveMap
         {
             Vector2 position = this._map?.WorldMeterCoordsToMapCoords(GameService.Gw2Mumble.PlayerCharacter.Position) ?? Vector2.Zero;
 
-            Vector3 cameraForward = this.ModuleSettings.PlayerFacingType.Value == LiveMap.Models.PlayerFacingType.Camera ? GameService.Gw2Mumble.PlayerCamera.Forward : GameService.Gw2Mumble.PlayerCharacter.Forward;
-            double cameraAngle = Math.Atan2(cameraForward.X, cameraForward.Y) * 180 / Math.PI;
-            if (cameraAngle < 0)
+            Vector3 forward = GameService.Gw2Mumble.PlayerCharacter.Forward;
+            double angle = Math.Atan2(forward.X, forward.Y) * 180 / Math.PI;
+            if (angle < 0)
             {
-                cameraAngle += 360;
+                angle += 360;
             }
 
             Player player = new Player()
@@ -302,7 +303,7 @@ namespace Estreya.BlishHUD.LiveMap
                 },
                 Facing = new PlayerFacing()
                 {
-                    Angle = cameraAngle
+                    Angle = angle
                 },
                 WvW = this._wvw,
                 Group = new PlayerGroup()
@@ -356,7 +357,7 @@ namespace Estreya.BlishHUD.LiveMap
 
             return formatPositions ? this.FormatUrlWithPosition(url) : url;
         }
-
+        
         private string FormatUrlWithPosition(string url)
         {
             Player player = this.GetPlayer();

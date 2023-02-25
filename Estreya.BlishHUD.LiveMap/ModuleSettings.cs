@@ -6,7 +6,6 @@ using Estreya.BlishHUD.Shared.Settings;
 
 public class ModuleSettings: BaseModuleSettings
 {
-    public SettingEntry<PlayerFacingType> PlayerFacingType { get; private set; }
 
     public SettingEntry<bool> HideCommander { get; private set; }
 
@@ -20,7 +19,6 @@ public class ModuleSettings: BaseModuleSettings
     {
         this.RegisterCornerIcon.Value = false;
 
-        this.PlayerFacingType = settings.DefineSetting(nameof(this.PlayerFacingType), Models.PlayerFacingType.Camera, () => "Player Facing Type", () => "Defines the type with which your player facing gets displayed.");
         this.HideCommander = settings.DefineSetting(nameof(this.HideCommander), false, () => "Hide Commander", () => "Whether the commander tag should be hidden on the live map.");
 
         this.FollowOnMap = settings.DefineSetting(nameof(this.FollowOnMap), true, () => "Follow on Map", () => "Whether the map should follow the player if opened via the module.");
