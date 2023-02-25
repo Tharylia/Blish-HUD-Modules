@@ -292,7 +292,7 @@
                 },
                 Map = new PlayerMap()
                 {
-                    Continent = this._map?.ContinentId ?? -1,
+                    Continent = this.GetContinentId(this._map),
                     Name = this._map?.Name,
                     ID = this._map?.Id ?? -1,
                     Position = new PlayerPosition()
@@ -314,6 +314,17 @@
             };
 
             return player;
+        }
+
+        private int GetContinentId(Map map)
+        {
+            if (map == null) return -1;
+
+            return map.Id switch
+            {
+                1206 => 1, // Mistlock Sanctuary
+                _ => map.ContinentId,
+            };
         }
 
         private string GetGlobalUrl(bool formatPositions = true)
