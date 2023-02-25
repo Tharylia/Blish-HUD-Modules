@@ -21,6 +21,7 @@
     using System.IO;
     using System.IO.Compression;
     using System.Linq;
+    using System.ServiceModel.Configuration;
     using System.Text;
     using System.Text.Json;
     using System.Threading.Tasks;
@@ -67,6 +68,8 @@
             this.Gw2ApiManager.SubtokenUpdated += this.Gw2ApiManager_SubtokenUpdated;
             GameService.Gw2Mumble.PlayerCharacter.NameChanged += this.PlayerCharacter_NameChanged;
             GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
+            GameService.ArcDps.Common.Activate();
+            
 
             this._lastSend.Value = this._sendInterval.TotalMilliseconds;
             this._lastGuildFetch.Value = this._guildFetchInterval.TotalMilliseconds;
@@ -272,11 +275,11 @@
         {
             Vector2 position = this._map?.WorldMeterCoordsToMapCoords(GameService.Gw2Mumble.PlayerCharacter.Position) ?? Vector2.Zero;
 
-            Vector3 cameraForward = this.ModuleSettings.PlayerFacingType.Value == LiveMap.Models.PlayerFacingType.Camera ? GameService.Gw2Mumble.PlayerCamera.Forward : GameService.Gw2Mumble.PlayerCharacter.Forward;
-            double cameraAngle = Math.Atan2(cameraForward.X, cameraForward.Y) * 180 / Math.PI;
-            if (cameraAngle < 0)
+            Vector3 forward = GameService.Gw2Mumble.PlayerCharacter.Forward;
+            double angle = Math.Atan2(forward.X, forward.Y) * 180 / Math.PI;
+            if (angle < 0)
             {
-                cameraAngle += 360;
+                angle += 360;
             }
 
             Player player = new Player()
@@ -289,7 +292,7 @@
                 },
                 Map = new PlayerMap()
                 {
-                    Continent = this._map?.ContinentId ?? -1,
+                    Continent = this.GetContinentId(this._map),
                     Name = this._map?.Name,
                     ID = this._map?.Id ?? -1,
                     Position = new PlayerPosition()
@@ -300,13 +303,28 @@
                 },
                 Facing = new PlayerFacing()
                 {
-                    Angle = cameraAngle
+                    Angle = angle
                 },
                 WvW = this._wvw,
+                Group = new PlayerGroup()
+                {
+                    Squad = this.ModuleSettings.SendGroupInformation.Value ? GameService.ArcDps.Common.PlayersInSquad.Values.Select(p => p.AccountName.Trim(':')).Where(p => p != this._accountName).ToArray() : null
+                },
                 Commander = !this.ModuleSettings.HideCommander.Value && GameService.Gw2Mumble.PlayerCharacter.IsCommander
             };
 
             return player;
+        }
+
+        private int GetContinentId(Map map)
+        {
+            if (map == null) return -1;
+
+            return map.Id switch
+            {
+                1206 => 1, // Mistlock Sanctuary
+                _ => map.ContinentId,
+            };
         }
 
         private string GetGlobalUrl(bool formatPositions = true)
@@ -350,11 +368,11 @@
 
             return formatPositions ? this.FormatUrlWithPosition(url) : url;
         }
-
+        
         private string FormatUrlWithPosition(string url)
         {
             Player player = this.GetPlayer();
-            return $"{url}?posX={player.Map.Position.X.ToInvariantString()}&posY={player.Map.Position.Y.ToInvariantString()}&zoom=6";
+            return $"{url}?posX={player.Map.Position.X.ToInvariantString()}&posY={player.Map.Position.Y.ToInvariantString()}&zoom=6{(!string.IsNullOrWhiteSpace(this._accountName) ? $"&account={this._accountName}" : "")}&follow={(this.ModuleSettings.FollowOnMap.Value ? "true" : "false")}";
         }
 
         public override IView GetSettingsView()

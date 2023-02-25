@@ -29,9 +29,10 @@ public class SettingsView : BaseSettingsView
 
     protected override void BuildView(FlowPanel parent)
     {
-        this.RenderEnumSetting(parent, _moduleSettings.PlayerFacingType);
         this.RenderBoolSetting(parent, _moduleSettings.HideCommander);
         this.RenderBoolSetting(parent, _moduleSettings.StreamerModeEnabled);
+        this.RenderBoolSetting(parent, _moduleSettings.FollowOnMap);
+        this.RenderBoolSetting(parent, _moduleSettings.SendGroupInformation);
 
         this.RenderEmptyLine(parent);
 
