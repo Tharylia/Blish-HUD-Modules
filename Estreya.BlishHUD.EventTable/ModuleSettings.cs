@@ -365,10 +365,10 @@
             drawerConfiguration.EventHeight.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventHeight-name", eventHeightDisplayNameDefault);
             drawerConfiguration.EventHeight.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventHeight-description", eventHeightDescriptionDefault);
 
-            var eventOpacityDisplayNameDefault = drawerConfiguration.EventBackgroundOpacity.DisplayName;
-            var eventOpacityDescriptionDefault = drawerConfiguration.EventBackgroundOpacity.Description;
-            drawerConfiguration.EventBackgroundOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-name", eventOpacityDisplayNameDefault);
-            drawerConfiguration.EventBackgroundOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventOpacity-description", eventOpacityDescriptionDefault);
+            var eventBackgroundOpacityDisplayNameDefault = drawerConfiguration.EventBackgroundOpacity.DisplayName;
+            var eventBackgroundOpacityDescriptionDefault = drawerConfiguration.EventBackgroundOpacity.Description;
+            drawerConfiguration.EventBackgroundOpacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEventBackgroundOpacity-name", eventBackgroundOpacityDisplayNameDefault);
+            drawerConfiguration.EventBackgroundOpacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEventBackgroundOpacity-description", eventBackgroundOpacityDescriptionDefault);
         }
 
         public override void Unload()
