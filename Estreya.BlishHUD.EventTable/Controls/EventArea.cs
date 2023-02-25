@@ -627,10 +627,10 @@ public class EventArea : RenderTargetControl
                             Color defaultTextColor = Color.Black;
 
                             Color color = ev.Filler
-                                ? this.Configuration.FillerTextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.FillerTextColor.Value.Cloth.ToXnaColor()
-                                : this.Configuration.TextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.TextColor.Value.Cloth.ToXnaColor();
+                                ? (this.Configuration.FillerTextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.FillerTextColor.Value.Cloth.ToXnaColor()) * this.Configuration.FillerTextOpacity.Value
+                                : (this.Configuration.TextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.TextColor.Value.Cloth.ToXnaColor()) * this.Configuration.EventTextOpacity.Value;
 
-                            return color * this.Configuration.EventOpacity.Value;
+                            return color;
                         },
                         () =>
                         {
@@ -640,14 +640,14 @@ public class EventArea : RenderTargetControl
                             }
 
                             System.Drawing.Color colorFromEvent = string.IsNullOrWhiteSpace(ev.BackgroundColorCode) ? System.Drawing.Color.White : System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
-                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * this.Configuration.EventOpacity.Value;
+                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * this.Configuration.EventBackgroundOpacity.Value;
                         },
                         () => ev.Filler ? this.Configuration.DrawShadowsForFiller.Value : this.Configuration.DrawShadows.Value,
                         () =>
                         {
                             return ev.Filler
-                            ? this.Configuration.FillerShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.FillerShadowColor.Value.Cloth.ToXnaColor()
-                            : this.Configuration.ShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.ShadowColor.Value.Cloth.ToXnaColor();
+                            ? (this.Configuration.FillerShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.FillerShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.FillerShadowOpacity.Value
+                            : (this.Configuration.ShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.ShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.ShadowOpacity.Value;
                         },
                         () => this.Configuration.ShowTooltips.Value);
 
@@ -721,7 +721,6 @@ public class EventArea : RenderTargetControl
         this.ReportNewHeight(this._heightFromLastDraw);
     }
 
-
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
         this.UpdateEventsOnScreen(spriteBatch);
@@ -732,7 +731,7 @@ public class EventArea : RenderTargetControl
     {
         float middleLineX = this.Width * this.GetTimeSpanRatio();
         float width = 2;
-        spriteBatch.DrawLine(ContentService.Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Color.LightGray * this.Configuration.EventOpacity.Value);
+        spriteBatch.DrawLine(ContentService.Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Color.LightGray * this.Configuration.TimeLineOpacity.Value);
     }
 
     private void ClearEventControls()
