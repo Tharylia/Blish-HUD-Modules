@@ -360,7 +360,7 @@ namespace Estreya.BlishHUD.LiveMap
         private string FormatUrlWithPosition(string url)
         {
             Player player = this.GetPlayer();
-            return $"{url}?posX={player.Map.Position.X.ToInvariantString()}&posY={player.Map.Position.Y.ToInvariantString()}&zoom=6";
+            return $"{url}?posX={player.Map.Position.X.ToInvariantString()}&posY={player.Map.Position.Y.ToInvariantString()}&zoom=6{(!string.IsNullOrWhiteSpace(this._accountName) ? $"&account={this._accountName}" : "")}&follow={(this.ModuleSettings.FollowOnMap.Value ? "true" : "false")}";
         }
 
         public override IView GetSettingsView()
