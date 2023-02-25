@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.LiveMap
+namespace Estreya.BlishHUD.LiveMap
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -67,6 +67,8 @@
             this.Gw2ApiManager.SubtokenUpdated += this.Gw2ApiManager_SubtokenUpdated;
             GameService.Gw2Mumble.PlayerCharacter.NameChanged += this.PlayerCharacter_NameChanged;
             GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
+            GameService.ArcDps.Common.Activate();
+            
 
             this._lastSend.Value = this._sendInterval.TotalMilliseconds;
             this._lastGuildFetch.Value = this._guildFetchInterval.TotalMilliseconds;
@@ -303,6 +305,10 @@
                     Angle = cameraAngle
                 },
                 WvW = this._wvw,
+                Group = new PlayerGroup()
+                {
+                    Squad = this.ModuleSettings.SendGroupInformation.Value ? GameService.ArcDps.Common.PlayersInSquad.Values.Select(p => p.AccountName.Trim(':')).Where(p => p != this._accountName).ToArray() : null
+                },
                 Commander = !this.ModuleSettings.HideCommander.Value && GameService.Gw2Mumble.PlayerCharacter.IsCommander
             };
 

@@ -21,6 +21,9 @@ public class Player
     [JsonPropertyName("wvw")]
     public PlayerWvW WvW { get; set; }
 
+    [JsonPropertyName("group")]
+    public PlayerGroup Group { get; set; }
+
     [JsonPropertyName("commander")]
     public bool Commander { get; set; }
 
@@ -37,6 +40,7 @@ public class Player
         equals &= this.Map.Equals(player.Map);
         equals &= this.Facing.Equals(player.Facing);
         equals &= this.Commander.Equals(player.Commander);
+        equals &= this.Group.Equals(player.Group);
         equals &= this.WvW.Equals(player.WvW);
 
         return equals;

@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.LiveMap.UI.Views;
+namespace Estreya.BlishHUD.LiveMap.UI.Views;
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
@@ -32,6 +32,7 @@ public class SettingsView : BaseSettingsView
         this.RenderEnumSetting(parent, _moduleSettings.PlayerFacingType);
         this.RenderBoolSetting(parent, _moduleSettings.HideCommander);
         this.RenderBoolSetting(parent, _moduleSettings.StreamerModeEnabled);
+        this.RenderBoolSetting(parent, _moduleSettings.SendGroupInformation);
 
         this.RenderEmptyLine(parent);
 
