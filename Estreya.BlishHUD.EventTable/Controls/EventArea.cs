@@ -53,7 +53,7 @@ public class EventArea : RenderTargetControl
     private readonly Func<SemVer.Version> _getVersion;
     private List<EventCategory> _allEvents = new List<EventCategory>();
 
-    private int _heightFromLastDraw = 0;
+    private int _heightFromLastDraw = 1; // Blish does not render controls at y 0 with 0 height
 
     private Event _lastActiveEvent;
 
