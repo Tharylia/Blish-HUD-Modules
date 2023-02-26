@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -79,7 +79,7 @@ public class EventArea : RenderTargetControl
 
             using (this._controlLock.Lock())
             {
-            this._orderedControlEvents ??= this._controlEvents.OrderBy(x => order.IndexOf(x.Key)).Select(x => x.Value).ToList();
+                this._orderedControlEvents ??= this._controlEvents.OrderBy(x => order.IndexOf(x.Key)).Select(x => x.Value).ToList();
             }
 
             return this._orderedControlEvents;
@@ -245,14 +245,14 @@ public class EventArea : RenderTargetControl
     {
         using (this._eventLock.Lock())
         {
-        this._allEvents.Clear();
+            this._allEvents.Clear();
 
-        this._allEvents.AddRange(JsonConvert.DeserializeObject<List<EventCategory>>(JsonConvert.SerializeObject(allEvents)));
+            this._allEvents.AddRange(JsonConvert.DeserializeObject<List<EventCategory>>(JsonConvert.SerializeObject(allEvents)));
 
-        (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
+            (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
-        this._allEvents.ForEach(ec => ec.Load(this._translationState));
-        // Events should have occurences calculated already
+            this._allEvents.ForEach(ec => ec.Load(this._translationState));
+            // Events should have occurences calculated already
         }
 
         this.ReAddEvents();
@@ -262,11 +262,11 @@ public class EventArea : RenderTargetControl
     {
         using (this._eventLock.Lock())
         {
-        List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
-        events.ForEach(ev =>
-        {
-            this._eventState.Remove(this.Configuration.Name, ev.SettingKey);
-        });
+            List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
+            events.ForEach(ev =>
+            {
+                this._eventState.Remove(this.Configuration.Name, ev.SettingKey);
+            });
         }
     }
 
@@ -275,11 +275,11 @@ public class EventArea : RenderTargetControl
         DateTime until = this.GetNextReset();
         using (this._eventLock.Lock())
         {
-        List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
-        events.ForEach(ev =>
-        {
-            this.FinishEvent(ev, until);
-        });
+            List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
+            events.ForEach(ev =>
+            {
+                this.FinishEvent(ev, until);
+            });
         }
     }
 
@@ -355,8 +355,8 @@ public class EventArea : RenderTargetControl
         {
             IEnumerable<string> activeSettingKeys = this._allEvents.SelectMany(ae => ae.Events).Where(e => !e.Filler && !this.EventDisabled(e)).Select(e => e.SettingKey).Where(sk => !this.Configuration.DisabledEventKeys.Value.Contains(sk));
 
-        return activeSettingKeys.ToList();
-    }
+            return activeSettingKeys.ToList();
+        }
     }
 
     private void ReAddEvents()
@@ -585,8 +585,7 @@ public class EventArea : RenderTargetControl
             y += this.Configuration.EventHeight.Value;
         }
 
-        this._heightFromLastDraw = y;
-
+        this._heightFromLastDraw = y == 0 ? 1 : y;
 
         if (this._activeEvent != null && this._lastActiveEvent?.Ev?.Key != this._activeEvent.Ev.Key)
         {
@@ -632,10 +631,10 @@ public class EventArea : RenderTargetControl
 
             using (this._controlLock.Lock())
             {
-            bool added = this._controlEvents.TryAdd(categoryKey, new List<(DateTime Occurence, Event Event)>());
-            if (added)
-            {
-                this._orderedControlEvents = null; // Refresh cache
+                bool added = this._controlEvents.TryAdd(categoryKey, new List<(DateTime Occurence, Event Event)>());
+                if (added)
+                {
+                    this._orderedControlEvents = null; // Refresh cache
                 }
             }
 
@@ -654,9 +653,9 @@ public class EventArea : RenderTargetControl
                     // Check if we got this occurence already added
                     using (this._controlLock.Lock())
                     {
-                    if (this._controlEvents[categoryKey].Any(addedEvent => addedEvent.Occurence == occurence))
-                    {
-                        continue;
+                        if (this._controlEvents[categoryKey].Any(addedEvent => addedEvent.Occurence == occurence))
+                        {
+                            continue;
                         }
                     }
 
@@ -712,7 +711,7 @@ public class EventArea : RenderTargetControl
 
                     using (this._controlLock.Lock())
                     {
-                    this._controlEvents[categoryKey].Add((occurence, newEventControl));
+                        this._controlEvents[categoryKey].Add((occurence, newEventControl));
                     }
                 }
             }
@@ -796,12 +795,12 @@ public class EventArea : RenderTargetControl
     {
         using (this._eventLock.Lock())
         {
-        this._allEvents?.ForEach(a => a.UpdateFillers(new List<Models.Event>()));
+            this._allEvents?.ForEach(a => a.UpdateFillers(new List<Models.Event>()));
         }
 
         using (this._controlLock.Lock())
         {
-        this._controlEvents?.Clear();
+            this._controlEvents?.Clear();
         }
 
         this._orderedControlEvents = null;
