@@ -21,7 +21,7 @@
         private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
 
         public event EventHandler<ValueEventArgs<VisibleStateInfo>> StateAdded;
-        public event EventHandler<ValueEventArgs<string>> StateRemoved;
+        public event EventHandler<ValueEventArgs<VisibleStateInfo>> StateRemoved;
         public enum EventStates
         {
             Completed,
@@ -37,7 +37,6 @@
             public DateTime Until;
         }
 
-        private static readonly Logger Logger = Logger.GetLogger<EventState>();
         private const string FILE_NAME = "event_states.json";
         private bool dirty;
 
@@ -49,10 +48,7 @@
         {
             get
             {
-                if (this._path == null)
-                {
-                    this._path = System.IO.Path.Combine(this._basePath, FILE_NAME);
-                }
+                this._path ??= System.IO.Path.Combine(this._basePath, FILE_NAME);
 
                 return this._path;
             }
@@ -129,6 +125,16 @@
             }
         }
 
+        public void Remove(string areaName, EventStates? state)
+        {
+            lock (this.Instances)
+            {
+                var instancesToRemove = this.Instances.Where(instance => instance.AreaName == areaName && (!state.HasValue || instance.State == state.Value)).ToList();
+
+                instancesToRemove.ForEach(i => this.Remove(areaName, i.EventKey));
+            }
+        }
+
         public void Remove(string areaName, string eventKey)
         {
             lock (this.Instances)
@@ -146,16 +152,17 @@
 
                 for (int i = instancesToRemove.Count - 1; i >= 0; i--)
                 {
-                    _ = this.Instances.Remove(instancesToRemove[i]);
-                }
+                    var instance = instancesToRemove[i];
+                    _ = this.Instances.Remove(instance);
 
-                try
-                {
-                    this.StateRemoved?.Invoke(this, new ValueEventArgs<string>(name));
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "StateRemoved.Invoke failed.");
+                    try
+                    {
+                        this.StateRemoved?.Invoke(this, new ValueEventArgs<VisibleStateInfo>(instance));
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Error(ex, "StateRemoved.Invoke failed.");
+                    }
                 }
 
                 this.dirty = true;

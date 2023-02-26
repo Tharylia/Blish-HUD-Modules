@@ -447,11 +447,15 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.LeftClickAction);
         this.RenderBoolSetting(groupPanel, areaConfiguration.AcceptWaypointPrompt);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTooltips);
 
         this.RenderEmptyLine(groupPanel);
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.CompletionAcion);
-        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTooltips);
+        this.RenderButton(groupPanel, "Reset hidden Events", () =>
+        {
+            this._eventState.Remove(areaConfiguration.Name, EventState.EventStates.Hidden);
+        });
 
         this.RenderEmptyLine(groupPanel);
 
