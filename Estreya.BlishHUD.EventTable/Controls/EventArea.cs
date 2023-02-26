@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -153,6 +153,28 @@ public class EventArea : RenderTargetControl
         {
             this._mapchestState.MapchestCompleted += this.Event_Completed;
             this._mapchestState.MapchestRemoved += this.Event_Removed;
+        }
+
+        if (this._eventState != null)
+        {
+            this._eventState.StateAdded += this.EventState_StateAdded;
+            this._eventState.StateRemoved += this.EventState_StateRemoved;
+        }
+    }
+
+    private void EventState_StateAdded(object sender, ValueEventArgs<EventState.VisibleStateInfo> e)
+    {
+        if (e.Value.AreaName == this.Configuration.Name && e.Value.State == EventState.EventStates.Hidden)
+        {
+            this.ReAddEvents();
+        }
+    }
+
+    private void EventState_StateRemoved(object sender, ValueEventArgs<EventState.VisibleStateInfo> e)
+    {
+        if(e.Value.AreaName == this.Configuration.Name && e.Value.State == EventState.EventStates.Hidden)
+        {
+            this.ReAddEvents();
         }
     }
 
@@ -446,7 +468,7 @@ public class EventArea : RenderTargetControl
     {
         bool disabled =  !ev.Filler && this.EventDisabled(ev.SettingKey);
 
-        disabled &= this.EventTemporaryDisabled(ev);
+        disabled |= this.EventTemporaryDisabled(ev);
 
         return disabled;
     }
@@ -779,7 +801,6 @@ public class EventArea : RenderTargetControl
     private void HideEvent(Models.Event ev, DateTime until)
     {
         this._eventState.Add(this.Configuration.Name, ev.SettingKey, until, EventState.EventStates.Hidden);
-        this.ReAddEvents();
     }
 
     private void Ev_HideRequested(object sender, EventArgs e)
@@ -818,6 +839,12 @@ public class EventArea : RenderTargetControl
         {
             this._mapchestState.MapchestCompleted -= this.Event_Completed;
             this._mapchestState.MapchestRemoved -= this.Event_Removed;
+        }
+
+        if (this._eventState != null)
+        {
+            this._eventState.StateAdded -= this.EventState_StateAdded;
+            this._eventState.StateRemoved -= this.EventState_StateRemoved;
         }
 
         this._iconState = null;
