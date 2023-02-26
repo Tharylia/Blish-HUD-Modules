@@ -51,6 +51,8 @@ public class EventArea : RenderTargetControl
     private string _apiRootUrl;
     private Func<DateTime> _getNowAction;
     private readonly Func<SemVer.Version> _getVersion;
+
+    private AsyncLock _eventLock = new AsyncLock();
     private List<EventCategory> _allEvents = new List<EventCategory>();
 
     private int _heightFromLastDraw = 1; // Blish does not render controls at y 0 with 0 height
@@ -74,12 +76,17 @@ public class EventArea : RenderTargetControl
         get
         {
             var order = this.EventCategoryOrdering;
+
+            using (this._controlLock.Lock())
+            {
             this._orderedControlEvents ??= this._controlEvents.OrderBy(x => order.IndexOf(x.Key)).Select(x => x.Value).ToList();
+            }
 
             return this._orderedControlEvents;
         }
     }
 
+    private AsyncLock _controlLock = new AsyncLock();
     private ConcurrentDictionary<string, List<(DateTime Occurence, Event Event)>> _controlEvents = new ConcurrentDictionary<string, List<(DateTime Occurence, Event Event)>>();
 
     public new bool Enabled => this.Configuration?.Enabled.Value ?? false;
@@ -236,6 +243,8 @@ public class EventArea : RenderTargetControl
 
     public void UpdateAllEvents(List<EventCategory> allEvents)
     {
+        using (this._eventLock.Lock())
+        {
         this._allEvents.Clear();
 
         this._allEvents.AddRange(JsonConvert.DeserializeObject<List<EventCategory>>(JsonConvert.SerializeObject(allEvents)));
@@ -243,29 +252,35 @@ public class EventArea : RenderTargetControl
         (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
         this._allEvents.ForEach(ec => ec.Load(this._translationState));
-
         // Events should have occurences calculated already
+        }
 
         this.ReAddEvents();
     }
 
     private void Event_Removed(object sender, string apiCode)
     {
+        using (this._eventLock.Lock())
+        {
         List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
         events.ForEach(ev =>
         {
             this._eventState.Remove(this.Configuration.Name, ev.SettingKey);
         });
+        }
     }
 
     private void Event_Completed(object sender, string apiCode)
     {
         DateTime until = this.GetNextReset();
+        using (this._eventLock.Lock())
+        {
         List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
         events.ForEach(ev =>
         {
             this.FinishEvent(ev, until);
         });
+        }
     }
 
     private void BackgroundColor_SettingChanged(object sender, ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color> e)
@@ -336,9 +351,12 @@ public class EventArea : RenderTargetControl
 
     private List<string> GetActiveEventKeys()
     {
-        IEnumerable<string> activeSettingKeys = this._allEvents.SelectMany(ae => ae.Events).Where(e => !e.Filler && !this.EventTemporaryDisabled(e)).Select(e => e.SettingKey).Where(sk => !this.Configuration.DisabledEventKeys.Value.Contains(sk));
+        using (this._eventLock.Lock())
+        {
+            IEnumerable<string> activeSettingKeys = this._allEvents.SelectMany(ae => ae.Events).Where(e => !e.Filler && !this.EventDisabled(e)).Select(e => e.SettingKey).Where(sk => !this.Configuration.DisabledEventKeys.Value.Contains(sk));
 
         return activeSettingKeys.ToList();
+    }
     }
 
     private void ReAddEvents()
@@ -402,7 +420,12 @@ public class EventArea : RenderTargetControl
 
             IFlurlRequest flurlRequest = this._flurlClient.Request(this._apiRootUrl, "fillers");
 
-            List<Models.Event> activeEvents = this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList();
+            List<Models.Event> activeEvents = new List<Models.Event>();
+
+            using (this._eventLock.Lock())
+            {
+                activeEvents.AddRange(this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList());
+            }
 
             var eventKeys = activeEvents.Select(a => a.SettingKey);
             Logger.Debug($"Fetch fillers with active keys: {string.Join(", ", eventKeys.ToArray())}");
@@ -466,7 +489,7 @@ public class EventArea : RenderTargetControl
 
     private bool EventDisabled(Models.Event ev)
     {
-        bool disabled =  !ev.Filler && this.EventDisabled(ev.SettingKey);
+        bool disabled = !ev.Filler && this.EventDisabled(ev.SettingKey);
 
         disabled |= this.EventTemporaryDisabled(ev);
 
@@ -479,7 +502,7 @@ public class EventArea : RenderTargetControl
         if (!ev.Filler && this.Configuration.LimitToCurrentMap.Value && GameService.Gw2Mumble.IsAvailable)
         {
             var mapId = GameService.Gw2Mumble.CurrentMap.Id;
-            if (!ev.MapIds.Contains(mapId ) && !(this.Configuration.AllowUnspecifiedMap.Value && ev.MapIds.Length == 0))
+            if (!ev.MapIds.Contains(mapId) && !(this.Configuration.AllowUnspecifiedMap.Value && ev.MapIds.Length == 0))
             {
                 disabled = true;
             }
@@ -580,7 +603,6 @@ public class EventArea : RenderTargetControl
 
             _lastActiveEvent = this._activeEvent;
         }
-
     }
 
     private void CheckForNewEventsForScreen()
@@ -594,19 +616,27 @@ public class EventArea : RenderTargetControl
         foreach (IGrouping<string, string> activeEventGroup in this.GetActiveEventKeysGroupedByCategory())
         {
             string categoryKey = activeEventGroup.Key;
-            EventCategory validCategory = this._allEvents.Find(ec => ec.Key == categoryKey);
+            EventCategory validCategory = null;
+
+            using (this._eventLock.Lock())
+            {
+              validCategory =   this._allEvents.Find(ec => ec.Key == categoryKey);
+            }
 
             //eventKey == Event.SettingsKey
-            List<Models.Event> events = validCategory.Events.Where(ev => activeEventGroup.Any(aeg => aeg == ev.SettingKey) || (this.Configuration.UseFiller.Value && ev.Filler)).ToList();
-            if (events.Count == 0)
+            List<Models.Event> events = validCategory?.Events.Where(ev => activeEventGroup.Any(aeg => aeg == ev.SettingKey) || (this.Configuration.UseFiller.Value && ev.Filler)).ToList();
+            if (events == null || events.Count == 0)
             {
                 continue;
             }
 
+            using (this._controlLock.Lock())
+            {
             bool added = this._controlEvents.TryAdd(categoryKey, new List<(DateTime Occurence, Event Event)>());
             if (added)
             {
                 this._orderedControlEvents = null; // Refresh cache
+                }
             }
 
             IEnumerable<Models.Event> validEvents = events.Where(ev => ev.Occurences.Any(oc => oc.AddMinutes(ev.Duration) >= times.Min && oc <= times.Max));
@@ -622,9 +652,12 @@ public class EventArea : RenderTargetControl
                 foreach (DateTime occurence in validOccurences)
                 {
                     // Check if we got this occurence already added
+                    using (this._controlLock.Lock())
+                    {
                     if (this._controlEvents[categoryKey].Any(addedEvent => addedEvent.Occurence == occurence))
                     {
                         continue;
+                        }
                     }
 
                     float x = (float)ev.CalculateXPosition(occurence, times.Min, this.PixelPerMinute);
@@ -677,7 +710,10 @@ public class EventArea : RenderTargetControl
 
                     Logger.Debug($"Added event {ev.Name} with occurence {occurence}");
 
+                    using (this._controlLock.Lock())
+                    {
                     this._controlEvents[categoryKey].Add((occurence, newEventControl));
+                    }
                 }
             }
         }
@@ -758,8 +794,16 @@ public class EventArea : RenderTargetControl
 
     private void ClearEventControls()
     {
+        using (this._eventLock.Lock())
+        {
         this._allEvents?.ForEach(a => a.UpdateFillers(new List<Models.Event>()));
+        }
+
+        using (this._controlLock.Lock())
+        {
         this._controlEvents?.Clear();
+        }
+
         this._orderedControlEvents = null;
     }
 
