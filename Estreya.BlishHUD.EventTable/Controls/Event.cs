@@ -34,9 +34,6 @@ public class Event: IDisposable
     private readonly Func<Color> _getColorAction;
     private readonly Func<bool> _getDrawShadowAction;
     private readonly Func<Color> _getShadowColor;
-    private readonly Func<bool> _getShowTooltips;
-
-    private Tooltip _tooltip;
 
     public Event(Models.Event ev, IconState iconState, TranslationState translationState,
         Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
@@ -46,8 +43,7 @@ public class Event: IDisposable
         Func<Color> getTextColor,
         Func<Color> getColorAction,
         Func<bool> getDrawShadowAction,
-        Func<Color> getShadowColor,
-        Func<bool> getShowTooltips)
+        Func<Color> getShadowColor)
     {
         this.Ev = ev;
         this._iconState = iconState;
@@ -62,7 +58,6 @@ public class Event: IDisposable
         this._getColorAction = getColorAction;
         this._getDrawShadowAction = getDrawShadowAction;
         this._getShadowColor = getShadowColor;
-        this._getShowTooltips = getShowTooltips;
     }
 
     public ContextMenuStrip BuildContextMenu()
