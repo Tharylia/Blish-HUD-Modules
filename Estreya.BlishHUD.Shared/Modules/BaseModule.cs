@@ -334,13 +334,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (show)
         {
-            this.CornerIcon ??= new CornerIcon()
+            if (this.CornerIcon == null)
+            {
+                this.CornerIcon = new CornerIcon()
             {
                 IconName = this.Name,
                 Icon = this.GetCornerIcon(),
             };
 
             this.OnCornerIconBuild();
+        }
         }
         else
         {
