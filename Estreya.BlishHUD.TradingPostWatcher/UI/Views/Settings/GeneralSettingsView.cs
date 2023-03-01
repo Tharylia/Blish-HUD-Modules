@@ -12,11 +12,11 @@
 
     public class GeneralSettingsView : BaseSettingsView
     {
-        public GeneralSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public GeneralSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState,settingEventState, font)
         {
         }
 
-        protected override void BuildView(Panel parent)
+        protected override void BuildView(FlowPanel parent)
         {
             this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.GlobalDrawerVisible);
             this.RenderKeybindingSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.GlobalDrawerVisibleHotkey);

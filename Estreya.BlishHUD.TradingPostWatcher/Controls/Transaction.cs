@@ -202,7 +202,7 @@
         {
             if (this._showTooltipsSetting.Value)
             {
-                _ = UpdateUtil.UpdateAsync(this.BuildTooltip, gameTime, _updateTooltipInterval.TotalMilliseconds, _timeSinceLastTooltipUpdate);
+                _ = UpdateUtil.UpdateAsync(this.BuildTooltip, gameTime, _updateTooltipInterval.TotalMilliseconds, _timeSinceLastTooltipUpdate, false);
             }
 
             BitmapFont font = this.GetFont();

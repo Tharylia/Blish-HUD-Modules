@@ -126,10 +126,7 @@
                 StringComparison = StringComparison.InvariantCultureIgnoreCase
             };
 
-            if (!this._itemState.Loading)
-            {
-                textBoxSuggestions.Suggestions = this._itemState.Items.Where(item => !item.Flags?.Any(flag => flag is Gw2Sharp.WebApi.V2.Models.ItemFlag.AccountBound or Gw2Sharp.WebApi.V2.Models.ItemFlag.SoulbindOnAcquire) ?? false).Select(item => item.Name).ToArray();
-            }
+            textBoxSuggestions.Suggestions = this._itemState.Items.Where(item => !item.Flags?.Any(flag => flag is Gw2Sharp.WebApi.V2.Models.ItemFlag.AccountBound or Gw2Sharp.WebApi.V2.Models.ItemFlag.SoulbindOnAcquire) ?? false).Select(item => item.Name).ToArray();
 
             (Item Item, Texture2D Icon) loadedItem = (null, null);
 
