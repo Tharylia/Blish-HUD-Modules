@@ -30,25 +30,52 @@ public class ItemState : APIState<Item>
 
     private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
 
-    public List<Item> Items => this.APIObjectList;
+    private AsyncLock _itemLock = new AsyncLock();
+    private List<Item> _items;
+    public List<Item> Items => _items;
 
     public ItemState(APIStateConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
     {
         this._baseFolderPath = baseFolderPath;
+        this.Updated += this.ItemState_Updated;
+    }
+
+    private void ItemState_Updated(object sender, EventArgs e)
+    {
+        using (_itemLock.Lock())
+        {
+            this._items = this.APIObjectList.ToArray().ToList();
+        }
+    }
+
+    protected override Task DoInitialize()
+    {
+        using (_itemLock.Lock())
+        {
+            _items = new List<Item>();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    protected override Task DoClear()
+    {
+        using (_itemLock.Lock())
+        {
+            _items.Clear();
+        }
+
+        return Task.CompletedTask;
     }
 
     protected override async Task Load()
     {
         try
         {
+            bool canLoadFiles = this.CanLoadFiles();
             bool shouldLoadFiles = await this.ShouldLoadFiles();
 
-            if (!shouldLoadFiles)
-            {
-                await base.Load();
-                await this.Save();
-            }
-            else
+            if (canLoadFiles)
             {
                 try
                 {
@@ -57,15 +84,26 @@ public class ItemState : APIState<Item>
                     var filePath = Path.Combine(this.DirectoryPath, FILE_NAME);
                     var itemJson = await FileUtil.ReadStringAsync(filePath);
                     var items = JsonConvert.DeserializeObject<List<Item>>(itemJson);
-                    using (await this._apiObjectListLock.LockAsync())
+                    using (_itemLock.Lock())
                     {
-                        this.APIObjectList.AddRange(items);
+                        this._items = items;
                     }
+
                 }
                 finally
                 {
                     this.Loading = false;
                     this.SignalCompletion();
+                }
+            }
+
+            // Refresh files after we loaded the prior saved
+            if (!shouldLoadFiles)
+            {
+                await base.LoadFromAPI(!canLoadFiles); // Only reset completion if we could not load anything at start
+                if (!this._cancellationTokenSource.Token.IsCancellationRequested)
+                {
+                    await this.Save();
                 }
             }
 
@@ -77,7 +115,7 @@ public class ItemState : APIState<Item>
         }
     }
 
-    private async Task<bool> ShouldLoadFiles()
+    private bool CanLoadFiles()
     {
         var baseDirectoryExists = Directory.Exists(this.DirectoryPath);
 
@@ -86,6 +124,13 @@ public class ItemState : APIState<Item>
         var savedFileExists = System.IO.File.Exists(Path.Combine(this.DirectoryPath, FILE_NAME));
 
         if (!savedFileExists) return false;
+
+        return true;
+    }
+
+    private async Task<bool> ShouldLoadFiles()
+    {
+        if (!this.CanLoadFiles()) return false;
 
         string lastUpdatedFilePath = Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME);
         if (System.IO.File.Exists(lastUpdatedFilePath))
@@ -131,14 +176,11 @@ public class ItemState : APIState<Item>
 
     public Item GetItemByName(string name)
     {
-        if (this.Loading)
-        {
-            return null;
-        }
+        if (!this._itemLock.IsFree()) return null;
 
-        using (this._apiObjectListLock.Lock())
+        using (this._itemLock.Lock())
         {
-            foreach (var item in this.APIObjectList)
+            foreach (var item in this.Items)
             {
                 if (item.Name == name)
                 {
@@ -151,14 +193,11 @@ public class ItemState : APIState<Item>
     }
     public Item GetItemById(int id)
     {
-        if (this.Loading)
-        {
-            return null;
-        }
+        if (!this._itemLock.IsFree()) return null;
 
-        using (this._apiObjectListLock.Lock())
+        using (this._itemLock.Lock())
         {
-            foreach (var item in this.APIObjectList)
+            foreach (var item in this.Items)
             {
                 if (item.Id == id)
                 {
@@ -183,6 +222,11 @@ public class ItemState : APIState<Item>
         int chunkSize = 200;
         foreach (var itemIdChunk in itemIds.ChunkBy(chunkSize))
         {
+            if (this._cancellationTokenSource.Token.IsCancellationRequested)
+            {
+                break;
+            }
+
             try
             {
                 try
@@ -233,5 +277,10 @@ public class ItemState : APIState<Item>
         var items = await apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIdChunk, this._cancellationTokenSource.Token);
 
         return items.Select(apiItem => Item.FromAPI(apiItem)).ToList();
+    }
+
+    protected override void DoUnload()
+    {
+        this.Updated -= this.ItemState_Updated;
     }
 }
