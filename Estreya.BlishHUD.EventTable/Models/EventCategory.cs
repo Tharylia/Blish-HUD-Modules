@@ -65,7 +65,7 @@
             }
         }
 
-        public void Load(TranslationState translationState = null)
+        public void Load(Func<DateTime> getNowAction, TranslationState translationState = null)
         {
             if (translationState != null)
             {
@@ -76,7 +76,7 @@
             {
                 this.Events.ForEach(ev =>
                 {
-                    ev.Load(this, translationState);
+                    ev.Load(this, getNowAction, translationState);
                 });
             }
         }

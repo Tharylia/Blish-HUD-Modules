@@ -24,10 +24,18 @@
     using System.Threading.Tasks;
 
     [Serializable]
-    public class Event
+    public class Event : IUpdatable
     {
         [IgnoreCopy]
         private static readonly Logger Logger = Logger.GetLogger<Event>();
+
+        [IgnoreCopy]
+        private static TimeSpan _checkForRemindersInterval = TimeSpan.FromMilliseconds(5000);
+
+        [IgnoreCopy]
+        private double _lastCheckForReminders = 0;
+
+        private Func<DateTime> _getNowAction;
 
         public event EventHandler<TimeSpan> Reminder;
 
@@ -126,7 +134,7 @@
             return eventWidth;
         }
 
-        public void Load(EventCategory ec, TranslationState translationState = null)
+        public void Load(EventCategory ec, Func<DateTime> getNowAction, TranslationState translationState = null)
         {
             // Prevent crash on older events.json files
             if (string.IsNullOrWhiteSpace(this.Key))
@@ -141,15 +149,24 @@
 
             this.SettingKey = $"{ec.Key}_{this.Key}";
 
+            this._getNowAction = getNowAction;
+
             if (translationState != null)
             {
                 this.Name = translationState.GetTranslation($"event-{ec.Key}_{this.Key}-name", this.Name);
             }
         }
 
-        public void Update(DateTime nowUTC)
+        public void Update(GameTime gameTime)
+        {
+            UpdateUtil.Update(this.CheckForReminder, gameTime, _checkForRemindersInterval.TotalMilliseconds, ref this._lastCheckForReminders);
+        }
+
+        private void CheckForReminder()
         {
             if (this.Filler) return;
+
+            var nowUTC = this._getNowAction();
 
             var occurences = this.Occurences.Where(o => o >= nowUTC);
             foreach (var occurence in occurences)
@@ -161,10 +178,10 @@
                     if (alreadyRemindedTimes.Contains(time)) continue;
 
                     var remindAt = occurence - time;
-                    var diff = nowUTC - remindAt;
-                    if (remindAt <= nowUTC && Math.Abs(diff.TotalSeconds) <= 1)
+                    var diff = remindAt - nowUTC;
+                    if (remindAt < nowUTC || (remindAt >= nowUTC && diff.TotalSeconds <= 0))
                     {
-                        this.Reminder?.Invoke(this, time);
+                        this.Reminder?.Invoke(this, occurence - nowUTC);
                         alreadyRemindedTimes.Add(time);
                     }
                 }
