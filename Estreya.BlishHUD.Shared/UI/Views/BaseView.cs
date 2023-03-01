@@ -88,21 +88,26 @@ public abstract class BaseView : View
 
         this.MainPanel = parentPanel;
 
-        this.InternalBuild(parentPanel);
+        try
+        {
+            this.InternalBuild(parentPanel);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, $"Failed building view {this.GetType().FullName}");
+        }
     }
 
     protected abstract void InternalBuild(Panel parent);
 
     protected void RenderEmptyLine(Panel parent, int height = 25)
     {
-        ViewContainer settingContainer = new ViewContainer()
+        new Panel()
         {
-            WidthSizingMode = SizingMode.Fill,
-            HeightSizingMode = SizingMode.AutoSize,
-            Parent = parent
+            Parent = parent,
+            Height = height,
+            WidthSizingMode = SizingMode.Fill
         };
-
-        settingContainer.Show(new EmptyLineView(height));
     }
 
     protected TextBox RenderTextbox(Panel parent, Point location, int width, string value, string placeholder, Action<string> onChangeAction = null, Action<string> onEnterAction = null, bool clearOnEnter = false)
