@@ -17,7 +17,7 @@ public enum DrawInterval
     [Description("500ms")]
     NORMAL = 500,
     [Description("750ms")]
-    SLOW = 500,
+    SLOW = 750,
     [Description("1000ms")]
     SLOWEST = 1000
 }
