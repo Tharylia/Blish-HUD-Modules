@@ -433,7 +433,7 @@ public class EventArea : RenderTargetControl
                 activeEvents.AddRange(this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList());
             }
 
-            var eventKeys = activeEvents.Select(a => a.SettingKey);
+            var eventKeys = activeEvents.Select(a => a.SettingKey).Distinct();
             Logger.Debug($"Fetch fillers with active keys: {string.Join(", ", eventKeys.ToArray())}");
 
             HttpResponseMessage response = await flurlRequest.PostJsonAsync(new OnlineFillerRequest()
