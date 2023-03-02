@@ -25,6 +25,7 @@
     using SharpDX.MediaFoundation;
     using SharpDX.X3DAudio;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel.Composition;
@@ -38,13 +39,16 @@
     {
         public override string WebsiteModuleName => "event-table";
 
-        private Dictionary<string, EventArea> _areas = new Dictionary<string, EventArea>();
+        private ConcurrentDictionary<string, EventArea> _areas = new ConcurrentDictionary<string, EventArea>();
 
         private AsyncLock _eventCategoryLock = new AsyncLock();
         private List<EventCategory> _eventCategories = new List<EventCategory>();
 
         private static TimeSpan _updateEventsInterval = TimeSpan.FromMinutes(30);
         private AsyncRef<double> _lastEventUpdate = new AsyncRef<double>(0);
+
+        private static TimeSpan _checkDrawerSettingInterval = TimeSpan.FromSeconds(30);
+        private double _lastCheckDrawerSettings = 0;
 
         private DateTime NowUTC => DateTime.UtcNow;
 
@@ -141,6 +145,8 @@
                         this.AddEventHooks(ev);
                     }
 
+                    this._lastCheckDrawerSettings = _checkDrawerSettingInterval.TotalMilliseconds;
+
                     this.SetAreaEvents();
                 }
                 catch (FlurlHttpException ex)
@@ -151,6 +157,17 @@
                 catch (Exception ex)
                 {
                     this.Logger.Warn(ex, "Failed loading events.");
+                }
+            }
+        }
+
+        private void CheckDrawerSettings()
+        {
+            using (this._eventCategoryLock.Lock())
+            {
+                foreach (var area in this._areas)
+                {
+                    this.ModuleSettings.CheckDrawerSettings(area.Value.Configuration, this._eventCategories);
                 }
             }
         }
@@ -223,6 +240,7 @@
 
             this.DynamicEventHandler.Update(gameTime);
 
+            UpdateUtil.Update(this.CheckDrawerSettings, gameTime, _checkDrawerSettingInterval.TotalMilliseconds, ref this._lastCheckDrawerSettings);
             _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
         }
 
@@ -297,7 +315,7 @@
                 Parent = GameService.Graphics.SpriteScreen
             };
 
-            this._areas.Add(configuration.Name, area);
+            _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
         }
 
         private void RemoveArea(EventAreaConfiguration configuration)
@@ -305,7 +323,7 @@
             this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value.Where(areaName => areaName != configuration.Name));
 
             this._areas[configuration.Name]?.Dispose();
-            _ = this._areas.Remove(configuration.Name);
+            _ = this._areas.TryRemove(configuration.Name, out _);
 
             this.ModuleSettings.RemoveDrawer(configuration.Name);
         }

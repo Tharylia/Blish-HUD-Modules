@@ -245,6 +245,20 @@
             };
         }
 
+        public void CheckDrawerSettings(EventAreaConfiguration configuration, List<EventCategory> categories)
+        {
+            var notOrderedEventCategories = categories.Where(ec => !configuration.EventOrder.Value.Contains(ec.Key)).ToDictionary(ec => categories.IndexOf(ec), ec => ec);
+            foreach (var notOrderedEventCategory in notOrderedEventCategories)
+            {
+                configuration.EventOrder.Value.Insert(notOrderedEventCategory.Key, notOrderedEventCategory.Value.Key);
+            }
+
+            if (notOrderedEventCategories.Count > 0)
+            {
+                configuration.EventOrder.Value = new List<string>(configuration.EventOrder.Value);
+            }
+        }
+
         public new void RemoveDrawer(string name)
         {
             base.RemoveDrawer(name);
