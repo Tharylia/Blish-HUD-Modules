@@ -92,6 +92,11 @@ public abstract class APIState : ManagedState
     /// <returns></returns>
     protected override async Task Load()
     {
+        await this.LoadFromAPI(true);
+    }
+
+    protected async Task LoadFromAPI(bool resetCompletion = true)
+    {
         if (!this._loadingLock.IsFree())
         {
             Logger.Warn("Tried to load again while already loading.");
@@ -100,7 +105,11 @@ public abstract class APIState : ManagedState
 
         using (await this._loadingLock.LockAsync())
         {
-            _ = this._eventWaitHandle.Reset();
+            if (resetCompletion)
+            {
+                _ = this._eventWaitHandle.Reset();
+            }
+
             this.Loading = true;
 
             try
@@ -114,7 +123,7 @@ public abstract class APIState : ManagedState
             finally
             {
                 this.Loading = false;
-                _= this._eventWaitHandle.Set();
+                this.SignalCompletion();
             }
         }
     }

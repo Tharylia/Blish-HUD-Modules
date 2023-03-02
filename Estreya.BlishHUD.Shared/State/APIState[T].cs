@@ -60,7 +60,7 @@ public abstract class APIState<T> : APIState
             List<T> oldAPIObjectList;
             using (await this._apiObjectListLock.LockAsync())
             {
-                oldAPIObjectList = this.APIObjectList.Copy();
+                oldAPIObjectList = this.APIObjectList.ToArray().ToList()/*.Copy()*/;
                 this.APIObjectList.Clear();
 
                 Logger.Debug("Got {0} api objects from previous fetch.", oldAPIObjectList.Count);

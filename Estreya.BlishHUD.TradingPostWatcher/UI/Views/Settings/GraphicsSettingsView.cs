@@ -10,11 +10,11 @@
 
     public class GraphicsSettingsView : BaseSettingsView
     {
-        public GraphicsSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public GraphicsSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState,settingEventState, font)
         {
         }
 
-        protected override void BuildView(Panel parent)
+        protected override void BuildView(FlowPanel parent)
         {
             _ = this.RenderIntSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.Location.X);
             _ = this.RenderIntSetting(parent, TradingPostWatcherModule.ModuleInstance.DrawerConfiguration.Location.Y);

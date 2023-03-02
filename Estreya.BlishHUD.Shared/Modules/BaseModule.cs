@@ -334,13 +334,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (show)
         {
-            this.CornerIcon ??= new CornerIcon()
+            if (this.CornerIcon == null)
             {
-                IconName = this.Name,
-                Icon = this.GetCornerIcon(),
-            };
+                this.CornerIcon = new CornerIcon()
+                {
+                    IconName = this.Name,
+                    Icon = this.GetCornerIcon(),
+                };
 
-            this.OnCornerIconBuild();
+                this.OnCornerIconBuild();
+            }
         }
         else
         {
@@ -451,6 +454,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
 
         this.OnSettingWindowBuild(this.SettingsWindow);
+
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156331.png"), () => new UI.Views.DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donation"));
 
         if (this.Debug)
         {

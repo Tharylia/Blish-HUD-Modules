@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -179,7 +179,7 @@ public class EventArea : RenderTargetControl
 
     private void EventState_StateRemoved(object sender, ValueEventArgs<EventState.VisibleStateInfo> e)
     {
-        if(e.Value.AreaName == this.Configuration.Name && e.Value.State == EventState.EventStates.Hidden)
+        if (e.Value.AreaName == this.Configuration.Name && e.Value.State == EventState.EventStates.Hidden)
         {
             this.ReAddEvents();
         }
@@ -251,7 +251,7 @@ public class EventArea : RenderTargetControl
 
             (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
-            this._allEvents.ForEach(ec => ec.Load(this._translationState));
+            this._allEvents.ForEach(ec => ec.Load(this._getNowAction,this._translationState));
             // Events should have occurences calculated already
         }
 
@@ -260,27 +260,31 @@ public class EventArea : RenderTargetControl
 
     private void Event_Removed(object sender, string apiCode)
     {
+        List<Models.Event> events = new List<Models.Event>();
         using (this._eventLock.Lock())
         {
-            List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
-            events.ForEach(ev =>
-            {
-                this._eventState.Remove(this.Configuration.Name, ev.SettingKey);
-            });
+            events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode));
         }
+
+        events.ForEach(ev =>
+        {
+            this._eventState.Remove(this.Configuration.Name, ev.SettingKey);
+        });
     }
 
     private void Event_Completed(object sender, string apiCode)
     {
         DateTime until = this.GetNextReset();
+        List<Models.Event> events = new List<Models.Event>();
         using (this._eventLock.Lock())
         {
-            List<Models.Event> events = this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).ToList();
-            events.ForEach(ev =>
-            {
-                this.FinishEvent(ev, until);
-            });
+            events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode));
         }
+
+        events.ForEach(ev =>
+        {
+            this.FinishEvent(ev, until);
+        });
     }
 
     private void BackgroundColor_SettingChanged(object sender, ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color> e)
@@ -397,15 +401,17 @@ public class EventArea : RenderTargetControl
         List<string> activeEventKeys = this.GetActiveEventKeys();
 
         ConcurrentDictionary<string, List<Models.Event>> fillers = await this.GetFillers(times.Now, times.Min, times.Max, activeEventKeys);
-        foreach (EventCategory ec in this._allEvents)
+        using (await this._eventLock.LockAsync())
         {
-            if (fillers.TryGetValue(ec.Key, out List<Models.Event> categoryFillers))
+            foreach (EventCategory ec in this._allEvents)
             {
-                categoryFillers.ForEach(cf => cf.Load(ec, this._translationState));
-            }
+                if (fillers.TryGetValue(ec.Key, out List<Models.Event> categoryFillers))
+                {
+                    categoryFillers.ForEach(cf => cf.Load(ec,this._getNowAction, this._translationState));
+                }
 
-            ec.UpdateFillers(categoryFillers);
-            //await ec.UpdateEventOccurences(categoryFillers, times.Now, times.Min, times.Max, this.Configuration.ActiveEventKeys.Value, (ev) => this.EventDisabled(ev));
+                ec.UpdateFillers(categoryFillers);
+            }
         }
     }
 
@@ -427,7 +433,7 @@ public class EventArea : RenderTargetControl
                 activeEvents.AddRange(this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList());
             }
 
-            var eventKeys = activeEvents.Select(a => a.SettingKey);
+            var eventKeys = activeEvents.Select(a => a.SettingKey).Distinct();
             Logger.Debug($"Fetch fillers with active keys: {string.Join(", ", eventKeys.ToArray())}");
 
             HttpResponseMessage response = await flurlRequest.PostJsonAsync(new OnlineFillerRequest()
@@ -602,6 +608,10 @@ public class EventArea : RenderTargetControl
 
             _lastActiveEvent = this._activeEvent;
         }
+        else if (this._activeEvent == null)
+        {
+            _lastActiveEvent = null;
+        }
     }
 
     private void CheckForNewEventsForScreen()
@@ -619,7 +629,7 @@ public class EventArea : RenderTargetControl
 
             using (this._eventLock.Lock())
             {
-              validCategory =   this._allEvents.Find(ec => ec.Key == categoryKey);
+                validCategory = this._allEvents.Find(ec => ec.Key == categoryKey);
             }
 
             //eventKey == Event.SettingsKey
@@ -702,8 +712,7 @@ public class EventArea : RenderTargetControl
                             return ev.Filler
                             ? (this.Configuration.FillerShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.FillerShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.FillerShadowOpacity.Value
                             : (this.Configuration.ShadowColor.Value.Id == 1 ? Color.Black : this.Configuration.ShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.ShadowOpacity.Value;
-                        },
-                        () => this.Configuration.ShowTooltips.Value);
+                        });
 
                     this.AddEventHooks(newEventControl);
 

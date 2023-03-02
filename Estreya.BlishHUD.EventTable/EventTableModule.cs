@@ -25,9 +25,11 @@
     using SharpDX.MediaFoundation;
     using SharpDX.X3DAudio;
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
     using System.ComponentModel.Composition;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading;
     using System.Threading.Tasks;
@@ -37,15 +39,16 @@
     {
         public override string WebsiteModuleName => "event-table";
 
-        //internal static EventTableModule ModuleInstance => Instance;
-
-        private Dictionary<string, EventArea> _areas = new Dictionary<string, EventArea>();
+        private ConcurrentDictionary<string, EventArea> _areas = new ConcurrentDictionary<string, EventArea>();
 
         private AsyncLock _eventCategoryLock = new AsyncLock();
         private List<EventCategory> _eventCategories = new List<EventCategory>();
 
         private static TimeSpan _updateEventsInterval = TimeSpan.FromMinutes(30);
         private AsyncRef<double> _lastEventUpdate = new AsyncRef<double>(0);
+
+        private static TimeSpan _checkDrawerSettingInterval = TimeSpan.FromSeconds(30);
+        private double _lastCheckDrawerSettings = 0;
 
         private DateTime NowUTC => DateTime.UtcNow;
 
@@ -75,7 +78,6 @@
             await this.DynamicEventHandler.AddDynamicEventsToMap();
             await this.DynamicEventHandler.AddDynamicEventsToWorld();
 
-            this.Logger.Debug("Load events.");
             await this.LoadEvents();
 
             this.AddAllAreas();
@@ -86,8 +88,6 @@
             GameService.Input.Keyboard.KeyPressed += this.Keyboard_KeyPressed;
 #endif
         }
-
-        private List<IEntity> _worldEntites = new List<IEntity>();
 
         private void Keyboard_KeyPressed(object sender, KeyboardEventArgs e)
         {
@@ -118,6 +118,7 @@
         /// <returns></returns>
         public async Task LoadEvents()
         {
+            this.Logger.Debug("Load events.");
             using (await this._eventCategoryLock.LockAsync())
             {
                 try
@@ -134,12 +135,17 @@
 
                     categories.ForEach(ec =>
                     {
-                        ec.Load(this.TranslationState);
+                        ec.Load(() => this.NowUTC, this.TranslationState);
                     });
 
                     this._eventCategories = categories;
 
-                    this._eventCategories.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.AddEventHooks(ev));
+                    foreach (var ev in this._eventCategories.SelectMany(ec => ec.Events))
+                    {
+                        this.AddEventHooks(ev);
+                    }
+
+                    this._lastCheckDrawerSettings = _checkDrawerSettingInterval.TotalMilliseconds;
 
                     this.SetAreaEvents();
                 }
@@ -151,6 +157,17 @@
                 catch (Exception ex)
                 {
                     this.Logger.Warn(ex, "Failed loading events.");
+                }
+            }
+        }
+
+        private void CheckDrawerSettings()
+        {
+            using (this._eventCategoryLock.Lock())
+            {
+                foreach (var area in this._areas)
+                {
+                    this.ModuleSettings.CheckDrawerSettings(area.Value.Configuration, this._eventCategories);
                 }
             }
         }
@@ -214,13 +231,16 @@
             {
                 using (this._eventCategoryLock.Lock())
                 {
-                    var now = this.NowUTC;
-                    this._eventCategories.SelectMany(ec => ec.Events).ToList().ForEach(ev => ev.Update(now));
+                    foreach (var ev in this._eventCategories.SelectMany(ec => ec.Events))
+                    {
+                        ev.Update(gameTime);
+                    }
                 }
             }
 
             this.DynamicEventHandler.Update(gameTime);
 
+            UpdateUtil.Update(this.CheckDrawerSettings, gameTime, _checkDrawerSettingInterval.TotalMilliseconds, ref this._lastCheckDrawerSettings);
             _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
         }
 
@@ -241,7 +261,7 @@
             if (!this.ModuleSettings.RemindersEnabled.Value || this.ModuleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey)) return;
 
             var startsInTranslation = this.TranslationState.GetTranslation("eventArea-reminder-startsIn", "Starts in");
-            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize()}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)
+            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)
             {
                 BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value
             };
@@ -295,7 +315,7 @@
                 Parent = GameService.Graphics.SpriteScreen
             };
 
-            this._areas.Add(configuration.Name, area);
+            _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
         }
 
         private void RemoveArea(EventAreaConfiguration configuration)
@@ -303,7 +323,7 @@
             this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value.Where(areaName => areaName != configuration.Name));
 
             this._areas[configuration.Name]?.Dispose();
-            _ = this._areas.Remove(configuration.Name);
+            _ = this._areas.TryRemove(configuration.Name, out _);
 
             this.ModuleSettings.RemoveDrawer(configuration.Name);
         }

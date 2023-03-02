@@ -178,11 +178,11 @@
             this._trackedTransactionView.AddTracking += this.TrackedTransactionView_AddTracking;
             this._trackedTransactionView.RemoveTracking += this.TrackedTransactionView_RemoveTracking;
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => this._trackedTransactionView, "Tracked Transactions"));
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView(this.Gw2ApiManager, this.IconState,this.TranslationState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView(this.Gw2ApiManager, this.IconState,this.TranslationState, this.SettingEventState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => this._trackedTransactionView, "Tracked Transactions"));
         }
 
         private void TrackedTransactionView_RemoveTracking(object sender, TrackedTransaction e)
