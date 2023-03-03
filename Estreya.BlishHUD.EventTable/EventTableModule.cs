@@ -118,9 +118,10 @@
         /// <returns></returns>
         public async Task LoadEvents()
         {
-            this.Logger.Debug("Load events.");
+            this.Logger.Info("Load events...");
             using (await this._eventCategoryLock.LockAsync())
             {
+                this.Logger.Debug("Acquired lock.");
                 try
                 {
                     this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.RemoveEventHooks(ev));
@@ -138,6 +139,8 @@
                         ec.Load(() => this.NowUTC, this.TranslationState);
                     });
 
+                    this.Logger.Debug($"Loaded all event categories.");
+
                     this._eventCategories = categories;
 
                     foreach (var ev in this._eventCategories.SelectMany(ec => ec.Events))
@@ -148,6 +151,8 @@
                     this._lastCheckDrawerSettings = _checkDrawerSettingInterval.TotalMilliseconds;
 
                     this.SetAreaEvents();
+
+                    this.Logger.Debug($"Updated events in all areas.");
                 }
                 catch (FlurlHttpException ex)
                 {
@@ -156,18 +161,22 @@
                 }
                 catch (Exception ex)
                 {
-                    this.Logger.Warn(ex, "Failed loading events.");
+                    this.Logger.Error(ex, "Failed loading events.");
                 }
             }
         }
 
         private void CheckDrawerSettings()
         {
-            using (this._eventCategoryLock.Lock())
+            // Don't lock when it would freeze
+            if (this._eventCategoryLock.IsFree())
             {
-                foreach (var area in this._areas)
+                using (this._eventCategoryLock.Lock())
                 {
-                    this.ModuleSettings.CheckDrawerSettings(area.Value.Configuration, this._eventCategories);
+                    foreach (var area in this._areas)
+                    {
+                        this.ModuleSettings.CheckDrawerSettings(area.Value.Configuration, this._eventCategories);
+                    }
                 }
             }
         }
