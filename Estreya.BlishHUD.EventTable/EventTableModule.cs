@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -163,11 +163,15 @@
 
         private void CheckDrawerSettings()
         {
+            // Don't lock when it would freeze
+            if (this._eventCategoryLock.IsFree())
+            {
             using (this._eventCategoryLock.Lock())
             {
                 foreach (var area in this._areas)
                 {
                     this.ModuleSettings.CheckDrawerSettings(area.Value.Configuration, this._eventCategories);
+                    }
                 }
             }
         }

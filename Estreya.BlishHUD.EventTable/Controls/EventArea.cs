@@ -627,9 +627,16 @@ public class EventArea : RenderTargetControl
             string categoryKey = activeEventGroup.Key;
             EventCategory validCategory = null;
 
-            using (this._eventLock.Lock())
+            if (this._eventLock.IsFree())
             {
-                validCategory = this._allEvents.Find(ec => ec.Key == categoryKey);
+                using (this._eventLock.Lock())
+                {
+                    validCategory = this._allEvents.Find(ec => ec.Key == categoryKey);
+                }
+            }
+            else
+            {
+                Logger.Debug($"Event lock is busy. Can't update category {categoryKey}");
             }
 
             //eventKey == Event.SettingsKey
