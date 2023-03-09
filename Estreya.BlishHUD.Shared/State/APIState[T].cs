@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.State;
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
@@ -52,6 +52,12 @@ public abstract class APIState<T> : APIState
         if (apiManager == null)
         {
             Logger.Warn("API Manager is null");
+            return;
+        }
+
+        if (this.Configuration.NeededPermissions.Count > 0 && !apiManager.HasPermission(TokenPermission.Account))
+        {
+            this.Logger.Debug("No token yet.");
             return;
         }
 
