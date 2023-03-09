@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+namespace Estreya.BlishHUD.Shared.State;
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
@@ -129,17 +129,14 @@ public abstract class APIState<T> : APIState
         catch (MissingScopesException msex)
         {
             Logger.Warn(msex, "Could not update api objects due to missing scopes:");
-            throw;
         }
         catch (InvalidAccessTokenException iatex)
         {
             Logger.Warn(iatex, "Could not update api objects due to invalid access token:");
-            throw;
         }
         catch (Exception ex)
         {
             Logger.Warn(ex, "Error updating api objects:");
-            throw;
         }
     }
 
