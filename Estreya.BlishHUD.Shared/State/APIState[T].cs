@@ -55,6 +55,12 @@ public abstract class APIState<T> : APIState
             return;
         }
 
+        if (this.Configuration.NeededPermissions.Count > 0 && !apiManager.HasPermission(TokenPermission.Account))
+        {
+            this.Logger.Debug("No token yet.");
+            return;
+        }
+
         try
         {
             List<T> oldAPIObjectList;
@@ -129,17 +135,14 @@ public abstract class APIState<T> : APIState
         catch (MissingScopesException msex)
         {
             Logger.Warn(msex, "Could not update api objects due to missing scopes:");
-            throw;
         }
         catch (InvalidAccessTokenException iatex)
         {
             Logger.Warn(iatex, "Could not update api objects due to invalid access token:");
-            throw;
         }
         catch (Exception ex)
         {
             Logger.Warn(ex, "Error updating api objects:");
-            throw;
         }
     }
 

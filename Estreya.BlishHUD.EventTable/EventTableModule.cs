@@ -409,7 +409,7 @@
                 AwaitLoading = false,
                 Enabled = true,
                 SaveInterval = Timeout.InfiniteTimeSpan
-            }, this.Gw2ApiManager, this.GetFlurlClient());
+            }, this.Gw2ApiManager, this.GetFlurlClient(), this.API_ROOT_URL);
 
             additionalStates.Add(this.EventState);
             additionalStates.Add(this.DynamicEventState);

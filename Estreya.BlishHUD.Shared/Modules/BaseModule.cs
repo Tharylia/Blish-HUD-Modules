@@ -30,9 +30,9 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 {
     protected Logger Logger { get; }
 
-    public const string FILE_ROOT_URL = "https://files.estreya.de";
-    public const string FILE_BLISH_ROOT_URL = $"{FILE_ROOT_URL}/blish-hud";
-    private const string API_ROOT_URL = "https://blish-hud.api.estreya.de";
+    protected const string FILE_ROOT_URL = "https://files.estreya.de";
+    protected const string FILE_BLISH_ROOT_URL = $"{FILE_ROOT_URL}/blish-hud";
+    protected string API_ROOT_URL = "https://blish-hud.api.estreya.de";
 
     protected const string GITHUB_OWNER = "Tharylia";
     protected const string GITHUB_REPOSITORY = "Blish-HUD-Modules";
@@ -140,7 +140,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected override async Task LoadAsync()
     {
         this.Logger.Debug("Initialize states");
-        await this.InitializeStates();
+        await Task.Factory.StartNew(this.InitializeStates, TaskCreationOptions.LongRunning).Unwrap();
 
         this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY, GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconState, this.TranslationState);
 

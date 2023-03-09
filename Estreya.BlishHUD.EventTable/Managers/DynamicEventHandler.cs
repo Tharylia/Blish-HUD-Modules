@@ -145,14 +145,12 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         try
         {
             var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(dynamicEvent.MapId);
-            var coords = map.EventMapCoordinatesToMapCoordinates(new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1] ));
+            var coords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1] );
             switch (dynamicEvent.Location.Type)
             {
                 case "sphere":
                 case "cylinder":
-                    var radiusScale = map.GetDynamicEventMapLengthScale(dynamicEvent.Location.Radius);
-                    var radius = dynamicEvent.Location.Radius * (1/24f) / radiusScale; // Scale to worldcoordinates
-                    var circle = this._mapUtil.AddCircle(coords.X, coords.Y, radius, Color.DarkOrange, 3);
+                    var circle = this._mapUtil.AddCircle(coords.X, coords.Y, dynamicEvent.Location.Radius * (1 / 24f), Color.DarkOrange, 3);
                     circle.TooltipText = $"{dynamicEvent.Name} (Level {dynamicEvent.Level})";
                     this._mapEntities.AddOrUpdate(dynamicEvent.ID, circle, (_, _) => circle);
                     break;
@@ -160,7 +158,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
                     var points = new List<float[]>();
                     foreach (var item in dynamicEvent.Location.Points)
                     {
-                        var polyCoords = map.EventMapCoordinatesToMapCoordinates(new Vector2((float)item[0], (float)item[1]));
+                        var polyCoords = new Vector2((float)item[0], (float)item[1]);
 
                         points.Add(new float[] { (float)polyCoords.X, (float)polyCoords.Y });
                     }
@@ -240,13 +238,13 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         if (!this._moduleSettings.ShowDynamicEventInWorld.Value || !GameService.Gw2Mumble.IsAvailable) return;
 
-        var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(dynamicEvent.MapId);
-        var centerAsMapCoords = map.EventMapCoordinatesToMapCoordinates(new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1]));
-        var centerAsWorldMeters = map.MapCoordsToWorldMeters(new Vector2((float)centerAsMapCoords.X, (float)centerAsMapCoords.Y));
-        centerAsWorldMeters.Z = (float)Math.Abs(dynamicEvent.Location.Center[2].ToMeters());
-
         try
         {
+            var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(dynamicEvent.MapId);
+            var centerAsMapCoords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1]);
+            var centerAsWorldMeters = map.MapCoordsToWorldMeters(new Vector2((float)centerAsMapCoords.X, (float)centerAsMapCoords.Y));
+            centerAsWorldMeters.Z = (float)Math.Abs(dynamicEvent.Location.Center[2].ToMeters());
+
             var entites = new List<WorldEntity>();
             switch (dynamicEvent.Location.Type)
             {
@@ -283,8 +281,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             throw new ArgumentOutOfRangeException("connections", "connections can't be greater than tessellation");
         }
 
-        var radiusScale = map.GetDynamicEventMapLengthScale(ev.Location.Radius);
-        var radius = (float)ev.Location.Radius.ToMeters() / (float)radiusScale;
+        var radius = (float)ev.Location.Radius.ToMeters();
 
         var points = new List<Vector3>();
 
@@ -372,7 +369,6 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             }).ToList();
             bendPointsDown.RemoveAt(bendPointsDown.Count - 1);
             connectionPoints.AddRange(bendPointsDown);
-            //polygones.Add(new WorldPolygone(centerAsWorldMeters, bendPointsDown.ToArray(), Color.White, renderCondition));
         }
 
         var allPoints = points.Concat(connectionPoints);
@@ -389,11 +385,9 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             throw new ArgumentOutOfRangeException("connections", "connections can't be greater than tessellation");
         }
 
-        var radiusScale = map.GetDynamicEventMapLengthScale(ev.Location.Radius);
-        var radius = (float)ev.Location.Radius.ToMeters() / (float)radiusScale;
+        var radius = (float)ev.Location.Radius.ToMeters();
 
-        var heightScale = map.GetDynamicEventMapLengthScale(ev.Location.Height);
-        var height = (float)ev.Location.Height.ToMeters() / (float)heightScale;
+        var height = (float)ev.Location.Height.ToMeters();
 
         var points = new List<Vector3>();
 
@@ -469,7 +463,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         // Map all event points to world coordinates
         var points = dynamicEvent.Location.Points.Select(p =>
         {
-            var mapCoords = map.EventMapCoordinatesToMapCoordinates(new Vector2((float)p[0], (float)p[1]));
+            var mapCoords = new Vector2((float)p[0], (float)p[1]);
             var worldCoords = map.MapCoordsToWorldMeters(new Vector2((float)mapCoords.X, (float)mapCoords.Y));
             var vector = new Vector3((float)worldCoords.X, (float)worldCoords.Y, centerAsWorldMeters.Z);
             return vector;
