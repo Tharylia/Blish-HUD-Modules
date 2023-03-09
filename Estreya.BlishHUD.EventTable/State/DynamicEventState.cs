@@ -14,20 +14,16 @@ using System.Threading.Tasks;
 
 public class DynamicEventState : APIState
 {
-    private const string BASE_URL = "https://api.guildwars2.com/v1";
     private readonly IFlurlClient _flurlClient;
+    private readonly string _apiBaseUrl;
+    private string API_URL => $"{this._apiBaseUrl.TrimEnd('/')}/v1/gw2/dynamicEvents";
 
-    public Map[] Maps { get; private set; } = new Map[0];
     public DynamicEvent[] Events { get; private set; } = new DynamicEvent[0];
 
-    public DynamicEventState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IFlurlClient flurlClient) : base(apiManager, configuration)
+    public DynamicEventState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IFlurlClient flurlClient, string apiBaseUrl) : base(apiManager, configuration)
     {
         this._flurlClient = flurlClient;
-    }
-
-    public Map GetMap(int id)
-    {
-        return this.Maps.Where(m => m.ID == id).FirstOrDefault();
+        this._apiBaseUrl = apiBaseUrl;
     }
 
     public DynamicEvent[] GetEventsByMap(int mapId)
@@ -40,54 +36,32 @@ public class DynamicEventState : APIState
         return this.Events?.Where(e => e.ID == eventId).FirstOrDefault();
     }
 
-    private async Task<Map[]> GetMaps()
-    {
-        var request = this._flurlClient.Request(BASE_URL, "map_names.json").SetQueryParam("lang", "en");
-
-        var maps = await request.GetJsonAsync<Map[]>();
-
-        return maps;
-    }
-
     private async Task<DynamicEvent[]> GetEvents()
     {
-        var request = this._flurlClient.Request(BASE_URL, "event_details.json").SetQueryParam("lang", "en");
+        var request = this._flurlClient.Request(this.API_URL).SetQueryParam("lang", "en"); // Language is ignored for now
 
         var eventJson = await request.GetStringAsync();
-        var events = JsonConvert.DeserializeAnonymousType(eventJson, new
-        {
-            events = new Dictionary<string, DynamicEvent>()
-        });
+        var events = JsonConvert.DeserializeObject<List<DynamicEvent>>(eventJson);
 
-        return events.events.Select(x =>
-        {
-            x.Value.ID = x.Key;
-
-            return x.Value;
-        }).ToArray();
+        return events.ToArray();
     }
 
     protected override async Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress)
     {
-        progress.Report("Loading maps..");
-        this.Maps = await this.GetMaps();
-
-        progress.Report("Loading events..");
-        this.Events = await this.GetEvents();
-    }
-
-    public class Map
-    {
-        [JsonProperty("id")]
-        public int ID { get; set; }
-
-        [JsonProperty("name")]
-        public string Name { get; set; }
+        try
+        {
+            progress.Report("Loading events..");
+            this.Events = await this.GetEvents();
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, "Failed loading events:");
+        }
     }
 
     public class DynamicEvent
     {
-        [JsonIgnore]
+        [JsonProperty("id")]
         public string ID { get; set; }
 
         [JsonProperty("name")]
@@ -114,28 +88,28 @@ public class DynamicEventState : APIState
             public string Type { get; set; }
 
             [JsonProperty("center")]
-            public double[] Center { get; set; }
+            public float[] Center { get; set; }
 
             [JsonProperty("radius")]
-            public double Radius { get; set; }
+            public float Radius { get; set; }
 
             /// <summary>
             /// Height defines the total height
             /// </summary>
             [JsonProperty("height")]
-            public double Height { get; set; }
+            public float Height { get; set; }
 
             [JsonProperty("rotation")]
-            public double Rotation { get; set; }
+            public float Rotation { get; set; }
 
             /// <summary>
             /// Z Ranges defines the top and bottom boundaries offset from the center z.
             /// </summary>
             [JsonProperty("z_range")]
-            public double[] ZRange { get; set; }
+            public float[] ZRange { get; set; }
 
             [JsonProperty("points")]
-            public double[][] Points { get; set; }
+            public float[][] Points { get; set; }
         }
 
         public class DynamicEventIcon
