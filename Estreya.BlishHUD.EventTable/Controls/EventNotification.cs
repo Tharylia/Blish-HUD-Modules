@@ -25,7 +25,7 @@ public class EventNotification : RenderTargetControl
     public const int NOTIFICATION_HEIGHT = 96;
     private const int ICON_SIZE = 64;
 
-    private static int _shownNotifications = 0;
+    private static EventNotification _lastShown = null;
 
     private Models.Event _event;
     private readonly string _message;
@@ -64,10 +64,9 @@ public class EventNotification : RenderTargetControl
 
     public void Show(TimeSpan duration)
     {
-        _shownNotifications++;
-
-        this.Location = new Microsoft.Xna.Framework.Point (this._x, this._y +( (NOTIFICATION_HEIGHT+ 15) * _shownNotifications));
+        this.Location = new Microsoft.Xna.Framework.Point (this._x, _lastShown != null ? _lastShown.Bottom + 15 : this._y);
         base.Show();
+        _lastShown = this;
 
         _ = GameService.Animation.Tweener.Tween(this, new { Opacity = 1f }, 0.2f)
             .Repeat(1)
@@ -86,8 +85,11 @@ public class EventNotification : RenderTargetControl
         _ = GameService.Animation.Tweener.Tween(this, new { Opacity = 0f }, 0.4f)
             .OnComplete(() =>
             {
-                _shownNotifications--;
                 this.Dispose();
+                if (_lastShown == this)
+                {
+                    _lastShown = null;
+                }
             });
     }
 
