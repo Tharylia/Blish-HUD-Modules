@@ -87,6 +87,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\RemappedSkillID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\Skill.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\SkillCategory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\News.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ScreenRegion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseModule.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MumbleInfo\Map\MapInfo.cs" />
@@ -104,6 +105,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)State\ItemState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\ManagedState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\MapchestState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\NewsState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\PointOfInterestState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\SettingEventState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\SkillState.cs" />
@@ -118,6 +120,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\DonationView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\GitHubCreateIssueView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\ModuleSettingsView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\NewsView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\Settings\BaseSettingsView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\Settings\StateSettingsView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\StringTooltipView.cs" />

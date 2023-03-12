@@ -144,7 +144,6 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         try
         {
-            var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(dynamicEvent.MapId);
             var coords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1] );
             switch (dynamicEvent.Location.Type)
             {

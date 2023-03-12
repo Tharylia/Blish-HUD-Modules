@@ -57,8 +57,6 @@ public class HelpView : BaseView
         this.BuildLocalizationSection(flowPanel);
         this.RenderEmptyLine(flowPanel);
         this.BuildMapMovementDoesNotWorkSection(flowPanel);
-        this.RenderEmptyLine(flowPanel);
-        this.BuildReminderOverlapSection(flowPanel);
 
         this.RenderEmptyLine(flowPanel);
         this.BuildQuestionNotFoundSection(flowPanel);
@@ -211,25 +209,6 @@ public class HelpView : BaseView
             .CreatePart("Can I do something about that?", builder => { builder.MakeBold(); })
             .CreatePart("\n \n", builder => { })
             .CreatePart("No, not yet.", builder => { });
-
-        var label = labelBuilder.Build();
-        label.Parent = panel;
-    }
-
-    private void BuildReminderOverlapSection(FlowPanel parent)
-    {
-        var panel = new Panel()
-        {
-            Parent = parent,
-            WidthSizingMode = SizingMode.AutoSize,
-            HeightSizingMode = SizingMode.AutoSize,
-            ShowBorder = true
-        };
-
-        var labelBuilder = this.GetLabelBuilder(parent)
-            .CreatePart("Why are my reminders overlapping?", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20).MakeUnderlined(); })
-            .CreatePart("\n \n", builder => { })
-            .CreatePart("This is due to the current implementation. Will be fixed in a later version.", builder => { });
 
         var label = labelBuilder.Build();
         label.Parent = panel;

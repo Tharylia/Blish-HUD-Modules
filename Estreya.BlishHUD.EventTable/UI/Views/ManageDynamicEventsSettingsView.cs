@@ -196,7 +196,7 @@ public class ManageDynamicEventsSettingsView : BaseView
             });
         };
 
-        var eventList = this._dynamicEventState.Events.Where(e => !string.IsNullOrWhiteSpace(e.Name)).ToList();
+        var eventList = this._dynamicEventState.Events/*.Where(e => !string.IsNullOrWhiteSpace(e.Name))*/.ToList();
         foreach (var map in maps.Where(m => m.Id == GameService.Gw2Mumble.CurrentMap.Id)) // Limit to current map at the moment. Due to performance limits.
         {
             IEnumerable<DynamicEventState.DynamicEvent> events = eventList.Where(e => e.MapId == map.Id);
