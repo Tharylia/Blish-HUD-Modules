@@ -47,6 +47,8 @@
         public SettingEntry<bool> HideInWvW { get; private set; }
         public SettingEntry<bool> HideInPvP { get; private set; }
         public SettingEntry<bool> DebugEnabled { get; private set; }
+        //public SettingEntry<bool> NotifyOnUnreadNews { get; private set; }
+        //public SettingEntry<List<string>> NotifiedNews { get; private set; }
         #endregion
 
         #region Drawers
@@ -176,6 +178,9 @@
 
             this.DebugEnabled = this.GlobalSettings.DefineSetting(nameof(this.DebugEnabled), false, () => "Debug Enabled", () => "Whether the module runs in debug mode.");
             this.DebugEnabled.SettingChanged += this.SettingChanged;
+
+            //this.NotifiedNews = this.GlobalSettings.DefineSetting(nameof(this.NotifiedNews), new List<string>(), () => "Notified News", () => "The news already notified about.");
+            //this.NotifyOnUnreadNews = this.GlobalSettings.DefineSetting(nameof(this.NotifyOnUnreadNews), true, () => "Notify on unread News", () => "Whether the module should notify you when new news arrive.");
 
             this.HandleEnabledStates();
 

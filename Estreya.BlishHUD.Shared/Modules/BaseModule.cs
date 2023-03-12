@@ -102,6 +102,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public IconState IconState { get; private set; }
     public TranslationState TranslationState { get; private set; }
     public SettingEventState SettingEventState { get; private set; }
+    public NewsState NewsState { get; private set; }
     public WorldbossState WorldbossState { get; private set; }
     public MapchestState MapchestState { get; private set; }
     public PointOfInterestState PointOfInterestState { get; private set; }
@@ -203,6 +204,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 SaveInterval = Timeout.InfiniteTimeSpan
             });
             this._states.Add(this.SettingEventState);
+
+            this.NewsState = new NewsState(new StateConfiguration()
+            {
+                AwaitLoading = false,
+                Enabled = true
+            }, this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
+            this._states.Add(this.NewsState);
 
             if (configurations.Items.Enabled)
             {
@@ -455,8 +463,9 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.OnSettingWindowBuild(this.SettingsWindow);
 
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.NewsView( this.Gw2ApiManager, this.IconState, this.TranslationState, this.NewsState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
         this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156331.png"), () => new UI.Views.DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donation"));
-
+        
         if (this.Debug)
         {
             this.SettingsWindow.Tabs.Add(
