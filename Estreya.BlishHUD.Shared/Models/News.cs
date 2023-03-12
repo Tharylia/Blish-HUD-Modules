@@ -16,6 +16,9 @@
         [JsonProperty("timestamp")]
         public DateTime Timestamp { get; set; }
 
+        [JsonProperty("important")]
+        public bool Important { get; set; }
+
         [JsonProperty("asPoints")]
         public bool AsPoints { get; set; }
 

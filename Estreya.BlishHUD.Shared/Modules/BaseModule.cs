@@ -207,7 +207,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
             this.NewsState = new NewsState(new StateConfiguration()
             {
-                AwaitLoading = false,
+                AwaitLoading = true,
                 Enabled = true
             }, this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
             this._states.Add(this.NewsState);
@@ -461,9 +461,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             }
         }
 
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.NewsView( this.Gw2ApiManager, this.IconState, this.TranslationState, this.NewsState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
+
         this.OnSettingWindowBuild(this.SettingsWindow);
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.NewsView( this.Gw2ApiManager, this.IconState, this.TranslationState, this.NewsState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
         this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156331.png"), () => new UI.Views.DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donation"));
         
         if (this.Debug)

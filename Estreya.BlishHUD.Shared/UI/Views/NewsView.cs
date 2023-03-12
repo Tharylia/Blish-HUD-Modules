@@ -5,6 +5,7 @@
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.Shared.Models;
     using Estreya.BlishHUD.Shared.State;
+    using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Collections.Generic;
@@ -14,6 +15,7 @@
 
     public class NewsView : BaseView
     {
+        private static Point _importantIconSize = new Point(32, 32);
         private NewsState _newsState;
 
         public NewsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, NewsState newsState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
@@ -27,12 +29,13 @@
             {
                 Parent = parent,
                 FlowDirection = ControlFlowDirection.SingleTopToBottom,
-                OuterControlPadding = new Microsoft.Xna.Framework.Vector2(25, 25),
-                HeightSizingMode = SizingMode.AutoSize,
-                Width = parent.ContentRegion.Width - 25
+                Location= new Microsoft.Xna.Framework.Point(25, 25),
+                Height = parent.ContentRegion.Height - 25 * 2,
+                Width = parent.ContentRegion.Width - 25 * 2,
+                CanScroll = true,
             };
 
-            foreach (var news in this._newsState.News.OrderByDescending(n => n.Timestamp))
+            foreach (var news in this._newsState.News.OrderByDescending(n => n.Timestamp).ToList())
             {
                 this.RenderNews(newsList, news);
                 this.RenderEmptyLine(newsList);
@@ -44,7 +47,7 @@
             Panel newsPanel = new Panel()
             {
                 Parent = newsList,
-                Width = newsList.ContentRegion.Width,
+                Width = newsList.ContentRegion.Width - 25,
                 HeightSizingMode = SizingMode.AutoSize,
                 ShowBorder = true
             };
@@ -59,8 +62,15 @@
 
             FormattedLabelBuilder builder = new FormattedLabelBuilder();
             builder.SetWidth(newsList.ContentRegion.Width).AutoSizeHeight()
+                .CreatePart("", builder =>
+                {
+                    if (news.Important)
+                    {
+                        builder.SetPrefixImage(this.IconState.GetIcon("222246.png")).SetPrefixImageSize(_importantIconSize);
+                    }
+                })
                 .CreatePart(title, builder => { builder.SetFontSize(titleFontSize).MakeUnderlined(); })
-                .CreatePart(this.GenerateTimestampAlignment(news, timeFont, newsPanel.ContentRegion.Width - (int)titleWidth - 25), builder => { builder.SetFontSize(timeFontSize); })
+                .CreatePart(this.GenerateTimestampAlignment(news, timeFont, newsPanel.ContentRegion.Width - (int)titleWidth - 5 - (news.Important ? _importantIconSize.X : 0)), builder => { builder.SetFontSize(timeFontSize); })
                 .CreatePart("\n \n", builder => { });
 
             if (news.AsPoints)
@@ -74,7 +84,8 @@
             else
             {
                 var content = string.Join("\n", news.Content);
-                    builder.CreatePart(content, builder => { });
+                    builder.CreatePart(content, builder => { })
+                    .CreatePart("\n \n", builder => { });
             }
 
             var newsPart = builder.Build();
