@@ -10,6 +10,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Runtime.InteropServices;
     using System.Text;
     using System.Threading.Tasks;
 
@@ -35,11 +36,39 @@
                 CanScroll = true,
             };
 
-            foreach (var news in this._newsState.News.OrderByDescending(n => n.Timestamp).ToList())
+            var sortedNews = this._newsState.News.OrderByDescending(n => n.Timestamp).ToList();
+            if (sortedNews.Count > 0)
             {
-                this.RenderNews(newsList, news);
-                this.RenderEmptyLine(newsList);
+                foreach (var news in sortedNews)
+                {
+                    this.RenderNews(newsList, news);
+                    this.RenderEmptyLine(newsList);
+                }
             }
+            else
+            {
+                this.RenderNoNewsInfo(newsList);
+            }
+        }
+
+        private void RenderNoNewsInfo(FlowPanel newsList)
+        {
+            Panel panel = new Panel()
+            {
+                Parent = newsList,
+                Size = newsList.ContentRegion.Size,
+                ShowBorder = false
+            };
+
+            FormattedLabelBuilder builder = new FormattedLabelBuilder()
+                .SetWidth(panel.ContentRegion.Width).AutoSizeHeight().SetHorizontalAlignment(HorizontalAlignment.Center)
+                .CreatePart("There are no news.", builder => { });
+
+            var lbl = builder.Build();
+            lbl.Parent = panel;
+
+            lbl.Top = panel.Height / 2 - lbl.Height / 2;
+            lbl.Left = panel.Width / 2 - lbl.Width / 2;
         }
 
         private void RenderNews(FlowPanel newsList, News news)
