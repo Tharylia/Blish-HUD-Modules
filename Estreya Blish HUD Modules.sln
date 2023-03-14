@@ -13,6 +13,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.LiveMap", 
 EndProject
 Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Estreya.BlishHUD.Shared", "Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.shproj", "{59FB4D68-F75F-49D1-8231-BA56266BCBE4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Estreya.BlishHUD.WebhookUpdater", "Estreya.BlishHUD.WebhookUpdater\Estreya.BlishHUD.WebhookUpdater.csproj", "{A2961446-BC00-43B4-8935-AA93918D6F36}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -35,6 +37,10 @@ Global
 		{413917E8-4CC0-4279-AAF8-7466F554C9DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{413917E8-4CC0-4279-AAF8-7466F554C9DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{413917E8-4CC0-4279-AAF8-7466F554C9DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2961446-BC00-43B4-8935-AA93918D6F36}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2961446-BC00-43B4-8935-AA93918D6F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2961446-BC00-43B4-8935-AA93918D6F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2961446-BC00-43B4-8935-AA93918D6F36}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -48,5 +54,6 @@ Global
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{56562b80-5271-4da2-a1e5-e8c5aecda6c0}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{59fb4d68-f75f-49d1-8231-ba56266bcbe4}*SharedItemsImports = 13
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{761c8939-3381-42c9-b80e-f96fa68ddb96}*SharedItemsImports = 5
+		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{a2961446-bc00-43b4-8935-aa93918d6f36}*SharedItemsImports = 5
 	EndGlobalSection
 EndGlobal
