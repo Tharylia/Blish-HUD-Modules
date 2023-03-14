@@ -12,6 +12,7 @@
     using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
     using static System.Windows.Forms.VisualStyles.VisualStyleElement.Menu;
@@ -207,7 +208,18 @@
 
             var casing = LetterCasing.Title;
 
-            var values = ((T[])Enum.GetValues(settingEntry.SettingType)).ToList();
+            var values = new List<T>();
+
+            var requisite = settingEntry.GetComplianceRequisite().Where(cr => cr is EnumInclusionComplianceRequisite<T>).Select(cr => (EnumInclusionComplianceRequisite < T > )cr );
+            if (requisite.Any())
+            {
+                values.AddRange(requisite.First().IncludedValues);
+            }
+            else
+            {
+                values.AddRange((T[])Enum.GetValues(settingEntry.SettingType));
+            }
+
             var formattedValues = values.Select(value => value.Humanize(casing)).ToArray();
 
             var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, formattedValues, settingEntry.Value.Humanize(casing), onChangeAction: newValue =>
