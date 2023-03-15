@@ -14,47 +14,63 @@
 
     public class ModuleSettings : BaseModuleSettings
     {
-        public SettingEntry<UpdateMode> UpdateMode { get; private set; }
-        public SettingEntry<string> UpdateInterval { get; private set; }
-        public SettingEntry<TimeUnit> UpdateIntervalUnit { get; private set; }
-        public SettingEntry<bool> UpdateOnlyOnUrlOrDataChange { get; private set; }
-        public SettingEntry<string> WebhookUrl { get; private set; }
-        public SettingEntry<string> WebhookStringContent { get; private set; }
+        public SettingEntry<List<string>> WebhookNames { get; private set; }
+
+        private SettingCollection _webhookSettings;
 
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.W)) { }
 
         protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
         {
-            this.UpdateMode = globalSettingCollection.DefineSetting(nameof(this.UpdateMode), Models.UpdateMode.Interval, () => "Update Mode", () => "Defines the mode how updated are triggered.");
-            this.UpdateMode.SettingChanged += this.UpdateMode_SettingChanged;
-
-            this.UpdateInterval = globalSettingCollection.DefineSetting(nameof(this.UpdateInterval), "5000", () => "Update Interval", () => "Defines the interval between updated if mode is interval.");
-            this.UpdateIntervalUnit = globalSettingCollection.DefineSetting(nameof(this.UpdateIntervalUnit), TimeUnit.Millisecond, () => "Update Interval Unit", () => "Defines the interval unit used for the interval.");
-            this.UpdateIntervalUnit.SetExcluded(TimeUnit.Year, TimeUnit.Month, TimeUnit.Week, TimeUnit.Day);
-
-            this.UpdateOnlyOnUrlOrDataChange = globalSettingCollection.DefineSetting(nameof(this.UpdateOnlyOnUrlOrDataChange), true, () => "Update only when changed", () => "Whether the webhook should only be called if the url or the data changed.");
-
-            this.WebhookUrl = globalSettingCollection.DefineSetting(nameof(this.WebhookUrl), string.Empty, () => "Webhook Url", () => "Defines the webhook url used to push data. Uses handlebars template of GameService.Gw2Mumble");
-            this.WebhookStringContent = globalSettingCollection.DefineSetting(nameof(this.WebhookStringContent), string.Empty, () => "Webhook String Content", () => "Defines the webhook string content getting pushed. Uses handlebars template of GameService.Gw2Mumble");
-
-            this.HandleSettingsEnabled();
+            this.WebhookNames = globalSettingCollection.DefineSetting(nameof(this.WebhookNames), new List<string>());
         }
 
-        private void UpdateMode_SettingChanged(object sender, ValueChangedEventArgs<UpdateMode> e)
+        protected override void InitializeAdditionalSettings(SettingCollection settings)
         {
-            this.HandleSettingsEnabled();
+            this._webhookSettings = settings.AddSubCollection("webhooks");
         }
 
-        private void HandleSettingsEnabled()
+        public WebhookConfiguration AddWebhook(string name)
         {
-            this.UpdateInterval.SetDisabled(this.UpdateMode.Value != Models.UpdateMode.Interval);
-            this.UpdateIntervalUnit.SetDisabled(this.UpdateMode.Value != Models.UpdateMode.Interval);
+            var enabled = this._webhookSettings.DefineSetting($"{name}-enabled", true, () => "Enabled", () => "Defines if the webhook is enabled.");
+            var url = this._webhookSettings.DefineSetting($"{name}-url", string.Empty, () => "Url", () => "Defines the webhook url.");
+            var content = this._webhookSettings.DefineSetting($"{name}-content", string.Empty, () => "Content", () => "Defines the webhook content.");
+            var contentType = this._webhookSettings.DefineSetting($"{name}-contentType", "text/plain", () => "Content Type", () => "Defines the content type which the request should represent.");
+            var mode = this._webhookSettings.DefineSetting($"{name}-mode", UpdateMode.Interval, () => "Mode", () => "Defines the webhook update mode.");
+            var interval = this._webhookSettings.DefineSetting($"{name}-interval", "5", () => "Interval", () => "Defines the webhook update interval.");
+            var intervalUnit = this._webhookSettings.DefineSetting($"{name}-intervalUnit", TimeUnit.Minute, () => "Interval Unit", () => "Defines the webhook update interval unit.");
+            var onlyOnChange = this._webhookSettings.DefineSetting($"{name}-onlyOnChange", true, () => "Update only on change", () => "Whether the webhook should only be called if the url or the data changed.");
+
+            var configuration = new WebhookConfiguration(name)
+            {
+                Enabled = enabled,
+                Url = url,
+                Content = content,
+                ContentType=contentType,
+                Mode = mode,
+                Interval = interval,
+                IntervalUnit = intervalUnit,
+                OnlyOnUrlOrDataChange = onlyOnChange
+            };
+
+            return configuration;
+        }
+
+        public void RemoveWebhook(WebhookConfiguration webhook)
+        {
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-enabled");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-url");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-content");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-contentType");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-mode");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-interval");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-intervalUnit");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-onlyOnChange");
         }
 
         public override void Unload()
         {
             base.Unload();
-            this.UpdateMode.SettingChanged -= this.UpdateMode_SettingChanged;
         }
     }
 }
