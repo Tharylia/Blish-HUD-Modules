@@ -26,7 +26,8 @@ public class GeneralSettingsView : BaseSettingsView
     protected override void BuildView(FlowPanel parent)
     {
         this.RenderEnumSetting(parent, _moduleSettings.UpdateMode);
-        this.RenderIntSetting(parent, _moduleSettings.UpdateInterval);
+        this.RenderTextSetting(parent, _moduleSettings.UpdateInterval);
+        this.RenderEnumSetting(parent, _moduleSettings.UpdateIntervalUnit);
         this.RenderBoolSetting(parent, _moduleSettings.UpdateOnlyOnUrlOrDataChange);
 
         this.RenderEmptyLine(parent);

@@ -12,20 +12,24 @@ using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
 using HandlebarsDotNet;
 using HandlebarsDotNet.Helpers;
+using Humanizer;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
+using System.Globalization;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Documents;
 
 [Export(typeof(Blish_HUD.Modules.Module))]
 public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSettings>
 {
-    private TimeSpan _updateInterval = TimeSpan.FromMilliseconds(5000);
+    private TimeSpan _updateInterval = Timeout.InfiniteTimeSpan;
     private AsyncRef<double> _lastUpdate = new AsyncRef<double>(0);
 
     private string _lastUrl = null;
@@ -88,7 +92,8 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         var url = this.ModuleSettings.WebhookUrl.Value;
         var template = this._handleBarsContext.Compile(url);
 
-        return template.Invoke(new {
+        return template.Invoke(new
+        {
             mumble = GameService.Gw2Mumble
         });
     }
@@ -98,7 +103,8 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         var data = this.ModuleSettings.WebhookStringContent.Value;
         var template = this._handleBarsContext.Compile(data);
 
-        return template.Invoke(new {
+        return template.Invoke(new
+        {
             mumble = GameService.Gw2Mumble
         });
     }
@@ -133,8 +139,19 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
 
         GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
         this.ModuleSettings.UpdateInterval.SettingChanged += this.UpdateInterval_SettingChanged;
+        this.ModuleSettings.UpdateIntervalUnit.SettingChanged += this.UpdateIntervalUnit_SettingChanged;
 
-        this.UpdateInterval_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.ModuleSettings.UpdateInterval.Value));
+        this.UpdateInterval(false);
+    }
+
+    private void UpdateIntervalUnit_SettingChanged(object sender, ValueChangedEventArgs<Humanizer.Localisation.TimeUnit> e)
+    {
+        this.UpdateInterval(true);
+    }
+
+    private void UpdateInterval_SettingChanged(object sender, ValueChangedEventArgs<string> e)
+    {
+        this.UpdateInterval(true);
     }
 
     protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
@@ -142,9 +159,74 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         settingWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
     }
 
-    private void UpdateInterval_SettingChanged(object sender, ValueChangedEventArgs<int> e)
+    private void UpdateInterval(bool throwException)
     {
-        this._updateInterval = TimeSpan.FromMilliseconds(e.NewValue);
+        if (!double.TryParse(this.ModuleSettings.UpdateInterval.Value, System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+        {
+            var message = $"New update interval \"{this.ModuleSettings.UpdateInterval.Value}\" is invalid.";
+            this.Logger.Warn(message);
+            if (!throwException)
+            {
+                GameService.Graphics.QueueMainThreadRender((device) =>
+                {
+                    ScreenNotification.ShowNotification(
+                        DrawUtil.WrapText(
+                            GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular),
+                            message,
+                            900),
+                        ScreenNotification.NotificationType.Error);
+                });
+                return;
+            }
+            else
+            {
+                throw new FormatException(message); // Bubble up in view catch
+            }
+        }
+
+        try
+        {
+            switch (this.ModuleSettings.UpdateIntervalUnit.Value)
+            {
+                case Humanizer.Localisation.TimeUnit.Millisecond:
+                    this._updateInterval = TimeSpan.FromMilliseconds(value);
+                    break;
+                case Humanizer.Localisation.TimeUnit.Second:
+                    this._updateInterval = TimeSpan.FromSeconds(value);
+                    break;
+                case Humanizer.Localisation.TimeUnit.Minute:
+                    this._updateInterval = TimeSpan.FromMinutes(value);
+                    break;
+                case Humanizer.Localisation.TimeUnit.Hour:
+                    this._updateInterval = TimeSpan.FromHours(value);
+                    break;
+                default:
+                    this.Logger.Error($"Invalid timeunit selected: {this.ModuleSettings.UpdateIntervalUnit.Value.Humanize()}");
+                    break;
+            }
+
+            this.Logger.Info($"Updated interval to: {this._updateInterval.Humanize(2)}");
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, $"Failed to update interval:");
+            if (!throwException)
+            {
+                GameService.Graphics.QueueMainThreadRender((device) =>
+                {
+                    ScreenNotification.ShowNotification(
+                    DrawUtil.WrapText(
+                        GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular),
+                        $"Failed to update interval: {ex.Message}",
+                        900),
+                    ScreenNotification.NotificationType.Error);
+                });
+            }
+            else
+            {
+                throw new FormatException($"Failed to update interval: {ex.Message}"); // Bubble up in view catch
+            }
+        }
     }
 
     private void CurrentMap_MapChanged(object sender, ValueEventArgs<int> e)
@@ -159,7 +241,7 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
     {
         base.Update(gameTime);
 
-        if (this.ModuleSettings.UpdateMode.Value == Models.UpdateMode.Interval)
+        if (this.ModuleSettings.UpdateMode.Value == Models.UpdateMode.Interval && this._updateInterval != Timeout.InfiniteTimeSpan)
         {
             _ = UpdateUtil.UpdateAsync(this.UpdateWebhook, gameTime, _updateInterval.TotalMilliseconds, _lastUpdate, false);
         }
@@ -169,6 +251,7 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
     {
         GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
         this.ModuleSettings.UpdateInterval.SettingChanged -= this.UpdateInterval_SettingChanged;
+        this.ModuleSettings.UpdateIntervalUnit.SettingChanged -= this.UpdateIntervalUnit_SettingChanged;
 
         base.Unload();
     }
