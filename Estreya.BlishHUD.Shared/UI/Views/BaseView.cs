@@ -291,14 +291,15 @@ public abstract class BaseView : View
 
     protected Label GetLabel(Panel parent, string text, Color? color = null, BitmapFont font= null)
     {
+        font ??= this.Font;
         return new Label()
         {
             Parent = parent,
             Text = text,
-            Font = font ?? this.Font,
+            Font = font ,
             TextColor = color ?? Color.White,
             AutoSizeHeight = !string.IsNullOrWhiteSpace(text),
-            Width = (int)this.Font.MeasureString(text).Width + 10
+            Width = (int)font.MeasureString(text).Width + 20
         };
     }
 
@@ -485,7 +486,7 @@ public abstract class BaseView : View
 
         var textSize = font.MeasureString(message);
 
-        var messagePanel = this.GetPanel(this.MainPanel);
+        var messagePanel = new Panel();
         messagePanel.HeightSizingMode = SizingMode.Standard;
         messagePanel.Height = (int)textSize.Height;
         messagePanel.WidthSizingMode = SizingMode.Standard;
@@ -494,6 +495,8 @@ public abstract class BaseView : View
         messagePanel.Location = new Point((this.MainPanel.Width / 2) - (messagePanel.Width / 2), this.MainPanel.Bottom - messagePanel.Height);
 
         _ = this.GetLabel(messagePanel, message, color: color, font: font);
+
+        messagePanel.Parent = this.MainPanel;
 
         _ = Task.Run(async () =>
         {
