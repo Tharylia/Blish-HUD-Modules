@@ -15,9 +15,7 @@
       "username": "Estreya.8675"
     }
   ],
-  "directories": [
-    "events"
-  ],
+  "directories": [],
   "actions": [],
   "enabled_without_gw2": false,
   "api_permissions": {  }
