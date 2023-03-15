@@ -17,6 +17,5 @@
   ],
   "directories": [],
   "actions": [],
-  "enabled_without_gw2": false,
-  "api_permissions": {  }
+  "enabled_without_gw2": false
 }
