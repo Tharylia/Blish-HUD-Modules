@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net48</TargetFramework>
+		<DebugType>portable</DebugType>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+		<FileVersion>1.0.0.0</FileVersion>
+		<NeutralLanguage>en</NeutralLanguage>
+		<LangVersion>latest</LangVersion>
+		<PlatformTarget>x64</PlatformTarget>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<Optimize>False</Optimize>
+	</PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="BlishHUD" Version="1.0.0">
+			<ExcludeAssets>runtime;contentFiles</ExcludeAssets>
+		</PackageReference>
+		<PackageReference Include="Flurl.Http" Version="2.4.2" />
+		<PackageReference Include="Octokit" Version="3.0.0" />
+		<PackageReference Include="SemanticVersioning" Version="1.2.2">
+			<ExcludeAssets>runtime</ExcludeAssets>
+		</PackageReference>
+		<PackageReference Include="ScottPlot" Version="4.1.61" />
+		<PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all" />
+		<PackageReference Include="Humanizer.Core.es" Version="2.6.2" PrivateAssets="all" />
+		<PackageReference Include="Humanizer.Core.fr" Version="2.6.2" PrivateAssets="all" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Reference Include="PresentationCore" />
+		<Reference Include="PresentationFramework" />
+		<Reference Include="System.ComponentModel.Composition" />
+		<Reference Include="System.Net.Http" />
+		<Reference Include="System.Security" />
+		<Reference Include="System.ServiceModel" />
+		<Reference Include="System.Windows.Forms" />
+		<Reference Include="WindowsBase" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="manifest.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<Import Project="..\Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems" Label="Shared" />
+
+
+</Project>
