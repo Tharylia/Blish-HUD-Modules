@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.WebhookUpdater.UI.Views;
+﻿namespace Estreya.BlishHUD.StatsGraph.UI.Views;
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
@@ -25,27 +25,19 @@ public class GeneralSettingsView : BaseSettingsView
 
     protected override void BuildView(FlowPanel parent)
     {
-        this.RenderEnumSetting(parent, _moduleSettings.UpdateMode);
-        this.RenderTextSetting(parent, _moduleSettings.UpdateInterval);
-        this.RenderEnumSetting(parent, _moduleSettings.UpdateIntervalUnit);
-        this.RenderBoolSetting(parent, _moduleSettings.UpdateOnlyOnUrlOrDataChange);
+        this.RenderBoolSetting(parent, _moduleSettings.ShowCategoryNames);
+        this.RenderBoolSetting(parent, _moduleSettings.ShowAxisValues);
 
         this.RenderEmptyLine(parent);
 
-        var textBox = this.RenderTextSetting(parent, _moduleSettings.WebhookUrl).textBox;
-        textBox.Width = parent.ContentRegion.Width - textBox.Left- 100;
+        this.RenderFloatSetting(parent, _moduleSettings.Zoom);
+        this.RenderFloatSetting(parent, _moduleSettings.Scale);
 
-        this.RenderButtonAsync(parent, "Edit Content", async () =>
-        {
-            var tempFile = FileUtil.CreateTempFile("handlebars");
-            await FileUtil.WriteStringAsync(tempFile, _moduleSettings.WebhookStringContent.Value);
+        this.RenderEmptyLine(parent);
 
-            await VSCodeHelper.EditAsync(tempFile);
-
-            _moduleSettings.WebhookStringContent.Value = await FileUtil.ReadStringAsync(tempFile);
-            File.Delete(tempFile);
-        });
-        
+        this.RenderIntSetting(parent, _moduleSettings.Size);
+        this.RenderIntSetting(parent, _moduleSettings.LocationX);
+        this.RenderIntSetting(parent, _moduleSettings.LocationY);
     }
 
     protected override Task<bool> InternalLoad(IProgress<string> progress) => Task.FromResult(true);

@@ -129,7 +129,7 @@
         {
             for (int i = 0; i < _registeredForDisabledUpdates.Count; i++)
             {
-                var settingPair = _registeredForDisabledUpdates.ElementAt(i);
+                var settingPair = _registeredForDisabledUpdates[i];
 
                 bool changed = false;
 

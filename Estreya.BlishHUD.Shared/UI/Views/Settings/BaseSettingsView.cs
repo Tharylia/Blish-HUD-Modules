@@ -60,7 +60,17 @@
             Panel panel = this.GetPanel(parent);
             var label = base.RenderLabel(panel, settingEntry.DisplayName);
 
-            var colorBox = base.RenderColorBox(panel, this.CONTROL_LOCATION, settingEntry.Value, color => settingEntry.Value = color, this.MainPanel);
+            var colorBox = base.RenderColorBox(panel, this.CONTROL_LOCATION, settingEntry.Value, color =>
+            {
+                try
+                {
+                    settingEntry.Value = color;
+                }
+                catch (Exception ex)
+                {
+                    this.ShowError(ex.Message);
+                }
+            }, this.MainPanel);
 
             colorBox.BasicTooltipText = settingEntry.Description;
 
@@ -78,7 +88,14 @@
 
             var textBox = base.RenderTextbox(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, settingEntry.Description, onChangeAction: newValue =>
             {
-                settingEntry.Value = newValue;
+                try
+                {
+                    settingEntry.Value = newValue;
+                }
+                catch (Exception ex)
+                {
+                    this.ShowError(ex.Message);
+                }
             });
 
             textBox.BasicTooltipText = settingEntry.Description;
@@ -98,7 +115,14 @@
 
             var trackbar = base.RenderTrackBar(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, ((int)(range?.Min ?? 0), (int)(range?.Max ?? 100)), onChangeAction: newValue =>
             {
-                settingEntry.Value = newValue;
+                try
+                {
+                    settingEntry.Value = newValue;
+                }
+                catch (Exception ex)
+                {
+                    this.ShowError(ex.Message);
+                }
             });
 
             trackbar.BasicTooltipText = settingEntry.Description;
@@ -134,7 +158,14 @@
 
             var trackbar = base.RenderTrackBar(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, range, onChangeAction: newValue =>
             {
-                settingEntry.Value = newValue;
+                try
+                {
+                    settingEntry.Value = newValue;
+                }
+                catch (Exception ex)
+                {
+                    this.ShowError(ex.Message);
+                }
             });
 
             trackbar.BasicTooltipText = settingEntry.Description;
@@ -169,7 +200,14 @@
 
             var checkbox = base.RenderCheckbox(panel, this.CONTROL_LOCATION, settingEntry.Value, onChangeAction: newValue =>
             {
-                settingEntry.Value = newValue;
+                try
+                {
+                    settingEntry.Value = newValue;
+                }
+                catch (Exception ex)
+                {
+                    this.ShowError(ex.Message);
+                }
             });
 
             checkbox.BasicTooltipText = settingEntry.Description;
@@ -188,8 +226,15 @@
 
             var keybindingAssigner = base.RenderKeybinding(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, onChangeAction: newValue =>
             {
-                settingEntry.Value = newValue;
-                GameService.Settings.Save(); // Force save as it is not a new object
+                try
+                {
+                    settingEntry.Value = newValue;
+                    GameService.Settings.Save(); // Force save as it is not a new object
+                }
+                catch (Exception ex)
+                {
+                    this.ShowError(ex.Message);
+                }
             });
 
             keybindingAssigner.BasicTooltipText = settingEntry.Description;
@@ -210,7 +255,7 @@
 
             var values = new List<T>();
 
-            var requisite = settingEntry.GetComplianceRequisite().Where(cr => cr is EnumInclusionComplianceRequisite<T>).Select(cr => (EnumInclusionComplianceRequisite < T > )cr );
+            var requisite = settingEntry.GetComplianceRequisite().Where(cr => cr is EnumInclusionComplianceRequisite<T>).Select(cr => (EnumInclusionComplianceRequisite<T>)cr);
             if (requisite.Any())
             {
                 values.AddRange(requisite.First().IncludedValues);
@@ -224,7 +269,14 @@
 
             var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, formattedValues, settingEntry.Value.Humanize(casing), onChangeAction: newValue =>
             {
-                settingEntry.Value = values[formattedValues.ToList().IndexOf(newValue)];
+                try
+                {
+                    settingEntry.Value = values[formattedValues.ToList().IndexOf(newValue)];
+                }
+                catch (Exception ex)
+                {
+                    this.ShowError(ex.Message);
+                }
             });
 
             dropdown.BasicTooltipText = settingEntry.Description;
