@@ -367,7 +367,7 @@ public abstract class BaseView : View
         return button;
     }
 
-    protected (Label TitleLabel, Label ValueLabel) RenderLabel(Panel parent, string title, string value = null, Color? textColorTitle = null, Color? textColorValue = null)
+    protected (Label TitleLabel, Label ValueLabel) RenderLabel(Panel parent, string title, string value = null, Color? textColorTitle = null, Color? textColorValue = null, int? valueXLocation = null)
     {
         Panel panel = this.GetPanel(parent);
 
@@ -378,7 +378,7 @@ public abstract class BaseView : View
         if (value != null)
         {
             valueLabel = this.GetLabel(panel, value, color: textColorValue);
-            valueLabel.Left = titleLabel.Right + CONTROL_X_SPACING;
+            valueLabel.Left = valueXLocation ?? titleLabel.Right + this.CONTROL_X_SPACING;
         }
         else
         {
@@ -517,7 +517,7 @@ public abstract class BaseView : View
 
     protected void ShowInfo(string message)
     {
-        this.ShowMessage(message, Color.White, 2500);
+        this.ShowMessage(message, Color.White, 2500, GameService.Content.DefaultFont18);
     }
 
     protected override void Unload()

@@ -51,6 +51,7 @@ public class EventArea : RenderTargetControl
     private string _apiRootUrl;
     private Func<DateTime> _getNowAction;
     private readonly Func<SemVer.Version> _getVersion;
+    private readonly Func<string> _getAccessToken;
 
     private AsyncLock _eventLock = new AsyncLock();
     private List<EventCategory> _allEvents = new List<EventCategory>();
@@ -108,7 +109,7 @@ public class EventArea : RenderTargetControl
 
     public EventAreaConfiguration Configuration { get; private set; }
 
-    public EventArea(EventAreaConfiguration configuration, IconState iconState, TranslationState translationState, EventState eventState, WorldbossState worldbossState, MapchestState mapchestState, PointOfInterestState pointOfInterestState, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<SemVer.Version> getVersion)
+    public EventArea(EventAreaConfiguration configuration, IconState iconState, TranslationState translationState, EventState eventState, WorldbossState worldbossState, MapchestState mapchestState, PointOfInterestState pointOfInterestState, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<SemVer.Version> getVersion, Func<string> getAccessToken)
     {
         this.Configuration = configuration;
 
@@ -139,6 +140,7 @@ public class EventArea : RenderTargetControl
 
         this._getNowAction = getNowAction;
         this._getVersion = getVersion;
+        this._getAccessToken = getAccessToken;
         this._iconState = iconState;
         this._translationState = translationState;
         this._eventState = eventState;
@@ -424,7 +426,16 @@ public class EventArea : RenderTargetControl
                 return new ConcurrentDictionary<string, List<Models.Event>>();
             }
 
+            Logger.Info("Load fillers...");
+
             IFlurlRequest flurlRequest = this._flurlClient.Request(this._apiRootUrl, "fillers");
+
+            var accessToken = this._getAccessToken();
+            if (!string.IsNullOrWhiteSpace(accessToken))
+            {
+                Logger.Info("Include custom event fillers...");
+                flurlRequest.WithOAuthBearerToken(accessToken);
+            }
 
             List<Models.Event> activeEvents = new List<Models.Event>();
 

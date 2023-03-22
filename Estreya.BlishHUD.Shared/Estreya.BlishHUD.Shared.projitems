@@ -64,6 +64,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\EnterCombatEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\ExitCombatEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\StateChangeCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\ApiJwtPayload.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\APITokens.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BuildDirection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\CornerIconClickAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerConfiguration.cs" />
@@ -101,6 +103,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)State\APIStateConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\APIState[T].cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\ArcDPSState.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)State\BlishHudApiState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\IconState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\ItemState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)State\ManagedState.cs" />

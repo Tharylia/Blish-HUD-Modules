@@ -30,6 +30,12 @@ public class WebhookConfiguration
 
     public SettingEntry<string> ContentType { get; set; }
 
+    public SettingEntry<HTTPMethod> HTTPMethod { get; set; }
+
+    public SettingEntry<bool> CollectProtocols { get; set; }
+
+    public SettingEntry<List<WebhookProtocol>> Protocol { get; set; }
+
     public WebhookConfiguration(string name)
     {
         this.Name = name;
