@@ -39,6 +39,15 @@ public class PasswordManager
         }
     }
 
+    public void Delete(string key)
+    {
+        var filePath = Path.Combine(this._directoryPath, $"{key}.pwd");
+        if (File.Exists(filePath))
+        {
+            File.Delete(filePath);
+        }
+    }
+
     public async Task<byte[]> Retrive(string key, bool silent = false)
     {
         var protectedData = await this.ReadPasswordFile(key);

@@ -111,6 +111,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public TradingPostState TradingPostState { get; private set; }
     public ItemState ItemState { get; private set; }
     public ArcDPSState ArcDPSState { get; private set; }
+    public BlishHudApiState BlishHUDAPIState { get; private set; }
     #endregion
 
     public BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
@@ -176,6 +177,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             StateConfigurations configurations = new StateConfigurations();
             this.ConfigureStates(configurations);
+
+            if (configurations.BlishHUDAPI.Enabled)
+            {
+                if (this.PasswordManager == null)
+                {
+                    throw new ArgumentNullException(nameof(this.PasswordManager));
+                }
+
+                this.BlishHUDAPIState = new BlishHudApiState(configurations.BlishHUDAPI, this.ModuleSettings.BlishAPIUsername, this.PasswordManager, this.GetFlurlClient(), API_ROOT_URL, this.API_VERSION_NO);
+                this._states.Add(this.BlishHUDAPIState);
+            }
 
             if (configurations.Account.Enabled)
             {

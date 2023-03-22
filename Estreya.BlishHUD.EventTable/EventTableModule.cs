@@ -13,6 +13,7 @@
     using Estreya.BlishHUD.EventTable.State;
     using Estreya.BlishHUD.Shared.Controls.World;
     using Estreya.BlishHUD.Shared.Extensions;
+    using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
     using Estreya.BlishHUD.Shared.State;
@@ -22,6 +23,8 @@
     using Humanizer;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
+    using Newtonsoft.Json;
+    using Octokit;
     using SharpDX.MediaFoundation;
     using SharpDX.X3DAudio;
     using System;
@@ -31,6 +34,8 @@
     using System.ComponentModel.Composition;
     using System.Diagnostics;
     using System.Linq;
+    using System.Net;
+    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -49,6 +54,7 @@
 
         private static TimeSpan _checkDrawerSettingInterval = TimeSpan.FromSeconds(30);
         private double _lastCheckDrawerSettings = 0;
+
 
         private DateTime NowUTC => DateTime.UtcNow;
 
@@ -71,6 +77,9 @@
         protected override async Task LoadAsync()
         {
             await base.LoadAsync();
+
+            this.BlishHUDAPIState.NewLogin += this.BlishHUDAPIState_NewLogin;
+            this.BlishHUDAPIState.LoggedOut += this.BlishHUDAPIState_LoggedOut;
 
             this.MapUtil = new MapUtil(this.ModuleSettings.MapKeybinding.Value, this.Gw2ApiManager);
             this.DynamicEventHandler = new DynamicEventHandler(this.MapUtil, this.DynamicEventState, this.Gw2ApiManager, this.ModuleSettings);
@@ -127,7 +136,15 @@
                     this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.RemoveEventHooks(ev));
                     this._eventCategories?.Clear();
 
-                    List<EventCategory> categories = await this.GetFlurlClient().Request(this.API_URL, "events").GetJsonAsync<List<EventCategory>>();
+                    var request = this.GetFlurlClient().Request(this.API_URL, "events");
+
+                    if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIState.AccessToken))
+                    {
+                        this.Logger.Info("Include custom events...");
+                        request.WithOAuthBearerToken(this.BlishHUDAPIState.AccessToken);
+                    }
+
+                    List<EventCategory> categories = await request.GetJsonAsync<List<EventCategory>>();
 
                     int eventCategoryCount = categories.Count;
                     int eventCount = categories.Sum(ec => ec.Events.Count);
@@ -319,7 +336,8 @@
                 this.GetFlurlClient(),
                 this.API_URL,
                 () => this.NowUTC,
-                () => this.Version)
+                () => this.Version,
+                () => this.BlishHUDAPIState.AccessToken)
             {
                 Parent = GameService.Graphics.SpriteScreen
             };
@@ -376,9 +394,12 @@
             };
 
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("841721.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("1466345.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventState, this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156764.png"), () => new UI.Views.CustomEventView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.BlishHUDAPIState) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Custom Events"));
+
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("157097.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.API_URL, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
+
         }
 
         protected override string GetDirectoryName()
@@ -388,10 +409,21 @@
 
         protected override void ConfigureStates(StateConfigurations configurations)
         {
+            configurations.BlishHUDAPI.Enabled = true;
             configurations.Account.Enabled = true;
             configurations.Worldbosses.Enabled = true;
             configurations.Mapchests.Enabled = true;
             configurations.PointOfInterests.Enabled = true;
+        }
+
+        private void BlishHUDAPIState_NewLogin(object sender, EventArgs e)
+        {
+            this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
+        }
+
+        private void BlishHUDAPIState_LoggedOut(object sender, EventArgs e)
+        {
+            this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
         }
 
         protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
