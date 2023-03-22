@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 public static class VSCodeHelper
 {
     public const string SYSTEM_INSTALL_FOLDER = "C:\\Program Files\\Microsoft VS Code";
-    public const string USER_INSTALL_FOLDER = "%HOMEPATH%\\AppData\\Local\\Programs\\Microsoft VS Code";
+    public const string USER_INSTALL_FOLDER = "%USERPROFILE%\\AppData\\Local\\Programs\\Microsoft VS Code";
     public const string EXE_NAME = "code.exe";
     public const string SYSTEM_EXE = $"{SYSTEM_INSTALL_FOLDER}\\{EXE_NAME}";
     public const string USER_EXE = $"{USER_INSTALL_FOLDER}\\{EXE_NAME}";
@@ -68,6 +68,8 @@ public static class VSCodeHelper
 
     public static string GetExePath()
     {
-        return File.Exists(SYSTEM_EXE) ? SYSTEM_EXE : File.Exists(USER_EXE) ? USER_EXE : null;
+        var userExe = Environment.ExpandEnvironmentVariables(USER_EXE);
+
+        return File.Exists(SYSTEM_EXE) ? SYSTEM_EXE : File.Exists(userExe) ? userExe : null;
     }
 }
