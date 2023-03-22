@@ -7,10 +7,12 @@ using Blish_HUD.Modules;
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Modules;
 using Estreya.BlishHUD.Shared.Settings;
+using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Estreya.BlishHUD.WebhookUpdater.Models;
 using Flurl.Http;
+using Gw2Sharp.WebApi.V2.Models;
 using HandlebarsDotNet;
 using HandlebarsDotNet.Helpers;
 using Humanizer;
@@ -32,9 +34,13 @@ using System.Windows.Documents;
 public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSettings>
 {
     private IHandlebars _handleBarsContext;
+    private HandlebarsDataContext _handleBarsDataContext;
 
     private List<Webhook> _webhooks = new List<Webhook>();
     private AsyncLock _webhookLock = new AsyncLock();
+
+    private TimeSpan _dataContextUpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100));
+    private AsyncRef<double> _lastDataContextUpdate = new AsyncRef<double>(0);
 
     [ImportingConstructor]
     public WebhookUpdaterModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
@@ -98,10 +104,30 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
 
         this.BuildHandlebarContext();
 
+        await this.BuildHandlebarsDataContext();
+
         foreach (var name in this.ModuleSettings.WebhookNames.Value)
         {
             this.AddWebhook(name);
         }
+
+        this.Gw2ApiManager.SubtokenUpdated += this.Gw2ApiManager_SubtokenUpdated;
+        GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
+    }
+
+    private void CurrentMap_MapChanged(object sender, ValueEventArgs<int> e)
+    {
+        this.TriggerDataContextRefresh();
+    }
+
+    private void Gw2ApiManager_SubtokenUpdated(object sender, ValueEventArgs<IEnumerable<TokenPermission>> e)
+    {
+        this.TriggerDataContextRefresh();
+    }
+
+    private void TriggerDataContextRefresh()
+    {
+        this._lastDataContextUpdate = MathHelper.Clamp((float)this._dataContextUpdateInterval.TotalMilliseconds - 250, 0, (float)this._dataContextUpdateInterval.TotalMilliseconds);
     }
 
     private void BuildHandlebarContext()
@@ -131,20 +157,64 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         });
     }
 
+    public async Task BuildHandlebarsDataContext()
+    {
+        await this.AccountState.WaitForCompletion(TimeSpan.FromMinutes(5));
+        var account = this.AccountState.Account;
+
+        var characters = new List<Character>();
+
+        if (this.Gw2ApiManager.HasPermission(TokenPermission.Characters))
+        {
+            characters.AddRange(await this.Gw2ApiManager.Gw2ApiClient.V2.Characters.AllAsync());
+        }
+
+        var dataContext = new HandlebarsDataContext()
+        {
+            mumble = GameService.Gw2Mumble,
+            api = new HandlebarsDataContext.APIContext()
+            {
+                Account = account,
+                Characters = characters.ToArray(),
+                Map = GameService.Gw2Mumble.IsAvailable ? await this.Gw2ApiManager.Gw2ApiClient.V2.Maps.GetAsync(GameService.Gw2Mumble.CurrentMap.Id) : null
+            }
+        };
+
+        this._handleBarsDataContext = dataContext;
+
+        using(await this._webhookLock.LockAsync())
+        {
+            foreach (var webhook in this._webhooks)
+            {
+                webhook.UpdateDataContext(this._handleBarsDataContext);
+            }
+        }
+    }
+
+    protected override void ConfigureStates(StateConfigurations configurations)
+    {
+        configurations.Account.Enabled = true;
+        configurations.Account.AwaitLoading = true;
+    }
+
     protected override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
 
         this.UpdateWebhooks(gameTime);
+
+        _ = UpdateUtil.UpdateAsync(this.BuildHandlebarsDataContext, gameTime, this._dataContextUpdateInterval.TotalMilliseconds, this._lastDataContextUpdate);
     }
 
     protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
     {
-        var webhookView = new UI.Views.WebhookSettingsView(() => this._webhooks.Select(w => w.Configuration), this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        var webhookView = new UI.Views.WebhookSettingsView(() => this._webhooks, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         webhookView.AddWebhook += this.WebhookView_AddWebhook;
         webhookView.RemoveWebhook += this.WebhookView_RemoveWebhook;
 
         settingWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => webhookView, "Webhooks"));
+        settingWindow.Tabs.Add(new Tab(this.IconState.GetIcon("157097.png"), () => new UI.Views.HelpView( this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
+
     }
 
     private Webhook AddWebhook(string name)
@@ -152,6 +222,7 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         var configuration = this.ModuleSettings.AddWebhook(name);
 
         var webhook = new Webhook(configuration, this._handleBarsContext, this.GetFlurlClient());
+        webhook.UpdateDataContext(this._handleBarsDataContext);
 
         if (!this.ModuleSettings.WebhookNames.Value.Contains(name))
         {
@@ -180,24 +251,32 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         }
     }
 
-    private void WebhookView_RemoveWebhook(object sender, WebhookConfiguration e)
+    private void WebhookView_RemoveWebhook(object sender, Webhook e)
     {
-        this.RemoveWebhook(e.Name);
+        this.RemoveWebhook(e.Configuration.Name);
     }
 
     private void WebhookView_AddWebhook(object sender, UI.Views.WebhookSettingsView.AddWebhookEventArgs e)
     {
         var webhook = this.AddWebhook(e.Name);
-        e.Configuration = webhook.Configuration;
+        e.Webhook = webhook;
     }
 
     protected override void Unload()
     {
         base.Unload();
 
+        this.Gw2ApiManager.SubtokenUpdated -= this.Gw2ApiManager_SubtokenUpdated;
+        GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
+
         this._handleBarsContext = null;
         using (this._webhookLock.Lock())
         {
+            foreach (var webhook in this._webhooks)
+            {
+                webhook.Unload();
+            }
+
             this._webhooks?.Clear();
         }
     }

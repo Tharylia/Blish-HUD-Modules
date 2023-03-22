@@ -40,6 +40,9 @@
             var interval = this._webhookSettings.DefineSetting($"{name}-interval", "5", () => "Interval", () => "Defines the webhook update interval.");
             var intervalUnit = this._webhookSettings.DefineSetting($"{name}-intervalUnit", TimeUnit.Minute, () => "Interval Unit", () => "Defines the webhook update interval unit.");
             var onlyOnChange = this._webhookSettings.DefineSetting($"{name}-onlyOnChange", true, () => "Update only on change", () => "Whether the webhook should only be called if the url or the data changed.");
+            var httpMethod = this._webhookSettings.DefineSetting($"{name}-httpMethod", HTTPMethod.POST, () => "HTTP Method", () => "Defines the method for the http request.");
+            var collectProtocols = this._webhookSettings.DefineSetting($"{name}-collectProtocols", true, () => "Collect Protocols", () => "Defines if protocols should be collect on webhook trigger.");
+            var protocol = this._webhookSettings.DefineSetting($"{name}-protocol", new List<WebhookProtocol>(), () => "Protocol", () => "Logs all performed requests.");
 
             var configuration = new WebhookConfiguration(name)
             {
@@ -50,7 +53,10 @@
                 Mode = mode,
                 Interval = interval,
                 IntervalUnit = intervalUnit,
-                OnlyOnUrlOrDataChange = onlyOnChange
+                OnlyOnUrlOrDataChange = onlyOnChange,
+                HTTPMethod = httpMethod,
+                CollectProtocols = collectProtocols,
+                Protocol = protocol,
             };
 
             return configuration;
@@ -66,6 +72,9 @@
             this._webhookSettings.UndefineSetting($"{webhook.Name}-interval");
             this._webhookSettings.UndefineSetting($"{webhook.Name}-intervalUnit");
             this._webhookSettings.UndefineSetting($"{webhook.Name}-onlyOnChange");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-httpMethod");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-collectProtocols");
+            this._webhookSettings.UndefineSetting($"{webhook.Name}-protocol");
         }
 
         public override void Unload()

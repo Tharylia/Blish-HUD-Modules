@@ -1,6 +1,6 @@
 {
   "name": "Webhook Updater",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "namespace": "estreya.bh.webhookUpdater",
   "package": "Estreya.BlishHUD.WebhookUpdater.dll",
   "manifest_version": 1,
@@ -17,5 +17,23 @@
   ],
   "directories": [],
   "actions": [],
-  "enabled_without_gw2": false
+  "enabled_without_gw2": false,
+  "api_permissions": {
+    "account": {
+      "optional": true,
+      "details": "Needed to fetch data context."
+    },
+    "characters": {
+      "optional": true,
+      "details": "Needed to fetch data context."
+    },
+    "builds": {
+      "optional": true,
+      "details": "Needed to fetch data context."
+    },
+    "inventories": {
+      "optional": true,
+      "details": "Needed to fetch data context."
+    }
+  }
 }

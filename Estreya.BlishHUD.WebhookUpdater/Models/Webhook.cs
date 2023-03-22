@@ -9,6 +9,8 @@ using Flurl.Util;
 using HandlebarsDotNet;
 using Humanizer;
 using Microsoft.Xna.Framework;
+using Octokit;
+using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -23,6 +25,7 @@ public class Webhook : IUpdatable
     private static readonly Logger Logger = Logger.GetLogger<Webhook>();
 
     private IHandlebars _handlebarsContext;
+    private HandlebarsDataContext _handlebarsDataContext;
     private IFlurlClient _flurlClient;
     private TimeSpan _interval = Timeout.InfiniteTimeSpan;
     private AsyncRef<double> _timeSinceIntervalTick = new AsyncRef<double>(0);
@@ -40,8 +43,17 @@ public class Webhook : IUpdatable
 
         this.Configuration.Interval.SettingChanged += this.Interval_SettingChanged;
         this.Configuration.IntervalUnit.SettingChanged += this.IntervalUnit_SettingChanged;
+        GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
 
         this.UpdateInterval(false);
+    }
+
+    private void CurrentMap_MapChanged(object sender, ValueEventArgs<int> e)
+    {
+        if (this.Configuration.Mode.Value == UpdateMode.MapChange)
+        {
+            this.Trigger();
+        }
     }
 
     private void IntervalUnit_SettingChanged(object sender, ValueChangedEventArgs<Humanizer.Localisation.TimeUnit> e)
@@ -54,11 +66,16 @@ public class Webhook : IUpdatable
         this.UpdateInterval(true);
     }
 
+    public void UpdateDataContext(HandlebarsDataContext ctx)
+    {
+        this._handlebarsDataContext = ctx;
+    }
+
     private void UpdateInterval(bool throwException)
     {
         if (!double.TryParse(this.Configuration.Interval.Value, System.Globalization.NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
         {
-            var message = $"New update interval \"{this.Configuration.Interval.Value}\" is invalid.";
+            var message = $"New update interval \"{this.Configuration.Interval.Value}\" of {this.Configuration.Name} is invalid.";
             Logger.Warn(message);
             if (!throwException)
             {
@@ -96,11 +113,11 @@ public class Webhook : IUpdatable
                     this._interval = TimeSpan.FromHours(value);
                     break;
                 default:
-                    Logger.Error($"Invalid timeunit selected: {this.Configuration.IntervalUnit.Value.Humanize()}");
+                    Logger.Error($"Invalid timeunit selected of {this.Configuration.Name}: {this.Configuration.IntervalUnit.Value.Humanize()}");
                     break;
             }
 
-            Logger.Info($"Updated interval to: {this._interval.Humanize(2)}");
+            Logger.Info($"Updated interval of {this.Configuration.Name} to: {this._interval.Humanize(2)}");
         }
         catch (Exception ex)
         {
@@ -112,20 +129,21 @@ public class Webhook : IUpdatable
                     ScreenNotification.ShowNotification(
                     DrawUtil.WrapText(
                         GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular),
-                        $"Failed to update interval: {ex.Message}",
+                        $"Failed to update interval of {this.Configuration.Name}: {ex.Message}",
                         900),
                     ScreenNotification.NotificationType.Error);
                 });
             }
             else
             {
-                throw new FormatException($"Failed to update interval: {ex.Message}"); // Bubble up in view catch
+                throw new FormatException($"Failed to update interval of {this.Configuration.Name}: {ex.Message}"); // Bubble up in view catch
             }
         }
     }
 
-    public async Task Send()
+    private async Task Send()
     {
+
         try
         {
             var url = this.BuildUrl();
@@ -139,7 +157,56 @@ public class Webhook : IUpdatable
                 if (url == _lastUrl && data == _lastContent) return;
             }
 
-            await this._flurlClient.Request(url).WithHeader("Content-Type", this.Configuration.ContentType.Value).PostAsync(new StringContent(data));
+            WebhookProtocol protocol = new WebhookProtocol();
+            protocol.Url = url;
+
+            try
+            {
+                var request = this._flurlClient.Request(url);
+                var contentType = this.GetContentType();
+                if (!string.IsNullOrWhiteSpace(contentType))
+                {
+                    request.WithHeader("Content-Type", contentType);
+                }
+
+                var method = this.GetMethod();
+
+                var response = await request
+                    .SendAsync(
+                        method,
+                        !string.IsNullOrWhiteSpace(data)
+                            ? new StringContent(data)
+                            : null
+                    );
+
+                protocol.StatusCode = response.StatusCode;
+                protocol.Method = this.Configuration.HTTPMethod.Value;
+                protocol.Message = await response.Content.ReadAsStringAsync();
+            }
+            catch (FlurlHttpException fex)
+            {
+                protocol.StatusCode = fex.Call.Response?.StatusCode ?? System.Net.HttpStatusCode.InternalServerError;
+                protocol.Method = this.Configuration.HTTPMethod.Value;
+                protocol.Message = await fex.GetResponseStringAsync();
+                protocol.Exception = new WebhookProtocol.ProtocolException(fex);
+
+                throw;
+            }
+            catch (Exception ex)
+            {
+                protocol.StatusCode = System.Net.HttpStatusCode.InternalServerError;
+                protocol.Method = this.Configuration.HTTPMethod.Value;
+                protocol.Exception = new WebhookProtocol.ProtocolException(ex);
+
+                throw;
+            }
+            finally
+            {
+                if (this.Configuration.CollectProtocols.Value)
+                {
+                    this.Configuration.Protocol.Value = new List<WebhookProtocol>(this.Configuration.Protocol.Value) { protocol };
+                }
+            }
 
             _lastUrl = url;
             _lastContent = data;
@@ -148,6 +215,47 @@ public class Webhook : IUpdatable
         {
             Logger.Warn(ex, $"Failed to send webhook request for {this.Configuration.Name}:");
         }
+    }
+
+    public async Task TriggerAsync(bool resetInterval = true)
+    {
+        await this.Send();
+
+        if (resetInterval)
+        {
+            this._timeSinceIntervalTick.Value = 0;
+        }
+    }
+
+
+    public void Trigger(bool resetInterval = true)
+    {
+        _ = Task.Run(async () => await this.TriggerAsync(resetInterval));
+    }
+
+    private string GetContentType()
+    {
+        return this.Configuration.HTTPMethod.Value switch
+        {
+            HTTPMethod.GET or HTTPMethod.DELETE or HTTPMethod.OPTIONS or HTTPMethod.TRACE or HTTPMethod.HEAD => null,
+            _ => this.Configuration.ContentType.Value
+        };
+    }
+
+    private HttpMethod GetMethod()
+    {
+        return this.Configuration.HTTPMethod.Value switch
+        {
+            HTTPMethod.GET => HttpMethod.Get,
+            HTTPMethod.POST => HttpMethod.Post,
+            HTTPMethod.PUT => HttpMethod.Put,
+            HTTPMethod.PATCH => new HttpMethod("patch"),
+            HTTPMethod.DELETE => HttpMethod.Delete,
+            HTTPMethod.OPTIONS => HttpMethod.Options,
+            HTTPMethod.TRACE => HttpMethod.Trace,
+            HTTPMethod.HEAD => HttpMethod.Head,
+            _ => throw new ArgumentOutOfRangeException("Http Method")
+        };
     }
 
     public void Update(GameTime gameTime)
@@ -165,10 +273,7 @@ public class Webhook : IUpdatable
         var url = this.Configuration.Url.Value;
         var template = this._handlebarsContext.Compile(url);
 
-        return template.Invoke(new
-        {
-            mumble = GameService.Gw2Mumble
-        });
+        return template.Invoke(this._handlebarsDataContext);
     }
 
     private string BuildData()
@@ -176,14 +281,15 @@ public class Webhook : IUpdatable
         var data = this.Configuration.Content.Value;
         var template = this._handlebarsContext.Compile(data);
 
-        return template.Invoke(new
-        {
-            mumble = GameService.Gw2Mumble
-        });
+        return template.Invoke(this._handlebarsDataContext);
     }
 
     public void Unload()
     {
         this._handlebarsContext = null;
+
+        this.Configuration.Interval.SettingChanged -= this.Interval_SettingChanged;
+        this.Configuration.IntervalUnit.SettingChanged -= this.IntervalUnit_SettingChanged;
+        GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
     }
 }
