@@ -41,7 +41,7 @@
             var intervalUnit = this._webhookSettings.DefineSetting($"{name}-intervalUnit", TimeUnit.Minute, () => "Interval Unit", () => "Defines the webhook update interval unit.");
             var onlyOnChange = this._webhookSettings.DefineSetting($"{name}-onlyOnChange", true, () => "Update only on change", () => "Whether the webhook should only be called if the url or the data changed.");
             var httpMethod = this._webhookSettings.DefineSetting($"{name}-httpMethod", HTTPMethod.POST, () => "HTTP Method", () => "Defines the method for the http request.");
-            var collectProtocols = this._webhookSettings.DefineSetting($"{name}-collectProtocols", true, () => "Collect Protocols", () => "Defines if protocols should be collect on webhook trigger.");
+            var collectProtocols = this._webhookSettings.DefineSetting($"{name}-collectProtocols", true, () => "Collect Protocols", () => "Defines if protocols should be collected on webhook trigger.");
             var protocol = this._webhookSettings.DefineSetting($"{name}-protocol", new List<WebhookProtocol>(), () => "Protocol", () => "Logs all performed requests.");
 
             var configuration = new WebhookConfiguration(name)
