@@ -143,7 +143,6 @@ public class Webhook : IUpdatable
 
     private async Task Send()
     {
-
         try
         {
             var url = this.BuildUrl();
@@ -157,13 +156,19 @@ public class Webhook : IUpdatable
                 if (url == _lastUrl && data == _lastContent) return;
             }
 
-            WebhookProtocol protocol = new WebhookProtocol();
-            protocol.Url = url;
+            var contentType = this.GetContentType();
+
+            WebhookProtocol protocol = new WebhookProtocol
+            {
+                Url = url,
+                Method = this.Configuration.HTTPMethod.Value,
+                Payload = data,
+                ContentType = contentType
+            };
 
             try
             {
                 var request = this._flurlClient.Request(url);
-                var contentType = this.GetContentType();
                 if (!string.IsNullOrWhiteSpace(contentType))
                 {
                     request.WithHeader("Content-Type", contentType);
@@ -180,13 +185,11 @@ public class Webhook : IUpdatable
                     );
 
                 protocol.StatusCode = response.StatusCode;
-                protocol.Method = this.Configuration.HTTPMethod.Value;
                 protocol.Message = await response.Content.ReadAsStringAsync();
             }
             catch (FlurlHttpException fex)
             {
                 protocol.StatusCode = fex.Call.Response?.StatusCode ?? System.Net.HttpStatusCode.InternalServerError;
-                protocol.Method = this.Configuration.HTTPMethod.Value;
                 protocol.Message = await fex.GetResponseStringAsync();
                 protocol.Exception = new WebhookProtocol.ProtocolException(fex);
 
@@ -195,7 +198,6 @@ public class Webhook : IUpdatable
             catch (Exception ex)
             {
                 protocol.StatusCode = System.Net.HttpStatusCode.InternalServerError;
-                protocol.Method = this.Configuration.HTTPMethod.Value;
                 protocol.Exception = new WebhookProtocol.ProtocolException(ex);
 
                 throw;
