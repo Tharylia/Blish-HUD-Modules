@@ -15,6 +15,7 @@
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Threading.Tasks;
 
@@ -247,7 +248,21 @@
 
                         waypointButton.Click += (s, eventArgs) =>
                         {
-                            //e.CopyWaypoint();
+                            ClipboardUtil.WindowsClipboardService.SetTextAsync(e.Waypoint).ContinueWith(clipboardTask =>
+                            {
+                                var message = "Copied!";
+                                ScreenNotification.NotificationType type = ScreenNotification.NotificationType.Info;
+                                if (clipboardTask.IsFaulted)
+                                {
+                                    message = clipboardTask.Exception.Message;
+                                    type = ScreenNotification.NotificationType.Error;
+                                }
+
+                                GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
+                                {
+                                    ScreenNotification.ShowNotification(message, type);
+                                });
+                            });
                         };
                     }
 
@@ -268,7 +283,7 @@
 
                         wikiButton.Click += (s, eventArgs) =>
                         {
-                            //e.OpenWiki();
+                            Process.Start(e.Wiki);
                         };
                     }
 
