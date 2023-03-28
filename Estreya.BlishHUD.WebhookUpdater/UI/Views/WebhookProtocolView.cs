@@ -51,7 +51,7 @@ public class WebhookProtocolView : BaseView
             this.RenderLabel(protocolInfo, "Url:", protocol.Url, valueXLocation: valueXLocation);
             this.RenderLabel(protocolInfo, "Message:", protocol.Message, valueXLocation: valueXLocation);
             this.RenderLabel(protocolInfo, "Method:", protocol.Method.ToString(), valueXLocation: valueXLocation);
-            this.RenderLabel(protocolInfo, "Status Code:", protocol.StatusCode.ToString(), valueXLocation: valueXLocation);
+            this.RenderLabel(protocolInfo, "Status Code:", protocol.StatusCode.ToString(), textColorValue: (int)protocol.StatusCode is >= 200 and < 400 ? Color.Green : Color.Red, valueXLocation: valueXLocation);
             this.RenderEmptyLine(protocolInfo);
             this.RenderLabel(protocolInfo, "Exception:");
             this.RenderLabel(protocolInfo, "Message:", protocol.Exception?.Message, valueXLocation: valueXLocation);
