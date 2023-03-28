@@ -20,6 +20,10 @@ public class WebhookProtocol
     [JsonConverter(typeof(StringEnumConverter))]
     public HTTPMethod Method { get; set; }
 
+    public string Payload { get; set; }
+
+    public string ContentType { get; set; }
+
     [JsonConverter(typeof(StringEnumConverter))]
     public HttpStatusCode StatusCode { get; set; }
 

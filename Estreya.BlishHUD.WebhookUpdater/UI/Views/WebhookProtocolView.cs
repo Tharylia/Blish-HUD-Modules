@@ -45,12 +45,14 @@ public class WebhookProtocolView : BaseView
                 FlowDirection = ControlFlowDirection.SingleTopToBottom,
             };
 
-            const int valueXLocation = 100;
+            const int valueXLocation = 110;
 
             this.RenderLabel(protocolInfo, "Time:", protocol.TimestampUTC.ToLocalTime().ToString(), valueXLocation: valueXLocation);
             this.RenderLabel(protocolInfo, "Url:", protocol.Url, valueXLocation: valueXLocation);
             this.RenderLabel(protocolInfo, "Message:", protocol.Message, valueXLocation: valueXLocation);
             this.RenderLabel(protocolInfo, "Method:", protocol.Method.ToString(), valueXLocation: valueXLocation);
+            this.RenderLabel(protocolInfo, "Content-Type:", protocol.ContentType, valueXLocation: valueXLocation);
+            this.RenderLabel(protocolInfo, "Payload:", protocol.Payload, valueXLocation: valueXLocation);
             this.RenderLabel(protocolInfo, "Status Code:", protocol.StatusCode.ToString(), textColorValue: (int)protocol.StatusCode is >= 200 and < 400 ? Color.Green : Color.Red, valueXLocation: valueXLocation);
             this.RenderEmptyLine(protocolInfo);
             this.RenderLabel(protocolInfo, "Exception:");
