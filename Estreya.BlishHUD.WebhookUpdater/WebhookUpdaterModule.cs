@@ -171,7 +171,7 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
 
         var dataContext = new HandlebarsDataContext()
         {
-            mumble = GameService.Gw2Mumble,
+            // mumble is assigned in the class
             api = new HandlebarsDataContext.APIContext()
             {
                 Account = account,
