@@ -117,7 +117,7 @@ public abstract class APIState : ManagedState
                 IProgress<string> progress = new Progress<string>(newProgress => this.ProgressText = newProgress);
                 progress.Report($"Loading {this.GetType().Name}");
                 await this.FetchFromAPI(this._apiManager, progress);
-                this.Updated?.Invoke(this, EventArgs.Empty);
+                this.SignalUpdated();
                 this.ProgressText = string.Empty;
             }
             finally
@@ -130,7 +130,12 @@ public abstract class APIState : ManagedState
 
     protected abstract Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress);
 
-    public void SignalCompletion()
+    protected void SignalUpdated()
+    {
+        this.Updated?.Invoke(this, EventArgs.Empty);
+    }
+
+    protected void SignalCompletion()
     {
         _ = this._eventWaitHandle.Set();
     }

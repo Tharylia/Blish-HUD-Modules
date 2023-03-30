@@ -43,6 +43,8 @@ public class SkillState : APIState<Skill>
 
     private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
 
+    public List<Skill> Skills => this.APIObjectList;
+
     public static Skill UnknownSkill { get; } = new Skill()
     {
         Id = int.MaxValue,
@@ -232,6 +234,7 @@ public class SkillState : APIState<Skill>
                 this.LoadSkillIcons(this.APIObjectList);
 
                 Logger.Debug("Loaded skill icons..");
+                this.SignalUpdated();
             }
             else
             {
@@ -253,6 +256,7 @@ public class SkillState : APIState<Skill>
                     {
                         this.APIObjectList.AddRange(skills);
                     }
+                    this.SignalUpdated();
                 }
                 finally
                 {

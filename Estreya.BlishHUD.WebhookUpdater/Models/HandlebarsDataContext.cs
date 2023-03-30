@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 public class HandlebarsDataContext
 {
-    public Gw2MumbleService mumble { get; set; }
+    public Gw2MumbleService mumble => GameService.Gw2Mumble;
 
     public APIContext api { get; set; }
 
