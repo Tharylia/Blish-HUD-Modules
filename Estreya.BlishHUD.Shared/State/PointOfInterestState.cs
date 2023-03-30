@@ -28,6 +28,8 @@ public class PointOfInterestState : APIState<PointOfInterest>
 
     private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
 
+    public List<PointOfInterest> PointOfInterests => this.APIObjectList;
+
     public PointOfInterestState(APIStateConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
     {
         this._baseFolderPath = baseFolderPath;
@@ -57,6 +59,7 @@ public class PointOfInterestState : APIState<PointOfInterest>
                     {
                         this.APIObjectList.AddRange(pois);
                     }
+                    this.SignalUpdated();
                 }
                 finally
                 {

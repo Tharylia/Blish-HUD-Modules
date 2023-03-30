@@ -93,14 +93,14 @@ public class Skill : IDisposable
     /// If the skill doesn't have any facts, this value is <see langword="null"/>.
     /// </summary>
     /// BUGGY WITH COPY()
-    //public List<SkillFact>? Facts { get; set; }
+    public List<SkillFact>? Facts { get; set; }
 
     /// <summary>
     /// The list of traited skill facts.
     /// If the skill doesn't have any traited facts, this value is <see langword="null"/>.
     /// </summary>
     /// BUGGY WITH COPY()
-    //public List<SkillFact>? TraitedFacts { get; set; }
+    public List<SkillFact>? TraitedFacts { get; set; }
 
     /// <summary>
     /// The list of skill categories.
@@ -202,8 +202,8 @@ public class Skill : IDisposable
             Slot = skill.Slot?.IsUnknown ?? true ? SkillSlot.Unknown : skill.Slot,
             DualAttunement = skill.DualAttunement?.IsUnknown ?? true ? Attunement.Unknown : skill.DualAttunement,
             Flags = skill.Flags?.List.Select(flag => flag.Value).ToList(),
-            //Facts = skill.Facts?.ToList(),
-            //TraitedFacts = skill.TraitedFacts?.ToList(),
+            Facts = skill.Facts?.ToList(),
+            TraitedFacts = skill.TraitedFacts?.ToList(),
             Categories = skill.Categories?.ToList(),
             SubSkills = skill.SubSkills?.ToList(),
             Attunement = skill.Attunement?.IsUnknown ?? true ? Attunement.Unknown : skill.Attunement,
@@ -247,8 +247,8 @@ public class Skill : IDisposable
             Icon = skill.Icon,
             ChatLink = skill.ChatLink,
             Flags = skill.Flags?.List.Select(flag => flag.Value).ToList(),
-            //Facts = skill.Facts?.ToList(),
-            //TraitedFacts = skill.TraitedFacts?.ToList(),
+            Facts = skill.Facts?.ToList(),
+            TraitedFacts = skill.TraitedFacts?.ToList(),
             Categories = skill.Categories?.ToList(),
         };
 
