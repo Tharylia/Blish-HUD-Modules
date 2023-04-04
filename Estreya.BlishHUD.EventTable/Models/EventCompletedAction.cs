@@ -3,6 +3,7 @@
     public enum EventCompletedAction
     {
         Crossout,
-        Hide
+        Hide,
+        ChangeOpacity
     }
 }

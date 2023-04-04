@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 public class EventAreaConfiguration : DrawerConfiguration
 {    
     public SettingEntry<List<string>> DisabledEventKeys { get; set; }
-    public SettingEntry<EventCompletedAction> CompletionAcion { get; set; }
+    public SettingEntry<EventCompletedAction> CompletionAction { get; set; }
 
     public SettingEntry<bool> ShowTooltips { get; set; }
     public SettingEntry<LeftClickAction> LeftClickAction { get; set; }
@@ -44,4 +44,7 @@ public class EventAreaConfiguration : DrawerConfiguration
 
     public SettingEntry<bool> AllowUnspecifiedMap { get; set; }
     public SettingEntry<float> TimeLineOpacity { get; set; }
+    public SettingEntry<float> CompletedEventsBackgroundOpacity { get; set; }
+    public SettingEntry<float> CompletedEventsTextOpacity { get; set; }
+    public SettingEntry<bool> CompletedEventsInvertTextColor { get; set; }
 }
