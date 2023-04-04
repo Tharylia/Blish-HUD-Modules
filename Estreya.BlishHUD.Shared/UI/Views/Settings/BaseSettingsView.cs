@@ -15,6 +15,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using System.Threading.Tasks;
     using static System.Windows.Forms.VisualStyles.VisualStyleElement.Menu;
 
     public abstract class BaseSettingsView : BaseView
@@ -192,7 +193,7 @@
             return (panel, label.TitleLabel, trackbar);
         }
 
-        protected (Panel Panel, Label label, Checkbox checkbox) RenderBoolSetting(Panel parent, SettingEntry<bool> settingEntry)
+        protected (Panel Panel, Label label, Checkbox checkbox) RenderBoolSetting(Panel parent, SettingEntry<bool> settingEntry, Func<bool, bool,Task<bool>> onBeforeChangeAction = null)
         {
             Panel panel = this.GetPanel(parent);
 
@@ -202,13 +203,13 @@
             {
                 try
                 {
-                    settingEntry.Value = newValue;
+                        settingEntry.Value = newValue;
                 }
                 catch (Exception ex)
                 {
                     this.ShowError(ex.Message);
                 }
-            });
+            }, onBeforeChangeAction);
 
             checkbox.BasicTooltipText = settingEntry.Description;
 
