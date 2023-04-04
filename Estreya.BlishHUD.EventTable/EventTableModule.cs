@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -54,7 +54,6 @@ namespace Estreya.BlishHUD.EventTable
 
         private static TimeSpan _checkDrawerSettingInterval = TimeSpan.FromSeconds(30);
         private double _lastCheckDrawerSettings = 0;
-
 
         private DateTime NowUTC => DateTime.UtcNow;
 
@@ -253,6 +252,7 @@ namespace Estreya.BlishHUD.EventTable
             });
         }
 
+
         protected override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
@@ -301,7 +301,7 @@ namespace Estreya.BlishHUD.EventTable
             if (!this.ModuleSettings.RemindersEnabled.Value || this.ModuleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey)) return;
 
             var startsInTranslation = this.TranslationState.GetTranslation("eventArea-reminder-startsIn", "Starts in");
-            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)
+            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)
             {
                 BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value
             };
