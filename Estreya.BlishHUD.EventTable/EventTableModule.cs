@@ -55,7 +55,6 @@
         private static TimeSpan _checkDrawerSettingInterval = TimeSpan.FromSeconds(30);
         private double _lastCheckDrawerSettings = 0;
 
-
         private DateTime NowUTC => DateTime.UtcNow;
 
         #region States
@@ -158,6 +157,8 @@
 
                     this.Logger.Debug($"Loaded all event categories.");
 
+                    this.AssignEventReminderTimes(categories);
+
                     this._eventCategories = categories;
 
                     foreach (var ev in this._eventCategories.SelectMany(ec => ec.Events))
@@ -180,6 +181,18 @@
                 {
                     this.Logger.Error(ex, "Failed loading events.");
                 }
+            }
+        }
+
+        private void AssignEventReminderTimes(List<EventCategory> categories)
+        {
+            var events = categories.SelectMany(ec => ec.Events).Where(ev => !ev.Filler);
+            foreach (var ev in events)
+            {
+                if (!this.ModuleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey)) continue;
+
+                var times = this.ModuleSettings.ReminderTimesOverride.Value[ev.SettingKey];
+                ev.UpdateReminderTimes(times.ToArray());
             }
         }
 
@@ -239,6 +252,7 @@
             });
         }
 
+
         protected override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
@@ -287,7 +301,7 @@
             if (!this.ModuleSettings.RemindersEnabled.Value || this.ModuleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey)) return;
 
             var startsInTranslation = this.TranslationState.GetTranslation("eventArea-reminder-startsIn", "Starts in");
-            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)
+            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)
             {
                 BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value
             };

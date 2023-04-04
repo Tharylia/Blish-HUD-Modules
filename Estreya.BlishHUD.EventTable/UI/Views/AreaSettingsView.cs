@@ -451,7 +451,10 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel);
 
-        this.RenderEnumSetting(groupPanel, areaConfiguration.CompletionAcion);
+        this.RenderEnumSetting(groupPanel, areaConfiguration.CompletionAction);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.CompletedEventsBackgroundOpacity);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.CompletedEventsTextOpacity);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.CompletedEventsInvertTextColor);
         this.RenderButton(groupPanel, "Reset hidden Events", () =>
         {
             this._eventState.Remove(areaConfiguration.Name, EventState.EventStates.Hidden);
@@ -562,7 +565,7 @@ public class AreaSettingsView : BaseSettingsView
         _manageEventsWindow.Show(view);
     }
 
-    private void ManageView_EventChanged(object sender, EventChangedArgs e)
+    private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
         var configuration = e.AdditionalData["configuration"] as EventAreaConfiguration;
         configuration.DisabledEventKeys.Value = e.NewState

@@ -51,10 +51,10 @@
         [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonProperty("offset"), JsonConverter(typeof(Shared.Json.Converter.TimeSpanJsonConverter), "dd\\.hh\\:mm", new string[] { "dd\\.hh\\:mm", "hh\\:mm" })]
+        [JsonProperty("offset"), JsonConverter(typeof(Shared.Json.Converter.TimeSpanJsonConverter), "dd\\.hh\\:mm\\:ss", new string[] { "dd\\.hh\\:mm\\:ss", "hh\\:mm\\:ss" })]
         public TimeSpan Offset { get; set; }
 
-        [JsonProperty("repeat"), JsonConverter(typeof(Shared.Json.Converter.TimeSpanJsonConverter), "dd\\.hh\\:mm", new string[] { "dd\\.hh\\:mm", "hh\\:mm" })]
+        [JsonProperty("repeat"), JsonConverter(typeof(Shared.Json.Converter.TimeSpanJsonConverter), "dd\\.hh\\:mm\\:ss", new string[] { "dd\\.hh\\:mm\\:ss", "hh\\:mm\\:ss" })]
         public TimeSpan Repeat { get; set; }
 
         [JsonProperty("startingDate"), JsonConverter(typeof(Shared.Json.Converter.DateJsonConverter))]
@@ -96,15 +96,14 @@
         [JsonIgnore]
         public string SettingKey { get; private set; }
 
-        [JsonIgnore]
-        public TimeSpan[] ReminderTimes = new[]
+        [JsonProperty("reminderTimes"), JsonConverter(typeof(Shared.Json.Converter.TimeSpanArrayJsonConverter), "hh\\:mm\\:ss", new string[] { "hh\\:mm", "hh\\:mm\\:ss" }, true)]
+        public TimeSpan[] ReminderTimes { get; private set; } = new[]
         {
             TimeSpan.FromMinutes(10)
         };
 
         [JsonIgnore]
         private ConcurrentDictionary<DateTime, List<TimeSpan>> _remindedFor = new ConcurrentDictionary<DateTime, List<TimeSpan>>();
-               
 
         public double CalculateXPosition(DateTime start, DateTime min, double pixelPerMinute)
         {
@@ -173,6 +172,8 @@
             {
                 var alreadyRemindedTimes = this._remindedFor.GetOrAdd(occurence, o => new List<TimeSpan>());
 
+                var eligableTimes = new List<(TimeSpan reminderTime, TimeSpan timeLeft)>();
+
                 foreach (var time in this.ReminderTimes)
                 {
                     if (alreadyRemindedTimes.Contains(time)) continue;
@@ -181,11 +182,24 @@
                     var diff = remindAt - nowUTC;
                     if (remindAt < nowUTC || (remindAt >= nowUTC && diff.TotalSeconds <= 0))
                     {
-                        this.Reminder?.Invoke(this, occurence - nowUTC);
-                        alreadyRemindedTimes.Add(time);
+                        eligableTimes.Add((time, occurence - nowUTC));
+                        //this.Reminder?.Invoke(this, occurence - nowUTC);
+                        //alreadyRemindedTimes.Add(time);
                     }
                 }
+
+                if (eligableTimes.Count > 0)
+                {
+                    eligableTimes.ForEach(et => alreadyRemindedTimes.Add(et.reminderTime));
+                    this.Reminder?.Invoke(this, eligableTimes.OrderBy(et => et.reminderTime).First().timeLeft);
+                }
             }
+        }
+
+        public void UpdateReminderTimes(TimeSpan[] reminderTimes)
+        {
+            this.ReminderTimes = reminderTimes;
+            this._remindedFor.Clear();
         }
 
         public override string ToString()

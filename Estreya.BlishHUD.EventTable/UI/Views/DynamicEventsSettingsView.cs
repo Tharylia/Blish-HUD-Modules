@@ -6,6 +6,8 @@
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.Shared.Controls;
+    using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Microsoft.Xna.Framework;
@@ -33,7 +35,19 @@
         protected override void BuildView(FlowPanel parent)
         {
             this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventsOnMap);
-            this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventInWorld);
+            this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventInWorld, async (oldVal, newVal) =>
+            {
+                if (!newVal) return true;
+
+                var confirmationDialog = new ConfirmDialog($"Activate \"{_moduleSettings.ShowDynamicEventInWorld.DisplayName}\"?",
+                    $"You are in the process of activating \"{_moduleSettings.ShowDynamicEventInWorld.DisplayName}\".\n" +
+                    $"This setting will add event boundaries inside your view (only when applicable events are on your map).\n\n" +
+                    $"Do you want to continue?",
+                    this.IconState);
+                var result = await confirmationDialog.ShowDialog();
+
+                return result == System.Windows.Forms.DialogResult.OK;
+            });
             this.RenderBoolSetting(parent, _moduleSettings.ShowDynamicEventsInWorldOnlyWhenInside);
             this.RenderBoolSetting(parent, _moduleSettings.IgnoreZAxisOnDynamicEventsInWorld);
             this.RenderIntSetting(parent, _moduleSettings.DynamicEventsRenderDistance);
@@ -71,7 +85,7 @@
             });
         }
 
-        private void ManageView_EventChanged(object sender, EventChangedArgs e)
+        private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
         {
             this._moduleSettings.DisabledDynamicEventIds.Value = e.NewState
                 ? new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value.Where(s => s != e.EventSettingKey))

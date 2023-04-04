@@ -24,7 +24,7 @@ public class ManageDynamicEventsSettingsView : BaseView
     private readonly Func<List<string>> _getDisabledEventGuids;
     private List<Gw2Sharp.WebApi.V2.Models.Map> _maps = new List<Gw2Sharp.WebApi.V2.Models.Map>();
 
-    public event EventHandler<EventChangedArgs> EventChanged;
+    public event EventHandler<ManageEventsView.EventChangedArgs> EventChanged;
 
 
     public Panel Panel { get; private set; }
@@ -234,7 +234,7 @@ public class ManageDynamicEventsSettingsView : BaseView
 
                 toggleButton.CheckedChanged += (s, eventArgs) =>
                 {
-                    this.EventChanged?.Invoke(this, new EventChangedArgs()
+                    this.EventChanged?.Invoke(this, new ManageEventsView.EventChangedArgs()
                     {
                         OldState = !eventArgs.Checked,
                         NewState = eventArgs.Checked,

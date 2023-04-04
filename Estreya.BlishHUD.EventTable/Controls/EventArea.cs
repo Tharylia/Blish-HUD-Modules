@@ -16,6 +16,7 @@ using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
@@ -253,7 +254,7 @@ public class EventArea : RenderTargetControl
 
             (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
-            this._allEvents.ForEach(ec => ec.Load(this._getNowAction,this._translationState));
+            this._allEvents.ForEach(ec => ec.Load(this._getNowAction, this._translationState));
             // Events should have occurences calculated already
         }
 
@@ -409,7 +410,7 @@ public class EventArea : RenderTargetControl
             {
                 if (fillers.TryGetValue(ec.Key, out List<Models.Event> categoryFillers))
                 {
-                    categoryFillers.ForEach(cf => cf.Load(ec,this._getNowAction, this._translationState));
+                    categoryFillers.ForEach(cf => cf.Load(ec, this._getNowAction, this._translationState));
                 }
 
                 ec.UpdateFillers(categoryFillers);
@@ -703,16 +704,26 @@ public class EventArea : RenderTargetControl
                         occurence.AddMinutes(ev.Duration),
                         () => _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular)),
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
-                        () => this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed),
+                        () => this.Configuration.CompletionAction.Value is EventCompletedAction.Crossout or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed),
                         () =>
                         {
                             Color defaultTextColor = Color.Black;
-
                             Color color = ev.Filler
-                                ? (this.Configuration.FillerTextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.FillerTextColor.Value.Cloth.ToXnaColor()) * this.Configuration.FillerTextOpacity.Value
-                                : (this.Configuration.TextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.TextColor.Value.Cloth.ToXnaColor()) * this.Configuration.EventTextOpacity.Value;
+                                ? (this.Configuration.FillerTextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.FillerTextColor.Value.Cloth.ToXnaColor())
+                                : (this.Configuration.TextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.TextColor.Value.Cloth.ToXnaColor());
+                            float alpha = ev.Filler ? this.Configuration.FillerTextOpacity.Value : this.Configuration.EventTextOpacity.Value;
 
-                            return color;
+                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed))
+                            {
+                                if (this.Configuration.CompletedEventsInvertTextColor.Value)
+                                {
+                                    color = new Color(color.PackedValue ^ 0xffffff);
+                                }
+
+                                alpha = this.Configuration.CompletedEventsTextOpacity.Value;
+                            }
+
+                            return color * alpha;
                         },
                         () =>
                         {
@@ -721,8 +732,15 @@ public class EventArea : RenderTargetControl
                                 return Color.Transparent;
                             }
 
+                            float alpha = this.Configuration.EventBackgroundOpacity.Value;
+
+                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed))
+                            {
+                                alpha = this.Configuration.CompletedEventsBackgroundOpacity.Value;
+                            }
+
                             System.Drawing.Color colorFromEvent = string.IsNullOrWhiteSpace(ev.BackgroundColorCode) ? System.Drawing.Color.White : System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
-                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * this.Configuration.EventBackgroundOpacity.Value;
+                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * alpha;
                         },
                         () => ev.Filler ? this.Configuration.DrawShadowsForFiller.Value : this.Configuration.DrawShadows.Value,
                         () =>
@@ -857,9 +875,10 @@ public class EventArea : RenderTargetControl
 
     private void FinishEvent(Models.Event ev, DateTime until)
     {
-        switch (this.Configuration.CompletionAcion.Value)
+        switch (this.Configuration.CompletionAction.Value)
         {
             case EventCompletedAction.Crossout:
+            case EventCompletedAction.ChangeOpacity:
                 this._eventState.Add(this.Configuration.Name, ev.SettingKey, until, EventState.EventStates.Completed);
                 break;
             case EventCompletedAction.Hide:

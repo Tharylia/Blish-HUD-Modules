@@ -110,8 +110,11 @@ public abstract class BaseView : View
         };
     }
 
-    protected TextBox RenderTextbox(Panel parent, Point location, int width, string value, string placeholder, Action<string> onChangeAction = null, Action<string> onEnterAction = null, bool clearOnEnter = false)
+    protected TextBox RenderTextbox(Panel parent, Point location, int width, string value, string placeholder, Action<string> onChangeAction = null, Action<string> onEnterAction = null, bool clearOnEnter = false, Func<string, string, Task<bool>> onBeforeChangeAction = null)
     {
+        onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
+        bool changing = false;
+
         TextBox textBox = new TextBox
         {
             Parent = parent,
@@ -126,7 +129,26 @@ public abstract class BaseView : View
         {
             textBox.TextChanged += (s, e) =>
             {
+                if (changing) return;
+                changing = true;
+
                 var scopeTextBox = s as TextBox;
+                var ea = e as ValueChangedEventArgs<string>;
+
+                onBeforeChangeAction(ea?.PreviousValue, scopeTextBox.Text).ContinueWith(resultTask =>
+                {
+                    if (resultTask.Result)
+                    {
+                        onChangeAction?.Invoke(scopeTextBox.Text);
+                    }
+                    else
+                    {
+                        scopeTextBox.Text = ea.PreviousValue;
+                    }
+
+                    changing = false;
+                });
+
                 onChangeAction?.Invoke(scopeTextBox.Text);
             };
         }
@@ -149,8 +171,9 @@ public abstract class BaseView : View
         return textBox;
     }
 
-    protected TrackBar RenderTrackBar(Panel parent, Point location, int width, int value, (int Min, int Max)? range = null, Action<int> onChangeAction = null)
+    protected TrackBar RenderTrackBar(Panel parent, Point location, int width, int value, (int Min, int Max)? range = null, Action<int> onChangeAction = null, Func<int, int, Task<bool>> onBeforeChangeAction = null)
     {
+        onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
 
         TrackBar trackBar = new TrackBar
         {
@@ -176,8 +199,9 @@ public abstract class BaseView : View
         return trackBar;
     }
 
-    protected TrackBar RenderTrackBar(Panel parent, Point location, int width, float value, (float Min, float Max)? range = null, Action<float> onChangeAction = null)
+    protected TrackBar RenderTrackBar(Panel parent, Point location, int width, float value, (float Min, float Max)? range = null, Action<float> onChangeAction = null, Func<float, float, Task<bool>> onBeforeChangeAction = null)
     {
+        onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
 
         TrackBar trackBar = new TrackBar
         {
@@ -204,8 +228,9 @@ public abstract class BaseView : View
         return trackBar;
     }
 
-    protected Checkbox RenderCheckbox(Panel parent, Point location, bool value, Action<bool> onChangeAction = null)
+    protected Checkbox RenderCheckbox(Panel parent, Point location, bool value, Action<bool> onChangeAction = null, Func<bool, bool, Task<bool>> onBeforeChangeAction = null)
     {
+        onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
 
         Checkbox checkBox = new Checkbox
         {
@@ -218,16 +243,28 @@ public abstract class BaseView : View
         {
             checkBox.CheckedChanged += (s, e) =>
             {
-                var scopeCheckbox = s as Checkbox;
-                onChangeAction?.Invoke(scopeCheckbox.Checked);
+                onBeforeChangeAction(!e.Checked, e.Checked).ContinueWith(resultTask =>
+                {
+                    var scopeCheckbox = s as Checkbox;
+                    if (resultTask.Result)
+                    {
+                        onChangeAction?.Invoke(scopeCheckbox.Checked);
+                    }
+                    else
+                    {
+                        scopeCheckbox.Checked = !e.Checked;
+                    }
+                });
             };
         }
 
         return checkBox;
     }
 
-    protected Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null)
+    protected Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null)
     {
+        onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
+
         Dropdown dropdown = new Dropdown
         {
             Parent = parent,
@@ -257,8 +294,10 @@ public abstract class BaseView : View
         return dropdown;
     }
 
-    protected Shared.Controls.KeybindingAssigner RenderKeybinding(Panel parent, Point location, int width, KeyBinding value, Action<KeyBinding> onChangeAction = null)
+    protected Shared.Controls.KeybindingAssigner RenderKeybinding(Panel parent, Point location, int width, KeyBinding value, Action<KeyBinding> onChangeAction = null, Func<KeyBinding, KeyBinding, Task<bool>> onBeforeChangeAction = null)
     {
+        onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
+
         Shared.Controls.KeybindingAssigner keybindingAssigner = new Shared.Controls.KeybindingAssigner(false)
         {
             Parent = parent,

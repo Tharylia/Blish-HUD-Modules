@@ -50,6 +50,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\DateTimeJsonConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\SemanticRangeConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\SemanticVersionConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\TimeSpanArrayJsonConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\TimeSpanJsonConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\Barrier\BarrierCombatEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\Buff\BuffApplyCombatEvent.cs" />

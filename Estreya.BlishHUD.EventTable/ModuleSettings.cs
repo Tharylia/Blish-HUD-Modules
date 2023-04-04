@@ -42,7 +42,9 @@
         /// <summary>
         /// Contains a list of event setting keys for which NO reminder should be displayed.
         /// </summary>
-        public SettingEntry<List<string>> ReminderDisabledForEvents { get; set; }
+        public SettingEntry<List<string>> ReminderDisabledForEvents { get; private set; }
+
+        public SettingEntry<Dictionary<string, List<TimeSpan>>> ReminderTimesOverride { get; private set; }
 
         public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
@@ -87,6 +89,8 @@
             this.ReminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
 
             this.ReminderDisabledForEvents = this.GlobalSettings.DefineSetting(nameof(this.ReminderDisabledForEvents), new List<string>(), () => "Reminder disabled for Events", () => "Defines the events for which NO reminder should be displayed.");
+
+            this.ReminderTimesOverride = this.GlobalSettings.DefineSetting(nameof(this.ReminderTimesOverride), new Dictionary<string, List<TimeSpan>>(), () => "Reminder Times Override", () => "Defines the overridden times for reminders per event.");
 
             this.ReminderOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderOpacity), 0.5f, () => "Reminder Opacity", () => "Defines the background opacity for reminders.");
             this.ReminderOpacity.SetRange(0.1f, 1f);
@@ -166,7 +170,7 @@
 
             var completionAction = this.DrawerSettings.DefineSetting($"{name}-completionAction", EventCompletedAction.Crossout, () => "Completion Action", () => "Defines the action to perform if an event has been completed.");
 
-            var disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys",new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
+            var disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
 
             var eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
             eventHeight.SetRange(5, 30);
@@ -205,6 +209,14 @@
             var fillerShadowOpacity = this.DrawerSettings.DefineSetting($"{name}-fillerShadowOpacity", 1f, () => "Filler Shadow Opacity", () => "Defines the opacity for filler shadows.");
             fillerShadowOpacity.SetRange(0.1f, 1f);
 
+            var completedEventsBackgroundOpacity = this.DrawerSettings.DefineSetting($"{name}-completedEventsBackgroundOpacity", 0.5f, () => "Completed Events Background Opacity", () => "Defines the background opacity of completed events. Only works in combination with CompletionAction = Change Opacity");
+            completedEventsBackgroundOpacity.SetRange(0.1f, 0.9f);
+
+            var completedEventsTextOpacity = this.DrawerSettings.DefineSetting($"{name}-completedEventsTextOpacity", 1f, () => "Completed Events Text Opacity", () => "Defines the text opacity of completed events. Only works in combination with CompletionAction = Change Opacity");
+            completedEventsBackgroundOpacity.SetRange(0f, 1f);
+
+            var completedEventsInvertTextColor = this.DrawerSettings.DefineSetting($"{name}-completedEventsInvertTextColor", true, () => "Completed Events Invert Textcolor", () => "Specified if completed events should have their text color inverted. Only works in combination with CompletionAction = Change Opacity");
+
             return new EventAreaConfiguration()
             {
                 Name = drawer.Name,
@@ -226,22 +238,25 @@
                 FillerTextColor = fillerTextColor,
                 AcceptWaypointPrompt = acceptWaypointPrompt,
                 DisabledEventKeys = disabledEventKeys,
-                CompletionAcion = completionAction,
+                CompletionAction = completionAction,
                 EventHeight = eventHeight,
                 EventOrder = eventOrder,
                 EventBackgroundOpacity = eventBackgroundOpacity,
                 DrawShadows = drawShadows,
-                ShadowColor= shadowColor,
+                ShadowColor = shadowColor,
                 DrawShadowsForFiller = drawShadowsForFiller,
                 FillerShadowColor = fillerShadowColor,
                 DrawInterval = drawInterval,
                 LimitToCurrentMap = limitToCurrentMap,
                 AllowUnspecifiedMap = allowUnspecifiedMap,
                 TimeLineOpacity = timeLineOpacity,
-                EventTextOpacity= eventTextOpacity,
-                FillerTextOpacity=fillerTextOpacity,
-                ShadowOpacity=shadowOpacity,
-                FillerShadowOpacity=fillerShadowOpacity
+                EventTextOpacity = eventTextOpacity,
+                FillerTextOpacity = fillerTextOpacity,
+                ShadowOpacity = shadowOpacity,
+                FillerShadowOpacity = fillerShadowOpacity,
+                CompletedEventsBackgroundOpacity = completedEventsBackgroundOpacity,
+                CompletedEventsTextOpacity = completedEventsTextOpacity,
+                CompletedEventsInvertTextColor = completedEventsInvertTextColor
             };
         }
 
@@ -288,6 +303,9 @@
             this.DrawerSettings.UndefineSetting($"{name}-fillerTextOpacity");
             this.DrawerSettings.UndefineSetting($"{name}-shadowOpacity");
             this.DrawerSettings.UndefineSetting($"{name}-fillerShadowOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-completedEventsBackgroundOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-completedEventsTextOpacity");
+            this.DrawerSettings.UndefineSetting($"{name}-completedEventsInvertTextColor");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
@@ -369,10 +387,10 @@
             drawerConfiguration.AcceptWaypointPrompt.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerAcceptWaypointPrompt-name", acceptWaypointPromptDisplayNameDefault);
             drawerConfiguration.AcceptWaypointPrompt.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerAcceptWaypointPrompt-description", acceptWaypointPromptDescriptionDefault);
 
-            var completionActionDisplayNameDefault = drawerConfiguration.CompletionAcion.DisplayName;
-            var completionActionDescriptionDefault = drawerConfiguration.CompletionAcion.Description;
-            drawerConfiguration.CompletionAcion.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerCompletionAction-name", completionActionDisplayNameDefault);
-            drawerConfiguration.CompletionAcion.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerCompletionAction-description", completionActionDescriptionDefault);
+            var completionActionDisplayNameDefault = drawerConfiguration.CompletionAction.DisplayName;
+            var completionActionDescriptionDefault = drawerConfiguration.CompletionAction.Description;
+            drawerConfiguration.CompletionAction.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerCompletionAction-name", completionActionDisplayNameDefault);
+            drawerConfiguration.CompletionAction.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerCompletionAction-description", completionActionDescriptionDefault);
 
             var eventHeightDisplayNameDefault = drawerConfiguration.EventHeight.DisplayName;
             var eventHeightDescriptionDefault = drawerConfiguration.EventHeight.Description;
