@@ -42,7 +42,9 @@
         /// <summary>
         /// Contains a list of event setting keys for which NO reminder should be displayed.
         /// </summary>
-        public SettingEntry<List<string>> ReminderDisabledForEvents { get; set; }
+        public SettingEntry<List<string>> ReminderDisabledForEvents { get; private set; }
+
+        public SettingEntry<Dictionary<string, List<TimeSpan>>> ReminderTimesOverride { get;private set;}
 
         public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
@@ -87,6 +89,8 @@
             this.ReminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
 
             this.ReminderDisabledForEvents = this.GlobalSettings.DefineSetting(nameof(this.ReminderDisabledForEvents), new List<string>(), () => "Reminder disabled for Events", () => "Defines the events for which NO reminder should be displayed.");
+
+            this.ReminderTimesOverride = this.GlobalSettings.DefineSetting(nameof(this.ReminderTimesOverride), new Dictionary<string, List<TimeSpan>>(), () => "Reminder Times Override", () => "Defines the overridden times for reminders per event.");
 
             this.ReminderOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderOpacity), 0.5f, () => "Reminder Opacity", () => "Defines the background opacity for reminders.");
             this.ReminderOpacity.SetRange(0.1f, 1f);

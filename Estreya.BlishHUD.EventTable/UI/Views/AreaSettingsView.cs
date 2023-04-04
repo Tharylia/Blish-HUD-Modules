@@ -562,7 +562,7 @@ public class AreaSettingsView : BaseSettingsView
         _manageEventsWindow.Show(view);
     }
 
-    private void ManageView_EventChanged(object sender, EventChangedArgs e)
+    private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
         var configuration = e.AdditionalData["configuration"] as EventAreaConfiguration;
         configuration.DisabledEventKeys.Value = e.NewState

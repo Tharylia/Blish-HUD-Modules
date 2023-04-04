@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views
+namespace Estreya.BlishHUD.EventTable.UI.Views
 {
     using Blish_HUD;
     using Blish_HUD.Controls;
@@ -71,7 +71,7 @@
             });
         }
 
-        private void ManageView_EventChanged(object sender, EventChangedArgs e)
+        private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
         {
             this._moduleSettings.DisabledDynamicEventIds.Value = e.NewState
                 ? new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value.Where(s => s != e.EventSettingKey))

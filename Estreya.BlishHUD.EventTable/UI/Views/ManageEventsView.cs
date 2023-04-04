@@ -27,11 +27,11 @@
 
         private static readonly Logger Logger = Logger.GetLogger<ManageEventsView>();
         private readonly List<EventCategory> allEvents;
-        private readonly Dictionary<string,object> _additionalData;
+        private readonly Dictionary<string, object> _additionalData;
         private readonly Func<List<string>> _getDisabledEventKeys;
 
 
-        public ManageEventsView(List<EventCategory> allEvents, Dictionary<string,object> additionalData, Func<List<string>> getDisabledEventKeys,  Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState,translationState, font)
+        public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
         {
             this.allEvents = allEvents;
             this._additionalData = additionalData ?? new Dictionary<string, object>();
@@ -221,30 +221,22 @@
                         Event = e,
                         Parent = eventPanel,
                         Text = e.Name,
+                        Icon= this.IconState.GetIcon(e.Icon),
                         ShowToggleButton = true,
                         FillColor = Color.LightBlue,
                         //Size = new Point((events.ContentRegion.Size.X - Panel.ControlStandard.Size.X) / 2, events.ContentRegion.Size.X - Panel.ControlStandard.Size.X)
                     };
 
-                    GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
-                    {
-                        button.Icon = this.IconState.GetIcon(e.Icon);
-                    });
-
                     if (!string.IsNullOrWhiteSpace(e.Waypoint))
                     {
+                        var icon = this.IconState.GetIcon("102348.png");
                         GlowButton waypointButton = new GlowButton()
                         {
                             Parent = button,
-                            ToggleGlow = false
+                            ToggleGlow = false,
+                            Tooltip = new Tooltip(new TooltipView("Waypoint", "Click to copy waypoint!", icon, this.TranslationState)),
+                            Icon = icon
                         };
-
-                        GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
-                        {
-                            var icon = this.IconState.GetIcon("102348.png");
-                            waypointButton.Tooltip = new Tooltip(new TooltipView("Waypoint", "Click to copy waypoint!", icon, this.TranslationState));
-                            waypointButton.Icon = icon;
-                        });
 
                         waypointButton.Click += (s, eventArgs) =>
                         {
@@ -268,18 +260,14 @@
 
                     if (!string.IsNullOrWhiteSpace(e.Wiki))
                     {
-                        GlowButton wikiButton = new GlowButton()
+                        var icon = this.IconState.GetIcon("102353.png");
+                        GlowButton wikiButton = new GlowButton
                         {
                             Parent = button,
-                            ToggleGlow = false
+                            ToggleGlow = false,
+                            Tooltip = new Tooltip(new TooltipView("Wiki", "Click to open wiki!", icon, this.TranslationState)),
+                            Icon = icon
                         };
-
-                        GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
-                        {
-                            var icon = this.IconState.GetIcon("102353.png");
-                            wikiButton.Tooltip = new Tooltip(new TooltipView("Wiki", "Click to open wiki!", icon, this.TranslationState));
-                            wikiButton.Icon = icon;
-                        });
 
                         wikiButton.Click += (s, eventArgs) =>
                         {
@@ -298,6 +286,29 @@
                             BasicTooltipText = "This event is currently hidden due to dynamic states.",
                             Enabled = false
                         };
+                    }
+
+                    if (this._additionalData.ContainsKey("customActions") && this._additionalData["customActions"] is List<CustomActionDefinition> customActions)
+                    {
+                        foreach (var customAction in customActions)
+                        {
+                            if (string.IsNullOrWhiteSpace(customAction.Name) || customAction.Action == null) continue;
+
+                            //155018.png
+                            GlowButton customButton = new GlowButton()
+                            {
+                                Parent = button,
+                                ToggleGlow = false,
+                                Icon = customAction.Icon != null ? this.IconState.GetIcon(customAction.Icon): null,
+                                BasicTooltipText = customAction.Tooltip,
+                            };
+
+                            customButton.Click += (s, ea) =>
+                            {
+                                customAction.Action?.Invoke(e);
+                            };
+
+                        }
                     }
 
                     GlowButton toggleButton = new GlowButton()
@@ -336,15 +347,24 @@
         {
             return Task.FromResult(true);
         }
-    }
 
-    public class EventChangedArgs
-    {
-        public bool OldState { get; set; }
-        public bool NewState { get; set; }
+        public class EventChangedArgs
+        {
+            public bool OldState { get; set; }
+            public bool NewState { get; set; }
 
-        public Dictionary<string,object> AdditionalData { get; set; }
+            public Dictionary<string, object> AdditionalData { get; set; }
 
-        public string EventSettingKey { get; set; }
+            public string EventSettingKey { get; set; }
+        }
+
+        public struct CustomActionDefinition
+        {
+            public string Name { get; set; }
+            public string Tooltip { get; set; }
+            public string Icon { get; set; }
+
+            public Action<Models.Event> Action { get; set; }
+        }
     }
 }
