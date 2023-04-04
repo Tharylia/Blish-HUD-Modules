@@ -704,7 +704,7 @@ public class EventArea : RenderTargetControl
                         occurence.AddMinutes(ev.Duration),
                         () => _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular)),
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
-                        () => this.Configuration.CompletionAction.Value == EventCompletedAction.Crossout && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed),
+                        () => this.Configuration.CompletionAction.Value is EventCompletedAction.Crossout or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed),
                         () =>
                         {
                             Color defaultTextColor = Color.Black;
@@ -713,7 +713,7 @@ public class EventArea : RenderTargetControl
                                 : (this.Configuration.TextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.TextColor.Value.Cloth.ToXnaColor());
                             float alpha = ev.Filler ? this.Configuration.FillerTextOpacity.Value : this.Configuration.EventTextOpacity.Value;
 
-                            if (this.Configuration.CompletionAction.Value == EventCompletedAction.ChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed))
+                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed))
                             {
                                 if (this.Configuration.CompletedEventsInvertTextColor.Value)
                                 {
@@ -734,7 +734,7 @@ public class EventArea : RenderTargetControl
 
                             float alpha = this.Configuration.EventBackgroundOpacity.Value;
 
-                            if (this.Configuration.CompletionAction.Value == EventCompletedAction.ChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed))
+                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed))
                             {
                                 alpha = this.Configuration.CompletedEventsBackgroundOpacity.Value;
                             }

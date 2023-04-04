@@ -1,9 +1,14 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Models
 {
+    using System.ComponentModel;
+
     public enum EventCompletedAction
     {
         Crossout,
         Hide,
-        ChangeOpacity
+        [Description("Change Opacity")]
+        ChangeOpacity,
+        [Description("Crossout & Change Opacity")]
+        CrossoutAndChangeOpacity
     }
 }
