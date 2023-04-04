@@ -24,6 +24,12 @@
         private readonly Func<List<EventCategory>> _getEvents;
         private StandardWindow _manageEventsWindow;
         private StandardWindow _manageReminderTimesWindow;
+        private static Models.Event _globalChangeTempEvent = new Models.Event();
+
+        static ReminderSettingsView()
+        {
+            _globalChangeTempEvent.UpdateReminderTimes(new TimeSpan[] { TimeSpan.Zero });
+        }
 
         public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
         {
@@ -102,6 +108,11 @@
 
                 reminder.Show(TimeSpan.FromSeconds(_moduleSettings.ReminderDuration.Value));
             });
+
+            this.RenderButton(parent, "Change all Reminder Times", () =>
+            {
+                this.ManageReminderTimes(_globalChangeTempEvent);
+            });
         }
 
         private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
@@ -131,6 +142,16 @@
                 };
 
                 this._manageReminderTimesWindow.Size = new Point(450, this._manageReminderTimesWindow.Height);
+
+                var emblem = this.IconState.GetIcon("1466345.png");
+
+                if (emblem.HasSwapped)
+                {
+                    this._manageReminderTimesWindow.Emblem = emblem;
+                }else
+                {
+                    emblem.TextureSwapped += this.Emblem_TextureSwapped;
+                }
             }
 
             if (this._manageReminderTimesWindow?.CurrentView is ManageReminderTimesView mrtv)
@@ -148,11 +169,31 @@
             this._manageReminderTimesWindow.Show(view);
         }
 
+        private void Emblem_TextureSwapped(object sender, ValueChangedEventArgs<Texture2D> e)
+        {
+            this._manageReminderTimesWindow.Emblem = e.NewValue;
+        }
+
         private void ManageReminderTimesView_SaveClicked(object sender, (Models.Event Event, List<TimeSpan> ReminderTimes) e)
         {
-            this._moduleSettings.ReminderTimesOverride.Value[e.Event.SettingKey] = e.ReminderTimes;
-            this._moduleSettings.ReminderTimesOverride.Value = new Dictionary<string, List<TimeSpan>>(this._moduleSettings.ReminderTimesOverride.Value);
-            e.Event.UpdateReminderTimes(e.ReminderTimes.ToArray());
+            if (e.Event == _globalChangeTempEvent)
+            {
+                var allEvents = this._getEvents().SelectMany(ec => ec.Events).Where(ev => !ev.Filler);
+                foreach (var ev in allEvents)
+                {
+                    this._moduleSettings.ReminderTimesOverride.Value[ev.SettingKey] = e.ReminderTimes;
+                    ev.UpdateReminderTimes(e.ReminderTimes.ToArray());
+                }
+
+                this._moduleSettings.ReminderTimesOverride.Value = new Dictionary<string, List<TimeSpan>>(this._moduleSettings.ReminderTimesOverride.Value);
+                _globalChangeTempEvent.UpdateReminderTimes(e.ReminderTimes.ToArray());
+            }
+            else
+            {
+                this._moduleSettings.ReminderTimesOverride.Value[e.Event.SettingKey] = e.ReminderTimes;
+                this._moduleSettings.ReminderTimesOverride.Value = new Dictionary<string, List<TimeSpan>>(this._moduleSettings.ReminderTimesOverride.Value);
+                e.Event.UpdateReminderTimes(e.ReminderTimes.ToArray());
+            }
 
             this._manageReminderTimesWindow?.Hide();
         }
