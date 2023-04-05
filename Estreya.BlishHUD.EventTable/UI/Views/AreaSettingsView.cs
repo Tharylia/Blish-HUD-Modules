@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
+namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -495,23 +495,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ReorderEvents(EventAreaConfiguration configuration)
     {
-        if (this._reorderEventsWindow == null)
-        {
-            Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
-
-            Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-            int contentRegionPaddingY = settingsWindowSize.Y - 15;
-            int contentRegionPaddingX = settingsWindowSize.X;
-            Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
-
-            this._reorderEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
-            {
-                Parent = GameService.Graphics.SpriteScreen,
-                Title = "Reorder Events",
-                SavesPosition = true,
-                Id = $"{this.GetType().Name}_b5cbbd99-f02d-4229-8dda-869b42ac242e"
-            };
-        }
+        this._reorderEventsWindow ??= WindowUtil.CreateStandardWindow("Reorder Events", this.GetType(), Guid.Parse("b5cbbd99-f02d-4229-8dda-869b42ac242e"), this.IconState);
 
         if (_reorderEventsWindow.CurrentView != null)
         {
@@ -532,23 +516,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ManageEvents(EventAreaConfiguration configuration)
     {
-        if (this._manageEventsWindow == null)
-        {
-            Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
-
-            Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-            int contentRegionPaddingY = settingsWindowSize.Y - 15;
-            int contentRegionPaddingX = settingsWindowSize.X;
-            Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
-
-            this._manageEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
-            {
-                Parent = GameService.Graphics.SpriteScreen,
-                Title = "Manage Events",
-                SavesPosition = true,
-                Id = $"{this.GetType().Name}_7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"
-            };
-        }
+        this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconState);
 
         if (_manageEventsWindow.CurrentView != null)
         {

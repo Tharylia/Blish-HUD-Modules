@@ -10,6 +10,7 @@
     using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.UI.Views;
+    using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
     using MonoGame.Extended.BitmapFonts;
@@ -54,23 +55,7 @@
 
             this.RenderButton(parent, this.TranslationState.GetTranslation("dynamicEventsSettingsView-manageEvents-btn", "Manage Events"), () =>
             {
-                if (this._manageEventsWindow == null)
-                {
-                    Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
-
-                    Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-                    int contentRegionPaddingY = settingsWindowSize.Y - 15;
-                    int contentRegionPaddingX = settingsWindowSize.X;
-                    Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
-
-                    this._manageEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
-                    {
-                        Parent = GameService.Graphics.SpriteScreen,
-                        Title = "Manage Events",
-                        SavesPosition = true,
-                        Id = $"{this.GetType().Name}_7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"
-                    };
-                }
+                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconState);
 
                 if (_manageEventsWindow.CurrentView != null)
                 {

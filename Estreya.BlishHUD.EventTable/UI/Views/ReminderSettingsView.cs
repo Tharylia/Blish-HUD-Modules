@@ -8,6 +8,7 @@
     using Estreya.BlishHUD.EventTable.State;
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.UI.Views;
+    using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
     using MonoGame.Extended.BitmapFonts;
@@ -50,23 +51,7 @@
 
             this.RenderButton(parent, this.TranslationState.GetTranslation("reminderSettingsView-manageReminders-btn", "Manage Reminders"), () =>
             {
-                if (this._manageEventsWindow == null)
-                {
-                    Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
-
-                    Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-                    int contentRegionPaddingY = settingsWindowSize.Y - 15;
-                    int contentRegionPaddingX = settingsWindowSize.X;
-                    Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
-
-                    this._manageEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
-                    {
-                        Parent = GameService.Graphics.SpriteScreen,
-                        Title = "Manage Events",
-                        SavesPosition = true,
-                        Id = $"{this.GetType().Name}_7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"
-                    };
-                }
+                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconState);
 
                 if (_manageEventsWindow.CurrentView != null)
                 {
@@ -124,35 +109,8 @@
 
         private void ManageReminderTimes(Models.Event ev)
         {
-            if (this._manageReminderTimesWindow == null)
-            {
-                Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
-
-                Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-                int contentRegionPaddingY = settingsWindowSize.Y - 15;
-                int contentRegionPaddingX = settingsWindowSize.X;
-                Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
-
-                this._manageReminderTimesWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
-                {
-                    Parent = GameService.Graphics.SpriteScreen,
-                    Title = "Manage Reminder Times",
-                    SavesPosition = true,
-                    Id = $"{this.GetType().Name}_930702ac-bf87-416c-b5ba-cdf9e0266bf7"
-                };
-
-                this._manageReminderTimesWindow.Size = new Point(450, this._manageReminderTimesWindow.Height);
-
-                var emblem = this.IconState.GetIcon("1466345.png");
-
-                if (emblem.HasSwapped)
-                {
-                    this._manageReminderTimesWindow.Emblem = emblem;
-                }else
-                {
-                    emblem.TextureSwapped += this.Emblem_TextureSwapped;
-                }
-            }
+            this._manageReminderTimesWindow ??= WindowUtil.CreateStandardWindow("Manage Reminder Times", this.GetType(), Guid.Parse("930702ac-bf87-416c-b5ba-cdf9e0266bf7"), this.IconState, this.IconState.GetIcon("1466345.png"));
+            this._manageReminderTimesWindow.Size = new Point(450, this._manageReminderTimesWindow.Height);
 
             if (this._manageReminderTimesWindow?.CurrentView is ManageReminderTimesView mrtv)
             {
@@ -167,11 +125,6 @@
 
             //this._manageReminderTimesWindow.Subtitle = ev.Name;
             this._manageReminderTimesWindow.Show(view);
-        }
-
-        private void Emblem_TextureSwapped(object sender, ValueChangedEventArgs<Texture2D> e)
-        {
-            this._manageReminderTimesWindow.Emblem = e.NewValue;
         }
 
         private void ManageReminderTimesView_SaveClicked(object sender, (Models.Event Event, List<TimeSpan> ReminderTimes) e)
