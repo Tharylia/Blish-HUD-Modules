@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.Shared.UI.Views;
+﻿namespace Estreya.BlishHUD.Shared.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -18,6 +18,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using Humanizer;
+using Estreya.BlishHUD.Shared.Utils;
 
 public class DonationView : BaseView
 {
@@ -31,41 +33,49 @@ public class DonationView : BaseView
 
     protected override void InternalBuild(Panel parent)
     {
-        FormattedLabelBuilder builder = new FormattedLabelBuilder().SetWidth(parent.ContentRegion.Width - 50).AutoSizeHeight().Wrap()
+        var sectionsPanel = new FlowPanel()
+        {
+            Parent = parent,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            Size = parent.ContentRegion.Size,
+            CanScroll = true
+        };
+
+        this.BuildDonationSection(sectionsPanel);
+    }
+
+    private void BuildDonationSection(FlowPanel parent)
+    {
+        var sectionPanel = new Panel()
+        {
+            Parent = parent,
+            Width = parent.ContentRegion.Width,
+            HeightSizingMode = SizingMode.AutoSize
+        };
+
+        FormattedLabelBuilder builder = new FormattedLabelBuilder().SetWidth(sectionPanel.ContentRegion.Width - 50).AutoSizeHeight().Wrap()
             .CreatePart("You enjoy my work on these modules and want to support it? Feels free to choose a donation method you like.", builder => { builder.SetFontSize(ContentService.FontSize.Size20); })
-            .CreatePart("Donations are always optional and never expected to use my modules!", builder => { 
-                builder.SetFontSize(ContentService.FontSize.Size16); 
+            .CreatePart("Donations are always optional and never expected to use my modules!", builder =>
+            {
+                builder.SetFontSize(ContentService.FontSize.Size16);
                 builder.MakeItalic();
             });
 
         var label = builder.Build();
-        label.Parent = parent;
+        label.Parent = sectionPanel;
         label.Location = new Microsoft.Xna.Framework.Point(30, 30);
 
-        StandardButton kofiSupport = new StandardButton
+        var kofiSupport = this.RenderButton(sectionPanel, "Ko-fi", () =>
         {
-            Left = label.Left,
-            Top = label.Bottom + 20,
-            Parent = parent,
-            Icon = this._kofiLogo,
-            Text = "Ko-fi",
-            Height = 48,
-            Width = 150,
-           
-        };
+            Process.Start("https://ko-fi.com/estreya");
+        });
 
-        var fontProperty = kofiSupport.GetType().GetField("_font", System.Reflection.BindingFlags.NonPublic |System.Reflection.BindingFlags.Instance);
-        fontProperty?.SetValue(kofiSupport, GameService.Content.DefaultFont18);
-        kofiSupport.Click += (s, e) =>
-        {
-            try
-            {
-                Process.Start("https://ko-fi.com/estreya");
-            }
-            catch (Exception)
-            {
-            }
-        };
+        kofiSupport.Left = label.Left;
+        kofiSupport.Top = label.Bottom + 20;
+        kofiSupport.Icon = this._kofiLogo;
+        kofiSupport.Height = 48;
+        kofiSupport.Width = 150;
+        kofiSupport.Font = GameService.Content.DefaultFont18;
     }
 
     protected override async Task<bool> InternalLoad(IProgress<string> progress)
@@ -89,5 +99,5 @@ public class DonationView : BaseView
         }
     }
 
-
+    
 }

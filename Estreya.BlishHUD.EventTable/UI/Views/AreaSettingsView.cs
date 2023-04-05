@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -10,6 +10,7 @@ using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
+using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -115,7 +116,7 @@ public class AreaSettingsView : BaseSettingsView
             };
         });
 
-        StandardButton addButton = this.RenderButton(newParent, this.TranslationState.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
+        Button addButton = this.RenderButton(newParent, this.TranslationState.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
         {
             this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
@@ -156,7 +157,7 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
-        StandardButton saveButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
+        Button saveButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
         {
             try
             {
@@ -205,7 +206,7 @@ public class AreaSettingsView : BaseSettingsView
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
-        StandardButton cancelButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
+        Button cancelButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
         {
             this.ClearAreaPanel();
         });
@@ -291,7 +292,7 @@ public class AreaSettingsView : BaseSettingsView
         reorderEventsButton.Top = manageEventsButton.Bottom + 2;
         reorderEventsButton.Left = manageEventsButton.Left;
 
-        StandardButton removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
+        Button removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
         {
             var dialog = new ConfirmDialog(
                     $"Delete Event Area \"{areaConfiguration.Name}\"", $"Your are in the process of deleting the event area \"{areaConfiguration.Name}\".\nThis action will delete all settings.\n\nContinue?",

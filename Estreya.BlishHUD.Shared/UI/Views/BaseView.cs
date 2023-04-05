@@ -5,6 +5,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.State;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
@@ -342,9 +343,9 @@ public abstract class BaseView : View
         };
     }
 
-    private StandardButton BuildButton(Panel parent, string text, Func<bool> disabledCallback = null)
+    private Button BuildButton(Panel parent, string text, Func<bool> disabledCallback = null)
     {
-        StandardButton button = new StandardButton()
+        Button button = new Button()
         {
             Parent = parent,
             Text = text,
@@ -361,9 +362,9 @@ public abstract class BaseView : View
         return button;
     }
 
-    protected StandardButton RenderButton(Panel parent, string text, Action action, Func<bool> disabledCallback = null)
+    protected Button RenderButton(Panel parent, string text, Action action, Func<bool> disabledCallback = null)
     {
-        StandardButton button = this.BuildButton(parent, text, disabledCallback);
+        Button button = this.BuildButton(parent, text, disabledCallback);
 
         button.Click += (s, e) =>
         {
@@ -381,9 +382,9 @@ public abstract class BaseView : View
         return button;
     }
 
-    protected StandardButton RenderButtonAsync(Panel parent, string text, Func<Task> action, Func<bool> disabledCallback = null)
+    protected Button RenderButtonAsync(Panel parent, string text, Func<Task> action, Func<bool> disabledCallback = null)
     {
-        StandardButton button = this.BuildButton(parent, text, disabledCallback);
+        Button button = this.BuildButton(parent, text, disabledCallback);
 
         button.Click += (s, e) => Task.Run(async () =>
         {
