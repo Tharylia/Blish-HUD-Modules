@@ -11,12 +11,14 @@
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Estreya.BlishHUD.Shared.Utils;
+    using Flurl.Http;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
     using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
     using System.Threading.Tasks;
     using System.Windows.Documents;
@@ -25,12 +27,16 @@
     {
         private readonly DynamicEventState _dynamicEventState;
         private readonly ModuleSettings _moduleSettings;
+        private readonly IFlurlClient _flurlClient;
         private StandardWindow _manageEventsWindow;
 
-        public DynamicEventsSettingsView(DynamicEventState dynamicEventState, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+        private Texture2D _dynamicEventsInWorldImage;
+
+        public DynamicEventsSettingsView(DynamicEventState dynamicEventState, ModuleSettings moduleSettings, IFlurlClient flurlClient, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
         {
             this._dynamicEventState = dynamicEventState;
             this._moduleSettings = moduleSettings;
+            this._flurlClient = flurlClient;
         }
 
         protected override void BuildView(FlowPanel parent)
@@ -68,6 +74,14 @@
 
                 _manageEventsWindow.Show(view);
             });
+
+            if (this._dynamicEventsInWorldImage != null)
+            {
+                this.RenderEmptyLine(parent, 100);
+                this.RenderLabel(parent, "Image of dynamic events inside the game world:");
+                var image = new Image(this._dynamicEventsInWorldImage);
+                image.Parent = parent;
+            }
         }
 
         private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
@@ -77,9 +91,30 @@
                 : new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value) { e.EventSettingKey };
         }
 
-        protected override Task<bool> InternalLoad(IProgress<string> progress)
+
+        protected override async Task<bool> InternalLoad(IProgress<string> progress)
         {
-            return Task.FromResult(true);
+            await this.TryLoadingDynamicEventsInWorldImage();
+            return true;
+        }
+
+        private async Task TryLoadingDynamicEventsInWorldImage()
+        {
+            try
+            {
+                var stream = await this._flurlClient.Request("https://files.estreya.de/blish-hud/event-table/images/dynamic-events-in-world.png").GetStreamAsync();
+                var bitmap = ImageUtil.ResizeImage(System.Drawing.Image.FromStream(stream), 500, 400);
+                using MemoryStream memoryStream = new MemoryStream();
+                bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
+                await Task.Run(() =>
+                {
+                    using var ctx = GameService.Graphics.LendGraphicsDeviceContext();
+                    this._dynamicEventsInWorldImage = Texture2D.FromStream(ctx.GraphicsDevice, memoryStream);
+                });
+            }
+            catch (Exception)
+            {
+            }
         }
 
         protected override void Unload()
@@ -93,6 +128,9 @@
 
             this._manageEventsWindow?.Dispose();
             this._manageEventsWindow = null;
+
+            this._dynamicEventsInWorldImage?.Dispose();
+            this._dynamicEventsInWorldImage = null;
         }
     }
 }
