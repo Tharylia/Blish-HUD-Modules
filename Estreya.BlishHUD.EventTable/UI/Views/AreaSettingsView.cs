@@ -10,6 +10,7 @@ using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
+using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
@@ -28,6 +29,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private readonly Func<IEnumerable<EventAreaConfiguration>> _areaConfigurationFunc;
     private readonly Func<List<EventCategory>> _allEvents;
+    private readonly ModuleSettings _moduleSettings;
     private readonly EventState _eventState;
     private IEnumerable<EventAreaConfiguration> _areaConfigurations;
     private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
@@ -45,10 +47,11 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<EventAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, EventState eventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, EventState eventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
+        this._moduleSettings = moduleSettings;
         this._eventState = eventState;
     }
 
@@ -115,7 +118,7 @@ public class AreaSettingsView : BaseSettingsView
             };
         });
 
-        StandardButton addButton = this.RenderButton(newParent, this.TranslationState.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
+        Button addButton = this.RenderButton(newParent, this.TranslationState.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
         {
             this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
@@ -156,7 +159,7 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
-        StandardButton saveButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
+        Button saveButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
         {
             try
             {
@@ -205,7 +208,7 @@ public class AreaSettingsView : BaseSettingsView
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
-        StandardButton cancelButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
+        Button cancelButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
         {
             this.ClearAreaPanel();
         });
@@ -291,7 +294,7 @@ public class AreaSettingsView : BaseSettingsView
         reorderEventsButton.Top = manageEventsButton.Bottom + 2;
         reorderEventsButton.Left = manageEventsButton.Left;
 
-        StandardButton removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
+        Button removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
         {
             var dialog = new ConfirmDialog(
                     $"Delete Event Area \"{areaConfiguration.Name}\"", $"Your are in the process of deleting the event area \"{areaConfiguration.Name}\".\nThis action will delete all settings.\n\nContinue?",
@@ -495,23 +498,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ReorderEvents(EventAreaConfiguration configuration)
     {
-        if (this._reorderEventsWindow == null)
-        {
-            Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
-
-            Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-            int contentRegionPaddingY = settingsWindowSize.Y - 15;
-            int contentRegionPaddingX = settingsWindowSize.X;
-            Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
-
-            this._reorderEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
-            {
-                Parent = GameService.Graphics.SpriteScreen,
-                Title = "Reorder Events",
-                SavesPosition = true,
-                Id = $"{this.GetType().Name}_b5cbbd99-f02d-4229-8dda-869b42ac242e"
-            };
-        }
+        this._reorderEventsWindow ??= WindowUtil.CreateStandardWindow("Reorder Events", this.GetType(), Guid.Parse("b5cbbd99-f02d-4229-8dda-869b42ac242e"), this.IconState);
 
         if (_reorderEventsWindow.CurrentView != null)
         {
@@ -532,23 +519,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ManageEvents(EventAreaConfiguration configuration)
     {
-        if (this._manageEventsWindow == null)
-        {
-            Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
-
-            Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-            int contentRegionPaddingY = settingsWindowSize.Y - 15;
-            int contentRegionPaddingX = settingsWindowSize.X;
-            Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
-
-            this._manageEventsWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
-            {
-                Parent = GameService.Graphics.SpriteScreen,
-                Title = "Manage Events",
-                SavesPosition = true,
-                Id = $"{this.GetType().Name}_7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"
-            };
-        }
+        this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconState);
 
         if (_manageEventsWindow.CurrentView != null)
         {
@@ -559,7 +530,7 @@ public class AreaSettingsView : BaseSettingsView
         var view = new ManageEventsView(this._allEvents(), new Dictionary<string, object>() {
             { "configuration", configuration },
             { "hiddenEventKeys",  this._eventState.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventState.EventStates.Hidden).Select(x => x.EventKey).ToList() }
-        }, () => configuration.DisabledEventKeys.Value, this.APIManager, this.IconState, this.TranslationState);
+        }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this.APIManager, this.IconState, this.TranslationState);
         view.EventChanged += this.ManageView_EventChanged;
 
         _manageEventsWindow.Show(view);

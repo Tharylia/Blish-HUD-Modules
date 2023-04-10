@@ -15,8 +15,6 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "Estreya.BlishHUD.Shared", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.WebhookUpdater", "Estreya.BlishHUD.WebhookUpdater\Estreya.BlishHUD.WebhookUpdater.csproj", "{A2961446-BC00-43B4-8935-AA93918D6F36}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Estreya.BlishHUD.UniversalSearch", "Estreya.BlishHUD.UniversalSearch\Estreya.BlishHUD.UniversalSearch.csproj", "{606E96D0-5428-45CA-9F63-196DB0018A5F}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -43,10 +41,6 @@ Global
 		{A2961446-BC00-43B4-8935-AA93918D6F36}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A2961446-BC00-43B4-8935-AA93918D6F36}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A2961446-BC00-43B4-8935-AA93918D6F36}.Release|Any CPU.Build.0 = Release|Any CPU
-		{606E96D0-5428-45CA-9F63-196DB0018A5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{606E96D0-5428-45CA-9F63-196DB0018A5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{606E96D0-5428-45CA-9F63-196DB0018A5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{606E96D0-5428-45CA-9F63-196DB0018A5F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -59,7 +53,6 @@ Global
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{413917e8-4cc0-4279-aaf8-7466f554c9de}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{56562b80-5271-4da2-a1e5-e8c5aecda6c0}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{59fb4d68-f75f-49d1-8231-ba56266bcbe4}*SharedItemsImports = 13
-		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{606e96d0-5428-45ca-9f63-196db0018a5f}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{761c8939-3381-42c9-b80e-f96fa68ddb96}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{a2961446-bc00-43b4-8935-aa93918d6f36}*SharedItemsImports = 5
 	EndGlobalSection

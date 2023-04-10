@@ -360,6 +360,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 {
                     IconName = this.Name,
                     Icon = this.GetCornerIcon(),
+                    Priority = 1_289_351_278
                 };
 
                 this.OnCornerIconBuild();
@@ -443,41 +444,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Start building settings window.");
 
-        Texture2D windowBackground = this.IconState.GetIcon(@"textures\setting_window_background.png");
+        this.SettingsWindow ??= WindowUtil.CreateTabbedWindow(this.Name, this.GetType(), Guid.Parse("6bd04be4-dc19-4914-a2c3-8160ce76818b"), this.IconState, this.GetEmblem());
 
-        Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
-        int contentRegionPaddingY = settingsWindowSize.Y - 15;
-        int contentRegionPaddingX = settingsWindowSize.X + 46;
-        Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 52, settingsWindowSize.Height - contentRegionPaddingY);
-
-        this.SettingsWindow = new TabbedWindow2(windowBackground, settingsWindowSize, contentRegion)
-        {
-            Parent = GameService.Graphics.SpriteScreen,
-            Title = this.Name,
-            Subtitle = this.TranslationState.GetTranslation("settingsWindow-subtitle", "Settings"),
-            SavesPosition = true,
-            Id = $"{this.GetType().Name}_6bd04be4-dc19-4914-a2c3-8160ce76818b"
-        };
-
-        AsyncTexture2D emblem = this.GetEmblem();
-
-        if (emblem != null)
-        {
-            if (emblem.HasSwapped)
-            {
-                this.SettingsWindow.Emblem = emblem;
-            }
-            else
-            {
-                emblem.TextureSwapped += this.SettingsWindowEmblem_TextureSwapped;
-            }
-        }
-
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.NewsView( this.Gw2ApiManager, this.IconState, this.TranslationState, this.NewsState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("482926.png"), () => new UI.Views.NewsView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, this.NewsState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
 
         this.OnSettingWindowBuild(this.SettingsWindow);
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156331.png"), () => new UI.Views.DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donation"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156331.png"), () => new UI.Views.DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donations"));
         
         if (this.Debug)
         {
@@ -494,14 +467,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Finished building settings window.");
 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
-    }
-
-    private void SettingsWindowEmblem_TextureSwapped(object sender, ValueChangedEventArgs<Texture2D> e)
-    {
-        AsyncTexture2D texture = sender as AsyncTexture2D;
-        texture.TextureSwapped -= this.SettingsWindowEmblem_TextureSwapped;
-
-        this.SettingsWindow.Emblem = e.NewValue;
     }
 
     /// <summary>

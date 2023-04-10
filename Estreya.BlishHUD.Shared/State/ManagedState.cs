@@ -115,7 +115,6 @@
 
             this._cancellationTokenSource.Cancel();
 
-            this.Clear();
             this.InternalUnload();
         }
 

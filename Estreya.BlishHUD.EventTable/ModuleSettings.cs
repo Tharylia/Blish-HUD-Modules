@@ -58,6 +58,8 @@
 
         public SettingEntry<List<string>> DisabledDynamicEventIds { get; private set; }
 
+        public SettingEntry<MenuEventSortMode> MenuEventSortMenu { get; private set; }
+
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.E))
         {
         }
@@ -109,6 +111,8 @@
             this.DynamicEventsRenderDistance.SetRange(50, 500);
 
             this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
+
+            this.MenuEventSortMenu = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMenu), MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events in menu views are sorted by.");
 
             this.HandleEnabledStates();
         }

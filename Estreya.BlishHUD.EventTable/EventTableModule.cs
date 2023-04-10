@@ -385,6 +385,7 @@
             UI.Views.AreaSettingsView areaSettingsView = new UI.Views.AreaSettingsView(
                 () => this._areas.Values.Select(area => area.Configuration),
                 () => this._eventCategories,
+                this.ModuleSettings,
                 this.Gw2ApiManager,
                 this.IconState,
                 this.TranslationState,
@@ -409,7 +410,7 @@
 
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("1466345.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventState, this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventState, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156764.png"), () => new UI.Views.CustomEventView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.BlishHUDAPIState) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Custom Events"));
 
             this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("157097.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.API_URL, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));

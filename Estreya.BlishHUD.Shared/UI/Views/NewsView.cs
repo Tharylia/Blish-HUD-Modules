@@ -5,10 +5,14 @@
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.Shared.Models;
     using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Utils;
+    using Flurl.Http;
     using Microsoft.Xna.Framework;
+    using Microsoft.Xna.Framework.Graphics;
     using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Collections.Generic;
+    using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Text;
@@ -16,11 +20,16 @@
 
     public class NewsView : BaseView
     {
+        private const string ESTREYA_DISCORD_INVITE = "https://discord.gg/8Yb3jdca3r";
+        private const string BLISH_HUD_DISCORD_INVITE = "https://discord.gg/nGbd3kU";
         private static Point _importantIconSize = new Point(32, 32);
+        private readonly IFlurlClient _flurlClient;
         private NewsState _newsState;
+        private Texture2D _discordLogo;
 
-        public NewsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, NewsState newsState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public NewsView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, NewsState newsState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
         {
+            this._flurlClient = flurlClient;
             this._newsState = newsState;
         }
 
@@ -30,9 +39,9 @@
             {
                 Parent = parent,
                 FlowDirection = ControlFlowDirection.SingleTopToBottom,
-                Location= new Microsoft.Xna.Framework.Point(25, 25),
-                Height = parent.ContentRegion.Height - 25 * 2,
-                Width = parent.ContentRegion.Width - 25 * 2,
+                Location= new Point(25, 25),
+                Height = (int)(parent.ContentRegion.Height * 0.75),
+                Width = parent.ContentRegion.Width - 25 *2,
                 CanScroll = true,
             };
 
@@ -49,6 +58,36 @@
             {
                 this.RenderNoNewsInfo(newsList);
             }
+
+            Panel discordSection = new Panel()
+            {
+                Parent = parent,
+                Location = new Point(newsList.Left, newsList.Bottom),
+                Width = newsList.Width,
+                ShowBorder = true,
+            };
+
+            discordSection.Height = parent.ContentRegion.Height - discordSection.Top;
+
+            var image = new Image(this._discordLogo)
+            {
+                Parent = discordSection
+            };
+            image.Location = new Point(30, discordSection.Height / 2 - image.Height / 2 - 5);
+
+            var labelBuilder = new FormattedLabelBuilder().SetWidth(discordSection.ContentRegion.Width).AutoSizeHeight().SetVerticalAlignment(VerticalAlignment.Top).SetHorizontalAlignment(HorizontalAlignment.Center)
+                .CreatePart("Join my Discord to stay up to date!", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20).MakeUnderlined(); })
+                .CreatePart("\n \n", builder => { })
+                .CreatePart(ESTREYA_DISCORD_INVITE, builder => { builder.SetHyperLink(ESTREYA_DISCORD_INVITE); })
+                .CreatePart("\n \n", builder => { })
+                .CreatePart("BlishHUD:", builder => { })
+                .CreatePart("\n ", builder => { })
+                .CreatePart(BLISH_HUD_DISCORD_INVITE, builder => { builder.SetHyperLink(BLISH_HUD_DISCORD_INVITE); });
+
+            //https://discordapp.com/invite/nGbd3kU
+
+            var label = labelBuilder.Build();
+            label.Parent = discordSection;
         }
 
         private void RenderNoNewsInfo(FlowPanel newsList)
@@ -136,9 +175,29 @@
             return text;
         } 
 
-        protected override Task<bool> InternalLoad(IProgress<string> progress)
+        protected override async Task<bool> InternalLoad(IProgress<string> progress)
         {
-            return Task.FromResult(true);
+            await this.TryLoadDiscordLogo();
+            return true;
+        }
+
+        private async Task TryLoadDiscordLogo()
+        {
+            try
+            {
+                var stream = await this._flurlClient.Request("https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b544a3e3c7c05753bcd_full_logo_white_RGB.png").GetStreamAsync();
+                var bitmap = ImageUtil.ResizeImage(System.Drawing.Image.FromStream(stream), 200, 38);
+                using MemoryStream memoryStream = new MemoryStream();
+                bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
+                await Task.Run(() =>
+                {
+                    using var ctx = GameService.Graphics.LendGraphicsDeviceContext();
+                    this._discordLogo = Texture2D.FromStream(ctx.GraphicsDevice, memoryStream);
+                });
+            }
+            catch (Exception)
+            {
+            }
         }
 
         protected override void Unload()
@@ -146,6 +205,8 @@
             base.Unload();
 
             this._newsState = null;
+            this._discordLogo?.Dispose();
+            this._discordLogo = null;
         }
     }
 }
