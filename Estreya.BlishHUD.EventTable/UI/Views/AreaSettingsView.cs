@@ -29,6 +29,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private readonly Func<IEnumerable<EventAreaConfiguration>> _areaConfigurationFunc;
     private readonly Func<List<EventCategory>> _allEvents;
+    private readonly ModuleSettings _moduleSettings;
     private readonly EventState _eventState;
     private IEnumerable<EventAreaConfiguration> _areaConfigurations;
     private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
@@ -46,10 +47,11 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<EventAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, EventState eventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, EventState eventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
+        this._moduleSettings = moduleSettings;
         this._eventState = eventState;
     }
 
@@ -528,7 +530,7 @@ public class AreaSettingsView : BaseSettingsView
         var view = new ManageEventsView(this._allEvents(), new Dictionary<string, object>() {
             { "configuration", configuration },
             { "hiddenEventKeys",  this._eventState.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventState.EventStates.Hidden).Select(x => x.EventKey).ToList() }
-        }, () => configuration.DisabledEventKeys.Value, this.APIManager, this.IconState, this.TranslationState);
+        }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this.APIManager, this.IconState, this.TranslationState);
         view.EventChanged += this.ManageView_EventChanged;
 
         _manageEventsWindow.Show(view);

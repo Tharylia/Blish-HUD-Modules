@@ -39,6 +39,10 @@
             this.RenderBoolSetting(parent, _moduleSettings.HideInWvW);
             this.RenderBoolSetting(parent, _moduleSettings.HideInPvP);
 
+            this.RenderEmptyLine(parent);
+
+            this.RenderEnumSetting(parent, _moduleSettings.MenuEventSortMenu);
+
             //this.RenderEmptyLine(parent);
 
             //this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.BuildDirection);

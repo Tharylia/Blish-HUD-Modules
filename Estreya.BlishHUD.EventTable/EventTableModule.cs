@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -385,6 +385,7 @@
             UI.Views.AreaSettingsView areaSettingsView = new UI.Views.AreaSettingsView(
                 () => this._areas.Values.Select(area => area.Configuration),
                 () => this._eventCategories,
+                this.ModuleSettings,
                 this.Gw2ApiManager,
                 this.IconState,
                 this.TranslationState,

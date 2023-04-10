@@ -74,7 +74,7 @@
                             }
                         }
                     }
-                }, () => _moduleSettings.ReminderDisabledForEvents.Value, this.APIManager, this.IconState, this.TranslationState);
+                }, () => _moduleSettings.ReminderDisabledForEvents.Value, this._moduleSettings, this.APIManager, this.IconState, this.TranslationState);
                 view.EventChanged += this.ManageView_EventChanged;
 
                 _manageEventsWindow.Show(view);

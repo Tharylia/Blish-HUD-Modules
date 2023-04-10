@@ -29,13 +29,14 @@
         private readonly List<EventCategory> allEvents;
         private readonly Dictionary<string, object> _additionalData;
         private readonly Func<List<string>> _getDisabledEventKeys;
+        private readonly ModuleSettings _moduleSettings;
 
-
-        public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
         {
             this.allEvents = allEvents;
             this._additionalData = additionalData ?? new Dictionary<string, object>();
             this._getDisabledEventKeys = getDisabledEventKeys;
+            this._moduleSettings = moduleSettings;
         }
 
         public Panel Panel { get; private set; }
@@ -119,27 +120,45 @@
             allEvents.Select();
             menus.Add(nameof(allEvents), allEvents);
 
-            foreach (EventCategory category in eventCategories.GroupBy(ec => ec.Key).Select(ec => ec.First()))
+            var categoryList = eventCategories.GroupBy(ec => ec.Key).Select(ec => ec.First());
+
+            switch (this._moduleSettings.MenuEventSortMenu.Value)
+            {
+                case MenuEventSortMode.Alphabetical:
+                    categoryList = categoryList.OrderBy(c => c.Name);
+                    break;
+                case MenuEventSortMode.AlphabeticalDesc:
+                    categoryList = categoryList.OrderByDescending(c => c.Name);
+                    break;
+            }
+
+            foreach (EventCategory category in categoryList)
             {
                 menus.Add(category.Key, eventCategoryMenu.AddMenuItem(category.Name));
             }
 
             menus.ToList().ForEach(menuItemPair => menuItemPair.Value.Click += (s, e) =>
             {
-                if (s is MenuItem menuItem)
+                try
                 {
-                    EventCategory category = eventCategories.Where(ec => ec.Name == menuItem.Text).FirstOrDefault();
-
-                    eventPanel.FilterChildren<EventDetailsButton>(detailsButton =>
+                    if (s is MenuItem menuItem)
                     {
-                        if (menuItem == menus[nameof(allEvents)])
-                        {
-                            return true;
-                        }
+                        EventCategory category = eventCategories.Where(ec => ec.Name == menuItem.Text).FirstOrDefault();
 
-                        //IEnumerable<EventCategory> categories = EventCategories.Where(ec => ec.Events.Any(ev => ev.Name == detailsButton.Text));
-                        return category.Events.Any(ev => ev.SettingKey.Split('_')[0] == detailsButton.Event.SettingKey.Split('_')[0] && ev.Key == detailsButton.Event.Key);
-                    });
+                        eventPanel.FilterChildren<EventDetailsButton>(detailsButton =>
+                        {
+                            if (menuItem == menus[nameof(allEvents)])
+                            {
+                                return true;
+                            }
+
+                            //IEnumerable<EventCategory> categories = EventCategories.Where(ec => ec.Events.Any(ev => ev.Name == detailsButton.Text));
+                            return category.Events.Any(ev => ev.SettingKey.Split('_')[0] == detailsButton.Event.SettingKey.Split('_')[0] && ev.Key == detailsButton.Event.Key);
+                        });
+                    }
+                }catch(Exception ex)
+                {
+                    this.ShowError($"Failed to filter events:\n{ex.Message}");
                 }
             });
 
