@@ -39,7 +39,7 @@
             {
                 Parent = parent,
                 FlowDirection = ControlFlowDirection.SingleTopToBottom,
-                Location= new Microsoft.Xna.Framework.Point(25, 25),
+                Location= new Point(25, 25),
                 Height = (int)(parent.ContentRegion.Height * 0.75),
                 Width = parent.ContentRegion.Width - 25 *2,
                 CanScroll = true,
@@ -62,15 +62,17 @@
             Panel discordSection = new Panel()
             {
                 Parent = parent,
-                Location = new Microsoft.Xna.Framework.Point(newsList.Left, newsList.Bottom),
+                Location = new Point(newsList.Left, newsList.Bottom),
                 Width = newsList.Width,
                 ShowBorder = true,
             };
 
             discordSection.Height = parent.ContentRegion.Height - discordSection.Top;
 
-            var image = new Image(this._discordLogo);
-            image.Parent = discordSection;
+            var image = new Image(this._discordLogo)
+            {
+                Parent = discordSection
+            };
             image.Location = new Point(30, discordSection.Height / 2 - image.Height / 2 - 5);
 
             var labelBuilder = new FormattedLabelBuilder().SetWidth(discordSection.ContentRegion.Width).AutoSizeHeight().SetVerticalAlignment(VerticalAlignment.Top).SetHorizontalAlignment(HorizontalAlignment.Center)
@@ -175,9 +177,15 @@
 
         protected override async Task<bool> InternalLoad(IProgress<string> progress)
         {
+            await this.TryLoadDiscordLogo();
+            return true;
+        }
+
+        private async Task TryLoadDiscordLogo()
+        {
             try
             {
-                var stream = await this._flurlClient.Request("https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b52aa9e99b832574a53_full_logo_blurple_RGB.png").GetStreamAsync();
+                var stream = await this._flurlClient.Request("https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b544a3e3c7c05753bcd_full_logo_white_RGB.png").GetStreamAsync();
                 var bitmap = ImageUtil.ResizeImage(System.Drawing.Image.FromStream(stream), 200, 38);
                 using MemoryStream memoryStream = new MemoryStream();
                 bitmap.Save(memoryStream, System.Drawing.Imaging.ImageFormat.Png);
@@ -186,11 +194,9 @@
                     using var ctx = GameService.Graphics.LendGraphicsDeviceContext();
                     this._discordLogo = Texture2D.FromStream(ctx.GraphicsDevice, memoryStream);
                 });
-                return true;
             }
             catch (Exception)
             {
-                return false;
             }
         }
 
