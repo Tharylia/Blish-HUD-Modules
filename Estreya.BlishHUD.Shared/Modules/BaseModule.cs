@@ -360,7 +360,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 {
                     IconName = this.Name,
                     Icon = this.GetCornerIcon(),
-                    Priority = this.Name.GetHashCode()
+                    Priority = 1_289_351_278
                 };
 
                 this.OnCornerIconBuild();
