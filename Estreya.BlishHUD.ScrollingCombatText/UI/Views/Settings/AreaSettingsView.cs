@@ -4,6 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.ScrollingCombatText.Models;
+using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.UI.Views;
@@ -103,7 +104,7 @@ public class AreaSettingsView : BaseSettingsView
             };
         });
 
-        StandardButton addButton = this.RenderButton(newParent, "Add", () =>
+        Button addButton = this.RenderButton(newParent, "Add", () =>
         {
             this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
@@ -124,7 +125,7 @@ public class AreaSettingsView : BaseSettingsView
         this._areaPanel.Size = new Point(bounds.Width, bounds.Height);
     }
 
-    private void BuildAddPanel(Panel parent, Rectangle bounds, Menu menu)
+    private void BuildAddPanel(Panel parent, Rectangle bounds, Shared.Controls.Menu menu)
     {
         this.CreateAreaPanel(parent, bounds);
 
@@ -137,7 +138,7 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
-        StandardButton saveButton = this.RenderButton(this._areaPanel, "Save", () =>
+        Button saveButton = this.RenderButton(this._areaPanel, "Save", () =>
         {
             try
             {
@@ -186,7 +187,7 @@ public class AreaSettingsView : BaseSettingsView
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
-        StandardButton cancelButton = this.RenderButton(this._areaPanel, "Cancel", () =>
+        Button cancelButton = this.RenderButton(this._areaPanel, "Cancel", () =>
         {
             this.ClearAreaPanel();
         });
@@ -370,10 +371,10 @@ public class AreaSettingsView : BaseSettingsView
         this.BuildFormatRulesArea(formatRulesPanel, panelBounds, areaConfiguration);
         #endregion
 
-        StandardButton removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
+        Button removeButton = this.RenderButton(this._areaPanel, "Remove", () =>
         {
             this.RemoveArea?.Invoke(this, areaConfiguration);
-            Menu menu = menuItem.Parent as Menu;
+            Shared.Controls.Menu menu = menuItem.Parent as Shared.Controls.Menu;
             menu.RemoveChild(menuItem);
             this._menuItems.Remove(areaConfiguration.Name);
             this.ClearAreaPanel();
@@ -502,7 +503,7 @@ public class AreaSettingsView : BaseSettingsView
             selectorPanel: this.MainPanel,
             innerSelectorPanelPadding: new Thickness(20, 20));
 
-        StandardButton suggestBetterColorButton = this.RenderButton(parent, "Suggest better format colors", 
+        Button suggestBetterColorButton = this.RenderButton(parent, "Suggest better format colors", 
             () => ScrollingCombatTextModule.ModuleInstance.GitHubHelper.OpenIssueWindow("Color ... would look better for ..."));
 
         suggestBetterColorButton.Location = new Point(0, colorLabel.Bottom + 20);
