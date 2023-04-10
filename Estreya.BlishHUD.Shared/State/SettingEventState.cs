@@ -53,27 +53,50 @@
 
         public void AddForRangeCheck(SettingEntry settingEntry, IComplianceRequisite defaultRange = null)
         {
+            if (settingEntry == null)
+            {
+                throw new ArgumentNullException(nameof(settingEntry));
+            }
+
             if (!this._registeredForRangeUpdates.Any(p => p.SettingEntry.EntryKey == settingEntry.EntryKey))
             {
                 this._registeredForRangeUpdates.Add((settingEntry, defaultRange));
                 _logger.Debug($"Started tracking setting \"{settingEntry.EntryKey}\" for range updates.");
             }
         }
+
         public void RemoveFromRangeCheck(SettingEntry settingEntry)
         {
+            if (settingEntry == null)
+            {
+                throw new ArgumentNullException(nameof(settingEntry));
+            }
+
             this._registeredForRangeUpdates.RemoveAll(p => p.SettingEntry.EntryKey == settingEntry.EntryKey);
             _logger.Debug($"Stopped tracking setting \"{settingEntry.EntryKey}\" for range updates.");
         }
+
         public void AddForDisabledCheck(SettingEntry settingEntry, IComplianceRequisite defaultRange = null)
         {
+            if (settingEntry == null)
+            {
+                throw new ArgumentNullException(nameof(settingEntry));
+            }
+
             if (!this._registeredForDisabledUpdates.Any(p => p.SettingEntry.EntryKey == settingEntry.EntryKey))
             {
                 this._registeredForDisabledUpdates.Add((settingEntry, defaultRange));
                 _logger.Debug($"Started tracking setting \"{settingEntry.EntryKey}\" for disabled updates.");
             }
         }
+
         public void RemoveFromDisabledCheck(SettingEntry settingEntry)
         {
+            if (settingEntry == null)
+            {
+                throw new ArgumentNullException(nameof(settingEntry));
+            }
+
             this._registeredForDisabledUpdates.RemoveAll(p => p.SettingEntry.EntryKey == settingEntry.EntryKey);
             _logger.Debug($"Stopped tracking setting \"{settingEntry.EntryKey}\" for disabled updates.");
         }
