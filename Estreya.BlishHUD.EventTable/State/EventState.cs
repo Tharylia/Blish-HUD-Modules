@@ -300,7 +300,6 @@
         protected override void InternalUnload()
         {
             AsyncHelper.RunSync(this.Save);
-            AsyncHelper.RunSync(this.Clear);
         }
     }
 }
