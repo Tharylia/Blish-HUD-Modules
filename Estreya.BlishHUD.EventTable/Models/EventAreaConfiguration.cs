@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Models;
+namespace Estreya.BlishHUD.EventTable.Models;
 
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Models.Drawers;
@@ -47,4 +47,14 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<float> CompletedEventsBackgroundOpacity { get; set; }
     public SettingEntry<float> CompletedEventsTextOpacity { get; set; }
     public SettingEntry<bool> CompletedEventsInvertTextColor { get; set; }
+
+    // UI Visibility - START
+    public SettingEntry<bool> HideOnMissingMumbleTicks { get; set; }
+    public SettingEntry<bool> HideInCombat { get; set; }
+    public SettingEntry<bool> HideOnOpenMap { get; set; }
+    public SettingEntry<bool> HideInPvE_OpenWorld { get; set; }
+    public SettingEntry<bool> HideInPvE_Competetive { get; set; }
+    public SettingEntry<bool> HideInWvW { get; set; }
+    public SettingEntry<bool> HideInPvP { get; set; }
+    // UI Visibility - END
 }

@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
+namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -242,7 +242,7 @@ public class AreaSettingsView : BaseSettingsView
         FlowPanel settingsPanel = new FlowPanel()
         {
             Left = areaName.Left,
-            Top = areaName.Bottom + 75,
+            Top = areaName.Bottom + 50,
             Parent = this._areaPanel,
             HeightSizingMode = SizingMode.Fill,
             WidthSizingMode = SizingMode.Fill,
@@ -261,6 +261,10 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderLayoutSettings(settingsPanel, areaConfiguration);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderVisibilitySettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -393,6 +397,31 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEnumSetting(groupPanel, areaConfiguration.BuildDirection);
         this.RenderIntSetting(groupPanel, areaConfiguration.TimeSpan);
         this.RenderIntSetting(groupPanel, areaConfiguration.HistorySplit);
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+
+    private void RenderVisibilitySettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    {
+        FlowPanel groupPanel = new FlowPanel()
+        {
+            Parent = settingsPanel,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = settingsPanel.Width - 30,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = "Visibility"
+        };
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.HideOnMissingMumbleTicks);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.HideOnOpenMap);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.HideInCombat);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.HideInPvE_OpenWorld);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.HideInPvE_Competetive);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.HideInWvW);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.HideInPvP);
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
 

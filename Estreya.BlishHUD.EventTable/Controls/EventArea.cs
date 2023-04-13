@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -814,6 +814,60 @@ public class EventArea : RenderTargetControl
 
                 break;
         }
+    }
+
+    /// <summary>
+    /// Calculates the ui visibility based on settings or mumble parameters.
+    /// </summary>
+    /// <returns>The newly calculated ui visibility.</returns>
+    public bool CalculateUIVisibility()
+    {
+        bool show = true;
+        if (this.Configuration.HideOnOpenMap.Value)
+        {
+            show &= !GameService.Gw2Mumble.UI.IsMapOpen;
+        }
+
+        if (this.Configuration.HideOnMissingMumbleTicks.Value)
+        {
+            show &= GameService.Gw2Mumble.TimeSinceTick.TotalSeconds < 0.5;
+        }
+
+        if (this.Configuration.HideInCombat.Value)
+        {
+            show &= !GameService.Gw2Mumble.PlayerCharacter.IsInCombat;
+        }
+
+        // All maps not specified as competetive will be treated as open world
+        if (this.Configuration.HideInPvE_OpenWorld.Value)
+        {
+            MapType[] pveOpenWorldMapTypes = new[] { MapType.Public, MapType.Instance, MapType.Tutorial, MapType.PublicMini };
+
+            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !Shared.MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+        }
+
+        if (this.Configuration.HideInPvE_Competetive.Value)
+        {
+            MapType[] pveCompetetiveMapTypes = new[] { MapType.Instance };
+
+            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && Shared.MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+        }
+
+        if (this.Configuration.HideInWvW.Value)
+        {
+            MapType[] wvwMapTypes = new[] { MapType.EternalBattlegrounds, MapType.GreenBorderlands, MapType.RedBorderlands, MapType.BlueBorderlands, MapType.EdgeOfTheMists };
+
+            show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && wvwMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
+        }
+
+        if (this.Configuration.HideInPvP.Value)
+        {
+            MapType[] pvpMapTypes = new[] { MapType.Pvp, MapType.Tournament };
+
+            show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pvpMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
+        }
+
+        return show;
     }
 
     protected override void InternalUpdate(GameTime gameTime)
