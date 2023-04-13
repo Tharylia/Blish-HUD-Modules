@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -496,6 +496,11 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.LimitToCurrentMap);
         this.RenderBoolSetting(groupPanel, areaConfiguration.AllowUnspecifiedMap);
+
+        this.RenderEmptyLine(groupPanel);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowCategoryNames);
+        this.RenderColorSetting(groupPanel, areaConfiguration.CategoryNameColor);
+
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
     private void RenderFillerSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)

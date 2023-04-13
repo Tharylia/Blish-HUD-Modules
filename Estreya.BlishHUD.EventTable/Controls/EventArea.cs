@@ -1,7 +1,8 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
+using Blish_HUD.ArcDps.Models;
 using Blish_HUD.Controls;
 using Blish_HUD.Entities;
 using Blish_HUD.Input;
@@ -14,6 +15,7 @@ using Estreya.BlishHUD.Shared.State;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
+using Gw2Sharp.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Graphics.PackedVector;
@@ -21,6 +23,7 @@ using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
 using Newtonsoft.Json;
+using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -58,6 +61,14 @@ public class EventArea : RenderTargetControl
     private List<EventCategory> _allEvents = new List<EventCategory>();
 
     private int _heightFromLastDraw = 1; // Blish does not render controls at y 0 with 0 height
+
+    private int _drawXOffset = 0;
+
+    private int DrawXOffset
+    {
+        get => this.Configuration.ShowCategoryNames.Value ? this._drawXOffset : 0;
+        set => this._drawXOffset = value;
+    }
 
     private Event _lastActiveEvent;
 
@@ -100,7 +111,7 @@ public class EventArea : RenderTargetControl
     {
         get
         {
-            int pixels = this.Size.X;
+            int pixels = this.GetWidth();
 
             double pixelPerMinute = pixels / (double)this.Configuration.TimeSpan.Value;
 
@@ -366,6 +377,16 @@ public class EventArea : RenderTargetControl
         }
     }
 
+    private int GetWidth()
+    {
+        return this.Width - this.DrawXOffset;
+    }
+
+    private BitmapFont GetFont()
+    {
+        return _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular));
+    }
+
     private void ReAddEvents()
     {
         this._clearing = true;
@@ -551,12 +572,31 @@ public class EventArea : RenderTargetControl
         this._activeEvent = null;
 
         int y = 0;
+        this._drawXOffset = 0;
         List<List<(DateTime Occurence, Event Event)>> orderedControlEvents = this.OrderedControlEvents;
+
+        if (this.Configuration.ShowCategoryNames.Value)
+        {
+            foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in orderedControlEvents)
+            {
+                if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Ev.Category.TryGetTarget(out var eventCategory))
+                {
+                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).Width + 5, this._drawXOffset);
+                }
+            }
+        }
+
         foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in orderedControlEvents)
         {
             if (controlEventPairs.Count == 0)
             {
                 continue; // We dont have anything to render here
+            }
+
+            if (this.Configuration.ShowCategoryNames.Value && controlEventPairs.First().Event.Ev.Category.TryGetTarget(out var eventCategory))
+            {
+                var color = this.Configuration.CategoryNameColor.Value.Id == 1 ? Color.Black : this.Configuration.CategoryNameColor.Value.Cloth.ToXnaColor();
+                spriteBatch.DrawString(this.GetFont(), eventCategory.Name, new Vector2(0, y), color);
             }
 
             List<(DateTime Occurence, Event Event)> toDelete = new List<(DateTime Occurence, Event Event)>();
@@ -571,7 +611,7 @@ public class EventArea : RenderTargetControl
                     continue;
                 }
 
-                float width = (float)controlEvent.Event.Ev.CalculateWidth(controlEvent.Occurence, times.Min, this.Width, this.PixelPerMinute);
+                float width = (float)controlEvent.Event.Ev.CalculateWidth(controlEvent.Occurence, times.Min, this.GetWidth(), this.PixelPerMinute);
 
                 if (width <= 0)
                 {
@@ -582,8 +622,8 @@ public class EventArea : RenderTargetControl
                 {
                     // We are good to render
                     float x = (float)controlEvent.Event.Ev.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute);
-
-                    RectangleF renderRect = new RectangleF(x < 0 ? 0 : x, y, width, this.Configuration.EventHeight.Value);
+                    x = (x < 0 ? 0 : x) + this.DrawXOffset;
+                    RectangleF renderRect = new RectangleF(x, y, width, this.Configuration.EventHeight.Value);
                     controlEvent.Event.Render(spriteBatch, renderRect);
                     if (renderRect.ToBounds(this.AbsoluteBounds).Contains(GameService.Input.Mouse.Position))
                     {
@@ -689,9 +729,9 @@ public class EventArea : RenderTargetControl
                     }
 
                     float x = (float)ev.CalculateXPosition(occurence, times.Min, this.PixelPerMinute);
-                    float width = (float)ev.CalculateWidth(occurence, times.Min, this.Width, this.PixelPerMinute);
+                    float width = (float)ev.CalculateWidth(occurence, times.Min, this.GetWidth(), this.PixelPerMinute);
 
-                    if (x > this.Width || width <= 0)
+                    if (x > this.GetWidth() || width <= 0)
                     {
                         continue;
                     }
@@ -702,7 +742,7 @@ public class EventArea : RenderTargetControl
                         this._getNowAction,
                         occurence,
                         occurence.AddMinutes(ev.Duration),
-                        () => _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular)),
+                        this.GetFont,
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
                         () => this.Configuration.CompletionAction.Value is EventCompletedAction.Crossout or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed),
                         () =>
@@ -885,7 +925,7 @@ public class EventArea : RenderTargetControl
 
     private void DrawTimeLine(SpriteBatch spriteBatch)
     {
-        float middleLineX = this.Width * this.GetTimeSpanRatio();
+        float middleLineX = (this.GetWidth() * this.GetTimeSpanRatio()) + this.DrawXOffset;
         float width = 2;
         spriteBatch.DrawLine(ContentService.Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Color.LightGray * this.Configuration.TimeLineOpacity.Value);
     }

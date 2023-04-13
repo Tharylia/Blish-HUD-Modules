@@ -96,6 +96,9 @@
         [JsonIgnore]
         public string SettingKey { get; private set; }
 
+        [JsonIgnore]
+        public WeakReference<EventCategory> Category { get; private set; }
+
         [JsonProperty("reminderTimes"), JsonConverter(typeof(Shared.Json.Converter.TimeSpanArrayJsonConverter), "hh\\:mm\\:ss", new string[] { "hh\\:mm", "hh\\:mm\\:ss" }, true)]
         public TimeSpan[] ReminderTimes { get; private set; } = new[]
         {
@@ -147,6 +150,7 @@
             }
 
             this.SettingKey = $"{ec.Key}_{this.Key}";
+            this.Category = new WeakReference<EventCategory>(ec);
 
             this._getNowAction = getNowAction;
 

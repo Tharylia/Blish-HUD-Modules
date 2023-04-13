@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Models;
+﻿namespace Estreya.BlishHUD.EventTable.Models;
 
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Models.Drawers;
@@ -57,4 +57,7 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<bool> HideInWvW { get; set; }
     public SettingEntry<bool> HideInPvP { get; set; }
     // UI Visibility - END
+
+    public SettingEntry<bool> ShowCategoryNames { get; set; }
+    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> CategoryNameColor { get; set; }
 }

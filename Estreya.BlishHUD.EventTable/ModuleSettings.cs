@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
@@ -257,6 +257,10 @@ namespace Estreya.BlishHUD.EventTable
 
             var hideInPvP = this.DrawerSettings.DefineSetting($"{name}-hideInPvP", false, () => "Hide in PvP", () => "Whether the area should hide when in player vs. player.");
 
+            var showCategoryNames = this.DrawerSettings.DefineSetting($"{name}-showCategoryNames", false, () => "Show Category Names", () => "Defines if the category names should be shown before the event bars.");
+
+            var categoryNameColor = this.DrawerSettings.DefineSetting($"{name}-categoryNameColor", this.DefaultGW2Color, () => "Category Name Color", () => "Defines the color of the category names.");
+
             return new EventAreaConfiguration()
             {
                 Name = drawer.Name,
@@ -304,6 +308,8 @@ namespace Estreya.BlishHUD.EventTable
                 HideInPvE_OpenWorld = hideInPvE_OpenWorld,
                 HideInPvP= hideInPvP,
                 HideInWvW = hideInWvW,
+                ShowCategoryNames = showCategoryNames,
+                CategoryNameColor  = categoryNameColor
             };
         }
 
@@ -360,6 +366,8 @@ namespace Estreya.BlishHUD.EventTable
             this.DrawerSettings.UndefineSetting($"{name}-hideInPvE_Competetive");
             this.DrawerSettings.UndefineSetting($"{name}-hideInWvW");
             this.DrawerSettings.UndefineSetting($"{name}-hideInPvP");
+            this.DrawerSettings.UndefineSetting($"{name}-showCategoryNames");
+            this.DrawerSettings.UndefineSetting($"{name}-categoryNameColor");
         }
 
         public override void UpdateLocalization(TranslationState translationState)
