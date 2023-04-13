@@ -60,6 +60,14 @@
 
         public SettingEntry<MenuEventSortMode> MenuEventSortMenu { get; private set; }
 
+        public SettingEntry<bool> HideRemindersOnMissingMumbleTicks { get; private set; }
+        public SettingEntry<bool> HideRemindersInCombat { get; private set; }
+        public SettingEntry<bool> HideRemindersOnOpenMap { get; private set; }
+        public SettingEntry<bool> HideRemindersInPvE_OpenWorld { get; private set; }
+        public SettingEntry<bool> HideRemindersInPvE_Competetive { get; private set; }
+        public SettingEntry<bool> HideRemindersInWvW { get; private set; }
+        public SettingEntry<bool> HideRemindersInPvP { get; private set; }
+
         public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.E))
         {
         }
@@ -113,6 +121,20 @@
             this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
 
             this.MenuEventSortMenu = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMenu), MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events in menu views are sorted by.");
+
+            this.HideRemindersOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersOnOpenMap), false, () => "Hide Reminders on open Map", () => "Whether the reminders should hide when the map is open.");
+
+            this.HideRemindersOnMissingMumbleTicks = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersOnMissingMumbleTicks), true, () => "Hide Reminders on Cutscenes", () => "Whether the reminders should hide when cutscenes are played.");
+
+            this.HideRemindersInCombat = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInCombat), false, () => "Hide Reminders in Combat", () => "Whether the reminders should hide when in combat.");
+
+            this.HideRemindersInPvE_OpenWorld = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInPvE_OpenWorld), false, () => "Hide Reminders in PvE (Open World)", () => "Whether the reminders should hide when in PvE (Open World).");
+
+            this.HideRemindersInPvE_Competetive = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInPvE_Competetive), false, () => "Hide Reminders in PvE (Competetive)", () => "Whether the reminders should hide when in PvE (Competetive).");
+
+            this.HideRemindersInWvW = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInWvW), false, () => "Hide Reminders in WvW", () => "Whether the reminders should hide when in world vs. world.");
+
+            this.HideRemindersInPvP = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInPvP), false, () => "Hide Reminders in PvP", () => "Whether the reminders should hide when in player vs. player.");
 
             this.HandleEnabledStates();
         }
@@ -221,6 +243,24 @@
 
             var completedEventsInvertTextColor = this.DrawerSettings.DefineSetting($"{name}-completedEventsInvertTextColor", true, () => "Completed Events Invert Textcolor", () => "Specified if completed events should have their text color inverted. Only works in combination with CompletionAction = Change Opacity");
 
+            var hideOnOpenMap = this.DrawerSettings.DefineSetting($"{name}-hideOnOpenMap", true, () => "Hide on open Map", () => "Whether the area should hide when the map is open.");
+
+            var hideOnMissingMumbleTicks = this.DrawerSettings.DefineSetting($"{name}-hideOnMissingMumbleTicks", true, () => "Hide on Cutscenes", () => "Whether the area should hide when cutscenes are played.");
+
+            var hideInCombat = this.DrawerSettings.DefineSetting($"{name}-hideInCombat", false, () => "Hide in Combat", () => "Whether the area should hide when in combat.");
+
+            var hideInPvE_OpenWorld = this.DrawerSettings.DefineSetting($"{name}-hideInPvE_OpenWorld", false, () => "Hide in PvE (Open World)", () => "Whether the area should hide when in PvE (Open World).");
+
+            var hideInPvE_Competetive = this.DrawerSettings.DefineSetting($"{name}-hideInPvE_Competetive", false, () => "Hide in PvE (Competetive)", () => "Whether the area should hide when in PvE (Competetive).");
+
+            var hideInWvW = this.DrawerSettings.DefineSetting($"{name}-hideInWvW", false, () => "Hide in WvW", () => "Whether the area should hide when in world vs. world.");
+
+            var hideInPvP = this.DrawerSettings.DefineSetting($"{name}-hideInPvP", false, () => "Hide in PvP", () => "Whether the area should hide when in player vs. player.");
+
+            var showCategoryNames = this.DrawerSettings.DefineSetting($"{name}-showCategoryNames", false, () => "Show Category Names", () => "Defines if the category names should be shown before the event bars.");
+
+            var categoryNameColor = this.DrawerSettings.DefineSetting($"{name}-categoryNameColor", this.DefaultGW2Color, () => "Category Name Color", () => "Defines the color of the category names.");
+
             return new EventAreaConfiguration()
             {
                 Name = drawer.Name,
@@ -260,7 +300,16 @@
                 FillerShadowOpacity = fillerShadowOpacity,
                 CompletedEventsBackgroundOpacity = completedEventsBackgroundOpacity,
                 CompletedEventsTextOpacity = completedEventsTextOpacity,
-                CompletedEventsInvertTextColor = completedEventsInvertTextColor
+                CompletedEventsInvertTextColor = completedEventsInvertTextColor,
+                HideInCombat = hideInCombat,
+                HideOnMissingMumbleTicks = hideOnMissingMumbleTicks,
+                HideOnOpenMap = hideOnOpenMap,
+                HideInPvE_Competetive = hideInPvE_Competetive,
+                HideInPvE_OpenWorld = hideInPvE_OpenWorld,
+                HideInPvP= hideInPvP,
+                HideInWvW = hideInWvW,
+                ShowCategoryNames = showCategoryNames,
+                CategoryNameColor  = categoryNameColor
             };
         }
 
@@ -310,6 +359,15 @@
             this.DrawerSettings.UndefineSetting($"{name}-completedEventsBackgroundOpacity");
             this.DrawerSettings.UndefineSetting($"{name}-completedEventsTextOpacity");
             this.DrawerSettings.UndefineSetting($"{name}-completedEventsInvertTextColor");
+            this.DrawerSettings.UndefineSetting($"{name}-hideOnOpenMap");
+            this.DrawerSettings.UndefineSetting($"{name}-hideOnMissingMumbleTicks");
+            this.DrawerSettings.UndefineSetting($"{name}-hideInCombat");
+            this.DrawerSettings.UndefineSetting($"{name}-hideInPvE_OpenWorld");
+            this.DrawerSettings.UndefineSetting($"{name}-hideInPvE_Competetive");
+            this.DrawerSettings.UndefineSetting($"{name}-hideInWvW");
+            this.DrawerSettings.UndefineSetting($"{name}-hideInPvP");
+            this.DrawerSettings.UndefineSetting($"{name}-showCategoryNames");
+            this.DrawerSettings.UndefineSetting($"{name}-categoryNameColor");
         }
 
         public override void UpdateLocalization(TranslationState translationState)

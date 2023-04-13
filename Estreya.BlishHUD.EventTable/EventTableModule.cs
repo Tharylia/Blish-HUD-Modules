@@ -20,6 +20,7 @@
     using Estreya.BlishHUD.Shared.Threading;
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Http;
+    using Gw2Sharp.Models;
     using Humanizer;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
@@ -233,7 +234,7 @@
             this._areas.Values.ToList().ForEach(area =>
             {
                 // Don't show if disabled.
-                bool showArea = show && area.Enabled;
+                bool showArea = show && area.Enabled && area.CalculateUIVisibility();
 
                 if (showArea)
                 {
@@ -284,6 +285,60 @@
             _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
         }
 
+        /// <summary>
+        /// Calculates the ui visibility of reminders based on settings or mumble parameters.
+        /// </summary>
+        /// <returns>The newly calculated ui visibility or the last value of <see cref="ShowUI"/>.</returns>
+        private bool CalculateReminderUIVisibility()
+        {
+            bool show = true;
+            if (this.ModuleSettings.HideRemindersOnOpenMap.Value)
+            {
+                show &= !GameService.Gw2Mumble.UI.IsMapOpen;
+            }
+
+            if (this.ModuleSettings.HideRemindersOnMissingMumbleTicks.Value)
+            {
+                show &= GameService.Gw2Mumble.TimeSinceTick.TotalSeconds < 0.5;
+            }
+
+            if (this.ModuleSettings.HideRemindersInCombat.Value)
+            {
+                show &= !GameService.Gw2Mumble.PlayerCharacter.IsInCombat;
+            }
+
+            // All maps not specified as competetive will be treated as open world
+            if (this.ModuleSettings.HideRemindersInPvE_OpenWorld.Value)
+            {
+                MapType[] pveOpenWorldMapTypes = new[] { MapType.Public, MapType.Instance, MapType.Tutorial, MapType.PublicMini };
+
+                show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !Shared.MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+            }
+
+            if (this.ModuleSettings.HideRemindersInPvE_Competetive.Value)
+            {
+                MapType[] pveCompetetiveMapTypes = new[] { MapType.Instance };
+
+                show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && Shared.MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+            }
+
+            if (this.ModuleSettings.HideRemindersInWvW.Value)
+            {
+                MapType[] wvwMapTypes = new[] { MapType.EternalBattlegrounds, MapType.GreenBorderlands, MapType.RedBorderlands, MapType.BlueBorderlands, MapType.EdgeOfTheMists };
+
+                show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && wvwMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
+            }
+
+            if (this.ModuleSettings.HideRemindersInPvP.Value)
+            {
+                MapType[] pvpMapTypes = new[] { MapType.Pvp, MapType.Tournament };
+
+                show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pvpMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
+            }
+
+            return show;
+        }
+
         private void AddEventHooks(Models.Event ev)
         {
             ev.Reminder += this.Ev_Reminder;
@@ -299,6 +354,12 @@
             var ev = sender as Models.Event;
 
             if (!this.ModuleSettings.RemindersEnabled.Value || this.ModuleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey)) return;
+
+            if (!this.CalculateReminderUIVisibility())
+            {
+                this.Logger.Debug($"Reminder {ev.SettingKey} was not displayed due to UI Visibility settings.");
+                return;
+            }
 
             var startsInTranslation = this.TranslationState.GetTranslation("eventArea-reminder-startsIn", "Starts in");
             var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)

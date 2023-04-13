@@ -4,6 +4,7 @@
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.Shared.State;
     using Estreya.BlishHUD.Shared.UI.Views;
+    using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
     using System;
     using System.Diagnostics;
@@ -31,22 +32,39 @@
 
             this.RenderKeybindingSetting(parent, _moduleSettings.MapKeybinding);
 
-            this.RenderBoolSetting(parent, _moduleSettings.HideOnMissingMumbleTicks);
-            this.RenderBoolSetting(parent, _moduleSettings.HideOnOpenMap);
-            this.RenderBoolSetting(parent, _moduleSettings.HideInCombat);
-            this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_OpenWorld);
-            this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_Competetive);
-            this.RenderBoolSetting(parent, _moduleSettings.HideInWvW);
-            this.RenderBoolSetting(parent, _moduleSettings.HideInPvP);
+            this.RenderEmptyLine(parent);
+
+            var visibilityOptionGroup = new FlowPanel()
+            {
+                Parent = parent,
+                Width = MathHelper.Clamp((int)(parent.ContentRegion.Width *0.55), 0, parent.ContentRegion.Width),
+                HeightSizingMode = SizingMode.AutoSize,
+                OuterControlPadding = new Vector2(10,20),
+                ShowBorder = true,
+                FlowDirection = ControlFlowDirection.SingleTopToBottom
+            };
+
+            var lbl = new FormattedLabelBuilder().SetWidth(visibilityOptionGroup.ContentRegion.Width - 20).AutoSizeHeight().Wrap()
+                .CreatePart("These options are global. The individual area options have priority and will hide it if any matches!", builder =>
+                {
+                    builder.MakeBold().SetFontSize(Blish_HUD.ContentService.FontSize.Size18);
+                }).Build();
+            lbl.Parent = visibilityOptionGroup;
+
+            this.RenderEmptyLine(visibilityOptionGroup, 10);
+
+            this.RenderBoolSetting(visibilityOptionGroup, _moduleSettings.HideOnMissingMumbleTicks);
+            this.RenderBoolSetting(visibilityOptionGroup, _moduleSettings.HideOnOpenMap);
+            this.RenderBoolSetting(visibilityOptionGroup, _moduleSettings.HideInCombat);
+            this.RenderBoolSetting(visibilityOptionGroup, _moduleSettings.HideInPvE_OpenWorld);
+            this.RenderBoolSetting(visibilityOptionGroup, _moduleSettings.HideInPvE_Competetive);
+            this.RenderBoolSetting(visibilityOptionGroup, _moduleSettings.HideInWvW);
+            this.RenderBoolSetting(visibilityOptionGroup, _moduleSettings.HideInPvP);
+            this.RenderEmptyLine(visibilityOptionGroup, 20);
 
             this.RenderEmptyLine(parent);
 
             this.RenderEnumSetting(parent, _moduleSettings.MenuEventSortMenu);
-
-            //this.RenderEmptyLine(parent);
-
-            //this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.BuildDirection);
-
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)

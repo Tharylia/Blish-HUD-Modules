@@ -98,6 +98,16 @@
             {
                 this.ManageReminderTimes(_globalChangeTempEvent);
             });
+
+            this.RenderEmptyLine(parent);
+
+            this.RenderBoolSetting(parent, _moduleSettings.HideRemindersOnMissingMumbleTicks);
+            this.RenderBoolSetting(parent, _moduleSettings.HideRemindersOnOpenMap);
+            this.RenderBoolSetting(parent, _moduleSettings.HideRemindersInCombat);
+            this.RenderBoolSetting(parent, _moduleSettings.HideRemindersInPvE_OpenWorld);
+            this.RenderBoolSetting(parent, _moduleSettings.HideRemindersInPvE_Competetive);
+            this.RenderBoolSetting(parent, _moduleSettings.HideRemindersInWvW);
+            this.RenderBoolSetting(parent, _moduleSettings.HideRemindersInPvP);
         }
 
         private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
