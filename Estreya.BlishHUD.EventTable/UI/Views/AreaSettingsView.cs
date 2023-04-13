@@ -397,6 +397,10 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEnumSetting(groupPanel, areaConfiguration.BuildDirection);
         this.RenderIntSetting(groupPanel, areaConfiguration.TimeSpan);
         this.RenderIntSetting(groupPanel, areaConfiguration.HistorySplit);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowCategoryNames);
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
 
@@ -460,6 +464,10 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderFloatSetting(groupPanel, areaConfiguration.Opacity);
         this.RenderFloatSetting(groupPanel, areaConfiguration.EventBackgroundOpacity);
 
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderColorSetting(groupPanel, areaConfiguration.CategoryNameColor);
+
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
     private void RenderBehaviourSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
@@ -496,10 +504,6 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.LimitToCurrentMap);
         this.RenderBoolSetting(groupPanel, areaConfiguration.AllowUnspecifiedMap);
-
-        this.RenderEmptyLine(groupPanel);
-        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowCategoryNames);
-        this.RenderColorSetting(groupPanel, areaConfiguration.CategoryNameColor);
 
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
