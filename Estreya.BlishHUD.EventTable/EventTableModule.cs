@@ -76,6 +76,7 @@
 
         protected override async Task LoadAsync()
         {
+            Stopwatch sw = Stopwatch.StartNew();
             await base.LoadAsync();
 
             this.BlishHUDAPIState.NewLogin += this.BlishHUDAPIState_NewLogin;
@@ -83,6 +84,7 @@
 
             this.MapUtil = new MapUtil(this.ModuleSettings.MapKeybinding.Value, this.Gw2ApiManager);
             this.DynamicEventHandler = new DynamicEventHandler(this.MapUtil, this.DynamicEventState, this.Gw2ApiManager, this.ModuleSettings);
+            this.DynamicEventHandler.FoundLostEntities += this.DynamicEventHandler_FoundLostEntities;
 
             await this.DynamicEventHandler.AddDynamicEventsToMap();
             await this.DynamicEventHandler.AddDynamicEventsToWorld();
@@ -96,6 +98,16 @@
 #if DEBUG
             GameService.Input.Keyboard.KeyPressed += this.Keyboard_KeyPressed;
 #endif
+
+            sw.Stop();
+            this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds}ms");
+        }
+
+        private void DynamicEventHandler_FoundLostEntities(object sender, EventArgs e)
+        {
+            Shared.Controls.ScreenNotification.ShowNotification(
+                new string[] { "GameService.Graphics.World.Entities has lost references.", "Expect dynamic event boundaries on screen." },
+                Shared.Controls.ScreenNotification.NotificationType.Warning);
         }
 
         private void Keyboard_KeyPressed(object sender, KeyboardEventArgs e)
@@ -540,17 +552,27 @@
         {
             this.Logger.Debug("Unload module.");
 
+            if (this.DynamicEventHandler != null)
+            {
+                this.DynamicEventHandler.FoundLostEntities -= this.DynamicEventHandler_FoundLostEntities;
+                this.DynamicEventHandler.Dispose();
+                this.DynamicEventHandler = null;
+            }
+
             this.MapUtil?.Dispose();
             this.MapUtil = null;
 
             this.Logger.Debug("Unload drawer.");
 
-            foreach (EventArea area in this._areas.Values)
+            if (this._areas != null)
             {
-                area?.Dispose();
-            }
+                foreach (EventArea area in this._areas.Values)
+                {
+                    area?.Dispose();
+                }
 
-            this._areas?.Clear();
+                this._areas?.Clear();
+            }
 
             this.Logger.Debug("Unloaded drawer.");
 
@@ -567,6 +589,12 @@
             }
 
             this.Logger.Debug("Unloaded events.");
+
+            if (this.BlishHUDAPIState != null)
+            {
+                this.BlishHUDAPIState.NewLogin -= this.BlishHUDAPIState_NewLogin;
+                this.BlishHUDAPIState.LoggedOut -= this.BlishHUDAPIState_LoggedOut;
+            }
 
             this.Logger.Debug("Unload base.");
 

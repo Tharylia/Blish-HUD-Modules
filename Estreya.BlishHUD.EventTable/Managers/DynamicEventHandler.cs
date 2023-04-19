@@ -37,6 +37,12 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
     private ConcurrentQueue<(string Key, bool Add)> _entityQueue = new ConcurrentQueue<(string Key, bool Add)>();
 
+    private static TimeSpan _checkLostEntitiesInterval = TimeSpan.FromSeconds(5);
+    private double _lastLostEntitiesCheck = 0;
+
+    private bool _notifiedLostEntities = false;
+    public event EventHandler FoundLostEntities;
+
     public DynamicEventHandler(MapUtil mapUtil, DynamicEventState dynamicEventState, Gw2ApiManager apiManager,
         ModuleSettings moduleSettings)
     {
@@ -144,7 +150,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         try
         {
-            var coords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1] );
+            var coords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1]);
             switch (dynamicEvent.Location.Type)
             {
                 case "sphere":
@@ -371,7 +377,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         }
 
         var allPoints = points.Concat(connectionPoints);
-        return  new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition) ;
+        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
     }
 
     private async Task<WorldEntity> GetCylinder(DynamicEventState.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
@@ -539,8 +545,32 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         this._moduleSettings.DisabledDynamicEventIds.SettingChanged -= this.DisabledDynamicEventIds_SettingChanged;
     }
 
+    private void CheckLostEntityReferences()
+    {
+        var lostEntities = GameService.Graphics.World.Entities.Where(e => e is WorldEntity);
+        var hasEntities = lostEntities.Any();
+
+        if (!this._notifiedLostEntities && !this._moduleSettings.ShowDynamicEventInWorld.Value && hasEntities)
+        {
+            try
+            {
+                this.FoundLostEntities?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception) { }
+
+            this._notifiedLostEntities = true;
+        }
+
+        if (this._moduleSettings.ShowDynamicEventInWorld.Value)
+        {
+            this._notifiedLostEntities = false;
+        }
+    }
+
     public void Update(GameTime gameTime)
     {
+        UpdateUtil.Update(this.CheckLostEntityReferences, gameTime, _checkLostEntitiesInterval.TotalMilliseconds, ref this._lastLostEntitiesCheck);
+
         while (this._entityQueue.TryDequeue(out var element))
         {
             try
