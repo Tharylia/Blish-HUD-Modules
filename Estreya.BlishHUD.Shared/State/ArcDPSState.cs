@@ -13,6 +13,7 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Threading.Tasks;
 
 public class ArcDPSState : ManagedState
@@ -213,9 +214,12 @@ public class ArcDPSState : ManagedState
                     this._selfInstId = ev.DstInstId;
                 }
 
-                combatEvents.AddRange(this.HandleNormalCombatEvents(ev, src, dst, skillName, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
-                combatEvents.AddRange(this.HandleActivationEvents(ev, src, dst, skillName, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
-                combatEvents.AddRange(this.HandleStatechangeEvents(ev, src, dst, skillName, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
+                rawCombatEvent = new Blish_HUD.ArcDps.Models.CombatEvent(ev, src, dst, skillName, rawCombatEvent.Id, rawCombatEvent.Revision);
+
+                combatEvents.AddRange(this.HandleNormalCombatEvents(rawCombatEvent, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
+                combatEvents.AddRange(this.HandleActivationEvents(rawCombatEvent, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
+                combatEvents.AddRange(this.HandleStatechangeEvents(rawCombatEvent, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
+                combatEvents.AddRange(this.HandleBuffEvents(rawCombatEvent, this._selfInstId, targetAgentId, rawCombatEventArgs.EventType));
             }
             else
             {
@@ -233,24 +237,53 @@ public class ArcDPSState : ManagedState
         return combatEvents;
     }
 
-    private List<CombatEvent> HandleStatechangeEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
+    private List<CombatEvent> HandleStatechangeEvents(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
         var combatEvents = new List<CombatEvent>();
 
         return combatEvents;
     }
 
-    private List<CombatEvent> HandleActivationEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
+    private List<CombatEvent> HandleActivationEvents(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
         var combatEvents = new List<CombatEvent>();
 
         return combatEvents;
     }
 
-    private List<CombatEvent> HandleNormalCombatEvents(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, string skillName, ulong selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
+    private List<CombatEvent> HandleBuffEvents(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
+    {
+        var combatEvents = new List<CombatEvent>();
+        var ev = combatEvent.Ev;
+
+        CombatEvent parsedCombatEvent = null;
+        var state = CombatEvent.GetState(combatEvent.Ev);
+
+        if (state == CombatEventState.BUFFAPPLY)
+        {
+            // Buff added
+            parsedCombatEvent = this.GetCombatEvent(combatEvent, combatEvent.Src.Self == 1 ? CombatEventCategory.PLAYER_OUT : CombatEventCategory.PLAYER_IN, CombatEventType.BUFF);
+        }
+        else if (state == CombatEventState.BUFFREMOVE)
+        {
+            // Buff removed
+            parsedCombatEvent = this.GetCombatEvent(combatEvent, combatEvent.Src.Self == 1 ? CombatEventCategory.PLAYER_IN : CombatEventCategory.PLAYER_OUT, CombatEventType.BUFF);
+        }
+
+        if (parsedCombatEvent != null)
+        {
+            combatEvents.Add(parsedCombatEvent);
+        }
+
+        return combatEvents;
+    }
+
+    private List<CombatEvent> HandleNormalCombatEvents(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, ulong selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
         var combatEvents = new List<CombatEvent>();
         List<CombatEventType> types = new List<CombatEventType>();
+
+        var ev = combatEvent.Ev;
 
         /* statechange */
         if (ev.IsStateChange != ArcDpsEnums.StateChange.None)
@@ -382,12 +415,14 @@ public class ArcDPSState : ManagedState
         //    types.Add(CombatEventType.NONE);
         //}
 
+        combatEvent = new Blish_HUD.ArcDps.Models.CombatEvent(ev, combatEvent.Src,combatEvent.Dst, combatEvent.SkillName, combatEvent.Id, combatEvent.Revision);
+
         foreach (CombatEventType type in types)
         {
             List<CombatEventCategory> categories = new List<CombatEventCategory>();
-            if (src.Self == 1/* && (!Options::get()->outgoingOnlyToTarget || dst.Id == targetAgentId)*/)
+            if (combatEvent.Src.Self == 1/* && (!Options::get()->outgoingOnlyToTarget || dst.Id == targetAgentId)*/)
             {
-                if (/*!Options::get()->selfMessageOnlyIncoming || */dst.Self != 1)
+                if (/*!Options::get()->selfMessageOnlyIncoming || */combatEvent.Dst.Self != 1)
                 {
                     categories.Add(CombatEventCategory.PLAYER_OUT);
                 }
@@ -397,7 +432,7 @@ public class ArcDPSState : ManagedState
                 categories.Add(CombatEventCategory.PET_OUT);
             }
 
-            if (dst.Self == 1)
+            if (combatEvent.Dst.Self == 1)
             {
                 categories.Add(CombatEventCategory.PLAYER_IN);
             }
@@ -408,11 +443,11 @@ public class ArcDPSState : ManagedState
 
             foreach (CombatEventCategory category in categories)
             {
-                CombatEvent combatEvent = this.GetCombatEvent(ev, src, dst, category, type);
+                CombatEvent parsedCombatEvent = this.GetCombatEvent(combatEvent, category, type);
 
-                if (combatEvent != null)
+                if (parsedCombatEvent != null)
                 {
-                    combatEvents.Add(combatEvent);
+                    combatEvents.Add(parsedCombatEvent);
                 }
             }
         }
@@ -420,28 +455,28 @@ public class ArcDPSState : ManagedState
         return combatEvents;
     }
 
-    private CombatEvent GetCombatEvent(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, CombatEventCategory category, CombatEventType type)
+    private CombatEvent GetCombatEvent(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, CombatEventCategory category, CombatEventType type)
     {
-        var state = CombatEvent.GetState(ev);
+        var state = CombatEvent.GetState(combatEvent.Ev);
 
         switch (state)
         {
             case CombatEventState.NORMAL:
-                return this.GetNormalCombatEvent(ev, src, dst, category, type);
+                return this.GetNormalCombatEvent(combatEvent, category, type);
             case CombatEventState.ACTIVATION:
                 break;
             case CombatEventState.STATECHANGE:
-                return this.GetStateChangeCombatEvent(ev, src, dst, category, type);
+                return this.GetStateChangeCombatEvent(combatEvent, category, type);
             case CombatEventState.BUFFREMOVE:
-                return new BuffRemoveCombatEvent(ev, src, dst, category, type, CombatEventState.BUFFREMOVE);
+                return new BuffRemoveCombatEvent(combatEvent, category, type, CombatEventState.BUFFREMOVE);
             case CombatEventState.BUFFAPPLY:
-                return new BuffApplyCombatEvent(ev, src, dst, category, type, CombatEventState.BUFFAPPLY);
+                return new BuffApplyCombatEvent(combatEvent, category, type, CombatEventState.BUFFAPPLY);
         }
 
         return null;
     }
 
-    private CombatEvent GetNormalCombatEvent(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, CombatEventCategory category, CombatEventType type)
+    private CombatEvent GetNormalCombatEvent(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, CombatEventCategory category, CombatEventType type)
     {
         switch (type)
         {
@@ -459,26 +494,26 @@ public class ArcDPSState : ManagedState
             case CombatEventType.EVADE:
             case CombatEventType.INVULNERABLE:
             case CombatEventType.MISS:
-                return new DamageCombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL);
+                return new DamageCombatEvent(combatEvent, category, type, CombatEventState.NORMAL);
             case CombatEventType.HEAL:
             case CombatEventType.HOT:
-                return new HealCombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL);
+                return new HealCombatEvent(combatEvent, category, type, CombatEventState.NORMAL);
             case CombatEventType.SHIELD_RECEIVE:
             case CombatEventType.SHIELD_REMOVE:
-                return new BarrierCombatEvent(ev, src, dst, category, type, CombatEventState.NORMAL);
+                return new BarrierCombatEvent(combatEvent, category, type, CombatEventState.NORMAL);
         }
 
         return null;
     }
 
-    private CombatEvent GetStateChangeCombatEvent(Blish_HUD.ArcDps.Models.Ev ev, Blish_HUD.ArcDps.Models.Ag src, Blish_HUD.ArcDps.Models.Ag dst, CombatEventCategory category, CombatEventType type)
+    private CombatEvent GetStateChangeCombatEvent(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, CombatEventCategory category, CombatEventType type)
     {
-        switch (ev.IsStateChange)
+        switch (combatEvent.Ev.IsStateChange)
         {
             case ArcDpsEnums.StateChange.EnterCombat:
-                return new EnterCombatEvent(ev, src, dst, category, type, CombatEventState.STATECHANGE);
+                return new EnterCombatEvent(combatEvent, category, type, CombatEventState.STATECHANGE);
             case ArcDpsEnums.StateChange.ExitCombat:
-                return new ExitCombatEvent(ev, src, dst, category, type, CombatEventState.STATECHANGE);
+                return new ExitCombatEvent(combatEvent, category, type, CombatEventState.STATECHANGE);
             case ArcDpsEnums.StateChange.ChangeUp:
                 break;
             case ArcDpsEnums.StateChange.ChangeDead:
