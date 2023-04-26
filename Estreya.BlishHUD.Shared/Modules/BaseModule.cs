@@ -19,6 +19,8 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
@@ -58,6 +60,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     private ModuleSettingsView _defaultSettingView;
 
     private FlurlClient _flurlClient;
+
+    private ConcurrentDictionary<string, string> _loadingTexts = new ConcurrentDictionary<string, string>();
 
     protected IFlurlClient GetFlurlClient()
     {
@@ -451,7 +455,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.OnSettingWindowBuild(this.SettingsWindow);
 
         this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156331.png"), () => new UI.Views.DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donations"));
-        
+
         if (this.Debug)
         {
             this.SettingsWindow.Tabs.Add(
@@ -494,8 +498,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         using (this._stateLock.Lock())
         {
-            bool anyStateLoading = false;
-            string loadingText = null;
+            List<string> stateLoadingTexts = new List<string>();
             foreach (ManagedState state in this._states)
             {
                 state.Update(gameTime);
@@ -506,21 +509,40 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
                     if (loading)
                     {
-                        anyStateLoading = true;
                         if (!string.IsNullOrWhiteSpace(apiState.ProgressText))
                         {
-                            loadingText ??= $"{state.GetType().Name}: {apiState.ProgressText?.ToString()}";
+                            stateLoadingTexts.Add($"{state.GetType().Name}: {apiState.ProgressText?.ToString()}");
                         }
                         else
                         {
-                            loadingText ??= state.GetType().Name;
+                            stateLoadingTexts.Add(state.GetType().Name);
                         }
                     }
                 }
             }
 
-            this.HandleLoadingSpinner(anyStateLoading, loadingText);
+            var stateTexts = stateLoadingTexts.Count == 0 ? null : $"States:\n\t" + string.Join("\n\t", stateLoadingTexts);
+            this.ReportLoading("states", stateTexts);
         }
+
+        var loadingTexts = new StringBuilder();
+        foreach (var loadingText in this._loadingTexts)
+        {
+            if (loadingText.Value == null) continue;
+
+            loadingTexts.AppendLine(loadingText.Value);
+        }
+
+        this.HandleLoadingSpinner(loadingTexts.Length > 0, loadingTexts.ToString().Trim());
+    }
+
+    /// <summary>
+    /// Report a new loading text to display. Report <see cref="null"/> to finish.
+    /// </summary>
+    /// <param name="loadingText"></param>
+    protected void ReportLoading(string group, string loadingText)
+    {
+        this._loadingTexts.AddOrUpdate(group, loadingText, (key, oldVal) => loadingText);
     }
 
     /// <summary>
@@ -529,6 +551,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// <returns>The newly calculated ui visibility or the last value of <see cref="ShowUI"/>.</returns>
     protected virtual bool CalculateUIVisibility()
     {
+        if (!this.ModuleSettings.GlobalDrawerVisible.Value)
+        {
+            return false;
+        }
+
         bool show = true;
         if (this.ModuleSettings.HideOnOpenMap.Value)
         {
