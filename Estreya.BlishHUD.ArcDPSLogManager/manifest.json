@@ -1,0 +1,21 @@
+{
+  "name": "ArcDPS Log Manager",
+  "version": "0.1.0",
+  "namespace": "estreya.bh.arcdpsLogManager",
+  "package": "Estreya.BlishHUD.ArcDPSLogManager.dll",
+  "manifest_version": 1,
+  "description": "",
+  "dependencies": {
+    "bh.blishhud": ">=1.0.0"
+  },
+  "url": "https://github.com/Tharylia/Blish-HUD-Modules",
+  "contributors": [
+    {
+      "name": "Estreya",
+      "username": "Estreya.8675"
+    }
+  ],
+  "directories": ["log_manager"],
+  "actions": [],
+  "enabled_without_gw2": false
+}
