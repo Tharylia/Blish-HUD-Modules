@@ -2,7 +2,7 @@
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Service;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Flurl.Util;
 using Humanizer;
@@ -20,7 +20,7 @@ public class SettingsView : BaseSettingsView
     private readonly Func<string> _getGlobalUrl;
     private readonly Func<string> _getGuildUrl;
 
-    public SettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, ModuleSettings moduleSettings,  Func<string> getGlobalUrl, Func<string> getGuildUrl, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+    public SettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, ModuleSettings moduleSettings,  Func<string> getGlobalUrl, Func<string> getGuildUrl, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
         this._moduleSettings = moduleSettings;
         this._getGlobalUrl = getGlobalUrl;

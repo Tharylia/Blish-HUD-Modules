@@ -1,11 +1,11 @@
-﻿namespace Estreya.BlishHUD.TradingPostWatcher.State
+﻿namespace Estreya.BlishHUD.TradingPostWatcher.Service
 {
 
     using Blish_HUD;
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.Shared.Utils;
     using System;
     using System.Collections.Generic;
@@ -14,7 +14,7 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    public class TrackedTransactionState : APIState<TrackedTransaction>
+    public class TrackedTransactionService : APIService<TrackedTransaction>
     {
         private const string FOLDER_NAME = "tracked";
         private const string FILE_NAME = "transactions.txt";
@@ -23,7 +23,7 @@
 
         private List<TrackedTransaction> _trackedTransactions = new List<TrackedTransaction>();
         private AsyncLock _transactionLock = new AsyncLock();
-        private readonly ItemState _itemState;
+        private readonly ItemService _itemService;
         private readonly string _baseFolder;
 
         private bool _loadedFiles = false;
@@ -36,20 +36,20 @@
         public event EventHandler<TrackedTransaction> TransactionEnteredRange;
         public event EventHandler<TrackedTransaction> TransactionLeftRange;
 
-        public TrackedTransactionState(APIStateConfiguration configuration, Gw2ApiManager apiManager, ItemState itemState, string baseFolder) : base(apiManager, configuration)
+        public TrackedTransactionService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, ItemService itemService, string baseFolder) : base(apiManager, configuration)
         {
-            this.APIObjectAdded += this.TrackedTransactionState_APIObjectAdded;
-            this.APIObjectRemoved += this.TrackedTransactionState_APIObjectRemoved;
-            this._itemState = itemState;
+            this.APIObjectAdded += this.TrackedTransactionService_APIObjectAdded;
+            this.APIObjectRemoved += this.TrackedTransactionService_APIObjectRemoved;
+            this._itemService = itemService;
             this._baseFolder = baseFolder;
         }
 
-        private void TrackedTransactionState_APIObjectRemoved(object sender, TrackedTransaction e)
+        private void TrackedTransactionService_APIObjectRemoved(object sender, TrackedTransaction e)
         {
             this.TransactionLeftRange?.Invoke(this, e);
         }
 
-        private void TrackedTransactionState_APIObjectAdded(object sender, TrackedTransaction e)
+        private void TrackedTransactionService_APIObjectAdded(object sender, TrackedTransaction e)
         {
             this.TransactionEnteredRange?.Invoke(this, e);
         }
@@ -66,8 +66,8 @@
 
         protected override void DoUnload()
         {
-            this.APIObjectAdded -= this.TrackedTransactionState_APIObjectAdded;
-            this.APIObjectRemoved -= this.TrackedTransactionState_APIObjectRemoved;
+            this.APIObjectAdded -= this.TrackedTransactionService_APIObjectAdded;
+            this.APIObjectRemoved -= this.TrackedTransactionService_APIObjectRemoved;
         }
 
         protected override async Task Load()
@@ -141,13 +141,13 @@
             {
                 try
                 {
-                    if (!await this._itemState.WaitForCompletion(TimeSpan.FromSeconds(2)))
+                    if (!await this._itemService.WaitForCompletion(TimeSpan.FromSeconds(2)))
                     {
-                        Logger.Warn("ItemState did not complete loading.");
+                        Logger.Warn("ItemService did not complete loading.");
                         return false;
                     }
 
-                    var item = this._itemState.GetItemById(id);
+                    var item = this._itemService.GetItemById(id);
 
                     this._trackedTransactions.Add(new TrackedTransaction()
                     {

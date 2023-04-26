@@ -7,7 +7,7 @@ using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.FoodReminder.Models;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Service;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
@@ -41,7 +41,7 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<OverviewDrawerConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<OverviewDrawerConfiguration>> areaConfiguration, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+    public AreaSettingsView(Func<IEnumerable<OverviewDrawerConfiguration>> areaConfiguration, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._moduleSettings = moduleSettings;
@@ -110,7 +110,7 @@ public class AreaSettingsView : BaseSettingsView
             };
         });
 
-        Button addButton = this.RenderButton(newParent, this.TranslationState.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
+        Button addButton = this.RenderButton(newParent, this.TranslationService.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
         {
             this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
@@ -151,7 +151,7 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
-        Button saveButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
+        Button saveButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
         {
             try
             {
@@ -194,7 +194,7 @@ public class AreaSettingsView : BaseSettingsView
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
-        Button cancelButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
+        Button cancelButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
         {
             this.ClearAreaPanel();
         });
@@ -256,11 +256,11 @@ public class AreaSettingsView : BaseSettingsView
 
         var lastAdded = settingsPanel.Children.Last();
 
-        Button removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
+        Button removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
         {
             var dialog = new ConfirmDialog(
                     $"Delete Event Area \"{areaConfiguration.Name}\"", $"Your are in the process of deleting the event area \"{areaConfiguration.Name}\".\nThis action will delete all settings.\n\nContinue?",
-                    this.IconState,
+                    this.IconService,
                     new[]
                     {
                         new ButtonDefinition("Yes", System.Windows.Forms.DialogResult.Yes),

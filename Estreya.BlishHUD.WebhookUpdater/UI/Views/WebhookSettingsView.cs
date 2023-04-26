@@ -8,7 +8,7 @@ using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Helpers;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Service;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Estreya.BlishHUD.WebhookUpdater.Models;
@@ -46,7 +46,7 @@ public class WebhookSettingsView : BaseSettingsView
     public event EventHandler<AddWebhookEventArgs> AddWebhook;
     public event EventHandler<Webhook> RemoveWebhook;
 
-    public WebhookSettingsView(Func<IEnumerable<Webhook>> getWebhooks, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+    public WebhookSettingsView(Func<IEnumerable<Webhook>> getWebhooks, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
         this._webhooksFunc = getWebhooks;
     }
@@ -114,7 +114,7 @@ public class WebhookSettingsView : BaseSettingsView
             };
         });
 
-        StandardButton addButton = this.RenderButton(newParent, this.TranslationState.GetTranslation("webhookSettingsView-add-btn", "Add"), () =>
+        StandardButton addButton = this.RenderButton(newParent, this.TranslationService.GetTranslation("webhookSettingsView-add-btn", "Add"), () =>
         {
             this.BuildAddPanel(newParent, webhookPanelBounds, webhookOverviewMenu);
         });
@@ -155,7 +155,7 @@ public class WebhookSettingsView : BaseSettingsView
             PlaceholderText = "Webhook Name"
         };
 
-        StandardButton saveButton = this.RenderButton(this._webhookPanel, this.TranslationState.GetTranslation("webhookSettingsView-save-btn", "Save"), () =>
+        StandardButton saveButton = this.RenderButton(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-save-btn", "Save"), () =>
         {
             try
             {
@@ -204,7 +204,7 @@ public class WebhookSettingsView : BaseSettingsView
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
-        StandardButton cancelButton = this.RenderButton(this._webhookPanel, this.TranslationState.GetTranslation("webhookSettingsView-cancel-btn", "Cancel"), () =>
+        StandardButton cancelButton = this.RenderButton(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-cancel-btn", "Cancel"), () =>
         {
             this.ClearWebhookPanel();
         });
@@ -277,11 +277,11 @@ public class WebhookSettingsView : BaseSettingsView
 
         var lastAdded = settingsPanel.Children.Last();
 
-        StandardButton removeButton = this.RenderButtonAsync(this._webhookPanel, this.TranslationState.GetTranslation("webhookSettingsView-remove-btn", "Remove"), async () =>
+        StandardButton removeButton = this.RenderButtonAsync(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-remove-btn", "Remove"), async () =>
         {
             var dialog = new ConfirmDialog(
                     $"Delete Webhook \"{webhook.Configuration.Name}\"", $"Your are in the process of deleting the webhook \"{webhook.Configuration.Name}\".\nThis action will delete all settings.\n\nContinue?",
-                    this.IconState,
+                    this.IconService,
                     new[]
                     {
                         new ButtonDefinition("Yes", System.Windows.Forms.DialogResult.Yes),
@@ -384,7 +384,7 @@ public class WebhookSettingsView : BaseSettingsView
     {
         if (this._protocolWindow == null)
         {
-            AsyncTexture2D windowBackground = this.IconState.GetIcon("textures/setting_window_background.png");
+            AsyncTexture2D windowBackground = this.IconService.GetIcon("textures/setting_window_background.png");
 
             Rectangle settingsWindowSize = new Rectangle(35, 26, 1100, 714);
             int contentRegionPaddingY = settingsWindowSize.Y - 15;
@@ -405,7 +405,7 @@ public class WebhookSettingsView : BaseSettingsView
             var manageEventView = _protocolWindow.CurrentView as WebhookProtocolView;
         }
 
-        var view = new WebhookProtocolView(webhook, this.APIManager, this.IconState, this.TranslationState);
+        var view = new WebhookProtocolView(webhook, this.APIManager, this.IconService, this.TranslationService);
         _protocolWindow.Show(view);
     }
 

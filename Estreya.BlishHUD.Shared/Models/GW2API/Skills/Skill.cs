@@ -1,7 +1,7 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.GW2API.Skills;
 
 using Blish_HUD.Content;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Gw2Sharp;
 using Gw2Sharp.WebApi.V2.Models;
 using Newtonsoft.Json;
@@ -280,11 +280,11 @@ public class Skill : IDisposable
         this.IconTexture = null;
     }
 
-    public void LoadTexture(IconState iconState)
+    public void LoadTexture(IconService iconService)
     {
         if (!string.IsNullOrWhiteSpace(this.Icon))
         {
-            this.IconTexture = iconState.GetIcon(this.Icon);
+            this.IconTexture = iconService.GetIcon(this.Icon);
         }
     }
 }

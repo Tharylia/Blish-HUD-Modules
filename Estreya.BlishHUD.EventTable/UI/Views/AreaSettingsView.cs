@@ -5,10 +5,10 @@ using Blish_HUD.Controls;
 using Blish_HUD.Controls.Intern;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.EventTable.Models;
-using Estreya.BlishHUD.EventTable.State;
+using Estreya.BlishHUD.EventTable.Services;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
@@ -30,7 +30,7 @@ public class AreaSettingsView : BaseSettingsView
     private readonly Func<IEnumerable<EventAreaConfiguration>> _areaConfigurationFunc;
     private readonly Func<List<EventCategory>> _allEvents;
     private readonly ModuleSettings _moduleSettings;
-    private readonly EventState _eventState;
+    private readonly EventStateService _eventStateService;
     private IEnumerable<EventAreaConfiguration> _areaConfigurations;
     private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private Panel _areaPanel;
@@ -47,12 +47,12 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<EventAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, EventState eventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService, BitmapFont font = null) : base(apiManager, iconService , translationService, settingEventService, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
         this._moduleSettings = moduleSettings;
-        this._eventState = eventState;
+        this._eventStateService = eventStateService;
     }
 
     private void LoadConfigurations()
@@ -118,7 +118,7 @@ public class AreaSettingsView : BaseSettingsView
             };
         });
 
-        Button addButton = this.RenderButton(newParent, this.TranslationState.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
+        Button addButton = this.RenderButton(newParent, this.TranslationService.GetTranslation("areaSettingsView-add-btn", "Add"), () =>
         {
             this.BuildAddPanel(newParent, areaPanelBounds, areaOverviewMenu);
         });
@@ -159,7 +159,7 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
-        Button saveButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
+        Button saveButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
         {
             try
             {
@@ -208,7 +208,7 @@ public class AreaSettingsView : BaseSettingsView
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
-        Button cancelButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
+        Button cancelButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-cancel-btn", "Cancel"), () =>
         {
             this.ClearAreaPanel();
         });
@@ -282,7 +282,7 @@ public class AreaSettingsView : BaseSettingsView
 
         var lastAdded = settingsPanel.Children.Last();
 
-        var manageEventsButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-manageEvents-btn", "Manage Events"), () =>
+        var manageEventsButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-manageEvents-btn", "Manage Events"), () =>
         {
             this.ManageEvents(areaConfiguration);
         });
@@ -290,7 +290,7 @@ public class AreaSettingsView : BaseSettingsView
         manageEventsButton.Top = areaName.Top;
         manageEventsButton.Left = settingsPanel.Left;
 
-        var reorderEventsButton = this.RenderButton(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-reorderEvents-btn", "Reorder Events"), () =>
+        var reorderEventsButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-reorderEvents-btn", "Reorder Events"), () =>
         {
             this.ReorderEvents(areaConfiguration);
         });
@@ -298,11 +298,11 @@ public class AreaSettingsView : BaseSettingsView
         reorderEventsButton.Top = manageEventsButton.Bottom + 2;
         reorderEventsButton.Left = manageEventsButton.Left;
 
-        Button removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationState.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
+        Button removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
         {
             var dialog = new ConfirmDialog(
                     $"Delete Event Area \"{areaConfiguration.Name}\"", $"Your are in the process of deleting the event area \"{areaConfiguration.Name}\".\nThis action will delete all settings.\n\nContinue?",
-                    this.IconState,
+                    this.IconService,
                     new[]
                     {
                         new ButtonDefinition("Yes", System.Windows.Forms.DialogResult.Yes),
@@ -497,7 +497,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderBoolSetting(groupPanel, areaConfiguration.CompletedEventsInvertTextColor);
         this.RenderButton(groupPanel, "Reset hidden Events", () =>
         {
-            this._eventState.Remove(areaConfiguration.Name, EventState.EventStates.Hidden);
+            this._eventStateService.Remove(areaConfiguration.Name, EventStateService.EventStates.Hidden);
         });
 
         this.RenderEmptyLine(groupPanel);
@@ -536,7 +536,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ReorderEvents(EventAreaConfiguration configuration)
     {
-        this._reorderEventsWindow ??= WindowUtil.CreateStandardWindow("Reorder Events", this.GetType(), Guid.Parse("b5cbbd99-f02d-4229-8dda-869b42ac242e"), this.IconState);
+        this._reorderEventsWindow ??= WindowUtil.CreateStandardWindow("Reorder Events", this.GetType(), Guid.Parse("b5cbbd99-f02d-4229-8dda-869b42ac242e"), this.IconService);
 
         if (_reorderEventsWindow.CurrentView != null)
         {
@@ -544,7 +544,7 @@ public class AreaSettingsView : BaseSettingsView
             reorderEventView.SaveClicked -= this.ReorderView_SaveClicked;
         }
 
-        var view = new ReorderEventsView(this._allEvents(), configuration.EventOrder.Value, configuration, this.APIManager, this.IconState, this.TranslationState);
+        var view = new ReorderEventsView(this._allEvents(), configuration.EventOrder.Value, configuration, this.APIManager, this.IconService, this.TranslationService);
         view.SaveClicked += this.ReorderView_SaveClicked;
 
         _reorderEventsWindow.Show(view);
@@ -557,7 +557,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ManageEvents(EventAreaConfiguration configuration)
     {
-        this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconState);
+        this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
 
         if (_manageEventsWindow.CurrentView != null)
         {
@@ -567,8 +567,8 @@ public class AreaSettingsView : BaseSettingsView
 
         var view = new ManageEventsView(this._allEvents(), new Dictionary<string, object>() {
             { "configuration", configuration },
-            { "hiddenEventKeys",  this._eventState.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventState.EventStates.Hidden).Select(x => x.EventKey).ToList() }
-        }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this.APIManager, this.IconState, this.TranslationState);
+            { "hiddenEventKeys",  this._eventStateService.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventStateService.EventStates.Hidden).Select(x => x.EventKey).ToList() }
+        }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this.APIManager, this.IconService, this.TranslationService);
         view.EventChanged += this.ManageView_EventChanged;
 
         _manageEventsWindow.Show(view);
@@ -577,7 +577,7 @@ public class AreaSettingsView : BaseSettingsView
     private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
         var configuration = e.AdditionalData["configuration"] as EventAreaConfiguration;
-        configuration.DisabledEventKeys.Value = e.NewState
+        configuration.DisabledEventKeys.Value = e.NewService
             ? new List<string>(configuration.DisabledEventKeys.Value.Where(aek => aek != e.EventSettingKey))
             : new List<string>(configuration.DisabledEventKeys.Value) { e.EventSettingKey };
     }

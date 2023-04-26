@@ -7,7 +7,7 @@
     using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
     using Estreya.BlishHUD.Shared.Models.GW2API.Items;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Estreya.BlishHUD.Shared.Utils;
     using Humanizer;
@@ -25,17 +25,17 @@
         private const int PADDING_Y = 20;
 
         private readonly Func<List<TrackedTransaction>> _getTrackedTransactions;
-        private readonly ItemState _itemState;
+        private readonly ItemService _itemService;
         private List<TrackedTransaction> _trackedTransactions;
         private Panel _transactionPanel;
 
         public event EventHandler<TrackedTransaction> AddTracking;
         public event EventHandler<TrackedTransaction> RemoveTracking;
 
-        public TrackedTransactionView(Func<List<TrackedTransaction>> getTrackedTransactions, Gw2ApiManager apiManager, IconState iconState, ItemState itemState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public TrackedTransactionView(Func<List<TrackedTransaction>> getTrackedTransactions, Gw2ApiManager apiManager, IconService iconService, ItemService itemService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
         {
             this._getTrackedTransactions = getTrackedTransactions;
-            this._itemState = itemState;
+            this._itemService = itemService;
         }
 
         protected override void InternalBuild(Panel parent)
@@ -63,7 +63,7 @@
 
             foreach (TrackedTransaction trackedTransaction in this._trackedTransactions)
             {
-                MenuItem menuItem = new MenuItem(this.GetMenuItemText(trackedTransaction), TradingPostWatcherModule.ModuleInstance.IconState.GetIcon(trackedTransaction.Item?.Icon))
+                MenuItem menuItem = new MenuItem(this.GetMenuItemText(trackedTransaction), TradingPostWatcherModule.ModuleInstance.IconService.GetIcon(trackedTransaction.Item?.Icon))
                 {
                     Parent = trackedOverviewMenu,
                     WidthSizingMode = SizingMode.Fill,
@@ -126,7 +126,7 @@
                 StringComparison = StringComparison.InvariantCultureIgnoreCase
             };
 
-            textBoxSuggestions.Suggestions = this._itemState.Items.Where(item => !item.Flags?.Any(flag => flag is Gw2Sharp.WebApi.V2.Models.ItemFlag.AccountBound or Gw2Sharp.WebApi.V2.Models.ItemFlag.SoulbindOnAcquire) ?? false).Select(item => item.Name).ToArray();
+            textBoxSuggestions.Suggestions = this._itemService.Items.Where(item => !item.Flags?.Any(flag => flag is Gw2Sharp.WebApi.V2.Models.ItemFlag.AccountBound or Gw2Sharp.WebApi.V2.Models.ItemFlag.SoulbindOnAcquire) ?? false).Select(item => item.Name).ToArray();
 
             (Item Item, Texture2D Icon) loadedItem = (null, null);
 
@@ -140,7 +140,7 @@
                 Width = 150
             };
 
-            Image goldImage = new Image(this.IconState?.GetIcon("090A980A96D39FD36FBB004903644C6DBEFB1FFB/156904") ?? ContentService.Textures.Error)
+            Image goldImage = new Image(this.IconService?.GetIcon("090A980A96D39FD36FBB004903644C6DBEFB1FFB/156904") ?? ContentService.Textures.Error)
             {
                 Parent = coinInputPanel,
                 Location = new Point(goldInput.Right + 10, 0)
@@ -154,7 +154,7 @@
                 Width = 150
             };
 
-            Image silverImage = new Image(this.IconState?.GetIcon("E5A2197D78ECE4AE0349C8B3710D033D22DB0DA6/156907") ?? ContentService.Textures.Error)
+            Image silverImage = new Image(this.IconService?.GetIcon("E5A2197D78ECE4AE0349C8B3710D033D22DB0DA6/156907") ?? ContentService.Textures.Error)
             {
                 Parent = coinInputPanel,
                 Location = new Point(silverInput.Right + 10, 0)
@@ -168,7 +168,7 @@
                 Width = 150
             };
 
-            Image copperImage = new Image(this.IconState?.GetIcon("6CF8F96A3299CFC75D5CC90617C3C70331A1EF0E/156902") ?? ContentService.Textures.Error)
+            Image copperImage = new Image(this.IconService?.GetIcon("6CF8F96A3299CFC75D5CC90617C3C70331A1EF0E/156902") ?? ContentService.Textures.Error)
             {
                 Parent = coinInputPanel,
                 Location = new Point(copperInput.Right + 10, 0)
@@ -234,19 +234,19 @@
 
             StandardButton loadItemButton = this.RenderButtonAsync(this._transactionPanel, "Load Item", async () =>
             {
-                if (this._itemState?.Loading ?? true)
+                if (this._itemService?.Loading ?? true)
                 {
                     throw new Exception("Items are still being loaded.");
                 }
 
-                Item item = this._itemState?.GetItemByName(itemName.Text.Trim());
+                Item item = this._itemService?.GetItemByName(itemName.Text.Trim());
 
                 if (item == null)
                 {
                     throw new Exception($"The name \"{itemName.Text}\" is not a valid item.");
                 }
 
-                Blish_HUD.Content.AsyncTexture2D itemIcon = this.IconState?.GetIcon(item.Icon) ?? ContentService.Textures.Error;
+                Blish_HUD.Content.AsyncTexture2D itemIcon = this.IconService?.GetIcon(item.Icon) ?? ContentService.Textures.Error;
                 loadedItem = (item, itemIcon);
 
                 Gw2Sharp.WebApi.V2.Models.CommercePrices itemPrice = null;
@@ -304,7 +304,7 @@
                 Parent = this._transactionPanel,
                 Location = new Point(20, 20),
                 Size = new Point(32, 32),
-                Texture = this.IconState?.GetIcon(trackedTransaction.Item?.Icon) ?? ContentService.Textures.Error
+                Texture = this.IconService?.GetIcon(trackedTransaction.Item?.Icon) ?? ContentService.Textures.Error
             };
 
             Label itemName = new Label()
@@ -343,7 +343,7 @@
                 Text = splitCoins.Gold.ToString()
             };
 
-            Image goldImage = new Image(this.IconState?.GetIcon("090A980A96D39FD36FBB004903644C6DBEFB1FFB/156904") ?? ContentService.Textures.Error)
+            Image goldImage = new Image(this.IconService?.GetIcon("090A980A96D39FD36FBB004903644C6DBEFB1FFB/156904") ?? ContentService.Textures.Error)
             {
                 Parent = coinInputPanel,
                 Location = new Point(goldInput.Right + 10, 0)
@@ -358,7 +358,7 @@
                 Text = splitCoins.Silver.ToString()
             };
 
-            Image silverImage = new Image(this.IconState?.GetIcon("E5A2197D78ECE4AE0349C8B3710D033D22DB0DA6/156907") ?? ContentService.Textures.Error)
+            Image silverImage = new Image(this.IconService?.GetIcon("E5A2197D78ECE4AE0349C8B3710D033D22DB0DA6/156907") ?? ContentService.Textures.Error)
             {
                 Parent = coinInputPanel,
                 Location = new Point(silverInput.Right + 10, 0)
@@ -373,7 +373,7 @@
                 Text = splitCoins.Copper.ToString()
             };
 
-            Image copperImage = new Image(this.IconState?.GetIcon("6CF8F96A3299CFC75D5CC90617C3C70331A1EF0E/156902") ?? ContentService.Textures.Error)
+            Image copperImage = new Image(this.IconService?.GetIcon("6CF8F96A3299CFC75D5CC90617C3C70331A1EF0E/156902") ?? ContentService.Textures.Error)
             {
                 Parent = coinInputPanel,
                 Location = new Point(copperInput.Right + 10, 0)

@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
@@ -18,7 +18,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Documents;
 
-public class ItemState : APIState<Item>
+public class ItemService : APIService<Item>
 {
     private const string BASE_FOLDER_STRUCTURE = "items";
     private const string FILE_NAME = "items.json";
@@ -34,13 +34,13 @@ public class ItemState : APIState<Item>
     private List<Item> _items;
     public List<Item> Items => _items;
 
-    public ItemState(APIStateConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
+    public ItemService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
     {
         this._baseFolderPath = baseFolderPath;
-        this.Updated += this.ItemState_Updated;
+        this.Updated += this.ItemService_Updated;
     }
 
-    private void ItemState_Updated(object sender, EventArgs e)
+    private void ItemService_Updated(object sender, EventArgs e)
     {
         using (_itemLock.Lock())
         {
@@ -281,6 +281,6 @@ public class ItemState : APIState<Item>
 
     protected override void DoUnload()
     {
-        this.Updated -= this.ItemState_Updated;
+        this.Updated -= this.ItemService_Updated;
     }
 }

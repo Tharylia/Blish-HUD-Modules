@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
@@ -17,13 +17,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-public abstract class APIState : ManagedState
+public abstract class APIService : ManagedService
 {
     protected readonly Gw2ApiManager _apiManager;
 
     private readonly EventWaitHandle _eventWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
-    protected new APIStateConfiguration Configuration { get; }
+    protected new APIServiceConfiguration Configuration { get; }
 
     private AsyncRef<double> _timeSinceUpdate = 0;
 
@@ -33,11 +33,11 @@ public abstract class APIState : ManagedState
     public string ProgressText { get; private set; } = string.Empty;
 
     /// <summary>
-    /// Fired when the new api state has been fetched.
+    /// Fired when the new api service has been fetched.
     /// </summary>
     public event EventHandler Updated;
 
-    public APIState(Gw2ApiManager apiManager, APIStateConfiguration configuration) : base(configuration)
+    public APIService(Gw2ApiManager apiManager, APIServiceConfiguration configuration) : base(configuration)
     {
         this._apiManager = apiManager;
         this.Configuration = configuration;

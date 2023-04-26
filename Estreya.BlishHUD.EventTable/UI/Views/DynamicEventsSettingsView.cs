@@ -5,10 +5,10 @@
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
-    using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.EventTable.Services;
     using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Helpers;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Http;
@@ -25,16 +25,16 @@
 
     public class DynamicEventsSettingsView : BaseSettingsView
     {
-        private readonly DynamicEventState _dynamicEventState;
+        private readonly DynamicEventService _dynamicEventService;
         private readonly ModuleSettings _moduleSettings;
         private readonly IFlurlClient _flurlClient;
         private StandardWindow _manageEventsWindow;
 
         private Texture2D _dynamicEventsInWorldImage;
 
-        public DynamicEventsSettingsView(DynamicEventState dynamicEventState, ModuleSettings moduleSettings, IFlurlClient flurlClient, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+        public DynamicEventsSettingsView(DynamicEventService dynamicEventService, ModuleSettings moduleSettings, IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
         {
-            this._dynamicEventState = dynamicEventState;
+            this._dynamicEventService = dynamicEventService;
             this._moduleSettings = moduleSettings;
             this._flurlClient = flurlClient;
         }
@@ -50,7 +50,7 @@
                     $"You are in the process of activating \"{_moduleSettings.ShowDynamicEventInWorld.DisplayName}\".\n" +
                     $"This setting will add event boundaries inside your view (only when applicable events are on your map).\n\n" +
                     $"Do you want to continue?",
-                    this.IconState);
+                    this.IconService);
                 var result = await confirmationDialog.ShowDialog();
 
                 return result == System.Windows.Forms.DialogResult.OK;
@@ -59,9 +59,9 @@
             this.RenderBoolSetting(parent, _moduleSettings.IgnoreZAxisOnDynamicEventsInWorld);
             this.RenderIntSetting(parent, _moduleSettings.DynamicEventsRenderDistance);
 
-            this.RenderButton(parent, this.TranslationState.GetTranslation("dynamicEventsSettingsView-manageEvents-btn", "Manage Events"), () =>
+            this.RenderButton(parent, this.TranslationService.GetTranslation("dynamicEventsSettingsView-manageEvents-btn", "Manage Events"), () =>
             {
-                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconState);
+                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
 
                 if (_manageEventsWindow.CurrentView != null)
                 {
@@ -69,7 +69,7 @@
                     manageEventView.EventChanged -= this.ManageView_EventChanged;
                 }
 
-                var view = new ManageDynamicEventsSettingsView(this._dynamicEventState, () => this._moduleSettings.DisabledDynamicEventIds.Value, this.APIManager, this.IconState, this.TranslationState);
+                var view = new ManageDynamicEventsSettingsView(this._dynamicEventService, () => this._moduleSettings.DisabledDynamicEventIds.Value, this.APIManager, this.IconService, this.TranslationService);
                 view.EventChanged += this.ManageView_EventChanged;
 
                 _manageEventsWindow.Show(view);
@@ -86,7 +86,7 @@
 
         private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
         {
-            this._moduleSettings.DisabledDynamicEventIds.Value = e.NewState
+            this._moduleSettings.DisabledDynamicEventIds.Value = e.NewService
                 ? new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value.Where(s => s != e.EventSettingKey))
                 : new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value) { e.EventSettingKey };
         }

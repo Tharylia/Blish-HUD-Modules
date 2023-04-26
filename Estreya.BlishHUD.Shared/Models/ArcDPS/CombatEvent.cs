@@ -2,7 +2,7 @@
 
 using Blish_HUD.ArcDps.Models;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;

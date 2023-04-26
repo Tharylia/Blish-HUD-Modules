@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
@@ -16,7 +16,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class PointOfInterestState : APIState<PointOfInterest>
+public class PointOfInterestService : APIService<PointOfInterest>
 {
     private const string BASE_FOLDER_STRUCTURE = "pois";
     private const string FILE_NAME = "pois.json";
@@ -30,7 +30,7 @@ public class PointOfInterestState : APIState<PointOfInterest>
 
     public List<PointOfInterest> PointOfInterests => this.APIObjectList;
 
-    public PointOfInterestState(APIStateConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
+    public PointOfInterestService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
     {
         this._baseFolderPath = baseFolderPath;
     }

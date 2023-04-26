@@ -1,19 +1,19 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class StateConfigurations
+public class ServiceConfigurations
 {
-    public StateConfiguration BlishHUDAPI { get; } = new StateConfiguration()
+    public ServiceConfiguration BlishHUDAPI { get; } = new ServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = true
     };
 
-    public APIStateConfiguration Account { get; } = new APIStateConfiguration()
+    public APIServiceConfiguration Account { get; } = new APIServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = true,
@@ -21,7 +21,7 @@ public class StateConfigurations
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIStateConfiguration Mapchests { get; }  = new APIStateConfiguration()
+    public APIServiceConfiguration Mapchests { get; }  = new APIServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = false,
@@ -29,7 +29,7 @@ public class StateConfigurations
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIStateConfiguration Worldbosses { get; } = new APIStateConfiguration()
+    public APIServiceConfiguration Worldbosses { get; } = new APIServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = false,
@@ -37,19 +37,19 @@ public class StateConfigurations
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIStateConfiguration PointOfInterests { get; } = new APIStateConfiguration()
+    public APIServiceConfiguration PointOfInterests { get; } = new APIServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public APIStateConfiguration Skills { get; } = new APIStateConfiguration()
+    public APIServiceConfiguration Skills { get; } = new APIServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public APIStateConfiguration TradingPost { get; } = new APIStateConfiguration()
+    public APIServiceConfiguration TradingPost { get; } = new APIServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = false,
@@ -57,13 +57,13 @@ public class StateConfigurations
         UpdateInterval = TimeSpan.FromMinutes(2)
     };
 
-    public APIStateConfiguration Items { get; } = new APIStateConfiguration()
+    public APIServiceConfiguration Items { get; } = new APIServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public StateConfiguration ArcDPS { get; } = new StateConfiguration()
+    public ServiceConfiguration ArcDPS { get; } = new ServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = false

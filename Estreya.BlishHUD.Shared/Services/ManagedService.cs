@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State
+﻿namespace Estreya.BlishHUD.Shared.Services
 {
     using Blish_HUD;
     using Estreya.BlishHUD.Shared.Threading;
@@ -8,20 +8,20 @@
     using System.Threading;
     using System.Threading.Tasks;
 
-    public abstract class ManagedState : IDisposable
+    public abstract class ManagedService : IDisposable
     {
         protected Logger Logger;
 
         private readonly AsyncRef<double> _lastSaved = 0;
 
-        protected StateConfiguration Configuration { get; }
+        protected ServiceConfiguration Configuration { get; }
 
         protected CancellationTokenSource _cancellationTokenSource;
 
         public bool Running { get; private set; } = false;
         public bool AwaitLoading => this.Configuration.AwaitLoading;
 
-        protected ManagedState(StateConfiguration configuration)
+        protected ManagedService(ServiceConfiguration configuration)
         {
             this.Logger = Logger.GetLogger(this.GetType());
             this.Configuration = configuration;

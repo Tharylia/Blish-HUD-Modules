@@ -5,8 +5,8 @@
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
-    using Estreya.BlishHUD.EventTable.State;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.EventTable.Services;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
@@ -32,7 +32,7 @@
             _globalChangeTempEvent.UpdateReminderTimes(new TimeSpan[] { TimeSpan.Zero });
         }
 
-        public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+        public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
         {
             this._moduleSettings = moduleSettings;
             this._getEvents = getEvents;
@@ -49,9 +49,9 @@
 
             this.RenderEmptyLine(parent);
 
-            this.RenderButton(parent, this.TranslationState.GetTranslation("reminderSettingsView-manageReminders-btn", "Manage Reminders"), () =>
+            this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-manageReminders-btn", "Manage Reminders"), () =>
             {
-                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconState);
+                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
 
                 if (_manageEventsWindow.CurrentView != null)
                 {
@@ -74,19 +74,19 @@
                             }
                         }
                     }
-                }, () => _moduleSettings.ReminderDisabledForEvents.Value, this._moduleSettings, this.APIManager, this.IconState, this.TranslationState);
+                }, () => _moduleSettings.ReminderDisabledForEvents.Value, this._moduleSettings, this.APIManager, this.IconService, this.TranslationService);
                 view.EventChanged += this.ManageView_EventChanged;
 
                 _manageEventsWindow.Show(view);
             });
 
-            this.RenderButton(parent, this.TranslationState.GetTranslation("reminderSettingsView-testReminder-btn", "Test Reminder"), () =>
+            this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-testReminder-btn", "Test Reminder"), () =>
             {
                 var reminder = new EventNotification(new Models.Event()
                 {
                     Name = "Test Event",
                     Icon = "textures/maintenance.png",
-                }, "Test description!", _moduleSettings.ReminderPosition.X.Value, _moduleSettings.ReminderPosition.Y.Value, this.IconState)
+                }, "Test description!", _moduleSettings.ReminderPosition.X.Value, _moduleSettings.ReminderPosition.Y.Value, this.IconService)
                 {
                     BackgroundOpacity = _moduleSettings.ReminderOpacity.Value
                 };
@@ -112,14 +112,14 @@
 
         private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
         {
-            this._moduleSettings.ReminderDisabledForEvents.Value = e.NewState
+            this._moduleSettings.ReminderDisabledForEvents.Value = e.NewService
                 ? new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value.Where(s => s != e.EventSettingKey))
                 : new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value) { e.EventSettingKey };
         }
 
         private void ManageReminderTimes(Models.Event ev)
         {
-            this._manageReminderTimesWindow ??= WindowUtil.CreateStandardWindow("Manage Reminder Times", this.GetType(), Guid.Parse("930702ac-bf87-416c-b5ba-cdf9e0266bf7"), this.IconState, this.IconState.GetIcon("1466345.png"));
+            this._manageReminderTimesWindow ??= WindowUtil.CreateStandardWindow("Manage Reminder Times", this.GetType(), Guid.Parse("930702ac-bf87-416c-b5ba-cdf9e0266bf7"), this.IconService, this.IconService.GetIcon("1466345.png"));
             this._manageReminderTimesWindow.Size = new Point(450, this._manageReminderTimesWindow.Height);
 
             if (this._manageReminderTimesWindow?.CurrentView is ManageReminderTimesView mrtv)
@@ -129,7 +129,7 @@
                 mrtv.SaveClicked -= this.ManageReminderTimesView_SaveClicked;
             }
 
-            var view = new ManageReminderTimesView(ev, this.APIManager, this.IconState, this.TranslationState);
+            var view = new ManageReminderTimesView(ev, this.APIManager, this.IconService, this.TranslationService);
             view.CancelClicked += this.ManageReminderTimesView_CancelClicked;
             view.SaveClicked += this.ManageReminderTimesView_SaveClicked;
 

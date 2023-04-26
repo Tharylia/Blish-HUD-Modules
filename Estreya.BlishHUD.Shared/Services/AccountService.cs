@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD.Modules.Managers;
 using Gw2Sharp.WebApi.V2.Models;
@@ -7,11 +7,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-public class AccountState : APIState<Account>
+public class AccountService : APIService<Account>
 {
     public Account Account => this.APIObjectList.Any() ? this.APIObjectList.First() : null;
 
-    public AccountState(APIStateConfiguration configuration, Gw2ApiManager apiManager) : base(apiManager, configuration) { }
+    public AccountService(APIServiceConfiguration configuration, Gw2ApiManager apiManager) : base(apiManager, configuration) { }
 
     protected override void DoUnload() { }
 

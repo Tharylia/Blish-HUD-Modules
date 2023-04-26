@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -16,7 +16,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class IconState : ManagedState
+public class IconService : ManagedService
 {
     public const string RENDER_API_URL = "https://render.guildwars2.com/file/";
     public const string WIKI_URL = "https://wiki.guildwars2.com/images/";
@@ -31,7 +31,7 @@ public class IconState : ManagedState
 
     private readonly ContentsManager _contentsManager;
 
-    public IconState(StateConfiguration configuration, ContentsManager contentsManager) : base(configuration)
+    public IconService(ServiceConfiguration configuration, ContentsManager contentsManager) : base(configuration)
     {
         this._contentsManager = contentsManager;
     }

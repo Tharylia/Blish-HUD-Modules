@@ -377,7 +377,7 @@
 
         public override IView GetSettingsView()
         {
-            return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.ModuleSettings,
+            return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.ModuleSettings,
                () => this.GetGlobalUrl(), () => this.GetGuildUrl());
         }
 

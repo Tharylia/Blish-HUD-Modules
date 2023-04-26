@@ -7,7 +7,7 @@ using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.Helpers;
 using Estreya.BlishHUD.Shared.Security;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
@@ -21,11 +21,11 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 public class CustomEventView : BaseView
 {
     private static Point PADDING = new Point(25, 25);
-    private BlishHudApiState _blishHudApiState;
+    private BlishHudApiService _blishHudApiService;
 
-    public CustomEventView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BlishHudApiState blishHudApiState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public CustomEventView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BlishHudApiService blishHudApiService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
-        this._blishHudApiState = blishHudApiState;
+        this._blishHudApiService = blishHudApiService;
     }
 
     protected override void InternalBuild(Panel parent)
@@ -83,11 +83,11 @@ public class CustomEventView : BaseView
             FlowDirection = ControlFlowDirection.SingleTopToBottom,
         };
 
-        var password = AsyncHelper.RunSync(() => this._blishHudApiState.GetAPIPassword());
+        var password = AsyncHelper.RunSync(() => this._blishHudApiService.GetAPIPassword());
 
         const string passwordUnchangedPhrase = "<<Unchanged>>";
 
-        var usernameTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, this._blishHudApiState.GetAPIUsername(), "API Username");
+        var usernameTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, this._blishHudApiService.GetAPIUsername(), "API Username");
 
         var passwordTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, !string.IsNullOrWhiteSpace(password) ? passwordUnchangedPhrase : null, "API Password");
 
@@ -101,23 +101,23 @@ public class CustomEventView : BaseView
 
         this.RenderButtonAsync(buttonPanel, "Save", async () =>
         {
-            this._blishHudApiState.SetAPIUsername(usernameTextBox.Text);
-            await this._blishHudApiState.SetAPIPassword(passwordTextBox.Text == passwordUnchangedPhrase ? password : passwordTextBox.Text);
+            this._blishHudApiService.SetAPIUsername(usernameTextBox.Text);
+            await this._blishHudApiService.SetAPIPassword(passwordTextBox.Text == passwordUnchangedPhrase ? password : passwordTextBox.Text);
 
-            await this._blishHudApiState.Login();
+            await this._blishHudApiService.Login();
         });
 
         this.RenderButtonAsync(buttonPanel, "Test Login", async () =>
         {
-            await this._blishHudApiState.TestLogin(usernameTextBox.Text, passwordTextBox.Text == passwordUnchangedPhrase ? password : passwordTextBox.Text);
+            await this._blishHudApiService.TestLogin(usernameTextBox.Text, passwordTextBox.Text == passwordUnchangedPhrase ? password : passwordTextBox.Text);
             this.ShowInfo("Login successful!");
         });
 
         this.RenderButtonAsync(buttonPanel, "Clear Credentials", async () =>
         {
-            this._blishHudApiState.SetAPIUsername(null);
-            await this._blishHudApiState.SetAPIPassword(null);
-            this._blishHudApiState.Logout();
+            this._blishHudApiService.SetAPIUsername(null);
+            await this._blishHudApiService.SetAPIPassword(null);
+            this._blishHudApiService.Logout();
             this.ShowInfo("Logout successful!");
         });
     }

@@ -7,11 +7,11 @@ using Blish_HUD.Controls;
 using Blish_HUD.Entities;
 using Blish_HUD.Input;
 using Estreya.BlishHUD.EventTable.Models;
-using Estreya.BlishHUD.EventTable.State;
+using Estreya.BlishHUD.EventTable.Services;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.Models;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
@@ -44,12 +44,12 @@ public class EventArea : RenderTargetControl
     private double _lastCheckForNewEventsUpdate = 0;
 
     private static readonly ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
-    private IconState _iconState;
-    private TranslationState _translationState;
-    private EventState _eventState;
-    private WorldbossState _worldbossState;
-    private MapchestState _mapchestState;
-    private PointOfInterestState _pointOfInterestState;
+    private IconService _iconService;
+    private TranslationService _translationService;
+    private EventStateService _eventService;
+    private WorldbossService _worldbossService;
+    private MapchestService _mapchestService;
+    private PointOfInterestService _pointOfInterestService;
     private MapUtil _mapUtil;
     private IFlurlClient _flurlClient;
     private string _apiRootUrl;
@@ -121,7 +121,7 @@ public class EventArea : RenderTargetControl
 
     public EventAreaConfiguration Configuration { get; private set; }
 
-    public EventArea(EventAreaConfiguration configuration, IconState iconState, TranslationState translationState, EventState eventState, WorldbossState worldbossState, MapchestState mapchestState, PointOfInterestState pointOfInterestState, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<SemVer.Version> getVersion, Func<string> getAccessToken)
+    public EventArea(EventAreaConfiguration configuration, IconService iconService, TranslationService translationService, EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<SemVer.Version> getVersion, Func<string> getAccessToken)
     {
         this.Configuration = configuration;
 
@@ -153,47 +153,47 @@ public class EventArea : RenderTargetControl
         this._getNowAction = getNowAction;
         this._getVersion = getVersion;
         this._getAccessToken = getAccessToken;
-        this._iconState = iconState;
-        this._translationState = translationState;
-        this._eventState = eventState;
-        this._worldbossState = worldbossState;
-        this._mapchestState = mapchestState;
-        this._pointOfInterestState = pointOfInterestState;
+        this._iconService = iconService;
+        this._translationService = translationService;
+        this._eventService = eventService;
+        this._worldbossService = worldbossService;
+        this._mapchestService = mapchestService;
+        this._pointOfInterestService = pointOfInterestService;
         this._mapUtil = mapUtil;
         this._flurlClient = flurlClient;
         this._apiRootUrl = apiRootUrl;
 
-        //this._eventState.
-        if (this._worldbossState != null)
+        //this._eventStateService.
+        if (this._worldbossService != null)
         {
-            this._worldbossState.WorldbossCompleted += this.Event_Completed;
-            this._worldbossState.WorldbossRemoved += this.Event_Removed;
+            this._worldbossService.WorldbossCompleted += this.Event_Completed;
+            this._worldbossService.WorldbossRemoved += this.Event_Removed;
         }
 
-        if (this._mapchestState != null)
+        if (this._mapchestService != null)
         {
-            this._mapchestState.MapchestCompleted += this.Event_Completed;
-            this._mapchestState.MapchestRemoved += this.Event_Removed;
+            this._mapchestService.MapchestCompleted += this.Event_Completed;
+            this._mapchestService.MapchestRemoved += this.Event_Removed;
         }
 
-        if (this._eventState != null)
+        if (this._eventService != null)
         {
-            this._eventState.StateAdded += this.EventState_StateAdded;
-            this._eventState.StateRemoved += this.EventState_StateRemoved;
+            this._eventService.StateAdded += this.EventService_ServiceAdded;
+            this._eventService.StateRemoved += this.EventService_ServiceRemoved;
         }
     }
 
-    private void EventState_StateAdded(object sender, ValueEventArgs<EventState.VisibleStateInfo> e)
+    private void EventService_ServiceAdded(object sender, ValueEventArgs<EventStateService.VisibleStateInfo> e)
     {
-        if (e.Value.AreaName == this.Configuration.Name && e.Value.State == EventState.EventStates.Hidden)
+        if (e.Value.AreaName == this.Configuration.Name && e.Value.State == EventStateService.EventStates.Hidden)
         {
             this.ReAddEvents();
         }
     }
 
-    private void EventState_StateRemoved(object sender, ValueEventArgs<EventState.VisibleStateInfo> e)
+    private void EventService_ServiceRemoved(object sender, ValueEventArgs<EventStateService.VisibleStateInfo> e)
     {
-        if (e.Value.AreaName == this.Configuration.Name && e.Value.State == EventState.EventStates.Hidden)
+        if (e.Value.AreaName == this.Configuration.Name && e.Value.State == EventStateService.EventStates.Hidden)
         {
             this.ReAddEvents();
         }
@@ -265,7 +265,7 @@ public class EventArea : RenderTargetControl
 
             (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
-            this._allEvents.ForEach(ec => ec.Load(this._getNowAction, this._translationState));
+            this._allEvents.ForEach(ec => ec.Load(this._getNowAction, this._translationService));
             // Events should have occurences calculated already
         }
 
@@ -282,7 +282,7 @@ public class EventArea : RenderTargetControl
 
         events.ForEach(ev =>
         {
-            this._eventState.Remove(this.Configuration.Name, ev.SettingKey);
+            this._eventService.Remove(this.Configuration.Name, ev.SettingKey);
         });
     }
 
@@ -431,7 +431,7 @@ public class EventArea : RenderTargetControl
             {
                 if (fillers.TryGetValue(ec.Key, out List<Models.Event> categoryFillers))
                 {
-                    categoryFillers.ForEach(cf => cf.Load(ec, this._getNowAction, this._translationState));
+                    categoryFillers.ForEach(cf => cf.Load(ec, this._getNowAction, this._translationService));
                 }
 
                 ec.UpdateFillers(categoryFillers);
@@ -521,7 +521,7 @@ public class EventArea : RenderTargetControl
 
     private bool EventCategoryDisabled(EventCategory ec)
     {
-        bool finished = this._eventState?.Contains(this.Configuration.Name, ec.Key, EventState.EventStates.Completed) ?? false;
+        bool finished = this._eventService?.Contains(this.Configuration.Name, ec.Key, EventStateService.EventStates.Completed) ?? false;
 
         return finished;
     }
@@ -554,7 +554,7 @@ public class EventArea : RenderTargetControl
     {
         bool enabled = !this.Configuration.DisabledEventKeys.Value.Contains(settingKey);
 
-        enabled &= !this._eventState.Contains(this.Configuration.Name, settingKey, EventState.EventStates.Hidden);
+        enabled &= !this._eventService.Contains(this.Configuration.Name, settingKey, EventStateService.EventStates.Hidden);
 
         return !enabled;
     }
@@ -737,14 +737,14 @@ public class EventArea : RenderTargetControl
                     }
 
                     Event newEventControl = new Event(ev,
-                        this._iconState,
-                        this._translationState,
+                        this._iconService,
+                        this._translationService,
                         this._getNowAction,
                         occurence,
                         occurence.AddMinutes(ev.Duration),
                         this.GetFont,
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
-                        () => this.Configuration.CompletionAction.Value is EventCompletedAction.Crossout or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed),
+                        () => this.Configuration.CompletionAction.Value is EventCompletedAction.Crossout or EventCompletedAction.CrossoutAndChangeOpacity && this._eventService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed),
                         () =>
                         {
                             Color defaultTextColor = Color.Black;
@@ -753,7 +753,7 @@ public class EventArea : RenderTargetControl
                                 : (this.Configuration.TextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.TextColor.Value.Cloth.ToXnaColor());
                             float alpha = ev.Filler ? this.Configuration.FillerTextOpacity.Value : this.Configuration.EventTextOpacity.Value;
 
-                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed))
+                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed))
                             {
                                 if (this.Configuration.CompletedEventsInvertTextColor.Value)
                                 {
@@ -774,7 +774,7 @@ public class EventArea : RenderTargetControl
 
                             float alpha = this.Configuration.EventBackgroundOpacity.Value;
 
-                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventState.Contains(this.Configuration.Name, ev.SettingKey, EventState.EventStates.Completed))
+                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed))
                             {
                                 alpha = this.Configuration.CompletedEventsBackgroundOpacity.Value;
                             }
@@ -830,13 +830,13 @@ public class EventArea : RenderTargetControl
                     return;
                 }
 
-                if (this._pointOfInterestState.Loading)
+                if (this._pointOfInterestService.Loading)
                 {
-                    Shared.Controls.ScreenNotification.ShowNotification($"{nameof(PointOfInterestState)} is still loading!", Shared.Controls.ScreenNotification.NotificationType.Error);
+                    Shared.Controls.ScreenNotification.ShowNotification($"{nameof(PointOfInterestService)} is still loading!", Shared.Controls.ScreenNotification.NotificationType.Error);
                     return;
                 }
 
-                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this._pointOfInterestState.GetPointOfInterest(_activeEvent.Ev.Waypoint);
+                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(_activeEvent.Ev.Waypoint);
                 if (poi == null)
                 {
                     Shared.Controls.ScreenNotification.ShowNotification($"{_activeEvent.Ev.Waypoint} not found!", Shared.Controls.ScreenNotification.NotificationType.Error);
@@ -973,7 +973,7 @@ public class EventArea : RenderTargetControl
         {
             case EventCompletedAction.Crossout:
             case EventCompletedAction.ChangeOpacity:
-                this._eventState.Add(this.Configuration.Name, ev.SettingKey, until, EventState.EventStates.Completed);
+                this._eventService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Completed);
                 break;
             case EventCompletedAction.Hide:
                 this.HideEvent(ev, until);
@@ -983,7 +983,7 @@ public class EventArea : RenderTargetControl
 
     private void HideEvent(Models.Event ev, DateTime until)
     {
-        this._eventState.Add(this.Configuration.Name, ev.SettingKey, until, EventState.EventStates.Hidden);
+        this._eventService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Hidden);
     }
 
     private void Ev_HideRequested(object sender, EventArgs e)
@@ -1012,30 +1012,30 @@ public class EventArea : RenderTargetControl
     {
         this.ClearEventControls();
 
-        if (this._worldbossState != null)
+        if (this._worldbossService != null)
         {
-            this._worldbossState.WorldbossCompleted -= this.Event_Completed;
-            this._worldbossState.WorldbossRemoved -= this.Event_Removed;
+            this._worldbossService.WorldbossCompleted -= this.Event_Completed;
+            this._worldbossService.WorldbossRemoved -= this.Event_Removed;
         }
 
-        if (this._mapchestState != null)
+        if (this._mapchestService != null)
         {
-            this._mapchestState.MapchestCompleted -= this.Event_Completed;
-            this._mapchestState.MapchestRemoved -= this.Event_Removed;
+            this._mapchestService.MapchestCompleted -= this.Event_Completed;
+            this._mapchestService.MapchestRemoved -= this.Event_Removed;
         }
 
-        if (this._eventState != null)
+        if (this._eventService != null)
         {
-            this._eventState.StateAdded -= this.EventState_StateAdded;
-            this._eventState.StateRemoved -= this.EventState_StateRemoved;
+            this._eventService.StateAdded -= this.EventService_ServiceAdded;
+            this._eventService.StateRemoved -= this.EventService_ServiceRemoved;
         }
 
-        this._iconState = null;
-        this._worldbossState = null;
-        this._mapchestState = null;
-        this._eventState = null;
+        this._iconService = null;
+        this._worldbossService = null;
+        this._mapchestService = null;
+        this._eventService = null;
         this._mapUtil = null;
-        this._pointOfInterestState = null;
+        this._pointOfInterestService = null;
 
         this._flurlClient = null;
         this._apiRootUrl = null;

@@ -10,7 +10,7 @@
     using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Models;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.Shared.Threading;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Estreya.BlishHUD.Shared.Utils;
@@ -33,9 +33,9 @@
 
         private readonly PlayerTransaction _currentTransaction;
 
-        private readonly IconState _iconState;
-        private readonly TradingPostState _tradingPostState;
-        private readonly TranslationState _translationState;
+        private readonly IconService _iconService;
+        private readonly TradingPostService _tradingPostService;
+        private readonly TranslationService _translationService;
         private readonly SettingEntry<float> _opacitySetting;
         private readonly SettingEntry<bool> _showPriceSetting;
         private readonly SettingEntry<bool> _showPriceAsTotalSetting;
@@ -76,16 +76,16 @@
             set => this.SetProperty(ref this._heightSizingMode, value);
         }
 
-        public Transaction(PlayerTransaction commerceTransaction, IconState iconState, TradingPostState tradingPostState, TranslationState translationState,
+        public Transaction(PlayerTransaction commerceTransaction, IconService iconService, TradingPostService tradingPostService, TranslationService translationService,
             SettingEntry<float> opacity, SettingEntry<bool> showPrice, SettingEntry<bool> showPriceAsTotal,
             SettingEntry<bool> showRemaining, SettingEntry<bool> showCreatedDate, SettingEntry<bool> showTooltips,
             SettingEntry<ContentService.FontSize> fontSize, SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> highestTransactionColorSetting,
             SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> outbidTransactionColorSetting) : base()
         {
             this._currentTransaction = commerceTransaction;
-            this._iconState = iconState;
-            this._tradingPostState = tradingPostState;
-            this._translationState = translationState;
+            this._iconService = iconService;
+            this._tradingPostService = tradingPostService;
+            this._translationService = translationService;
             this._opacitySetting = opacity;
             this._showPriceSetting = showPrice;
             this._showPriceAsTotalSetting = showPriceAsTotal;
@@ -95,7 +95,7 @@
             this._fontSizeSetting = fontSize;
             this._highestTransactionColorSetting = highestTransactionColorSetting;
             this._outbidTransactionColorSetting = outbidTransactionColorSetting;
-            this._transactionTexture = iconState.GetIcon(this._currentTransaction?.Item?.Icon);
+            this._transactionTexture = iconService.GetIcon(this._currentTransaction?.Item?.Icon);
 
             this._showTooltipsSetting.SettingChanged += this.ShowTooltips_SettingChanged;
         }
@@ -249,9 +249,9 @@
         {
             if (this._currentTransaction?.Item != null)
             {
-                var itemPrice = await _tradingPostState.GetPriceForItem(this._currentTransaction.ItemId, this._currentTransaction.Type);
+                var itemPrice = await _tradingPostService.GetPriceForItem(this._currentTransaction.ItemId, this._currentTransaction.Type);
                 var priceNote = this._showPriceAsTotalSetting?.Value ?? false ? $"You have enabled combined price display!" : null;
-                this.Tooltip = new Tooltip(new PriceTooltipView(this._currentTransaction.Item.Name, this._currentTransaction.Item.Description, itemPrice, priceNote, this._transactionTexture, null, this._iconState, this._translationState));
+                this.Tooltip = new Tooltip(new PriceTooltipView(this._currentTransaction.Item.Name, this._currentTransaction.Item.Description, itemPrice, priceNote, this._transactionTexture, null, this._iconService, this._translationService));
             }
         }
 

@@ -3,7 +3,7 @@
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Service;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
@@ -19,17 +19,17 @@ internal class PriceTooltipView : TooltipView
     private readonly int _coins;
     private readonly string _priceComment;
 
-    public PriceTooltipView(string title, string description, int coins, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState) : base(title, description, translationState, apiManager, iconState)
+    public PriceTooltipView(string title, string description, int coins, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(title, description, translationService, apiManager, iconService)
     {
         this._coins = coins;
     }
 
-    public PriceTooltipView(string title, string description, int coins, AsyncTexture2D icon, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState) : base(title, description, icon, translationState, apiManager, iconState)
+    public PriceTooltipView(string title, string description, int coins, AsyncTexture2D icon, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(title, description, icon, translationService, apiManager, iconService)
     {
         this._coins = coins;
     }
 
-    public PriceTooltipView(string title, string description, int coins, string priceComment, AsyncTexture2D icon, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState) : this(title, description,coins, icon, apiManager, iconState, translationState)
+    public PriceTooltipView(string title, string description, int coins, string priceComment, AsyncTexture2D icon, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : this(title, description,coins, icon, apiManager, iconService, translationService)
     {
         this._priceComment = priceComment;
     }
@@ -57,7 +57,7 @@ internal class PriceTooltipView : TooltipView
         Image goldImage = new Image()
         {
             Parent = parent,
-            Texture = this.IconState?.GetIcon("156904.png"),
+            Texture = this.IconService?.GetIcon("156904.png"),
             Location = new Microsoft.Xna.Framework.Point(goldLabel.Right, coinImageTop),
             Size = new Microsoft.Xna.Framework.Point(32,32)
         };
@@ -74,7 +74,7 @@ internal class PriceTooltipView : TooltipView
         Image silverImage = new Image()
         {
             Parent = parent,
-            Texture = this.IconState?.GetIcon("156907.png"),
+            Texture = this.IconService?.GetIcon("156907.png"),
             Location = new Microsoft.Xna.Framework.Point(silverLabel.Right, coinImageTop),
             Size = new Microsoft.Xna.Framework.Point(32, 32)
         };
@@ -91,7 +91,7 @@ internal class PriceTooltipView : TooltipView
         Image copperImage = new Image()
         {
             Parent = parent,
-            Texture = this.IconState?.GetIcon("156902.png"),
+            Texture = this.IconService?.GetIcon("156902.png"),
             Location = new Microsoft.Xna.Framework.Point(copperLabel.Right, coinImageTop),
             Size = new Microsoft.Xna.Framework.Point(32, 32)
         };

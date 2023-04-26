@@ -3,7 +3,7 @@
     using Blish_HUD.Controls;
     using Blish_HUD.Graphics.UI;
     using Estreya.BlishHUD.Shared.Helpers;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
     using System;
@@ -14,7 +14,7 @@
         public event EventHandler OpenClicked;
         public event EventHandler CreateGithubIssueClicked;
 
-        public ModuleSettingsView(IconState iconState, TranslationState translationState): base(null, iconState, translationState)
+        public ModuleSettingsView(IconService iconService, TranslationService translationService): base(null, iconService, translationService)
         {
         }
 
@@ -46,7 +46,7 @@
                 Parent = parentPanel
             };
 
-            string buttonText = this.TranslationState.GetTranslation("moduleSettingsView-openSettingsBtn", "Open Settings");
+            string buttonText = this.TranslationService.GetTranslation("moduleSettingsView-openSettingsBtn", "Open Settings");
 
             StandardButton openSettingsButton = new StandardButton()
             {
@@ -63,7 +63,7 @@
 
             openSettingsButton.Click += (s, e) => this.OpenClicked?.Invoke(this, EventArgs.Empty);
 
-            var githubIssueText = this.TranslationState.GetTranslation("moduleSettingsView-createGitHubIssueBtn", "Create Bug/Feature Issue");
+            var githubIssueText = this.TranslationService.GetTranslation("moduleSettingsView-createGitHubIssueBtn", "Create Bug/Feature Issue");
 
             StandardButton createGithubIssue = new StandardButton()
             {

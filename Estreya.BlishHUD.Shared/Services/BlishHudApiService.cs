@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State
+﻿namespace Estreya.BlishHUD.Shared.Services
 {
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.Shared.Models.BlishHudAPI;
@@ -14,7 +14,7 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    public class BlishHudApiState : ManagedState
+    public class BlishHudApiService : ManagedService
     {
         private const string API_PASSWORD_KEY = "estreyaBlishHudAPI";
         private SettingEntry<string> _usernameSetting;
@@ -34,7 +34,7 @@
         public event EventHandler NewLogin;
         public event EventHandler LoggedOut;
 
-        public BlishHudApiState(StateConfiguration configuration, SettingEntry<string> usernameSetting, PasswordManager passwordManager, IFlurlClient flurlClient, string apiRootUrl, string apiVersion) : base(configuration)
+        public BlishHudApiService(ServiceConfiguration configuration, SettingEntry<string> usernameSetting, PasswordManager passwordManager, IFlurlClient flurlClient, string apiRootUrl, string apiVersion) : base(configuration)
         {
             this._usernameSetting = usernameSetting;
             this._passwordManager = passwordManager;

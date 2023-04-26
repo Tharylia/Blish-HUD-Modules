@@ -8,7 +8,7 @@
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Models;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
@@ -31,7 +31,7 @@
         private readonly Func<List<string>> _getDisabledEventKeys;
         private readonly ModuleSettings _moduleSettings;
 
-        public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
         {
             this.allEvents = allEvents;
             this._additionalData = additionalData ?? new Dictionary<string, object>();
@@ -46,8 +46,8 @@
             GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
             {
                 button.Icon = button.Checked
-                    ? this.IconState.GetIcon("784259.png")
-                    : this.IconState.GetIcon("784261.png");
+                    ? this.IconService.GetIcon("784259.png")
+                    : this.IconService.GetIcon("784261.png");
             });
         }
 
@@ -240,7 +240,7 @@
                         Event = e,
                         Parent = eventPanel,
                         Text = e.Name,
-                        Icon= this.IconState.GetIcon(e.Icon),
+                        Icon= this.IconService.GetIcon(e.Icon),
                         ShowToggleButton = true,
                         FillColor = Color.LightBlue,
                         //Size = new Point((events.ContentRegion.Size.X - Panel.ControlStandard.Size.X) / 2, events.ContentRegion.Size.X - Panel.ControlStandard.Size.X)
@@ -248,12 +248,12 @@
 
                     if (!string.IsNullOrWhiteSpace(e.Waypoint))
                     {
-                        var icon = this.IconState.GetIcon("102348.png");
+                        var icon = this.IconService.GetIcon("102348.png");
                         GlowButton waypointButton = new GlowButton()
                         {
                             Parent = button,
                             ToggleGlow = false,
-                            Tooltip = new Tooltip(new TooltipView("Waypoint", "Click to copy waypoint!", icon, this.TranslationState)),
+                            Tooltip = new Tooltip(new TooltipView("Waypoint", "Click to copy waypoint!", icon, this.TranslationService)),
                             Icon = icon
                         };
 
@@ -279,12 +279,12 @@
 
                     if (!string.IsNullOrWhiteSpace(e.Wiki))
                     {
-                        var icon = this.IconState.GetIcon("102353.png");
+                        var icon = this.IconService.GetIcon("102353.png");
                         GlowButton wikiButton = new GlowButton
                         {
                             Parent = button,
                             ToggleGlow = false,
-                            Tooltip = new Tooltip(new TooltipView("Wiki", "Click to open wiki!", icon, this.TranslationState)),
+                            Tooltip = new Tooltip(new TooltipView("Wiki", "Click to open wiki!", icon, this.TranslationService)),
                             Icon = icon
                         };
 
@@ -301,7 +301,7 @@
                         {
                             Parent = button,
                             ToggleGlow = false,
-                            Icon = this.IconState.GetIcon("155018.png"),
+                            Icon = this.IconService.GetIcon("155018.png"),
                             BasicTooltipText = "This event is currently hidden due to dynamic states.",
                             Enabled = false
                         };
@@ -318,7 +318,7 @@
                             {
                                 Parent = button,
                                 ToggleGlow = false,
-                                Icon = customAction.Icon != null ? this.IconState.GetIcon(customAction.Icon): null,
+                                Icon = customAction.Icon != null ? this.IconService.GetIcon(customAction.Icon): null,
                                 BasicTooltipText = customAction.Tooltip,
                             };
 
@@ -343,8 +343,8 @@
                     {
                         this.EventChanged?.Invoke(this, new EventChangedArgs()
                         {
-                            OldState = !eventArgs.Checked,
-                            NewState = eventArgs.Checked,
+                            OldService = !eventArgs.Checked,
+                            NewService = eventArgs.Checked,
                             EventSettingKey = button.Event.SettingKey,
                             AdditionalData = this._additionalData
                         });
@@ -369,8 +369,8 @@
 
         public class EventChangedArgs
         {
-            public bool OldState { get; set; }
-            public bool NewState { get; set; }
+            public bool OldService { get; set; }
+            public bool NewService { get; set; }
 
             public Dictionary<string, object> AdditionalData { get; set; }
 

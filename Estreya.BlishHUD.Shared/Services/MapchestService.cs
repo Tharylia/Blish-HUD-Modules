@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State
+﻿namespace Estreya.BlishHUD.Shared.Services
 {
     using Blish_HUD;
     using Blish_HUD.Modules.Managers;
@@ -12,28 +12,28 @@
     using System.Linq;
     using System.Threading.Tasks;
 
-    public class MapchestState : APIState<string>
+    public class MapchestService : APIService<string>
     {
-        private readonly AccountState _accountState;
+        private readonly AccountService _accountService;
 
         public event EventHandler<string> MapchestCompleted;
         public event EventHandler<string> MapchestRemoved;
 
-        public MapchestState(APIStateConfiguration configuration, Gw2ApiManager apiManager, AccountState accountState) :
+        public MapchestService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, AccountService accountService) :
             base(apiManager, configuration)
         {
-            this._accountState = accountState;
+            this._accountService = accountService;
 
-            this.APIObjectAdded += this.APIState_APIObjectAdded;
-            this.APIObjectRemoved += this.APIState_APIObjectRemoved;
+            this.APIObjectAdded += this.APIService_APIObjectAdded;
+            this.APIObjectRemoved += this.APIService_APIObjectRemoved;
         }
 
-        private void APIState_APIObjectRemoved(object sender, string e)
+        private void APIService_APIObjectRemoved(object sender, string e)
         {
             this.MapchestRemoved?.Invoke(this, e);
         }
 
-        private void APIState_APIObjectAdded(object sender, string e)
+        private void APIService_APIObjectAdded(object sender, string e)
         {
             this.MapchestCompleted?.Invoke(this, e);
         }
@@ -45,13 +45,13 @@
 
         protected override void DoUnload()
         {
-            this.APIObjectAdded -= this.APIState_APIObjectAdded;
-            this.APIObjectRemoved -= this.APIState_APIObjectRemoved;
+            this.APIObjectAdded -= this.APIService_APIObjectAdded;
+            this.APIObjectRemoved -= this.APIService_APIObjectRemoved;
         }
 
         protected override async Task<List<string>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
         {
-            DateTime lastModifiedUTC = this._accountState.Account?.LastModified.UtcDateTime ?? DateTime.MinValue;
+            DateTime lastModifiedUTC = this._accountService.Account?.LastModified.UtcDateTime ?? DateTime.MinValue;
 
             DateTime now = DateTime.UtcNow;
             DateTime lastResetUTC = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);

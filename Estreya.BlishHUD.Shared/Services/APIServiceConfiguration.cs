@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Gw2Sharp.WebApi.V2.Models;
 using System;
@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class APIStateConfiguration : StateConfiguration
+public class APIServiceConfiguration : ServiceConfiguration
 {
     public List<TokenPermission> NeededPermissions { get; set; } = new List<TokenPermission>();
 

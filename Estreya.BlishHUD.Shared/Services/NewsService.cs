@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State
+﻿namespace Estreya.BlishHUD.Shared.Services
 {
     using Estreya.BlishHUD.Shared.Models;
     using Flurl.Http;
@@ -9,7 +9,7 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    public class NewsState : ManagedState
+    public class NewsService : ManagedService
     {
         private const string FILE_NAME = "news.json";
         private readonly IFlurlClient _flurlClient;
@@ -17,7 +17,7 @@
 
         public List<News> News { get; private set; }
 
-        public NewsState(StateConfiguration configuration, IFlurlClient flurlClient, string baseFilePath) : base(configuration)
+        public NewsService(ServiceConfiguration configuration, IFlurlClient flurlClient, string baseFilePath) : base(configuration)
         {
             this._flurlClient = flurlClient;
             this._baseFilePath = baseFilePath;

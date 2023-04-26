@@ -6,7 +6,7 @@ using Blish_HUD.Graphics.UI;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
 using System;
@@ -30,15 +30,15 @@ public abstract class BaseView : View
     protected BitmapFont Font { get; }
     public Gw2Sharp.WebApi.V2.Models.Color DefaultColor { get; set; }
 
-    protected IconState IconState { get; }
-    protected TranslationState TranslationState { get; }
+    protected IconService IconService { get; }
+    protected TranslationService TranslationService { get; }
     protected Panel MainPanel { get; private set; }
 
-    public BaseView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null)
+    public BaseView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null)
     {
         this.APIManager = apiManager;
-        this.IconState = iconState;
-        this.TranslationState = translationState;
+        this.IconService = iconService;
+        this.TranslationService = translationService;
         this.Font = font ?? GameService.Content.DefaultFont16;
     }
 
@@ -46,7 +46,7 @@ public abstract class BaseView : View
     {
         if (Colors == null)
         {
-            progress.Report(this.TranslationState.GetTranslation("baseView-loadingColors", "Loading Colors..."));
+            progress.Report(this.TranslationService.GetTranslation("baseView-loadingColors", "Loading Colors..."));
 
             try
             {

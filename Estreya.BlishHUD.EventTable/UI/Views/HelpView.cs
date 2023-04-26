@@ -5,7 +5,7 @@ using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.EventTable.Controls;
 using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
@@ -24,7 +24,7 @@ public class HelpView : BaseView
     private readonly string _apiUrl;
     private List<string> _autocompleteAPIKeys = new List<string>();
 
-    public HelpView(Func<List<EventCategory>> getEvents, string apiUrl, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public HelpView(Func<List<EventCategory>> getEvents, string apiUrl, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
         this._getEvents = getEvents;
         this._apiUrl = apiUrl;

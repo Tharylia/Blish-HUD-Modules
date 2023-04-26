@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Estreya.BlishHUD.Shared.Extensions;
 using Flurl.Http;
@@ -14,7 +14,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media.TextFormatting;
 
-public class TranslationState : ManagedState
+public class TranslationService : ManagedService
 {
     ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _translations;
     private IFlurlClient _flurlClient;
@@ -27,7 +27,7 @@ public class TranslationState : ManagedState
         "fr"
     };
 
-    public TranslationState(StateConfiguration configuration, IFlurlClient flurlClient, string rootUrl) : base(configuration)
+    public TranslationService(ServiceConfiguration configuration, IFlurlClient flurlClient, string rootUrl) : base(configuration)
     {
         this._flurlClient = flurlClient;
         this._rootUrl = rootUrl;

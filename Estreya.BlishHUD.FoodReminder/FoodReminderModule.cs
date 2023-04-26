@@ -15,7 +15,7 @@
     using Estreya.BlishHUD.Shared.Models.ArcDPS.Buff;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.Shared.Threading;
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Util;
@@ -61,7 +61,7 @@
             GameService.ArcDps.Common.Activate();
             GameService.ArcDps.Common.PlayerAdded += this.ArcDPS_PlayerAdded;
             GameService.ArcDps.Common.PlayerRemoved += this.ArcDPS_PlayerRemoved;
-            this.ArcDPSState.AreaCombatEvent += this.ArcDPSState_AreaCombatEvent;
+            this.ArcDPSService.AreaCombatEvent += this.ArcDPSService_AreaCombatEvent;
 
             var dataFileStream = this.ContentsManager.GetFileStream("data.json");
 
@@ -79,14 +79,14 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
             UI.Views.AreaSettingsView areaSettingsView = new UI.Views.AreaSettingsView(
                 () => this._areas.Select(area => area.Configuration),
                 this.ModuleSettings,
                 this.Gw2ApiManager,
-                this.IconState,
-                this.TranslationState,
-                this.SettingEventState,
+                this.IconService,
+                this.TranslationService,
+                this.SettingEventService,
                 GameService.Content.DefaultFont16)
             { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
@@ -99,7 +99,7 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
 
         }
 
@@ -165,7 +165,7 @@
             }
         }
 
-        private void ArcDPSState_AreaCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
+        private void ArcDPSService_AreaCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
         {
             if (e is BuffApplyCombatEvent buffApplyCombatEvent)
             {
@@ -307,15 +307,15 @@
 
         protected override AsyncTexture2D GetEmblem()
         {
-            return this.IconState.GetIcon("2191071.png");// "866139.png");
+            return this.IconService.GetIcon("2191071.png");// "866139.png");
         }
 
         protected override AsyncTexture2D GetCornerIcon()
         {
-            return this.IconState.GetIcon("1377783.png");
+            return this.IconService.GetIcon("1377783.png");
         }
 
-        protected override void ConfigureStates(StateConfigurations configurations)
+        protected override void ConfigureServices(ServiceConfigurations configurations)
         {
             configurations.Skills.Enabled = true;
             configurations.ArcDPS.Enabled = true;
@@ -323,9 +323,9 @@
 
         protected override void Unload()
         {
-            if (this.ArcDPSState != null)
+            if (this.ArcDPSService != null)
             {
-                this.ArcDPSState.AreaCombatEvent -= this.ArcDPSState_AreaCombatEvent;
+                this.ArcDPSService.AreaCombatEvent -= this.ArcDPSService_AreaCombatEvent;
             }
 
             this._areas?.ForEach(drawer => drawer?.Dispose());

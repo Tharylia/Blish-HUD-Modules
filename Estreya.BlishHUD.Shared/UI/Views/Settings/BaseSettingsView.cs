@@ -7,7 +7,7 @@
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Extensions;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Humanizer;
     using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
@@ -24,15 +24,15 @@
         private readonly Point CONTROL_LOCATION;
 
         private static readonly Logger Logger = Logger.GetLogger<BaseSettingsView>();
-        private readonly SettingEventState _settingEventState;
+        private readonly SettingEventService _settingEventService;
 
-        protected BaseSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        protected BaseSettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
         {
             base.LABEL_WIDTH = 250;
             this.CONTROL_WIDTH = 250;
 
             this.CONTROL_LOCATION = new Point(base.LABEL_WIDTH + 20, 0);
-            this._settingEventState = settingEventState;
+            this._settingEventService = settingEventService;
         }
 
         protected sealed override void InternalBuild(Panel parent)
@@ -128,8 +128,8 @@
 
             trackbar.BasicTooltipText = settingEntry.Description;
 
-            _settingEventState.AddForRangeCheck(settingEntry);
-            _settingEventState.RangeUpdated += (s, e) =>
+            _settingEventService.AddForRangeCheck(settingEntry);
+            _settingEventService.RangeUpdated += (s, e) =>
             {
                 if (e.SettingEntry.EntryKey == settingEntry.EntryKey)
                 {
@@ -141,7 +141,7 @@
 
             trackbar.Disposed += (s, e) =>
             {
-                _settingEventState.RemoveFromRangeCheck(settingEntry);
+                _settingEventService.RemoveFromRangeCheck(settingEntry);
             };
 
             this.SetControlEnabledState(trackbar, settingEntry);
@@ -171,8 +171,8 @@
 
             trackbar.BasicTooltipText = settingEntry.Description;
 
-            _settingEventState.AddForRangeCheck(settingEntry);
-            _settingEventState.RangeUpdated += (s, e) =>
+            _settingEventService.AddForRangeCheck(settingEntry);
+            _settingEventService.RangeUpdated += (s, e) =>
             {
                 if (e.SettingEntry.EntryKey == settingEntry.EntryKey)
                 {
@@ -184,7 +184,7 @@
 
             trackbar.Disposed += (s, e) =>
             {
-                _settingEventState.RemoveFromRangeCheck(settingEntry);
+                _settingEventService.RemoveFromRangeCheck(settingEntry);
             };
 
             this.SetControlEnabledState(trackbar, settingEntry);
@@ -290,8 +290,8 @@
 
         private void AddControlForDisabledCheck(Control control, SettingEntry settingEntry)
         {
-            _settingEventState.AddForDisabledCheck(settingEntry);
-            _settingEventState.DisabledUpdated += (s, e) =>
+            _settingEventService.AddForDisabledCheck(settingEntry);
+            _settingEventService.DisabledUpdated += (s, e) =>
             {
                 if (e.SettingEntry.EntryKey == settingEntry.EntryKey)
                 {
@@ -302,7 +302,7 @@
 
             control.Disposed += (s, e) =>
             {
-                _settingEventState.RemoveFromDisabledCheck(settingEntry);
+                _settingEventService.RemoveFromDisabledCheck(settingEntry);
             };
         }
 

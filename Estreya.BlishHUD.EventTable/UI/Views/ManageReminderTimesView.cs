@@ -4,7 +4,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.EventTable.Controls;
 using Estreya.BlishHUD.EventTable.Models;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
@@ -24,7 +24,7 @@ public class ManageReminderTimesView : BaseView
     public event EventHandler<(Models.Event Event, List<TimeSpan> ReminderTimes)> SaveClicked;
     public event EventHandler CancelClicked;
 
-    public ManageReminderTimesView(Models.Event ev, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public ManageReminderTimesView(Models.Event ev, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
         this._ev = ev;
 
@@ -97,7 +97,7 @@ public class ManageReminderTimesView : BaseView
         });
         addButton.Left = x;
         addButton.Width = 100;
-        addButton.Icon = this.IconState.GetIcon("1444520.png");
+        addButton.Icon = this.IconService.GetIcon("1444520.png");
         addButton.ResizeIcon = false;
     }
 
@@ -208,7 +208,7 @@ public class ManageReminderTimesView : BaseView
 
         removeButton.Left = seconds.Right + 10;
         removeButton.Width = 100;
-        removeButton.Icon = this.IconState.GetIcon("1444524.png");
+        removeButton.Icon = this.IconService.GetIcon("1444524.png");
         removeButton.ResizeIcon = false;
 
         return timeSectionPanel;

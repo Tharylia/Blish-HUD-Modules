@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
@@ -18,7 +18,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-public abstract class APIState<T> : APIState
+public abstract class APIService<T> : APIService
 {
     protected readonly AsyncLock _apiObjectListLock = new AsyncLock();
 
@@ -27,7 +27,7 @@ public abstract class APIState<T> : APIState
     protected event EventHandler<T> APIObjectAdded;
     protected event EventHandler<T> APIObjectRemoved;
 
-    public APIState(Gw2ApiManager apiManager, APIStateConfiguration configuration) : base(apiManager, configuration)
+    public APIService(Gw2ApiManager apiManager, APIServiceConfiguration configuration) : base(apiManager, configuration)
     {
     }
 

@@ -14,7 +14,7 @@
     using Estreya.BlishHUD.Shared.Models.ArcDPS.Buff;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.Threading;
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Util;
@@ -163,14 +163,14 @@
 
         private void CreateManagerWindow()
         {
-            this._managerWindow ??= WindowUtil.CreateTabbedWindow("ArcDPS Log Manager", this.GetType(), Guid.Parse("6a7d6c6b-3554-4e44-a478-0620b185ec61"), this.IconState);
+            this._managerWindow ??= WindowUtil.CreateTabbedWindow("ArcDPS Log Manager", this.GetType(), Guid.Parse("6a7d6c6b-3554-4e44-a478-0620b185ec61"), this.IconService);
             this._managerWindow.Visible = false;
             //this._managerWindow.CanResize = true;
             //this._managerWindow.Size = new Point(2000, 1200);
 
-            this._managerWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"),
+            this._managerWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"),
                 () => new UI.Views.GeneralSettingsView(
-                    this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16)
+                    this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16)
                 { DefaultColor = this.ModuleSettings.DefaultGW2Color }
                 , "General"));
         }
@@ -208,7 +208,7 @@
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
         }
 
         protected override void Update(GameTime gameTime)
@@ -242,12 +242,12 @@
 
         protected override AsyncTexture2D GetEmblem()
         {
-            return this.IconState.GetIcon("2191071.png");// "866139.png");
+            return this.IconService.GetIcon("2191071.png");// "866139.png");
         }
 
         protected override AsyncTexture2D GetCornerIcon()
         {
-            return this.IconState.GetIcon("1377783.png");
+            return this.IconService.GetIcon("1377783.png");
         }
 
         protected override void Unload()

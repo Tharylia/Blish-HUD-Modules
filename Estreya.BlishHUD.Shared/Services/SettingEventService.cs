@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State
+﻿namespace Estreya.BlishHUD.Shared.Services
 {
     using Blish_HUD;
     using Blish_HUD.Settings;
@@ -11,9 +11,9 @@
     using System.Text;
     using System.Threading.Tasks;
 
-    public class SettingEventState : ManagedState
+    public class SettingEventService : ManagedService
     {
-        private static readonly Logger _logger = Logger.GetLogger<SettingEventState>();
+        private static readonly Logger _logger = Logger.GetLogger<SettingEventService>();
 
         private List<(SettingEntry SettingEntry, IComplianceRequisite ComplianceRequisite)> _registeredForRangeUpdates;
 
@@ -22,7 +22,7 @@
         public event EventHandler<ComplianceUpdated> RangeUpdated;
         public event EventHandler<ComplianceUpdated> DisabledUpdated;
 
-        public SettingEventState(StateConfiguration configuration) : base(configuration)
+        public SettingEventService(ServiceConfiguration configuration) : base(configuration)
         {
         }
 

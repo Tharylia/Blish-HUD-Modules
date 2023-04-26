@@ -4,7 +4,7 @@
     using Blish_HUD.Controls;
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.Shared.Models;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Http;
     using Microsoft.Xna.Framework;
@@ -24,13 +24,13 @@
         private const string BLISH_HUD_DISCORD_INVITE = "https://discord.gg/nGbd3kU";
         private static Point _importantIconSize = new Point(32, 32);
         private readonly IFlurlClient _flurlClient;
-        private NewsState _newsState;
+        private NewsService _newsService;
         private Texture2D _discordLogo;
 
-        public NewsView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, NewsState newsState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public NewsView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, NewsService newsService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
         {
             this._flurlClient = flurlClient;
-            this._newsState = newsState;
+            this._newsService = newsService;
         }
 
         protected override void InternalBuild(Panel parent)
@@ -45,7 +45,7 @@
                 CanScroll = true,
             };
 
-            var sortedNews = this._newsState.News.OrderByDescending(n => n.Timestamp).ToList();
+            var sortedNews = this._newsService.News.OrderByDescending(n => n.Timestamp).ToList();
             if (sortedNews.Count > 0)
             {
                 foreach (var news in sortedNews)
@@ -134,7 +134,7 @@
                 {
                     if (news.Important)
                     {
-                        builder.SetPrefixImage(this.IconState.GetIcon("222246.png")).SetPrefixImageSize(_importantIconSize);
+                        builder.SetPrefixImage(this.IconService.GetIcon("222246.png")).SetPrefixImageSize(_importantIconSize);
                     }
                 })
                 .CreatePart(title, builder => { builder.SetFontSize(titleFontSize).MakeUnderlined(); })
@@ -204,7 +204,7 @@
         {
             base.Unload();
 
-            this._newsState = null;
+            this._newsService = null;
             this._discordLogo?.Dispose();
             this._discordLogo = null;
         }

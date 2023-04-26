@@ -4,7 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Threading.Events;
 using MonoGame.Extended.BitmapFonts;
 using System;
@@ -23,12 +23,12 @@ public class GitHubCreateIssueView : BaseView
     public event AsyncEventHandler<(string Title, string Message, string DiscordName, bool IncludeSystemInformation)> CreateClicked;
     public event EventHandler CancelClicked;
 
-    public GitHubCreateIssueView(string moduleName, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(null,iconState, translationState, font)
+    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(null,iconService, translationService, font)
     {
         this._moduleName = moduleName;
     }
 
-    public GitHubCreateIssueView(string moduleName, IconState iconState, TranslationState translationState, BitmapFont font = null, string title = null, string message = null) : this(moduleName, iconState,translationState, font)
+    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, BitmapFont font = null, string title = null, string message = null) : this(moduleName, iconService,translationService, font)
     {
         this._title = title;
         this._message = message;

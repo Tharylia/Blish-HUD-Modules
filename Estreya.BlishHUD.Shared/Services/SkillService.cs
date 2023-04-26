@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
@@ -21,7 +21,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
-public class SkillState : APIState<Skill>
+public class SkillService : APIService<Skill>
 {
     private const string BASE_FOLDER_STRUCTURE = "skills";
     private const string FILE_NAME = "skills.json";
@@ -35,7 +35,7 @@ public class SkillState : APIState<Skill>
 
     private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
 
-    private IconState _iconState;
+    private IconService _iconService;
     private readonly string _baseFolderPath;
     private IFlurlClient _flurlClient;
     private readonly string _fileRootUrl;
@@ -160,9 +160,9 @@ public class SkillState : APIState<Skill>
 
     private ConcurrentDictionary<int, (string Name, int HintId)> _missingSkillsFromAPIReportedByArcDPS;
 
-    public SkillState(APIStateConfiguration configuration, Gw2ApiManager apiManager, IconState iconState, string baseFolderPath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration)
+    public SkillService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, IconService iconService, string baseFolderPath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration)
     {
-        this._iconState = iconState;
+        this._iconService = iconService;
         this._baseFolderPath = baseFolderPath;
         this._flurlClient = flurlClient;
         this._fileRootUrl = fileRootUrl;
@@ -178,7 +178,7 @@ public class SkillState : APIState<Skill>
     {
         this._missingSkillsFromAPIReportedByArcDPS?.Clear();
         this._missingSkillsFromAPIReportedByArcDPS = null;
-        this._iconState = null;
+        this._iconService = null;
         this._flurlClient = null;
     }
 
@@ -217,7 +217,7 @@ public class SkillState : APIState<Skill>
 
             //await FileUtil.WriteStringAsync(@"C:\temp\remapped_skills.json", JsonConvert.SerializeObject(rs, Formatting.Indented));
 
-            UnknownSkill.LoadTexture(this._iconState);
+            UnknownSkill.LoadTexture(this._iconService);
 
             bool shouldLoadFiles = await this.ShouldLoadFiles();
 
@@ -464,7 +464,7 @@ public class SkillState : APIState<Skill>
     {
         skills.ForEach(skill =>
         {
-            skill.LoadTexture(this._iconState);
+            skill.LoadTexture(this._iconService);
         });
     }
 

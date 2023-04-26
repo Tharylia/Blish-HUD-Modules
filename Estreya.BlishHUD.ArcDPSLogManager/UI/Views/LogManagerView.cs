@@ -2,7 +2,7 @@
 {
     using Blish_HUD.Controls;
     using Blish_HUD.Modules.Managers;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
@@ -18,7 +18,7 @@
         private readonly ModuleSettings _moduleSettings;
         private readonly Func<List<string>> _getLogFiles;
 
-        public LogManagerView(ModuleSettings moduleSettings, Func<List<string>> getLogFiles, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public LogManagerView(ModuleSettings moduleSettings, Func<List<string>> getLogFiles, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
         {
             this._moduleSettings = moduleSettings;
             this._getLogFiles = getLogFiles;

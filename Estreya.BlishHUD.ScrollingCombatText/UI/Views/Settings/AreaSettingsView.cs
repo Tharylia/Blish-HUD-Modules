@@ -6,7 +6,7 @@ using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.ScrollingCombatText.Models;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Service;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Humanizer;
 using Microsoft.Xna.Framework;
@@ -36,7 +36,7 @@ public class AreaSettingsView : BaseSettingsView
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<ScrollingTextAreaConfiguration> RemoveArea;
 
-    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconState iconState,TranslationState translationState, SettingEventState settingEventState,  BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconService iconService,TranslationService translationService, SettingEventService settingEventService,  BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
     }

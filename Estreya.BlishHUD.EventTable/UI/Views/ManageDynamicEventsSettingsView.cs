@@ -5,8 +5,8 @@ using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.EventTable.Controls;
 using Estreya.BlishHUD.EventTable.Models;
-using Estreya.BlishHUD.EventTable.State;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.EventTable.Services;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
@@ -20,7 +20,7 @@ public class ManageDynamicEventsSettingsView : BaseView
 {
     private static readonly Logger Logger = Logger.GetLogger<ManageDynamicEventsSettingsView>();
     private static Point MAIN_PADDING = new Point(20, 20);
-    private readonly DynamicEventState _dynamicEventState;
+    private readonly DynamicEventService _dynamicEventService;
     private readonly Func<List<string>> _getDisabledEventGuids;
     private List<Gw2Sharp.WebApi.V2.Models.Map> _maps = new List<Gw2Sharp.WebApi.V2.Models.Map>();
 
@@ -29,9 +29,9 @@ public class ManageDynamicEventsSettingsView : BaseView
 
     public Panel Panel { get; private set; }
 
-    public ManageDynamicEventsSettingsView(DynamicEventState dynamicEventState, Func<List<string>> getDisabledEventGuids, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public ManageDynamicEventsSettingsView(DynamicEventService dynamicEventService, Func<List<string>> getDisabledEventGuids, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
-        this._dynamicEventState = dynamicEventState;
+        this._dynamicEventService = dynamicEventService;
         this._getDisabledEventGuids = getDisabledEventGuids;
     }
     private void UpdateToggleButton(GlowButton button)
@@ -39,8 +39,8 @@ public class ManageDynamicEventsSettingsView : BaseView
         GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
         {
             button.Icon = button.Checked
-                ? this.IconState.GetIcon("784259.png")
-                : this.IconState.GetIcon("784261.png");
+                ? this.IconService.GetIcon("784259.png")
+                : this.IconService.GetIcon("784261.png");
         });
     }
 
@@ -57,7 +57,7 @@ public class ManageDynamicEventsSettingsView : BaseView
 
         Rectangle contentRegion = this.Panel.ContentRegion;
 
-        var maps = this._maps.Where(m => this._dynamicEventState.Events?.Any(de => de.MapId == m.Id) ?? false);
+        var maps = this._maps.Where(m => this._dynamicEventService.Events?.Any(de => de.MapId == m.Id) ?? false);
 
         TextBox searchBox = new TextBox()
         {
@@ -98,7 +98,7 @@ public class ManageDynamicEventsSettingsView : BaseView
 
         searchBox.TextChanged += (s, e) =>
         {
-            eventPanel.FilterChildren<DataDetailsButton<DynamicEventState.DynamicEvent>>(detailsButton =>
+            eventPanel.FilterChildren<DataDetailsButton<DynamicEventService.DynamicEvent>>(detailsButton =>
             {
                 return detailsButton.Text.ToLowerInvariant().Contains(searchBox.Text.ToLowerInvariant());
             });
@@ -123,7 +123,7 @@ public class ManageDynamicEventsSettingsView : BaseView
             {
                 Gw2Sharp.WebApi.V2.Models.Map map = maps.Where(map => map.Name == menuItem.Text).FirstOrDefault();
 
-                eventPanel.FilterChildren<DataDetailsButton<DynamicEventState.DynamicEvent>>(detailsButton =>
+                eventPanel.FilterChildren<DataDetailsButton<DynamicEventService.DynamicEvent>>(detailsButton =>
                 {
                     if (menuItem == menus[nameof(allEvents)])
                     {
@@ -160,7 +160,7 @@ public class ManageDynamicEventsSettingsView : BaseView
                     // Check Yes - No
                 }
 
-                if (control is DataDetailsButton<DynamicEventState.DynamicEvent> detailsButton && detailsButton.Visible)
+                if (control is DataDetailsButton<DynamicEventService.DynamicEvent> detailsButton && detailsButton.Visible)
                 {
                     if (detailsButton.Children.Last() is GlowButton glowButton)
                     {
@@ -186,7 +186,7 @@ public class ManageDynamicEventsSettingsView : BaseView
                     // Check Yes - No
                 }
 
-                if (control is DataDetailsButton<DynamicEventState.DynamicEvent> detailsButton && detailsButton.Visible)
+                if (control is DataDetailsButton<DynamicEventService.DynamicEvent> detailsButton && detailsButton.Visible)
                 {
                     if (detailsButton.Children.Last() is GlowButton glowButton)
                     {
@@ -196,15 +196,15 @@ public class ManageDynamicEventsSettingsView : BaseView
             });
         };
 
-        var eventList = this._dynamicEventState.Events/*.Where(e => !string.IsNullOrWhiteSpace(e.Name))*/.ToList();
+        var eventList = this._dynamicEventService.Events/*.Where(e => !string.IsNullOrWhiteSpace(e.Name))*/.ToList();
         foreach (var map in maps.Where(m => m.Id == GameService.Gw2Mumble.CurrentMap.Id)) // Limit to current map at the moment. Due to performance limits.
         {
-            IEnumerable<DynamicEventState.DynamicEvent> events = eventList.Where(e => e.MapId == map.Id);
-            foreach (DynamicEventState.DynamicEvent e in events)
+            IEnumerable<DynamicEventService.DynamicEvent> events = eventList.Where(e => e.MapId == map.Id);
+            foreach (DynamicEventService.DynamicEvent e in events)
             {
                 bool enabled = !this._getDisabledEventGuids().Contains(e.ID);
 
-                DataDetailsButton<DynamicEventState.DynamicEvent> button = new DataDetailsButton<DynamicEventState.DynamicEvent>()
+                DataDetailsButton<DynamicEventService.DynamicEvent> button = new DataDetailsButton<DynamicEventService.DynamicEvent>()
                 {
                     Data = e,
                     Parent = eventPanel,
@@ -218,7 +218,7 @@ public class ManageDynamicEventsSettingsView : BaseView
                 {
                     GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
                     {
-                        button.Icon = this.IconState.GetIcon($"{e.Icon.FileID}.png");
+                        button.Icon = this.IconService.GetIcon($"{e.Icon.FileID}.png");
                     });
                 }
 
@@ -236,8 +236,8 @@ public class ManageDynamicEventsSettingsView : BaseView
                 {
                     this.EventChanged?.Invoke(this, new ManageEventsView.EventChangedArgs()
                     {
-                        OldState = !eventArgs.Checked,
-                        NewState = eventArgs.Checked,
+                        OldService = !eventArgs.Checked,
+                        NewService = eventArgs.Checked,
                         EventSettingKey = button.Data.ID
                     });
 

@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
@@ -11,11 +11,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
-using static Estreya.BlishHUD.Shared.State.TradingPostState;
+using static Estreya.BlishHUD.Shared.Services.TradingPostService;
 
-public class TradingPostState : APIState<TransactionMapping>
+public class TradingPostService : APIService<TransactionMapping>
 {
-    private readonly ItemState _itemState;
+    private readonly ItemService _itemService;
 
     public TransactionMappingType Scopes { get; set; } = TransactionMappingType.Own;
 
@@ -23,10 +23,10 @@ public class TradingPostState : APIState<TransactionMapping>
     public List<Transaction> Sells => this.APIObjectList.Where(mapping => mapping.Type == TransactionMappingType.Sell).SelectMany(mapping => mapping.Transactions).ToList();
     public List<PlayerTransaction> OwnTransactions => this.APIObjectList.Where(mapping => mapping.Type == TransactionMappingType.Own).SelectMany(mapping => mapping.Transactions.Select(transactions => transactions as PlayerTransaction)).ToList();
 
-    public TradingPostState(APIStateConfiguration configuration, Gw2ApiManager apiManager, ItemState itemState) :
+    public TradingPostService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, ItemService itemService) :
         base(apiManager, configuration)
     {
-        this._itemState = itemState;
+        this._itemService = itemService;
     }
 
     protected override async Task<List<TransactionMapping>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
@@ -128,16 +128,16 @@ public class TradingPostState : APIState<TransactionMapping>
 
         if (transactions.Count > 0 || loadBuy || loadSell)
         {
-            var itemStateCompleted = await this._itemState.WaitForCompletion(TimeSpan.FromMinutes(10));
-            if (!itemStateCompleted)
+            var itemServiceCompleted = await this._itemService.WaitForCompletion(TimeSpan.FromMinutes(10));
+            if (!itemServiceCompleted)
             {
-                Logger.Warn("ItemState did not complete in the predefined timespan.");
+                Logger.Warn("ItemService did not complete in the predefined timespan.");
             }
         }
 
         if (loadBuy || loadSell)
         {
-            var tradeableItems = this._itemState.Items.Where(item => !item.Flags.Any(flag => flag is ItemFlag.AccountBound or ItemFlag.SoulbindOnAcquire)).ToList();
+            var tradeableItems = this._itemService.Items.Where(item => !item.Flags.Any(flag => flag is ItemFlag.AccountBound or ItemFlag.SoulbindOnAcquire)).ToList();
 
             #region Buys/Sells
             progress.Report("Loading global buys/sells...");
@@ -209,7 +209,7 @@ public class TradingPostState : APIState<TransactionMapping>
         {
             foreach (var transaction in transactionMapping.Transactions)
             {
-                transaction.Item = this._itemState.GetItemById(transaction.ItemId);
+                transaction.Item = this._itemService.GetItemById(transaction.ItemId);
             }
         }
         #endregion

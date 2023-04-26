@@ -6,7 +6,7 @@
     using Blish_HUD.Settings;
     using Estreya.BlishHUD.Shared.Models;
     using Estreya.BlishHUD.Shared.Models.Drawers;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Microsoft.Xna.Framework;
     using Newtonsoft.Json;
     using System;
@@ -186,21 +186,21 @@
             //this.NotifiedNews = this.GlobalSettings.DefineSetting(nameof(this.NotifiedNews), new List<string>(), () => "Notified News", () => "The news already notified about.");
             //this.NotifyOnUnreadNews = this.GlobalSettings.DefineSetting(nameof(this.NotifyOnUnreadNews), true, () => "Notify on unread News", () => "Whether the module should notify you when new news arrive.");
 
-            this.HandleEnabledStates();
+            this.HandleEnabledServices();
 
             this.DoInitializeGlobalSettings(this.GlobalSettings);
         }
 
         private void RegisterCornerIcon_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
         {
-            this.HandleEnabledStates();
+            this.HandleEnabledServices();
         }
 
         private void GlobalEnabledHotkey_Activated(object sender, EventArgs e)
         {
             this.GlobalDrawerVisible.Value = !this.GlobalDrawerVisible.Value;
         }
-        private void HandleEnabledStates()
+        private void HandleEnabledServices()
         {
             this.CornerIconLeftClickAction.SetDisabled(!this.RegisterCornerIcon.Value);
             this.CornerIconRightClickAction.SetDisabled(!this.RegisterCornerIcon.Value);
@@ -298,115 +298,115 @@
             configuration.Size.Y.SetRange(minHeight, maxHeight);
         }
 
-        public virtual void UpdateLocalization(TranslationState translationState)
+        public virtual void UpdateLocalization(TranslationService translationService)
         {
             var globalDrawerVisibleDisplayNameDefault = this.GlobalDrawerVisible.DisplayName;
             var globalDrawerVisibleDescriptionDefault = this.GlobalDrawerVisible.Description;
-            this.GlobalDrawerVisible.GetDisplayNameFunc = () => translationState.GetTranslation("setting-globalDrawerVisible-name", globalDrawerVisibleDisplayNameDefault);
-            this.GlobalDrawerVisible.GetDescriptionFunc = () => translationState.GetTranslation("setting-globalDrawerVisible-description", globalDrawerVisibleDescriptionDefault);
+            this.GlobalDrawerVisible.GetDisplayNameFunc = () => translationService.GetTranslation("setting-globalDrawerVisible-name", globalDrawerVisibleDisplayNameDefault);
+            this.GlobalDrawerVisible.GetDescriptionFunc = () => translationService.GetTranslation("setting-globalDrawerVisible-description", globalDrawerVisibleDescriptionDefault);
 
             var globalDrawerVisibleHotkeyDisplayNameDefault = this.GlobalDrawerVisibleHotkey.DisplayName;
             var globalDrawerVisibleHotkeyDescriptionDefault = this.GlobalDrawerVisibleHotkey.Description;
-            this.GlobalDrawerVisibleHotkey.GetDisplayNameFunc = () => translationState.GetTranslation("setting-globalDrawerVisibleHotkey-name", globalDrawerVisibleHotkeyDisplayNameDefault);
-            this.GlobalDrawerVisibleHotkey.GetDescriptionFunc = () => translationState.GetTranslation("setting-globalDrawerVisibleHotkey-description", globalDrawerVisibleHotkeyDescriptionDefault);
+            this.GlobalDrawerVisibleHotkey.GetDisplayNameFunc = () => translationService.GetTranslation("setting-globalDrawerVisibleHotkey-name", globalDrawerVisibleHotkeyDisplayNameDefault);
+            this.GlobalDrawerVisibleHotkey.GetDescriptionFunc = () => translationService.GetTranslation("setting-globalDrawerVisibleHotkey-description", globalDrawerVisibleHotkeyDescriptionDefault);
 
             var registerCornerIconDisplayNameDefault = this.RegisterCornerIcon.DisplayName;
             var registerCornerIconDescriptionDefault = this.RegisterCornerIcon.Description;
-            this.RegisterCornerIcon.GetDisplayNameFunc = () => translationState.GetTranslation("setting-registerCornerIcon-name", registerCornerIconDisplayNameDefault);
-            this.RegisterCornerIcon.GetDescriptionFunc = () => translationState.GetTranslation("setting-registerCornerIcon-description", registerCornerIconDescriptionDefault);
+            this.RegisterCornerIcon.GetDisplayNameFunc = () => translationService.GetTranslation("setting-registerCornerIcon-name", registerCornerIconDisplayNameDefault);
+            this.RegisterCornerIcon.GetDescriptionFunc = () => translationService.GetTranslation("setting-registerCornerIcon-description", registerCornerIconDescriptionDefault);
 
             var hideOnOpenMapDisplayNameDefault = this.HideOnOpenMap.DisplayName;
             var hideOnOpenMapDescriptionDefault = this.HideOnOpenMap.Description;
-            this.HideOnOpenMap.GetDisplayNameFunc = () => translationState.GetTranslation("setting-hideOnOpenMap-name", hideOnOpenMapDisplayNameDefault);
-            this.HideOnOpenMap.GetDescriptionFunc = () => translationState.GetTranslation("setting-hideOnOpenMap-description", hideOnOpenMapDescriptionDefault);
+            this.HideOnOpenMap.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideOnOpenMap-name", hideOnOpenMapDisplayNameDefault);
+            this.HideOnOpenMap.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideOnOpenMap-description", hideOnOpenMapDescriptionDefault);
 
             var hideOnMissingMumbleTickDisplayNameDefault = this.HideOnMissingMumbleTicks.DisplayName;
             var hideOnMissingMumbleTickDescriptionDefault = this.HideOnMissingMumbleTicks.Description;
-            this.HideOnMissingMumbleTicks.GetDisplayNameFunc = () => translationState.GetTranslation("setting-hideOnMissingMumbleTick-name", hideOnMissingMumbleTickDisplayNameDefault);
-            this.HideOnMissingMumbleTicks.GetDescriptionFunc = () => translationState.GetTranslation("setting-hideOnMissingMumbleTick-description", hideOnMissingMumbleTickDescriptionDefault);
+            this.HideOnMissingMumbleTicks.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideOnMissingMumbleTick-name", hideOnMissingMumbleTickDisplayNameDefault);
+            this.HideOnMissingMumbleTicks.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideOnMissingMumbleTick-description", hideOnMissingMumbleTickDescriptionDefault);
 
             var hideInCombatDisplayNameDefault = this.HideInCombat.DisplayName;
             var hideInCombatDescriptionDefault = this.HideInCombat.Description;
-            this.HideInCombat.GetDisplayNameFunc = () => translationState.GetTranslation("setting-hideInCombat-name", hideInCombatDisplayNameDefault);
-            this.HideInCombat.GetDescriptionFunc = () => translationState.GetTranslation("setting-hideInCombat-description", hideInCombatDescriptionDefault);
+            this.HideInCombat.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideInCombat-name", hideInCombatDisplayNameDefault);
+            this.HideInCombat.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideInCombat-description", hideInCombatDescriptionDefault);
 
             var hideInPVEOpenWorldDisplayNameDefault = this.HideInPvE_OpenWorld.DisplayName;
             var hideInPVEOpenWorldDescriptionDefault = this.HideInPvE_OpenWorld.Description;
-            this.HideInPvE_OpenWorld.GetDisplayNameFunc = () => translationState.GetTranslation("setting-hideInPVEOpenWorld-name", hideInPVEOpenWorldDisplayNameDefault);
-            this.HideInPvE_OpenWorld.GetDescriptionFunc = () => translationState.GetTranslation("setting-hideInPVEOpenWorld-description", hideInPVEOpenWorldDescriptionDefault);
+            this.HideInPvE_OpenWorld.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideInPVEOpenWorld-name", hideInPVEOpenWorldDisplayNameDefault);
+            this.HideInPvE_OpenWorld.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideInPVEOpenWorld-description", hideInPVEOpenWorldDescriptionDefault);
 
             var hideInPVECompetetiveDisplayNameDefault = this.HideInPvE_Competetive.DisplayName;
             var hideInPVECompetetiveDescriptionDefault = this.HideInPvE_Competetive.Description;
-            this.HideInPvE_Competetive.GetDisplayNameFunc = () => translationState.GetTranslation("setting-hideInPVECompetetive-name", hideInPVECompetetiveDisplayNameDefault);
-            this.HideInPvE_Competetive.GetDescriptionFunc = () => translationState.GetTranslation("setting-hideInPVECompetetive-description", hideInPVECompetetiveDescriptionDefault);
+            this.HideInPvE_Competetive.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideInPVECompetetive-name", hideInPVECompetetiveDisplayNameDefault);
+            this.HideInPvE_Competetive.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideInPVECompetetive-description", hideInPVECompetetiveDescriptionDefault);
 
             var hideInWVWDisplayNameDefault = this.HideInWvW.DisplayName;
             var hideInWVWDescriptionDefault = this.HideInWvW.Description;
-            this.HideInWvW.GetDisplayNameFunc = () => translationState.GetTranslation("setting-hideInWVW-name", hideInWVWDisplayNameDefault);
-            this.HideInWvW.GetDescriptionFunc = () => translationState.GetTranslation("setting-hideInWVW-description", hideInWVWDescriptionDefault);
+            this.HideInWvW.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideInWVW-name", hideInWVWDisplayNameDefault);
+            this.HideInWvW.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideInWVW-description", hideInWVWDescriptionDefault);
 
             var hideInPVPDisplayNameDefault = this.HideInPvP.DisplayName;
             var hideInPVPDescriptionDefault = this.HideInPvP.Description;
-            this.HideInPvP.GetDisplayNameFunc = () => translationState.GetTranslation("setting-hideInPVP-name", hideInPVPDisplayNameDefault);
-            this.HideInPvP.GetDescriptionFunc = () => translationState.GetTranslation("setting-hideInPVP-description", hideInPVPDescriptionDefault);
+            this.HideInPvP.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideInPVP-name", hideInPVPDisplayNameDefault);
+            this.HideInPvP.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideInPVP-description", hideInPVPDescriptionDefault);
         }
 
-        public void UpdateDrawerLocalization(DrawerConfiguration drawerConfiguration, TranslationState translationState)
+        public void UpdateDrawerLocalization(DrawerConfiguration drawerConfiguration, TranslationService translationService)
         {
             var enabledDisplayNameDefault = drawerConfiguration.Enabled.DisplayName;
             var enabledDescriptionDefault = drawerConfiguration.Enabled.Description;
-            drawerConfiguration.Enabled.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEnabled-name", enabledDisplayNameDefault);
-            drawerConfiguration.Enabled.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEnabled-description", enabledDescriptionDefault);
+            drawerConfiguration.Enabled.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerEnabled-name", enabledDisplayNameDefault);
+            drawerConfiguration.Enabled.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerEnabled-description", enabledDescriptionDefault);
 
             var enabledKeybindingDisplayNameDefault = drawerConfiguration.EnabledKeybinding.DisplayName;
             var enabledKeybindingDescriptionDefault = drawerConfiguration.EnabledKeybinding.Description;
-            drawerConfiguration.EnabledKeybinding.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerEnabledKeybinding-name", enabledKeybindingDisplayNameDefault);
-            drawerConfiguration.EnabledKeybinding.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerEnabledKeybinding-description", enabledKeybindingDescriptionDefault);
+            drawerConfiguration.EnabledKeybinding.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerEnabledKeybinding-name", enabledKeybindingDisplayNameDefault);
+            drawerConfiguration.EnabledKeybinding.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerEnabledKeybinding-description", enabledKeybindingDescriptionDefault);
 
             var locationXDisplayNameDefault = drawerConfiguration.Location.X.DisplayName;
             var locationXDescriptionDefault = drawerConfiguration.Location.X.Description;
-            drawerConfiguration.Location.X.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerLocationX-name", locationXDisplayNameDefault);
-            drawerConfiguration.Location.X.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerLocationX-description", locationXDescriptionDefault);
+            drawerConfiguration.Location.X.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerLocationX-name", locationXDisplayNameDefault);
+            drawerConfiguration.Location.X.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerLocationX-description", locationXDescriptionDefault);
 
             var locationYDisplayNameDefault = drawerConfiguration.Location.Y.DisplayName;
             var locationYDescriptionDefault = drawerConfiguration.Location.Y.Description;
-            drawerConfiguration.Location.Y.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerLocationY-name", locationYDisplayNameDefault);
-            drawerConfiguration.Location.Y.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerLocationY-description", locationYDescriptionDefault);
+            drawerConfiguration.Location.Y.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerLocationY-name", locationYDisplayNameDefault);
+            drawerConfiguration.Location.Y.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerLocationY-description", locationYDescriptionDefault);
 
             var widthDisplayNameDefault = drawerConfiguration.Size.X.DisplayName;
             var widthDescriptionDefault = drawerConfiguration.Size.X.Description;
-            drawerConfiguration.Size.X.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerWidth-name", widthDisplayNameDefault);
-            drawerConfiguration.Size.X.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerWidth-description", widthDescriptionDefault);
+            drawerConfiguration.Size.X.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerWidth-name", widthDisplayNameDefault);
+            drawerConfiguration.Size.X.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerWidth-description", widthDescriptionDefault);
 
             var heightDisplayNameDefault = drawerConfiguration.Size.Y.DisplayName;
             var heightDescriptionDefault = drawerConfiguration.Size.Y.Description;
-            drawerConfiguration.Size.Y.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerHeight-name", heightDisplayNameDefault);
-            drawerConfiguration.Size.Y.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerHeight-description", heightDescriptionDefault);
+            drawerConfiguration.Size.Y.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHeight-name", heightDisplayNameDefault);
+            drawerConfiguration.Size.Y.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHeight-description", heightDescriptionDefault);
 
             var buildDirectionDisplayNameDefault = drawerConfiguration.BuildDirection.DisplayName;
             var buildDirectionDescriptionDefault = drawerConfiguration.BuildDirection.Description;
-            drawerConfiguration.BuildDirection.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerBuildDirection-name", buildDirectionDisplayNameDefault);
-            drawerConfiguration.BuildDirection.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerBuildDirection-description", buildDirectionDescriptionDefault);
+            drawerConfiguration.BuildDirection.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerBuildDirection-name", buildDirectionDisplayNameDefault);
+            drawerConfiguration.BuildDirection.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerBuildDirection-description", buildDirectionDescriptionDefault);
 
             var opacityDisplayNameDefault = drawerConfiguration.Opacity.DisplayName;
             var opacityDescriptionDefault = drawerConfiguration.Opacity.Description;
-            drawerConfiguration.Opacity.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerOpacity-name", opacityDisplayNameDefault);
-            drawerConfiguration.Opacity.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerOpacity-description", opacityDescriptionDefault);
+            drawerConfiguration.Opacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerOpacity-name", opacityDisplayNameDefault);
+            drawerConfiguration.Opacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerOpacity-description", opacityDescriptionDefault);
 
             var backgroundColorDisplayNameDefault = drawerConfiguration.BackgroundColor.DisplayName;
             var backgroundColorDescriptionDefault = drawerConfiguration.BackgroundColor.Description;
-            drawerConfiguration.BackgroundColor.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerBackgroundColor-name", backgroundColorDisplayNameDefault);
-            drawerConfiguration.BackgroundColor.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerBackgroundColor-description", backgroundColorDescriptionDefault);
+            drawerConfiguration.BackgroundColor.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerBackgroundColor-name", backgroundColorDisplayNameDefault);
+            drawerConfiguration.BackgroundColor.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerBackgroundColor-description", backgroundColorDescriptionDefault);
 
             var fontSizeDisplayNameDefault = drawerConfiguration.FontSize.DisplayName;
             var fontSizeDescriptionDefault = drawerConfiguration.FontSize.Description;
-            drawerConfiguration.FontSize.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerFontSize-name", fontSizeDisplayNameDefault);
-            drawerConfiguration.FontSize.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerFontSize-description", fontSizeDescriptionDefault);
+            drawerConfiguration.FontSize.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerFontSize-name", fontSizeDisplayNameDefault);
+            drawerConfiguration.FontSize.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerFontSize-description", fontSizeDescriptionDefault);
 
             var textColorDisplayNameDefault = drawerConfiguration.TextColor.DisplayName;
             var textColorDescriptionDefault = drawerConfiguration.TextColor.Description;
-            drawerConfiguration.TextColor.GetDisplayNameFunc = () => translationState.GetTranslation("setting-drawerTextColor-name", textColorDisplayNameDefault);
-            drawerConfiguration.TextColor.GetDescriptionFunc = () => translationState.GetTranslation("setting-drawerTextColor-description", textColorDescriptionDefault);
+            drawerConfiguration.TextColor.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerTextColor-name", textColorDisplayNameDefault);
+            drawerConfiguration.TextColor.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerTextColor-description", textColorDescriptionDefault);
         }
 
         public virtual void Unload()

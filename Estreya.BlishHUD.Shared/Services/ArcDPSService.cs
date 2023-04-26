@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.State;
+﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD;
 using Blish_HUD.ArcDps;
@@ -16,10 +16,10 @@ using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
 
-public class ArcDPSState : ManagedState
+public class ArcDPSService : ManagedService
 {
     private const int MAX_PARSE_PER_LOOP = 50;
-    private SkillState _skillState;
+    private SkillService _skillState;
 
     private ConcurrentQueue<RawCombatEventArgs> _rawCombatEventQueue;
     private ConcurrentQueue<(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)> _parsedCombatEventQueue;
@@ -48,7 +48,7 @@ public class ArcDPSState : ManagedState
     public event EventHandler<CombatEvent> AreaCombatEvent;
     public event EventHandler<CombatEvent> LocalCombatEvent;
 
-    public ArcDPSState(StateConfiguration configuration, SkillState skillState) : base(configuration)
+    public ArcDPSService(ServiceConfiguration configuration, SkillService skillState) : base(configuration)
     {
         this._skillState = skillState;
     }
@@ -113,7 +113,7 @@ public class ArcDPSState : ManagedState
             this._lastState = GameService.ArcDps.Running;
         }
 
-        GameService.Debug.StartTimeFunc($"{nameof(ArcDPSState)}-UpdateIterateQueue", 60);
+        GameService.Debug.StartTimeFunc($"{nameof(ArcDPSService)}-UpdateIterateQueue", 60);
 
         int parseCounter = 0;
 
@@ -131,7 +131,7 @@ public class ArcDPSState : ManagedState
             parseCounter++;
         }
 
-        GameService.Debug.StopTimeFunc($"{nameof(ArcDPSState)}-UpdateIterateQueue");
+        GameService.Debug.StopTimeFunc($"{nameof(ArcDPSService)}-UpdateIterateQueue");
     }
 
     protected override Task Load()
@@ -604,7 +604,7 @@ public class ArcDPSState : ManagedState
                 this.Logger.Debug($"Failed to fetch skill \"{combatEvent.SkillId}\". ArcDPS reports: {skillNameByArcDPS}");
             }
 
-            skill = SkillState.UnknownSkill;
+            skill = SkillService.UnknownSkill;
         }
         else
         {
