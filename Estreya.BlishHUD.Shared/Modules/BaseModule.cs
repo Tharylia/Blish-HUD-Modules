@@ -118,6 +118,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public BlishHudApiService BlishHUDAPIService { get; private set; }
 
     public AchievementService AchievementService { get; private set; }
+    public AccountAchievementService AccountAchievementService { get; private set; }
     #endregion
 
     public BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
@@ -310,6 +311,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 this.AchievementService = new AchievementService(this.Gw2ApiManager, configurations.Achievements, directoryPath);
                 this._services.Add(this.AchievementService);
+            }
+
+            if (configurations.AccountAchievements.Enabled)
+            {
+                this.AccountAchievementService = new AccountAchievementService(this.Gw2ApiManager, configurations.AccountAchievements);
+                this._services.Add(this.AccountAchievementService);
             }
 
             Collection<ManagedService> customServices = this.GetAdditionalServices(directoryPath);
