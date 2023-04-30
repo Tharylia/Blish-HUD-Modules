@@ -69,7 +69,7 @@
 
             discordSection.Height = parent.ContentRegion.Height - discordSection.Top;
 
-            var image = new Image(this._discordLogo)
+            var image = new Image(this._discordLogo ?? ContentService.Textures.TransparentPixel)
             {
                 Parent = discordSection
             };

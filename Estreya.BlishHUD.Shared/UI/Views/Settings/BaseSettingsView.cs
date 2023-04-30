@@ -81,7 +81,7 @@
             return (panel, label.TitleLabel, colorBox);
         }
 
-        protected (Panel Panel, Label label, TextBox textBox) RenderTextSetting(Panel parent, SettingEntry<string> settingEntry)
+        protected (Panel Panel, Label label, TextBox textBox) RenderTextSetting(Panel parent, SettingEntry<string> settingEntry, Func<string, string, Task<bool>> onBeforeChangeAction = null)
         {
             Panel panel = this.GetPanel(parent);
 
@@ -97,7 +97,7 @@
                 {
                     this.ShowError(ex.Message);
                 }
-            });
+            }, onBeforeChangeAction: onBeforeChangeAction);
 
             textBox.BasicTooltipText = settingEntry.Description;
 
@@ -246,7 +246,7 @@
             return (panel, label.TitleLabel, keybindingAssigner);
         }
 
-        protected (Panel Panel, Label label, Dropdown dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T : Enum
+        protected (Panel Panel, Label label, Controls.Dropdown dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T : Enum
         {
             Panel panel = this.GetPanel(parent);
 

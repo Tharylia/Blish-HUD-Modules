@@ -178,12 +178,7 @@ public class AreaSettingsView : BaseSettingsView
 
                 this.AddArea?.Invoke(this, addAreaEventArgs);
 
-                EventAreaConfiguration configuration = addAreaEventArgs.AreaConfiguration;
-
-                if (configuration == null)
-                {
-                    throw new ArgumentNullException("Area configuration could not be created.");
-                }
+                EventAreaConfiguration configuration = addAreaEventArgs.AreaConfiguration ?? throw new ArgumentNullException("Area configuration could not be created.");
 
                 MenuItem menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
