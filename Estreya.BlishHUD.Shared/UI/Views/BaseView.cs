@@ -262,11 +262,11 @@ public abstract class BaseView : View
         return checkBox;
     }
 
-    protected Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null)
+    protected Controls.Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null)
     {
         onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
 
-        Dropdown dropdown = new Dropdown
+        Controls.Dropdown dropdown = new Controls.Dropdown
         {
             Parent = parent,
             Width = width,
@@ -287,7 +287,7 @@ public abstract class BaseView : View
         {
             dropdown.ValueChanged += (s, e) =>
             {
-                var scopeDropdown = s as Dropdown;
+                var scopeDropdown = s as Controls.Dropdown;
                 onChangeAction?.Invoke(scopeDropdown.SelectedItem);
             };
         }
