@@ -18,167 +18,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Documents;
 
-public class ItemService : APIService<Item>
+public class ItemService : FilesystemAPIService<Item>
 {
-    private const string BASE_FOLDER_STRUCTURE = "items";
-    private const string FILE_NAME = "items.json";
-    private const string LAST_UPDATED_FILE_NAME = "last_updated.txt";
+    protected override string BASE_FOLDER_STRUCTURE => "items";
+    protected override string FILE_NAME => "items.json";
+    public List<Item> Items => this.APIObjectList;
 
-    private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
-
-    private readonly string _baseFolderPath;
-
-    private string DirectoryPath => Path.Combine(this._baseFolderPath, BASE_FOLDER_STRUCTURE);
-
-    private AsyncLock _itemLock = new AsyncLock();
-    private List<Item> _items;
-    public List<Item> Items => _items;
-
-    public ItemService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration)
+    public ItemService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration, baseFolderPath)
     {
-        this._baseFolderPath = baseFolderPath;
-        this.Updated += this.ItemService_Updated;
-    }
-
-    private void ItemService_Updated(object sender, EventArgs e)
-    {
-        using (_itemLock.Lock())
-        {
-            this._items = this.APIObjectList.ToArray().ToList();
-        }
-    }
-
-    protected override Task DoInitialize()
-    {
-        using (_itemLock.Lock())
-        {
-            _items = new List<Item>();
-        }
-
-        return Task.CompletedTask;
-    }
-
-    protected override Task DoClear()
-    {
-        using (_itemLock.Lock())
-        {
-            _items.Clear();
-        }
-
-        return Task.CompletedTask;
-    }
-
-    protected override async Task Load()
-    {
-        try
-        {
-            bool canLoadFiles = this.CanLoadFiles();
-            bool shouldLoadFiles = await this.ShouldLoadFiles();
-
-            if (canLoadFiles)
-            {
-                try
-                {
-                    this.Loading = true;
-
-                    var filePath = Path.Combine(this.DirectoryPath, FILE_NAME);
-                    var itemJson = await FileUtil.ReadStringAsync(filePath);
-                    var items = JsonConvert.DeserializeObject<List<Item>>(itemJson);
-                    using (_itemLock.Lock())
-                    {
-                        this._items = items;
-                    }
-
-                }
-                finally
-                {
-                    this.Loading = false;
-                    this.SignalCompletion();
-                }
-            }
-
-            // Refresh files after we loaded the prior saved
-            if (!shouldLoadFiles)
-            {
-                await base.LoadFromAPI(!canLoadFiles); // Only reset completion if we could not load anything at start
-                if (!this._cancellationTokenSource.Token.IsCancellationRequested)
-                {
-                    await this.Save();
-                }
-            }
-
-            Logger.Debug("Loaded {0} items.", this.APIObjectList.Count);
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn(ex, "Failed loading items:");
-        }
-    }
-
-    private bool CanLoadFiles()
-    {
-        var baseDirectoryExists = Directory.Exists(this.DirectoryPath);
-
-        if (!baseDirectoryExists) return false;
-
-        var savedFileExists = System.IO.File.Exists(Path.Combine(this.DirectoryPath, FILE_NAME));
-
-        if (!savedFileExists) return false;
-
-        return true;
-    }
-
-    private async Task<bool> ShouldLoadFiles()
-    {
-        if (!this.CanLoadFiles()) return false;
-
-        string lastUpdatedFilePath = Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME);
-        if (System.IO.File.Exists(lastUpdatedFilePath))
-        {
-            string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
-            if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
-            {
-                this.Logger.Debug("Failed parsing last updated.");
-                return false;
-            }
-            else
-            {
-                var lastUpdatedUTC = new DateTime(lastUpdated.Ticks, DateTimeKind.Utc);
-                return lastUpdatedUTC >= DateTime.ParseExact(Item.LAST_SCHEMA_CHANGE, "yyyy-MM-dd", CultureInfo.InvariantCulture) && DateTime.UtcNow - lastUpdatedUTC <= TimeSpan.FromDays(5);
-            }
-        }
-
-        return false;
-    }
-
-    protected override async Task Save()
-    {
-        if (Directory.Exists(this.DirectoryPath))
-        {
-            Directory.Delete(this.DirectoryPath, true);
-        }
-
-        _ = Directory.CreateDirectory(this.DirectoryPath);
-
-        using (await this._apiObjectListLock.LockAsync())
-        {
-            var itemJson = JsonConvert.SerializeObject(this.APIObjectList, Formatting.Indented);
-            await FileUtil.WriteStringAsync(Path.Combine(this.DirectoryPath, FILE_NAME), itemJson);
-        }
-
-        await this.CreateLastUpdatedFile();
-    }
-
-    private async Task CreateLastUpdatedFile()
-    {
-        await FileUtil.WriteStringAsync(Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME), DateTime.UtcNow.ToString(DATE_TIME_FORMAT));
     }
 
     public Item GetItemByName(string name)
     {
-        if (!this._itemLock.IsFree()) return null;
+        if (!this._apiObjectListLock.IsFree()) return null;
 
-        using (this._itemLock.Lock())
+        using (this._apiObjectListLock.Lock())
         {
             foreach (var item in this.Items)
             {
@@ -193,9 +47,9 @@ public class ItemService : APIService<Item>
     }
     public Item GetItemById(int id)
     {
-        if (!this._itemLock.IsFree()) return null;
+        if (!this._apiObjectListLock.IsFree()) return null;
 
-        using (this._itemLock.Lock())
+        using (this._apiObjectListLock.Lock())
         {
             foreach (var item in this.Items)
             {
@@ -277,10 +131,5 @@ public class ItemService : APIService<Item>
         var items = await apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIdChunk, this._cancellationTokenSource.Token);
 
         return items.Select(apiItem => Item.FromAPI(apiItem)).ToList();
-    }
-
-    protected override void DoUnload()
-    {
-        this.Updated -= this.ItemService_Updated;
     }
 }

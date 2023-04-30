@@ -68,4 +68,10 @@ public class ServiceConfigurations
         Enabled = false,
         AwaitLoading = false
     };
+
+    public APIServiceConfiguration Achievements { get; } = new APIServiceConfiguration()
+    {
+        Enabled = false,
+        AwaitLoading = false,
+    };
 }

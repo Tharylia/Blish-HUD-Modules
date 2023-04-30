@@ -100,8 +100,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public virtual BitmapFont Font => GameService.Content.DefaultFont16;
 
     #region Services
-    private readonly AsyncLock _stateLock = new AsyncLock();
-    private Collection<ManagedService> _states = new Collection<ManagedService>();
+    private readonly AsyncLock _servicesLock = new AsyncLock();
+    private Collection<ManagedService> _services = new Collection<ManagedService>();
 
     public IconService IconService { get; private set; }
     public TranslationService TranslationService { get; private set; }
@@ -116,6 +116,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public ItemService ItemService { get; private set; }
     public ArcDPSService ArcDPSService { get; private set; }
     public BlishHudApiService BlishHUDAPIService { get; private set; }
+
+    public AchievementService AchievementService { get; private set; }
     #endregion
 
     public BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
@@ -148,7 +150,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Initialize states");
         await Task.Factory.StartNew(this.InitializeServices, TaskCreationOptions.LongRunning).Unwrap();
 
-        this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY, GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconService, this.TranslationService);
+        this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY, GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconService, this.TranslationService, this.ModuleSettings);
 
         this.ModuleSettings.UpdateLocalization(this.TranslationService);
 
@@ -177,7 +179,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
         }
 
-        using (await this._stateLock.LockAsync())
+        using (await this._servicesLock.LockAsync())
         {
             ServiceConfigurations configurations = new ServiceConfigurations();
             this.ConfigureServices(configurations);
@@ -190,13 +192,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
 
                 this.BlishHUDAPIService = new BlishHudApiService(configurations.BlishHUDAPI, this.ModuleSettings.BlishAPIUsername, this.PasswordManager, this.GetFlurlClient(), API_ROOT_URL, this.API_VERSION_NO);
-                this._states.Add(this.BlishHUDAPIService);
+                this._services.Add(this.BlishHUDAPIService);
             }
 
             if (configurations.Account.Enabled)
             {
                 this.AccountService = new AccountService(configurations.Account, this.Gw2ApiManager);
-                this._states.Add(this.AccountService);
+                this._services.Add(this.AccountService);
             }
 
             this.IconService = new IconService(new APIServiceConfiguration()
@@ -204,14 +206,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 Enabled = true,
                 AwaitLoading = false
             }, this.ContentsManager);
-            this._states.Add(this.IconService);
+            this._services.Add(this.IconService);
 
             this.TranslationService = new TranslationService(new ServiceConfiguration()
             {
                 Enabled = true,
                 AwaitLoading = true,
             }, this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
-            this._states.Add(this.TranslationService);
+            this._services.Add(this.TranslationService);
 
             this.SettingEventService = new SettingEventService(new ServiceConfiguration()
             {
@@ -219,25 +221,25 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 AwaitLoading = false,
                 SaveInterval = Timeout.InfiniteTimeSpan
             });
-            this._states.Add(this.SettingEventService);
+            this._services.Add(this.SettingEventService);
 
             this.NewsService = new NewsService(new ServiceConfiguration()
             {
                 AwaitLoading = true,
                 Enabled = true
             }, this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
-            this._states.Add(this.NewsService);
+            this._services.Add(this.NewsService);
 
             if (configurations.Items.Enabled)
             {
                 this.ItemService = new ItemService(configurations.Items, this.Gw2ApiManager, directoryPath);
-                this._states.Add(this.ItemService);
+                this._services.Add(this.ItemService);
             }
 
             if (configurations.TradingPost.Enabled)
             {
                 this.TradingPostService = new TradingPostService(configurations.TradingPost, this.Gw2ApiManager, this.ItemService);
-                this._states.Add(this.TradingPostService);
+                this._services.Add(this.TradingPostService);
             }
 
             if (configurations.Worldbosses.Enabled)
@@ -245,7 +247,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 if (configurations.Account.Enabled)
                 {
                     this.WorldbossService = new WorldbossService(configurations.Worldbosses, this.Gw2ApiManager, this.AccountService);
-                    this._states.Add(this.WorldbossService);
+                    this._services.Add(this.WorldbossService);
                 }
                 else
                 {
@@ -259,7 +261,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 if (configurations.Account.Enabled)
                 {
                     this.MapchestService = new MapchestService(configurations.Mapchests, this.Gw2ApiManager, this.AccountService);
-                    this._states.Add(this.MapchestService);
+                    this._services.Add(this.MapchestService);
                 }
                 else
                 {
@@ -276,7 +278,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
 
                 this.PointOfInterestService = new PointOfInterestService(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath);
-                this._states.Add(this.PointOfInterestService);
+                this._services.Add(this.PointOfInterestService);
             }
 
             if (configurations.Skills.Enabled)
@@ -287,7 +289,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
 
                 this.SkillService = new SkillService(configurations.Skills, this.Gw2ApiManager, this.IconService, directoryPath, this.GetFlurlClient(), FILE_BLISH_ROOT_URL);
-                this._states.Add(this.SkillService);
+                this._services.Add(this.SkillService);
             }
 
             if (configurations.ArcDPS.Enabled)
@@ -295,7 +297,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 if (configurations.Skills.Enabled)
                 {
                     this.ArcDPSService = new ArcDPSService(configurations.ArcDPS, this.SkillService);
-                    this._states.Add(this.ArcDPSService);
+                    this._services.Add(this.ArcDPSService);
                 }
                 else
                 {
@@ -304,20 +306,26 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
             }
 
+            if (configurations.Achievements.Enabled)
+            {
+                this.AchievementService = new AchievementService(this.Gw2ApiManager, configurations.Achievements, directoryPath);
+                this._services.Add(this.AchievementService);
+            }
+
             Collection<ManagedService> customServices = this.GetAdditionalServices(directoryPath);
 
             if (customServices != null && customServices.Count > 0)
             {
                 foreach (ManagedService customService in customServices)
                 {
-                    this._states.Add(customService);
+                    this._services.Add(customService);
                 }
             }
 
             this.OnBeforeServicesStarted();
 
             // Only start states not already running
-            foreach (ManagedService state in this._states.Where(state => !state.Running))
+            foreach (ManagedService state in this._services.Where(state => !state.Running))
             {
                 // Order is important
                 if (state.AwaitLoading)
@@ -461,7 +469,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             this.SettingsWindow.Tabs.Add(
                 new Tab(
                     this.IconService.GetIcon("155052.png"),
-                    () => new UI.Views.Settings.ServiceSettingsView(this._states, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.Font)
+                    () => new UI.Views.Settings.ServiceSettingsView(this._services, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.Font)
                     {
                         DefaultColor = this.ModuleSettings.DefaultGW2Color
                     },
@@ -496,10 +504,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         this.ShowUI = this.CalculateUIVisibility();
 
-        using (this._stateLock.Lock())
+        using (this._servicesLock.Lock())
         {
             List<string> stateLoadingTexts = new List<string>();
-            foreach (ManagedService state in this._states)
+            foreach (ManagedService state in this._services)
             {
                 state.Update(gameTime);
 
@@ -521,7 +529,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
             }
 
-            var stateTexts = stateLoadingTexts.Count == 0 ? null : $"Services:\n\t" + string.Join("\n\t", stateLoadingTexts);
+            var stateTexts = stateLoadingTexts.Count == 0 ? null : $"Services:\n    " + string.Join("\n    ", stateLoadingTexts);
             this.ReportLoading("states", stateTexts);
         }
 
@@ -668,10 +676,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Unloading states...");
 
-        using (this._stateLock.Lock())
+        using (this._servicesLock.Lock())
         {
-            this._states.ToList().ForEach(state => state?.Dispose());
-            this._states.Clear();
+            this._services.ToList().ForEach(state => state?.Dispose());
+            this._services.Clear();
 
             this.AccountService = null;
             this.ArcDPSService = null;

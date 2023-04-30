@@ -114,11 +114,10 @@ public abstract class APIService : ManagedService
 
             try
             {
-                IProgress<string> progress = new Progress<string>(newProgress => this.ProgressText = newProgress);
+                IProgress<string> progress = new Progress<string>(newProgress => this.ReportProgress(newProgress));
                 progress.Report($"Loading {this.GetType().Name}");
                 await this.FetchFromAPI(this._apiManager, progress);
                 this.SignalUpdated();
-                this.ProgressText = string.Empty;
             }
             finally
             {
@@ -126,6 +125,11 @@ public abstract class APIService : ManagedService
                 this.SignalCompletion();
             }
         }
+    }
+
+    protected void ReportProgress(string status)
+    {
+        this.ProgressText = status;
     }
 
     protected abstract Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress);
@@ -137,6 +141,7 @@ public abstract class APIService : ManagedService
 
     protected void SignalCompletion()
     {
+        this.ReportProgress(null);
         _ = this._eventWaitHandle.Set();
     }
 
