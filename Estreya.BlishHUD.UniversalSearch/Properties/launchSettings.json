@@ -1,0 +1,17 @@
+{
+  "profiles": {
+    "Estreya.BlishHUD.UniversalSearch": {
+      "commandName": "Project"
+    },
+    "Blish HUD": {
+      "commandName": "Executable",
+      "executablePath": "C:/Users/domin/Documents/Blish_HUD/Blish HUD.exe",
+      "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.UniversalSearch/bin/Debug/net48/Estreya.BlishHUD.UniversalSearch.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\""
+    },
+    "Blish HUD PS": {
+      "commandName": "Executable",
+      "executablePath": "C:/Users/domin/Documents/Blish_HUD/Blish HUD.exe",
+      "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.UniversalSearch/bin/Debug/net48/Estreya.BlishHUD.UniversalSearch.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\"  --process WindowsTerminal --window \"Windows PowerShell\" "
+    }
+  }
+}

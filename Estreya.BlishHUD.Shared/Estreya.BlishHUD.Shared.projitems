@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <MSBuildAllProjects Condition="'$(MSBuildVersion)' == '' Or '$(MSBuildVersion)' &lt; '16.0'">$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
@@ -26,6 +26,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ScreenNotification.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextArea.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextBoxSuggestions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Window.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\VertexPositionNormal.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldEntity.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldPolygone.cs" />
@@ -48,8 +49,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\GitHubHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\MathHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\VSCodeHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)IO\ReadProgressStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\DateJsonConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\DateTimeJsonConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\NullableRenderUrlConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\RenderUrlConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\SemanticRangeConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\SemanticVersionConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\TimeSpanArrayJsonConverter.cs" />
@@ -100,6 +104,8 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="$(MSBuildThisFileDirectory)Security\PasswordManager.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\AchievementService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\FilesystemAPIService[T].cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Settings\BaseModuleSettings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AccountService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\APIService.cs" />
@@ -120,6 +126,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Services\TradingPostService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\TranslationService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\WorldbossService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\StandardWindow.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Threading\AsyncRef.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Threading\Events\AsyncEventHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\BaseView.cs" />
@@ -134,6 +141,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Utils\AsyncLock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\DiscordUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\FileUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\Gw2SharpHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\GW2Utils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\ImageUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\MapUtil.cs" />
