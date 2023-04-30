@@ -44,9 +44,9 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected PasswordManager PasswordManager { get; private set; }
 
-    public string WEBSITE_MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.WebsiteModuleName}";
-    public string API_URL => $"{API_ROOT_URL}/v{this.API_VERSION_NO}/{this.WebsiteModuleName}";
-    public abstract string WebsiteModuleName { get; }
+    public string MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
+    public string MODULE_API_URL => $"{API_ROOT_URL}/v{this.API_VERSION_NO}/{this.UrlModuleName}";
+    public abstract string UrlModuleName { get; }
 
     /// <summary>
     /// Specifies the api version to use with <see cref="API_ROOT_URL"/>
@@ -213,7 +213,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 Enabled = true,
                 AwaitLoading = true,
-            }, this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
+            }, this.GetFlurlClient(), this.MODULE_FILE_URL);
             this._services.Add(this.TranslationService);
 
             this.SettingEventService = new SettingEventService(new ServiceConfiguration()
@@ -228,7 +228,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 AwaitLoading = true,
                 Enabled = true
-            }, this.GetFlurlClient(), this.WEBSITE_MODULE_FILE_URL);
+            }, this.GetFlurlClient(), this.MODULE_FILE_URL);
             this._services.Add(this.NewsService);
 
             if (configurations.Items.Enabled)

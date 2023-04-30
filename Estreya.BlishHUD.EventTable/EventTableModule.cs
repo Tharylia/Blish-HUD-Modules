@@ -43,7 +43,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
-        public override string WebsiteModuleName => "event-table";
+        public override string UrlModuleName => "event-table";
 
         private ConcurrentDictionary<string, EventArea> _areas = new ConcurrentDictionary<string, EventArea>();
 
@@ -148,7 +148,7 @@
                     this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.RemoveEventHooks(ev));
                     this._eventCategories?.Clear();
 
-                    var request = this.GetFlurlClient().Request(this.API_URL, "events");
+                    var request = this.GetFlurlClient().Request(this.MODULE_API_URL, "events");
 
                     if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIService.AccessToken))
                     {
@@ -421,7 +421,7 @@
                 this.PointOfInterestService,
                 this.MapUtil,
                 this.GetFlurlClient(),
-                this.API_URL,
+                this.MODULE_API_URL,
                 () => this.NowUTC,
                 () => this.Version,
                 () => this.BlishHUDAPIService.AccessToken)
@@ -486,7 +486,7 @@
             this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
             this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156764.png"), () => new UI.Views.CustomEventView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Custom Events"));
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("157097.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("157097.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
 
         }
 
@@ -524,12 +524,13 @@
                 Enabled = true,
                 SaveInterval = TimeSpan.FromSeconds(30)
             }, directoryPath, () => this.NowUTC);
+
             this.DynamicEventService = new DynamicEventService(new APIServiceConfiguration()
             {
                 AwaitLoading = false,
                 Enabled = true,
                 SaveInterval = Timeout.InfiniteTimeSpan
-            }, this.Gw2ApiManager, this.GetFlurlClient(), this.API_ROOT_URL);
+            }, this.Gw2ApiManager, this.GetFlurlClient(), API_ROOT_URL);
 
             additionalServices.Add(this.EventStateService);
             additionalServices.Add(this.DynamicEventService);

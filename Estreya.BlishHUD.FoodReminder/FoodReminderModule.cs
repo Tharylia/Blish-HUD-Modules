@@ -37,7 +37,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class FoodReminderModule : BaseModule<FoodReminderModule, ModuleSettings>
     {
-        public override string WebsiteModuleName => "food-reminder";
+        public override string UrlModuleName => "food-reminder";
 
         protected override string API_VERSION_NO => "1";
 

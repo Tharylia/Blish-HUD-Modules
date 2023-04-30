@@ -42,7 +42,7 @@
     {
         private string ARCDPS_LOG_PATH;
 
-        public override string WebsiteModuleName => "arcdps-log-manager";
+        public override string UrlModuleName => "arcdps-log-manager";
 
         protected override string API_VERSION_NO => "1";
 

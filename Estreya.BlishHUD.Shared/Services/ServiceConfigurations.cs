@@ -17,11 +17,11 @@ public class ServiceConfigurations
     {
         Enabled = false,
         AwaitLoading = true,
-        NeededPermissions = new List<Gw2Sharp.WebApi.V2.Models.TokenPermission>() {  Gw2Sharp.WebApi.V2.Models.TokenPermission.Account},
+        NeededPermissions = new List<Gw2Sharp.WebApi.V2.Models.TokenPermission>() { Gw2Sharp.WebApi.V2.Models.TokenPermission.Account },
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIServiceConfiguration Mapchests { get; }  = new APIServiceConfiguration()
+    public APIServiceConfiguration Mapchests { get; } = new APIServiceConfiguration()
     {
         Enabled = false,
         AwaitLoading = false,
@@ -73,5 +73,13 @@ public class ServiceConfigurations
     {
         Enabled = false,
         AwaitLoading = false,
+    };
+
+    public APIServiceConfiguration AccountAchievements { get; } = new APIServiceConfiguration()
+    {
+        Enabled = false,
+        AwaitLoading = false,
+        NeededPermissions = new List<Gw2Sharp.WebApi.V2.Models.TokenPermission>() { Gw2Sharp.WebApi.V2.Models.TokenPermission.Account, Gw2Sharp.WebApi.V2.Models.TokenPermission.Progression },
+        UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 }

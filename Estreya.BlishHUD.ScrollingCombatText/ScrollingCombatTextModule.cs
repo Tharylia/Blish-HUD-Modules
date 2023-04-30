@@ -27,7 +27,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class ScrollingCombatTextModule : BaseModule<ScrollingCombatTextModule, ModuleSettings>
     {
-        public override string WebsiteModuleName => "scrolling-combat-text";
+        public override string UrlModuleName => "scrolling-combat-text";
 
         internal static ScrollingCombatTextModule ModuleInstance => Instance;
 

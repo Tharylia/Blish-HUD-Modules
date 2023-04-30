@@ -26,7 +26,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, ModuleSettings>
     {
-        public override string WebsiteModuleName => "trading-post-watcher";
+        public override string UrlModuleName => "trading-post-watcher";
 
         internal static TradingPostWatcherModule ModuleInstance => Instance;
 

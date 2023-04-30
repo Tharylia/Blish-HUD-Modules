@@ -45,7 +45,7 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
     [ImportingConstructor]
     public WebhookUpdaterModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string WebsiteModuleName => "webhook-updater";
+    public override string UrlModuleName => "webhook-updater";
 
     protected override string API_VERSION_NO => "1";
 
