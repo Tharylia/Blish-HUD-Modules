@@ -5,6 +5,7 @@ using Blish_HUD.Controls;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Security;
 using Estreya.BlishHUD.Shared.Services;
+using Estreya.BlishHUD.Shared.Settings;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
@@ -27,14 +28,15 @@ public class GitHubHelper : IDisposable
     private readonly PasswordManager _passwordManager;
     private readonly IconService _iconService;
     private readonly TranslationService _translationService;
-    private StandardWindow _window;
+    private readonly BaseModuleSettings _baseModuleSettings;
+    private Controls.StandardWindow _window;
     private readonly GitHubClient _github;
 
     #region Views
     private GitHubCreateIssueView _issueView;
     #endregion
 
-    public GitHubHelper(string owner, string repository, string clientId, string moduleName, PasswordManager passwordManager, IconService iconService, TranslationService translationService)
+    public GitHubHelper(string owner, string repository, string clientId, string moduleName, PasswordManager passwordManager, IconService iconService, TranslationService translationService, BaseModuleSettings baseModuleSettings)
     {
         this._owner = owner;
         this._repository = repository;
@@ -43,6 +45,7 @@ public class GitHubHelper : IDisposable
         this._passwordManager = passwordManager;
         this._iconService = iconService;
         this._translationService = translationService;
+        this._baseModuleSettings = baseModuleSettings;
         this._github = new GitHubClient(new ProductHeaderValue(moduleName.Dehumanize()));
         this.CreateWindow();
     }
@@ -114,7 +117,7 @@ public class GitHubHelper : IDisposable
     {
         this._window?.Dispose();
 
-        this._window = new StandardWindow(this._iconService.GetIcon("155985.png"), new Rectangle(40, 26, 913, 691), new Rectangle(70, 71, 839, 605))
+        this._window = new Controls.StandardWindow(this._baseModuleSettings, this._iconService.GetIcon("155985.png"), new Rectangle(40, 26, 913, 691), new Rectangle(70, 71, 839, 605))
         {
             Parent = GameService.Graphics.SpriteScreen,
             Title = "Create Issue",
