@@ -1,18 +1,15 @@
 ﻿namespace Estreya.BlishHUD.UniversalSearch.Controls.SearchResults;
-using Blish_HUD.Content;
 using Blish_HUD;
-
+using Blish_HUD.Content;
+using Blish_HUD.Controls;
+using Estreya.BlishHUD.Shared.Models.GW2API.PointOfInterest;
+using Estreya.BlishHUD.Shared.Services;
+using Estreya.BlishHUD.UniversalSearch.Controls.Tooltips;
 using Gw2Sharp.WebApi.V2.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Blish_HUD.Controls;
-using Microsoft.Xna.Framework;
-using Color = Microsoft.Xna.Framework.Color;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.Models.GW2API.PointOfInterest;
 
 public class LandmarkSearchResultItem : SearchResultItem
 {
@@ -22,21 +19,21 @@ public class LandmarkSearchResultItem : SearchResultItem
     private readonly IEnumerable<PointOfInterest> _waypoints;
     private readonly IconService _iconState;
 
-    protected override string ChatLink => Landmark?.ChatLink;
+    protected override string ChatLink => this.Landmark?.ChatLink;
 
     private PointOfInterest _landmark;
     public PointOfInterest Landmark
     {
-        get => _landmark;
+        get => this._landmark;
         set
         {
-            if (SetProperty(ref _landmark, value))
+            if (this.SetProperty(ref this._landmark, value))
             {
-                if (_landmark != null)
+                if (this._landmark != null)
                 {
-                    Icon = GetTextureForLandmarkAsync(_landmark);
-                    Name = _landmark.Name;
-                    Description = _landmark.ChatLink;
+                    this.Icon = this.GetTextureForLandmarkAsync(this._landmark);
+                    this.Name = this._landmark.Name;
+                    this.Description = this._landmark.ChatLink;
                 }
             }
         }
@@ -44,92 +41,20 @@ public class LandmarkSearchResultItem : SearchResultItem
 
     public LandmarkSearchResultItem(IEnumerable<PointOfInterest> waypoints, IconService iconState) : base(iconState)
     {
-        _waypoints = waypoints;
+        this._waypoints = waypoints;
         this._iconState = iconState;
     }
 
     protected override Tooltip BuildTooltip()
     {
-        var tooltip = new Tooltip() { CurrentControl = this };
-
-        var detailsName = new Label()
-        {
-            Text = Name,
-            Font = Content.DefaultFont16,
-            Location = new Point(10, 10),
-            Height = 11,
-            TextColor = ContentService.Colors.Chardonnay,
-            ShowShadow = true,
-            AutoSizeWidth = true,
-            AutoSizeHeight = true,
-            VerticalAlignment = VerticalAlignment.Middle,
-            Parent = tooltip,
-        };
-
-        var detailsHintCopyChatCode = new Label()
-        {
-            Text = "Left Click: Copy chat code to clipboard",// Strings.Common.Landmark_Details_CopyChatCode,
-            Font = Content.DefaultFont16,
-            Location = new Point(10, detailsName.Bottom + 5),
-            TextColor = Color.White,
-            ShowShadow = true,
-            AutoSizeWidth = true,
-            AutoSizeHeight = true,
-            Parent = tooltip,
-        };
-
-        var detailsClosestWaypointTitle = new Label()
-        {
-            Text = "Closest Waypoint",// Strings.Common.Landmark_Details_ClosestWaypoint,
-            Font = Content.DefaultFont16,
-            Location = new Point(10, detailsHintCopyChatCode.Bottom + 12),
-            Height = 11,
-            TextColor = ContentService.Colors.Chardonnay,
-            ShadowColor = Color.Black,
-            ShowShadow = true,
-            AutoSizeWidth = true,
-            AutoSizeHeight = true,
-            Parent = tooltip,
-        };
-
-        var closestWaypont = ClosestWaypoint();
-
-        var detailsClosestWaypoint = new Label()
-        {
-            Text = closestWaypont.Map.Name + ": " + closestWaypont.Name,
-            Font = Content.DefaultFont14,
-            Location = new Point(10, detailsClosestWaypointTitle.Bottom + 5),
-            TextColor = Color.White,
-            ShadowColor = Color.Black,
-            ShowShadow = true,
-            AutoSizeWidth = true,
-            AutoSizeHeight = true,
-            Parent = tooltip,
-        };
-
-        new Label()
-        {
-            Text = "Shift + Click: Copy closest waypoint to clipboard.",// Strings.Common.Landmark_Details_CopyClosestWaypoint,
-            Font = Content.DefaultFont14,
-            Location = new Point(10, detailsClosestWaypoint.Bottom + 5),
-            TextColor = Color.White,
-            ShadowColor = Color.Black,
-            ShowShadow = true,
-            AutoSizeWidth = true,
-            AutoSizeHeight = true,
-            Visible = true,
-            Parent = tooltip,
-        };
-
-        return tooltip;
+        return new LandmarkTooltip(this.Landmark, this.ClosestWaypoint());
     }
 
     protected override async Task ClickAction()
     {
-
         if (GameService.Input.Keyboard.ActiveModifiers == Microsoft.Xna.Framework.Input.ModifierKeys.Shift)
         {
-            var clipboardResult = await ClipboardUtil.WindowsClipboardService.SetTextAsync(ClosestWaypoint().ChatLink);
+            var clipboardResult = await ClipboardUtil.WindowsClipboardService.SetTextAsync(this.ClosestWaypoint().ChatLink);
 
             this.SignalClickActionExecuted(clipboardResult);
         }
@@ -141,7 +66,7 @@ public class LandmarkSearchResultItem : SearchResultItem
 
     private PointOfInterest ClosestWaypoint()
     {
-        var distances = _waypoints.Select(waypoint => (Math.Sqrt(Math.Pow(Landmark.Coordinates.X - waypoint.Coordinates.X, 2) + Math.Pow(Landmark.Coordinates.Y - waypoint.Coordinates.Y, 2)), waypoint));
+        var distances = this._waypoints.Select(waypoint => (Math.Sqrt(Math.Pow(this.Landmark.Coordinates.X - waypoint.Coordinates.X, 2) + Math.Pow(this.Landmark.Coordinates.Y - waypoint.Coordinates.Y, 2)), waypoint));
         return distances.OrderBy(x => x.Item1).First().waypoint;
     }
 
@@ -171,6 +96,7 @@ public class LandmarkSearchResultItem : SearchResultItem
                 {
                     return ContentService.Textures.Error;
                 }
+
                 break;
         }
 
