@@ -3,6 +3,7 @@ using Blish_HUD;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.IO;
 using Estreya.BlishHUD.Shared.Json.Converter;
+using Estreya.BlishHUD.Shared.Models.GW2API.Converter;
 using Estreya.BlishHUD.Shared.Utils;
 using Gw2Sharp.WebApi.V2.Models;
 using Newtonsoft.Json;
@@ -43,7 +44,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
             Converters = new JsonConverter[]
             {
                 new RenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection),
-                new NullableRenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection)
+                new NullableRenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection),
             }
         };
     }
@@ -97,6 +98,11 @@ public abstract class FilesystemAPIService<T> : APIService<T>
                     }
 
                     this.SignalUpdated();
+                }
+                catch(Exception ex)
+                {
+                    this.Logger.Warn(ex, "Could not load from filesystem. Fallback to API.");
+                    forceAPI = true;
                 }
                 finally
                 {
