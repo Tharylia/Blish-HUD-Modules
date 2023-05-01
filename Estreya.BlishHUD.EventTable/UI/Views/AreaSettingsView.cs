@@ -463,6 +463,10 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderColorSetting(groupPanel, areaConfiguration.CategoryNameColor);
 
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.EnableColorGradients);
+
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
     private void RenderBehaviourSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)

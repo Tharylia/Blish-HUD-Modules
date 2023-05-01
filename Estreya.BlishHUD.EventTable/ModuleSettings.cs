@@ -261,6 +261,8 @@
 
             var categoryNameColor = this.DrawerSettings.DefineSetting($"{name}-categoryNameColor", this.DefaultGW2Color, () => "Category Name Color", () => "Defines the color of the category names.");
 
+            var enableColorGradients = this.DrawerSettings.DefineSetting($"{name}-enableColorGradients", false, () => "Enable Color Gradients", () => "Defines if supported events should have a smoother color gradient from and to the next event.");
+
             return new EventAreaConfiguration()
             {
                 Name = drawer.Name,
@@ -309,7 +311,8 @@
                 HideInPvP= hideInPvP,
                 HideInWvW = hideInWvW,
                 ShowCategoryNames = showCategoryNames,
-                CategoryNameColor  = categoryNameColor
+                CategoryNameColor  = categoryNameColor,
+                EnableColorGradients = enableColorGradients,
             };
         }
 
@@ -368,6 +371,7 @@
             this.DrawerSettings.UndefineSetting($"{name}-hideInPvP");
             this.DrawerSettings.UndefineSetting($"{name}-showCategoryNames");
             this.DrawerSettings.UndefineSetting($"{name}-categoryNameColor");
+            this.DrawerSettings.UndefineSetting($"{name}-enableColorGradients");
         }
 
         public override void UpdateLocalization(TranslationService translationService)

@@ -139,6 +139,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\StringTooltipView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\TooltipView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\AsyncLock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\ColorUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\DiscordUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\FileUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\Gw2SharpHelper.cs" />

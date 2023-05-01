@@ -769,7 +769,7 @@ public class EventArea : RenderTargetControl
                         {
                             if (ev.Filler)
                             {
-                                return Color.Transparent;
+                                return new[] { Color.Transparent };
                             }
 
                             float alpha = this.Configuration.EventBackgroundOpacity.Value;
@@ -779,8 +779,23 @@ public class EventArea : RenderTargetControl
                                 alpha = this.Configuration.CompletedEventsBackgroundOpacity.Value;
                             }
 
-                            System.Drawing.Color colorFromEvent = string.IsNullOrWhiteSpace(ev.BackgroundColorCode) ? System.Drawing.Color.White : System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
-                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * alpha;
+                            if (this.Configuration.EnableColorGradients.Value && ev.BackgroundColorGradientCodes != null && ev.BackgroundColorGradientCodes.Length > 0)
+                            {
+                                var colorCodes = ev.BackgroundColorGradientCodes.Select(cc =>
+                                {
+                                    var parsedColor = System.Drawing.ColorTranslator.FromHtml(cc);
+                                    return new Color(parsedColor.R, parsedColor.G, parsedColor.B) * alpha;
+                                });
+
+                                return colorCodes.ToArray();
+                            }
+                            else if (!string.IsNullOrWhiteSpace(ev.BackgroundColorCode))
+                            {
+                                var tempColor = System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
+                                return new[] { new Color(tempColor.R, tempColor.G, tempColor.B) * alpha };
+                            }
+
+                            return new[] { Color.White * alpha };
                         },
                         () => ev.Filler ? this.Configuration.DrawShadowsForFiller.Value : this.Configuration.DrawShadows.Value,
                         () =>

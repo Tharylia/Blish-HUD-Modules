@@ -15,7 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Media.TextFormatting;
 
-public class Event: IDisposable
+public class Event : IDisposable
 {
     public event EventHandler HideRequested;
     public event EventHandler DisableRequested;
@@ -31,9 +31,11 @@ public class Event: IDisposable
     private readonly Func<bool> _getDrawBorders;
     private readonly Func<bool> _getDrawCrossout;
     private readonly Func<Color> _getTextColor;
-    private readonly Func<Color> _getColorAction;
+    private readonly Func<Color[]> _getColorAction;
     private readonly Func<bool> _getDrawShadowAction;
     private readonly Func<Color> _getShadowColor;
+
+    private Texture2D _backgroundColorTexture;
 
     public Event(Models.Event ev, IconService iconService, TranslationService translationService,
         Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
@@ -41,7 +43,7 @@ public class Event: IDisposable
         Func<bool> getDrawBorders,
         Func<bool> getDrawCrossout,
         Func<Color> getTextColor,
-        Func<Color> getColorAction,
+        Func<Color[]> getColorAction,
         Func<bool> getDrawShadowAction,
         Func<Color> getShadowColor)
     {
@@ -135,14 +137,31 @@ public class Event: IDisposable
         BitmapFont font = this._getFontAction();
 
         this.DrawBackground(spriteBatch, bounds);
-        float nameWidth = this.Ev.Filler ? 0 : this.DrawName(spriteBatch,bounds, font);
-        this.DrawRemainingTime(spriteBatch,bounds, font, nameWidth);
+        float nameWidth = this.Ev.Filler ? 0 : this.DrawName(spriteBatch, bounds, font);
+        this.DrawRemainingTime(spriteBatch, bounds, font, nameWidth);
         this.DrawCrossout(spriteBatch, bounds);
     }
 
     private void DrawBackground(SpriteBatch spriteBatch, RectangleF bounds)
     {
-        spriteBatch.DrawRectangle(ContentService.Textures.Pixel, bounds, this._getColorAction(), this._getDrawBorders() ? 1 : 0, Color.Black);
+        var colors = this._getColorAction();
+        if (colors.Length == 1)
+        {
+            spriteBatch.DrawRectangle(ContentService.Textures.Pixel, bounds, colors[0], this._getDrawBorders() ? 1 : 0, Color.Black);
+        }
+        else
+        {
+            var width = (int)Math.Ceiling(bounds.Width);
+            var height = (int)Math.Ceiling(bounds.Height);
+
+            if (this._backgroundColorTexture == null || this._backgroundColorTexture.Height != height || this._backgroundColorTexture.Width != width)
+            {
+                this._backgroundColorTexture?.Dispose();
+                this._backgroundColorTexture = Shared.Utils.ColorUtil.CreateColorGradientsTexture(colors, width, height);
+            }
+
+            spriteBatch.DrawRectangle(this._backgroundColorTexture, bounds, Color.White, this._getDrawBorders() ? 1 : 0, Color.Black);
+        }
     }
 
     private float DrawName(SpriteBatch spriteBatch, RectangleF bounds, BitmapFont font)
@@ -151,8 +170,9 @@ public class Event: IDisposable
         float maxWidth = bounds.Width - xOffset * 2;
         float nameWidth = 0;
         string text = this.Ev.Name;
-        do {
-            nameWidth = (float)Math.Ceiling(font.MeasureString(text).Width) ;
+        do
+        {
+            nameWidth = (float)Math.Ceiling(font.MeasureString(text).Width);
 
             if (string.IsNullOrWhiteSpace(text))
             {
@@ -187,7 +207,7 @@ public class Event: IDisposable
         string remainingTimeString = this.FormatTimeRemaining(remainingTime);
         float timeWidth = (float)Math.Ceiling(font.MeasureString(remainingTimeString).Width);
         float maxWidth = bounds.Width - nameWidth;
-        float centerX =(maxWidth / 2) - (timeWidth / 2);
+        float centerX = (maxWidth / 2) - (timeWidth / 2);
         if (centerX < nameWidth)
         {
             centerX = nameWidth + 10;
@@ -198,7 +218,7 @@ public class Event: IDisposable
             return;
         }
 
-        RectangleF timeRect = new RectangleF(centerX+ bounds.X, bounds.Y, maxWidth, bounds.Height);
+        RectangleF timeRect = new RectangleF(centerX + bounds.X, bounds.Y, maxWidth, bounds.Height);
 
         Color textColor = this._getTextColor();
 
@@ -258,5 +278,7 @@ public class Event: IDisposable
         this._iconService = null;
         this._translationService = null;
         this.Ev = null;
+        this._backgroundColorTexture?.Dispose();
+        this._backgroundColorTexture = null;
     }
 }

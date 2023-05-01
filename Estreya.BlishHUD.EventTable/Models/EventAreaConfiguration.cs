@@ -60,4 +60,6 @@ public class EventAreaConfiguration : DrawerConfiguration
 
     public SettingEntry<bool> ShowCategoryNames { get; set; }
     public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> CategoryNameColor { get; set; }
+
+    public SettingEntry<bool> EnableColorGradients { get; set; }
 }

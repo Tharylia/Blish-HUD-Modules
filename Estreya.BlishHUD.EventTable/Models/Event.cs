@@ -81,6 +81,9 @@
         [JsonProperty("color")]
         public string BackgroundColorCode { get; set; }
 
+        [JsonProperty("colorGradient")]
+        public string[] BackgroundColorGradientCodes { get; set; }
+
         [JsonProperty("apiType")]
         public APICodeType? APICodeType { get; set; }
 
