@@ -45,7 +45,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\StringExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\WaitHandleExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\AsyncHelper.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Helpers\ColorHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\GitHubHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\MathHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\VSCodeHelper.cs" />

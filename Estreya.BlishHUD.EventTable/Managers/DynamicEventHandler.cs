@@ -1,29 +1,19 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Managers;
 using Blish_HUD;
-using Blish_HUD.ArcDps.Models;
-using Blish_HUD.Entities;
 using Blish_HUD.Modules.Managers;
-using Blish_HUD.Settings;
 using Estreya.BlishHUD.EventTable.Services;
 using Estreya.BlishHUD.Shared.Controls.Map;
 using Estreya.BlishHUD.Shared.Controls.World;
 using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Helpers;
 using Estreya.BlishHUD.Shared.Utils;
-using Humanizer;
 using Microsoft.Xna.Framework;
-using Octokit;
-using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using static Estreya.BlishHUD.EventTable.Services.DynamicEventService;
-using static System.Net.Mime.MediaTypeNames;
 
 public class DynamicEventHandler : IDisposable, IUpdatable
 {
@@ -196,8 +186,8 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
     public async Task AddDynamicEventsToWorld()
     {
-        GameService.Graphics.World.RemoveEntities(_worldEntities.Values.SelectMany(v => v));
-        _worldEntities?.Clear();
+        GameService.Graphics.World.RemoveEntities(this._worldEntities.Values.SelectMany(v => v));
+        this._worldEntities?.Clear();
 
         if (!this._moduleSettings.ShowDynamicEventInWorld.Value || !GameService.Gw2Mumble.IsAvailable) return;
 
@@ -232,7 +222,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
     {
         if (this._worldEntities.ContainsKey(dynamicEvent.ID))
         {
-            GameService.Graphics.World.RemoveEntities(_worldEntities[dynamicEvent.ID]);
+            GameService.Graphics.World.RemoveEntities(this._worldEntities[dynamicEvent.ID]);
             this._worldEntities.TryRemove(dynamicEvent.ID, out _);
         }
     }
@@ -254,29 +244,28 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             switch (dynamicEvent.Location.Type)
             {
                 case "poly":
-                    entites.Add(await this.GetPolygone(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
+                    entites.Add(this.GetPolygone(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
                     break;
                 case "sphere":
-                    entites.Add(await this.GetSphere(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
+                    entites.Add(this.GetSphere(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
                     break;
                 case "cylinder":
-                    entites.Add(await this.GetCylinder(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
+                    entites.Add(this.GetCylinder(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
                     break;
                 default:
                     break;
             }
 
-            _worldEntities.AddOrUpdate(dynamicEvent.ID, entites, (_, prev) => prev.Concat(entites).ToList());
+            this._worldEntities.AddOrUpdate(dynamicEvent.ID, entites, (_, prev) => prev.Concat(entites).ToList());
             GameService.Graphics.World.AddEntities(entites);
         }
         catch (Exception ex)
         {
             Logger.Debug(ex, $"Failed to add {dynamicEvent.Name} to world.");
         }
-
     }
 
-    private async Task<WorldEntity> GetSphere(DynamicEventService.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetSphere(DynamicEventService.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
         var tessellation = 50;
         var connections = tessellation / 5;
@@ -332,7 +321,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
             var bendPointsUp = new List<Vector3>();
             var up = new Vector3(0, 0, radius);
-            Vector3 centerUp = new Vector3((mid.X + up.X), (mid.Y + up.Y), (mid.Z + up.Z));
+            Vector3 centerUp = new Vector3(mid.X + up.X, mid.Y + up.Y, mid.Z + up.Z);
 
             for (float ratio = 0; ratio <= 1; ratio += 1 / bendSteps)
             {
@@ -342,6 +331,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
                 bendPointsUp.Add(curve);
             }
+
             var bendPointsUpFirst = true;
             bendPointsUp = bendPointsUp.SelectMany(t =>
             {
@@ -355,7 +345,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
             var down = new Vector3(0, 0, -radius);
             var bendPointsDown = new List<Vector3>();
-            Vector3 centerDown = new Vector3((mid.X + down.X), (mid.Y + down.Y), (mid.Z + down.Z));
+            Vector3 centerDown = new Vector3(mid.X + down.X, mid.Y + down.Y, mid.Z + down.Z);
 
             for (float ratio = 0; ratio <= 1; ratio += 1 / bendSteps)
             {
@@ -365,6 +355,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
                 bendPointsDown.Add(curve);
             }
+
             var bendPointsDownFirst = true;
             bendPointsDown = bendPointsDown.SelectMany(t =>
             {
@@ -380,7 +371,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
     }
 
-    private async Task<WorldEntity> GetCylinder(DynamicEventService.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetCylinder(DynamicEventService.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
         var tessellation = 50;
         var connections = tessellation / 4;
@@ -462,7 +453,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
     }
 
-    private async Task<WorldEntity> GetPolygone(DynamicEventService.DynamicEvent dynamicEvent, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetPolygone(DynamicEventService.DynamicEvent dynamicEvent, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
 
         // Map all event points to world coordinates
@@ -533,11 +524,11 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
     public void Dispose()
     {
-        GameService.Graphics.World.RemoveEntities(_worldEntities.Values.SelectMany(v => v));
-        _worldEntities?.Clear();
+        GameService.Graphics.World.RemoveEntities(this._worldEntities.Values.SelectMany(v => v));
+        this._worldEntities?.Clear();
 
-        _mapEntities?.Values.ToList().ForEach(me => this._mapUtil.RemoveEntity(me));
-        _mapEntities?.Clear();
+        this._mapEntities?.Values.ToList().ForEach(me => this._mapUtil.RemoveEntity(me));
+        this._mapEntities?.Clear();
 
         GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
         this._moduleSettings.ShowDynamicEventsOnMap.SettingChanged -= this.ShowDynamicEventsOnMap_SettingChanged;
