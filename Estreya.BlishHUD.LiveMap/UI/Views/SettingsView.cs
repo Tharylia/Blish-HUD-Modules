@@ -2,7 +2,7 @@
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Service;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Flurl.Util;
 using Humanizer;
