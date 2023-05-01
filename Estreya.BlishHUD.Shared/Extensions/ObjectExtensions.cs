@@ -7,6 +7,9 @@ using System.Threading.Tasks;
 
 using System.Reflection;
 using Estreya.BlishHUD.Shared.Attributes;
+using Flurl.Http.Configuration;
+using Newtonsoft.Json;
+using System.IO;
 
 public static class ObjectExtensions
 {
@@ -81,6 +84,23 @@ public static class ObjectExtensions
     public static T Copy<T>(this T original)
     {
         return (T)Copy((object)original);
+    }
+
+    public static T CopyWithJson<T>(this T original, JsonSerializerSettings serializerSettings)
+    {
+        JsonSerializer jsonSerializer = JsonSerializer.CreateDefault(serializerSettings);
+        using var memoryStream = new MemoryStream();
+        using (StreamWriter streamWriter = new StreamWriter(memoryStream, Encoding.UTF8, 1024, true))
+        {
+            using JsonTextWriter jsonWriter = new(streamWriter);
+            jsonSerializer.Serialize(jsonWriter, original);
+        }
+
+        memoryStream.Position = 0;
+
+        using StreamReader streamReader = new StreamReader(memoryStream);
+        using JsonTextReader jsonTextReader = new JsonTextReader(streamReader);
+        return jsonSerializer.Deserialize<T>(jsonTextReader);
     }
 }
 

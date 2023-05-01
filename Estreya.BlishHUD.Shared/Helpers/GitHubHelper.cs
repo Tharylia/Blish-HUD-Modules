@@ -4,7 +4,8 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Security;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
+using Estreya.BlishHUD.Shared.Settings;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Humanizer;
@@ -25,24 +26,26 @@ public class GitHubHelper : IDisposable
     private readonly string _clientId;
     private readonly string _moduleName;
     private readonly PasswordManager _passwordManager;
-    private readonly IconState _iconState;
-    private readonly TranslationState _translationState;
-    private StandardWindow _window;
+    private readonly IconService _iconService;
+    private readonly TranslationService _translationService;
+    private readonly BaseModuleSettings _baseModuleSettings;
+    private Controls.StandardWindow _window;
     private readonly GitHubClient _github;
 
     #region Views
     private GitHubCreateIssueView _issueView;
     #endregion
 
-    public GitHubHelper(string owner, string repository, string clientId, string moduleName, PasswordManager passwordManager, IconState iconState, TranslationState translationState)
+    public GitHubHelper(string owner, string repository, string clientId, string moduleName, PasswordManager passwordManager, IconService iconService, TranslationService translationService, BaseModuleSettings baseModuleSettings)
     {
         this._owner = owner;
         this._repository = repository;
         this._clientId = clientId;
         this._moduleName = moduleName;
         this._passwordManager = passwordManager;
-        this._iconState = iconState;
-        this._translationState = translationState;
+        this._iconService = iconService;
+        this._translationService = translationService;
+        this._baseModuleSettings = baseModuleSettings;
         this._github = new GitHubClient(new ProductHeaderValue(moduleName.Dehumanize()));
         this.CreateWindow();
     }
@@ -114,11 +117,11 @@ public class GitHubHelper : IDisposable
     {
         this._window?.Dispose();
 
-        this._window = new StandardWindow(this._iconState.GetIcon("155985.png"), new Rectangle(40, 26, 913, 691), new Rectangle(70, 71, 839, 605))
+        this._window = new Controls.StandardWindow(this._baseModuleSettings, this._iconService.GetIcon("155985.png"), new Rectangle(40, 26, 913, 691), new Rectangle(70, 71, 839, 605))
         {
             Parent = GameService.Graphics.SpriteScreen,
             Title = "Create Issue",
-            Emblem = this._iconState.GetIcon("156022.png"),
+            Emblem = this._iconService.GetIcon("156022.png"),
             SavesPosition = true,
             Id = $"{nameof(GitHubHelper)}_ec5d3b09-b304-44c9-b70b-a4713ba8ffbf"
         };
@@ -128,7 +131,7 @@ public class GitHubHelper : IDisposable
     {
         this.UnloadIssueView();
 
-        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconState, this._translationState, GameService.Content.DefaultFont18, title, message);
+        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconService, this._translationService, GameService.Content.DefaultFont18, title, message);
         this._issueView.CreateClicked += this.IssueView_CreateClicked;
         this._issueView.CancelClicked += this.IssueView_CancelClicked;
 

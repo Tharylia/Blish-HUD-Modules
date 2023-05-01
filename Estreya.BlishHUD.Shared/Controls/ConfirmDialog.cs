@@ -4,7 +4,7 @@
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
     using Estreya.BlishHUD.Shared.Extensions;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
@@ -21,7 +21,7 @@
         private string _parsedTitle;
         private string _parsedMessage;
         private readonly string _message;
-        private IconState _iconState;
+        private IconService _iconService;
         private DialogResult _dialogResult = DialogResult.None;
 
         private static readonly BitmapFont _titleFont = GameService.Content.DefaultFont32;
@@ -54,13 +54,13 @@
 
         public DialogResult ESC_Result = DialogResult.None;
 
-        public ConfirmDialog(string title, string message, IconState iconState, ButtonDefinition[] buttons = null)
+        public ConfirmDialog(string title, string message, IconService iconService, ButtonDefinition[] buttons = null)
         {
             this._title = title;
             this._parsedTitle = this._title;
             this._message = message;
             this._parsedMessage = this._message;
-            this._iconState = iconState;
+            this._iconService = iconService;
 
             if (buttons != null)
             {
@@ -274,7 +274,7 @@
             this._buttonPanel = null;
 
             GameService.Input.Keyboard.KeyPressed -= this.Keyboard_KeyPressed;
-            this._iconState = null;
+            this._iconService = null;
             _ = this._waitHandle?.Set();
             this._waitHandle?.Dispose();
             this._waitHandle = null;

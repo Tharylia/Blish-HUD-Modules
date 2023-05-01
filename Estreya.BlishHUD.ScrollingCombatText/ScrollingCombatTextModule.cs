@@ -12,7 +12,7 @@
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.Shared.Utils;
     using Humanizer;
     using Microsoft.Xna.Framework;
@@ -27,7 +27,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class ScrollingCombatTextModule : BaseModule<ScrollingCombatTextModule, ModuleSettings>
     {
-        public override string WebsiteModuleName => "scrolling-combat-text";
+        public override string UrlModuleName => "scrolling-combat-text";
 
         internal static ScrollingCombatTextModule ModuleInstance => Instance;
 
@@ -37,7 +37,7 @@
 
         private Dictionary<string, ScrollingTextArea> _areas = new Dictionary<string, ScrollingTextArea>();
 
-        #region States
+        #region Services
         #endregion
 
         [ImportingConstructor]
@@ -56,7 +56,7 @@
             await base.LoadAsync();
 
             // Wait for skills to be loaded.
-            //await this.SkillState.WaitAsync();
+            //await this.SkillService.WaitAsync();
 
             this.ModuleSettings.ModuleSettingsChanged += (sender, eventArgs) =>
             {
@@ -88,33 +88,33 @@
 
             if (e.Key == Microsoft.Xna.Framework.Input.Keys.U)
             {
-                this.ArcDPSState?.SimulateCombatEvent(new Blish_HUD.ArcDps.RawCombatEventArgs(ev, Blish_HUD.ArcDps.RawCombatEventArgs.CombatEventType.Local));
+                this.ArcDPSService?.SimulateCombatEvent(new Blish_HUD.ArcDps.RawCombatEventArgs(ev, Blish_HUD.ArcDps.RawCombatEventArgs.CombatEventType.Local));
             }
         }
 
-        private void ArcDPSState_Stopped(object sender, EventArgs e)
+        private void ArcDPSService_Stopped(object sender, EventArgs e)
         {
             ScreenNotification.ShowNotification("ArcDPS Service stopped!", ScreenNotification.NotificationType.Error, duration: 5);
         }
-        private void ArcDPSState_Started(object sender, EventArgs e)
+        private void ArcDPSService_Started(object sender, EventArgs e)
         {
             ScreenNotification.ShowNotification("ArcDPS Service started!", ScreenNotification.NotificationType.Info, duration: 5);
         }
 
-        protected override void OnBeforeStatesStarted()
+        protected override void OnBeforeServicesStarted()
         {
-            this.ArcDPSState.Unavailable += this.ArcDPSState_Unavailable;
-            this.ArcDPSState.Started += this.ArcDPSState_Started;
-            this.ArcDPSState.Stopped += this.ArcDPSState_Stopped;
-            this.ArcDPSState.LocalCombatEvent += this.ArcDPSState_LocalCombatEvent;
+            this.ArcDPSService.Unavailable += this.ArcDPSService_Unavailable;
+            this.ArcDPSService.Started += this.ArcDPSService_Started;
+            this.ArcDPSService.Stopped += this.ArcDPSService_Stopped;
+            this.ArcDPSService.LocalCombatEvent += this.ArcDPSService_LocalCombatEvent;
         }
 
-        private void ArcDPSState_Unavailable(object sender, EventArgs e)
+        private void ArcDPSService_Unavailable(object sender, EventArgs e)
         {
             ScreenNotification.ShowNotification("ArcDPS Service unavailable!", ScreenNotification.NotificationType.Error, duration: 5);
         }
 
-        private void ArcDPSState_LocalCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
+        private void ArcDPSService_LocalCombatEvent(object sender, Shared.Models.ArcDPS.CombatEvent e)
         {
             foreach (var area in this._areas.Values)
             {
@@ -122,9 +122,9 @@
             }
         }
 
-        protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
+        protected override Collection<ManagedService> GetAdditionalServices(string directoryPath)
         {
-            Collection<ManagedState> states = new Collection<ManagedState>();
+            Collection<ManagedService> states = new Collection<ManagedService>();
 
             return states;
         }
@@ -172,18 +172,18 @@
 
         protected override AsyncTexture2D GetEmblem()
         {
-            return this.IconState?.GetIcon("156030.png"); // 156135 (32x32)
+            return this.IconService?.GetIcon("156030.png"); // 156135 (32x32)
         }
 
         protected override AsyncTexture2D GetCornerIcon()
         {
-            return this.IconState?.GetIcon("156742.png");
+            return this.IconService?.GetIcon("156742.png");
         }
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
-            var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
                 e.AreaConfiguration = this.AddArea(e.Name);
@@ -194,7 +194,7 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon(@"156742.png"), () => areaSettingsView, "SCT Areas"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon(@"156742.png"), () => areaSettingsView, "SCT Areas"));
         }
 
         private ScrollingTextAreaConfiguration AddArea(string areaName)
@@ -271,9 +271,9 @@
 #endif
 
             this.Logger.Debug("Unloading states...");
-            this.ArcDPSState.Unavailable -= this.ArcDPSState_Unavailable;
-            this.ArcDPSState.Started -= this.ArcDPSState_Started;
-            this.ArcDPSState.Stopped -= this.ArcDPSState_Stopped;
+            this.ArcDPSService.Unavailable -= this.ArcDPSService_Unavailable;
+            this.ArcDPSService.Started -= this.ArcDPSService_Started;
+            this.ArcDPSService.Stopped -= this.ArcDPSService_Stopped;
             this.Logger.Debug("Finished unloading states.");
 
             this.Logger.Debug("Unload base.");
@@ -295,7 +295,7 @@
             return "scrolling_combat_text";
         }
 
-        protected override void ConfigureStates(StateConfigurations configurations)
+        protected override void ConfigureServices(ServiceConfigurations configurations)
         {
             configurations.Skills.Enabled = true;
             configurations.ArcDPS.Enabled = true;

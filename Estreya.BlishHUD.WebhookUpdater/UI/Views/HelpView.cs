@@ -4,7 +4,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.Helpers;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Service;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
@@ -22,7 +22,7 @@ public class HelpView : BaseView
     private const string DISCORD_USERNAME = "Estreya#0001";
     private static Point PADDING = new Point(25, 25);
 
-    public HelpView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public HelpView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
     }
 

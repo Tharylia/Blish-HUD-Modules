@@ -44,6 +44,8 @@ public abstract class RectangleConverter : JsonConverter<Rectangle>
 
     public override void WriteJson(JsonWriter writer, Rectangle value, JsonSerializer serializer)
     {
+        serializer.Converters.Add(new CoordinatesConverter());
+
         writer.WriteStartArray();
 
         serializer.Serialize(writer, value.BottomLeft);

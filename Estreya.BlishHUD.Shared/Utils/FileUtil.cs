@@ -1,6 +1,8 @@
 ﻿namespace Estreya.BlishHUD.Shared.Utils;
 using System;
 using System.IO;
+using System.IO.Pipes;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -28,6 +30,16 @@ public static class FileUtil
         return new byte[0];
     }
 
+    public static FileStream ReadStream(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path) && !File.Exists(path))
+        {
+            return null;
+        }
+
+        return new FileStream(path, FileMode.Open);
+    }
+
     public static async Task<byte[]> ReadBytesAsync(string path)
     {
         if (string.IsNullOrWhiteSpace(path) && !File.Exists(path))
@@ -37,7 +49,7 @@ public static class FileUtil
 
         try
         {
-            using FileStream fileStream = new FileStream(path, FileMode.Open);
+            using FileStream fileStream = FileUtil.ReadStream(path);
             byte[] result = new byte[fileStream.Length];
             _ = await fileStream.ReadAsync(result, 0, (int)fileStream.Length);
 

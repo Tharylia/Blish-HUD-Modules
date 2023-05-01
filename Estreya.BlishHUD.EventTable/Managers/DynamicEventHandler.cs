@@ -1,35 +1,25 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Managers;
 using Blish_HUD;
-using Blish_HUD.ArcDps.Models;
-using Blish_HUD.Entities;
 using Blish_HUD.Modules.Managers;
-using Blish_HUD.Settings;
-using Estreya.BlishHUD.EventTable.State;
+using Estreya.BlishHUD.EventTable.Services;
 using Estreya.BlishHUD.Shared.Controls.Map;
 using Estreya.BlishHUD.Shared.Controls.World;
 using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Helpers;
 using Estreya.BlishHUD.Shared.Utils;
-using Humanizer;
 using Microsoft.Xna.Framework;
-using Octokit;
-using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
-using static Estreya.BlishHUD.EventTable.State.DynamicEventState;
-using static System.Net.Mime.MediaTypeNames;
+using static Estreya.BlishHUD.EventTable.Services.DynamicEventService;
 
 public class DynamicEventHandler : IDisposable, IUpdatable
 {
     private static readonly Logger Logger = Logger.GetLogger<DynamicEventHandler>();
     private readonly MapUtil _mapUtil;
-    private readonly DynamicEventState _dynamicEventState;
+    private readonly DynamicEventService _dynamicEventService;
     private readonly Gw2ApiManager _apiManager;
     private readonly ModuleSettings _moduleSettings;
     private ConcurrentDictionary<string, MapEntity> _mapEntities = new ConcurrentDictionary<string, MapEntity>();
@@ -37,11 +27,17 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
     private ConcurrentQueue<(string Key, bool Add)> _entityQueue = new ConcurrentQueue<(string Key, bool Add)>();
 
-    public DynamicEventHandler(MapUtil mapUtil, DynamicEventState dynamicEventState, Gw2ApiManager apiManager,
+    private static TimeSpan _checkLostEntitiesInterval = TimeSpan.FromSeconds(5);
+    private double _lastLostEntitiesCheck = 0;
+
+    private bool _notifiedLostEntities = false;
+    public event EventHandler FoundLostEntities;
+
+    public DynamicEventHandler(MapUtil mapUtil, DynamicEventService dynamicEventService, Gw2ApiManager apiManager,
         ModuleSettings moduleSettings)
     {
         this._mapUtil = mapUtil;
-        this._dynamicEventState = dynamicEventState;
+        this._dynamicEventService = dynamicEventService;
         this._apiManager = apiManager;
         this._moduleSettings = moduleSettings;
         GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
@@ -91,16 +87,16 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
             if (!this._moduleSettings.ShowDynamicEventsOnMap.Value || !GameService.Gw2Mumble.IsAvailable) return;
 
-            var success = await this._dynamicEventState.WaitForCompletion(TimeSpan.FromMinutes(5));
+            var success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
 
             if (!success)
             {
-                Logger.Debug("DynamicEventState did not finish in the given timespan. Abort.");
+                Logger.Debug("DynamicEventService did not finish in the given timespan. Abort.");
                 return;
             }
 
             var mapId = GameService.Gw2Mumble.CurrentMap.Id;
-            var events = this._dynamicEventState.GetEventsByMap(mapId)?.Where(de => !this._moduleSettings.DisabledDynamicEventIds.Value.Contains(de.ID)).OrderByDescending(d => d.Location.Points?.Length ?? 0).ThenByDescending(d => d.Location.Radius);
+            var events = this._dynamicEventService.GetEventsByMap(mapId)?.Where(de => !this._moduleSettings.DisabledDynamicEventIds.Value.Contains(de.ID)).OrderByDescending(d => d.Location.Points?.Length ?? 0).ThenByDescending(d => d.Location.Radius);
             if (events == null)
             {
                 Logger.Debug($"No events found for map {mapId}");
@@ -134,17 +130,17 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         if (!this._moduleSettings.ShowDynamicEventsOnMap.Value || !GameService.Gw2Mumble.IsAvailable) return;
 
-        var success = await this._dynamicEventState.WaitForCompletion(TimeSpan.FromMinutes(5));
+        var success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
 
         if (!success)
         {
-            Logger.Debug("DynamicEventState did not finish in the given timespan. Abort.");
+            Logger.Debug("DynamicEventService did not finish in the given timespan. Abort.");
             return;
         }
 
         try
         {
-            var coords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1] );
+            var coords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1]);
             switch (dynamicEvent.Location.Type)
             {
                 case "sphere":
@@ -190,21 +186,21 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
     public async Task AddDynamicEventsToWorld()
     {
-        GameService.Graphics.World.RemoveEntities(_worldEntities.Values.SelectMany(v => v));
-        _worldEntities?.Clear();
+        GameService.Graphics.World.RemoveEntities(this._worldEntities.Values.SelectMany(v => v));
+        this._worldEntities?.Clear();
 
         if (!this._moduleSettings.ShowDynamicEventInWorld.Value || !GameService.Gw2Mumble.IsAvailable) return;
 
-        var success = await this._dynamicEventState.WaitForCompletion(TimeSpan.FromMinutes(5));
+        var success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
 
         if (!success)
         {
-            Logger.Debug("DynamicEventState did not finish in the given timespan. Abort.");
+            Logger.Debug("DynamicEventService did not finish in the given timespan. Abort.");
             return;
         }
 
         var mapId = GameService.Gw2Mumble.CurrentMap.Id;
-        var events = this._dynamicEventState.GetEventsByMap(mapId)
+        var events = this._dynamicEventService.GetEventsByMap(mapId)
             .Where(de => !this._moduleSettings.DisabledDynamicEventIds.Value.Contains(de.ID));
         if (events == null)
         {
@@ -226,7 +222,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
     {
         if (this._worldEntities.ContainsKey(dynamicEvent.ID))
         {
-            GameService.Graphics.World.RemoveEntities(_worldEntities[dynamicEvent.ID]);
+            GameService.Graphics.World.RemoveEntities(this._worldEntities[dynamicEvent.ID]);
             this._worldEntities.TryRemove(dynamicEvent.ID, out _);
         }
     }
@@ -248,29 +244,28 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             switch (dynamicEvent.Location.Type)
             {
                 case "poly":
-                    entites.Add(await this.GetPolygone(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
+                    entites.Add(this.GetPolygone(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
                     break;
                 case "sphere":
-                    entites.Add(await this.GetSphere(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
+                    entites.Add(this.GetSphere(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
                     break;
                 case "cylinder":
-                    entites.Add(await this.GetCylinder(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
+                    entites.Add(this.GetCylinder(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
                     break;
                 default:
                     break;
             }
 
-            _worldEntities.AddOrUpdate(dynamicEvent.ID, entites, (_, prev) => prev.Concat(entites).ToList());
+            this._worldEntities.AddOrUpdate(dynamicEvent.ID, entites, (_, prev) => prev.Concat(entites).ToList());
             GameService.Graphics.World.AddEntities(entites);
         }
         catch (Exception ex)
         {
             Logger.Debug(ex, $"Failed to add {dynamicEvent.Name} to world.");
         }
-
     }
 
-    private async Task<WorldEntity> GetSphere(DynamicEventState.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetSphere(DynamicEventService.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
         var tessellation = 50;
         var connections = tessellation / 5;
@@ -326,7 +321,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
             var bendPointsUp = new List<Vector3>();
             var up = new Vector3(0, 0, radius);
-            Vector3 centerUp = new Vector3((mid.X + up.X), (mid.Y + up.Y), (mid.Z + up.Z));
+            Vector3 centerUp = new Vector3(mid.X + up.X, mid.Y + up.Y, mid.Z + up.Z);
 
             for (float ratio = 0; ratio <= 1; ratio += 1 / bendSteps)
             {
@@ -336,6 +331,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
                 bendPointsUp.Add(curve);
             }
+
             var bendPointsUpFirst = true;
             bendPointsUp = bendPointsUp.SelectMany(t =>
             {
@@ -349,7 +345,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
             var down = new Vector3(0, 0, -radius);
             var bendPointsDown = new List<Vector3>();
-            Vector3 centerDown = new Vector3((mid.X + down.X), (mid.Y + down.Y), (mid.Z + down.Z));
+            Vector3 centerDown = new Vector3(mid.X + down.X, mid.Y + down.Y, mid.Z + down.Z);
 
             for (float ratio = 0; ratio <= 1; ratio += 1 / bendSteps)
             {
@@ -359,6 +355,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
                 bendPointsDown.Add(curve);
             }
+
             var bendPointsDownFirst = true;
             bendPointsDown = bendPointsDown.SelectMany(t =>
             {
@@ -371,10 +368,10 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         }
 
         var allPoints = points.Concat(connectionPoints);
-        return  new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition) ;
+        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
     }
 
-    private async Task<WorldEntity> GetCylinder(DynamicEventState.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetCylinder(DynamicEventService.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
         var tessellation = 50;
         var connections = tessellation / 4;
@@ -456,7 +453,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
     }
 
-    private async Task<WorldEntity> GetPolygone(DynamicEventState.DynamicEvent dynamicEvent, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetPolygone(DynamicEventService.DynamicEvent dynamicEvent, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
 
         // Map all event points to world coordinates
@@ -527,11 +524,11 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
     public void Dispose()
     {
-        GameService.Graphics.World.RemoveEntities(_worldEntities.Values.SelectMany(v => v));
-        _worldEntities?.Clear();
+        GameService.Graphics.World.RemoveEntities(this._worldEntities.Values.SelectMany(v => v));
+        this._worldEntities?.Clear();
 
-        _mapEntities?.Values.ToList().ForEach(me => this._mapUtil.RemoveEntity(me));
-        _mapEntities?.Clear();
+        this._mapEntities?.Values.ToList().ForEach(me => this._mapUtil.RemoveEntity(me));
+        this._mapEntities?.Clear();
 
         GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
         this._moduleSettings.ShowDynamicEventsOnMap.SettingChanged -= this.ShowDynamicEventsOnMap_SettingChanged;
@@ -539,13 +536,37 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         this._moduleSettings.DisabledDynamicEventIds.SettingChanged -= this.DisabledDynamicEventIds_SettingChanged;
     }
 
+    private void CheckLostEntityReferences()
+    {
+        var lostEntities = GameService.Graphics.World.Entities.Where(e => e is WorldEntity);
+        var hasEntities = lostEntities.Any();
+
+        if (!this._notifiedLostEntities && !this._moduleSettings.ShowDynamicEventInWorld.Value && hasEntities)
+        {
+            try
+            {
+                this.FoundLostEntities?.Invoke(this, EventArgs.Empty);
+            }
+            catch (Exception) { }
+
+            this._notifiedLostEntities = true;
+        }
+
+        if (this._moduleSettings.ShowDynamicEventInWorld.Value)
+        {
+            this._notifiedLostEntities = false;
+        }
+    }
+
     public void Update(GameTime gameTime)
     {
+        UpdateUtil.Update(this.CheckLostEntityReferences, gameTime, _checkLostEntitiesInterval.TotalMilliseconds, ref this._lastLostEntitiesCheck);
+
         while (this._entityQueue.TryDequeue(out var element))
         {
             try
             {
-                var dynamicEvent = this._dynamicEventState.Events.Where(e => e.ID == element.Key).First();
+                var dynamicEvent = this._dynamicEventService.Events.Where(e => e.ID == element.Key).First();
                 if (element.Add)
                 {
                     _ = Task.Run(async () =>

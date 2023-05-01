@@ -7,7 +7,7 @@
     using Estreya.BlishHUD.Shared.Models;
     using Estreya.BlishHUD.Shared.Models.Drawers;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.TradingPostWatcher.Models;
     using Glide;
     using Microsoft.Xna.Framework;
@@ -20,18 +20,18 @@
         private Tween _currentVisibilityAnimation { get; set; }
 
         private List<PlayerTransaction> _transactions = new List<PlayerTransaction>();
-        private readonly IconState _iconState;
-        private readonly TradingPostState _tradingPostState;
-        private readonly TranslationState _translationState;
+        private readonly IconService _iconService;
+        private readonly TradingPostService _tradingPostService;
+        private readonly TranslationService _translationService;
 
         public TransactionDrawerConfiguration Configuration { get; private set; }
 
-        public TransactionDrawer(TransactionDrawerConfiguration configuration, IconState iconState, TradingPostState tradingPostState, TranslationState translationState)
+        public TransactionDrawer(TransactionDrawerConfiguration configuration, IconService iconService, TradingPostService tradingPostService, TranslationService translationService)
         {
             this.Configuration = configuration;
-            this._iconState = iconState;
-            this._tradingPostState = tradingPostState;
-            this._translationState = translationState;
+            this._iconService = iconService;
+            this._tradingPostService = tradingPostService;
+            this._translationService = translationService;
 
             this.Size_X_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Size.X.Value));
             this.Size_Y_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Size.Y.Value));
@@ -194,9 +194,9 @@
 
             new Transaction(
                 transaction,
-                this._iconState,
-                this._tradingPostState,
-                this._translationState,
+                this._iconService,
+                this._tradingPostService,
+                this._translationService,
                 this.Configuration.Opacity,
                 this.Configuration.ShowPrice,
                 this.Configuration.ShowPriceAsTotal,

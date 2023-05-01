@@ -5,7 +5,7 @@ using Blish_HUD.Controls.Extern;
 using Blish_HUD.Controls.Intern;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Controls.Map;
 using Estreya.BlishHUD.Shared.Extensions;
 using Flurl.Util;

@@ -3,7 +3,7 @@
     using Blish_HUD.Controls;
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.ScrollingCombatText;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.Shared.UI.Views;
     using MonoGame.Extended.BitmapFonts;
     using System;
@@ -13,7 +13,7 @@
 
     public class GeneralSettingsView : BaseSettingsView
     {
-        public GeneralSettingsView(Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, SettingEventState settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+        public GeneralSettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
         {
         }
 

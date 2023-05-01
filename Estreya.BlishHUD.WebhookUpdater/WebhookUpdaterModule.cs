@@ -7,7 +7,7 @@ using Blish_HUD.Modules;
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Modules;
 using Estreya.BlishHUD.Shared.Settings;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Service;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Estreya.BlishHUD.WebhookUpdater.Models;
@@ -45,7 +45,7 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
     [ImportingConstructor]
     public WebhookUpdaterModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string WebsiteModuleName => "webhook-updater";
+    public override string UrlModuleName => "webhook-updater";
 
     protected override string API_VERSION_NO => "1";
 
@@ -56,14 +56,14 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
 
     protected override AsyncTexture2D GetCornerIcon()
     {
-        return this.IconState.GetIcon("textures/webhook.png");
+        return this.IconService.GetIcon("textures/webhook.png");
     }
 
     protected override string GetDirectoryName() => null;
 
     protected override AsyncTexture2D GetEmblem()
     {
-        return this.IconState.GetIcon("textures/webhook.png");
+        return this.IconService.GetIcon("textures/webhook.png");
     }
 
     private void UpdateWebhooks(GameTime gameTime)
@@ -159,8 +159,8 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
 
     public async Task BuildHandlebarsDataContext()
     {
-        await this.AccountState.WaitForCompletion(TimeSpan.FromMinutes(5));
-        var account = this.AccountState.Account;
+        await this.AccountService.WaitForCompletion(TimeSpan.FromMinutes(5));
+        var account = this.AccountService.Account;
 
         var characters = new List<Character>();
 
@@ -191,7 +191,7 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         }
     }
 
-    protected override void ConfigureStates(StateConfigurations configurations)
+    protected override void ConfigureServices(ServiceConfigurations configurations)
     {
         configurations.Account.Enabled = true;
         configurations.Account.AwaitLoading = true;
@@ -208,12 +208,12 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
 
     protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
     {
-        var webhookView = new UI.Views.WebhookSettingsView(() => this._webhooks, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        var webhookView = new UI.Views.WebhookSettingsView(() => this._webhooks, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         webhookView.AddWebhook += this.WebhookView_AddWebhook;
         webhookView.RemoveWebhook += this.WebhookView_RemoveWebhook;
 
-        settingWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => webhookView, "Webhooks"));
-        settingWindow.Tabs.Add(new Tab(this.IconState.GetIcon("157097.png"), () => new UI.Views.HelpView( this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
+        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => webhookView, "Webhooks"));
+        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("157097.png"), () => new UI.Views.HelpView( this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
 
     }
 

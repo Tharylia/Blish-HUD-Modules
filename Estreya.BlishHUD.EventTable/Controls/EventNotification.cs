@@ -4,7 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD._Extensions;
 using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Utils;
 using Estreya.BlishHUD.Shared.Extensions;
 using Glide;
@@ -29,7 +29,7 @@ public class EventNotification : RenderTargetControl
 
     private Models.Event _event;
     private readonly string _message;
-    private IconState _iconState;
+    private IconService _iconService;
     private AsyncTexture2D _eventIcon;
 
     private int _x;
@@ -45,15 +45,15 @@ public class EventNotification : RenderTargetControl
 
     public float BackgroundOpacity { get; set; } = 1f;
 
-    public EventNotification(Models.Event ev, string message, int x, int y,  IconState iconState)
+    public EventNotification(Models.Event ev, string message, int x, int y, IconService iconService)
     {
         this._event = ev;
         this._message = message;
         this._x = x;
         this._y = y;
-        this._iconState = iconState;
+        this._iconService = iconService;
 
-        this._eventIcon = this._iconState?.GetIcon(ev.Icon);
+        this._eventIcon = this._iconService?.GetIcon(ev.Icon);
 
         this.Width = NOTIFICATION_WIDTH;
         this.Height = NOTIFICATION_HEIGHT;
@@ -114,7 +114,7 @@ public class EventNotification : RenderTargetControl
     protected override void InternalDispose()
     {
         _event = null;
-        _iconState = null;
+        _iconService = null;
         _eventIcon = null;
     }
 }

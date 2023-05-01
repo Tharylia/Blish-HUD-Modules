@@ -9,11 +9,11 @@
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Service;
     using Estreya.BlishHUD.Shared.Utils;
     using Estreya.BlishHUD.TradingPostWatcher.Controls;
     using Estreya.BlishHUD.TradingPostWatcher.Models;
-    using Estreya.BlishHUD.TradingPostWatcher.State;
+    using Estreya.BlishHUD.TradingPostWatcher.Service;
     using Estreya.BlishHUD.TradingPostWatcher.UI.Views;
     using Humanizer;
     using Microsoft.Xna.Framework;
@@ -26,7 +26,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, ModuleSettings>
     {
-        public override string WebsiteModuleName => "trading-post-watcher";
+        public override string UrlModuleName => "trading-post-watcher";
 
         internal static TradingPostWatcherModule ModuleInstance => Instance;
 
@@ -36,8 +36,8 @@
 
         private TrackedTransactionView _trackedTransactionView;
 
-        #region States
-        public TrackedTransactionState TrackedTransactionState { get; private set; }
+        #region Services
+        public TrackedTransactionService TrackedTransactionService { get; private set; }
 
         protected override string API_VERSION_NO => "1";
         #endregion
@@ -62,18 +62,18 @@
             };
         }
 
-        private void TradingPostState_TransactionsUpdated(object sender, EventArgs e)
+        private void TradingPostService_TransactionsUpdated(object sender, EventArgs e)
         {
             this.Drawer.ClearTransactions();
-            foreach (PlayerTransaction transaction in this.TradingPostState.OwnTransactions)
+            foreach (PlayerTransaction transaction in this.TradingPostService.OwnTransactions)
             {
                 this.Drawer.AddTransaction(transaction);
             }
         }
 
-        protected override void OnBeforeStatesStarted()
+        protected override void OnBeforeServicesStarted()
         {
-            this.Drawer = new TransactionDrawer(this.DrawerConfiguration, this.IconState, this.TradingPostState, this.TranslationState)
+            this.Drawer = new TransactionDrawer(this.DrawerConfiguration, this.IconService, this.TradingPostService, this.TranslationService)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Opacity = 0f,
@@ -82,34 +82,34 @@
                 HeightSizingMode = SizingMode.AutoSize
             };
 
-            this.TradingPostState.Updated += this.TradingPostState_TransactionsUpdated;
+            this.TradingPostService.Updated += this.TradingPostService_TransactionsUpdated;
         }
 
-        protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
+        protected override Collection<ManagedService> GetAdditionalServices(string directoryPath)
         {
-            Collection<ManagedState> states = new Collection<ManagedState>();
+            Collection<ManagedService> states = new Collection<ManagedService>();
 
-            this.TrackedTransactionState = new TrackedTransactionState(new APIStateConfiguration()
+            this.TrackedTransactionService = new TrackedTransactionService(new APIServiceConfiguration()
             {
                 AwaitLoading = true,
                 Enabled = true,
                 SaveInterval = TimeSpan.FromSeconds(30),
                 UpdateInterval = TimeSpan.FromSeconds(30)
-            }, this.Gw2ApiManager, this.ItemState, directoryPath);
-            this.TrackedTransactionState.TransactionEnteredRange += this.TrackedTransactionState_TransactionEnteredRange;
-            this.TrackedTransactionState.TransactionLeftRange += this.TrackedTransactionState_TransactionLeftRange;
+            }, this.Gw2ApiManager, this.ItemService, directoryPath);
+            this.TrackedTransactionService.TransactionEnteredRange += this.TrackedTransactionService_TransactionEnteredRange;
+            this.TrackedTransactionService.TransactionLeftRange += this.TrackedTransactionService_TransactionLeftRange;
 
-            states.Add(this.TrackedTransactionState);
+            states.Add(this.TrackedTransactionService);
 
             return states;
         }
 
-        private void TrackedTransactionState_TransactionLeftRange(object sender, Shared.Models.GW2API.Commerce.Transaction e)
+        private void TrackedTransactionService_TransactionLeftRange(object sender, Shared.Models.GW2API.Commerce.Transaction e)
         {
             Shared.Controls.ScreenNotification.ShowNotification($"{e.Item.Name} is not best price anymore");
         }
 
-        private void TrackedTransactionState_TransactionEnteredRange(object sender, Shared.Models.GW2API.Commerce.Transaction e)
+        private void TrackedTransactionService_TransactionEnteredRange(object sender, Shared.Models.GW2API.Commerce.Transaction e)
         {
             Shared.Controls.ScreenNotification.ShowNotification($"{e.Item.Name} reached best {e.Type.Humanize(LetterCasing.LowerCase)} price of {GW2Utils.FormatCoins(e.Price)}");
         }
@@ -160,17 +160,17 @@
 
         protected override AsyncTexture2D GetEmblem()
         {
-            return this.IconState?.GetIcon("102495.png");
+            return this.IconService?.GetIcon("102495.png");
         }
 
         protected override AsyncTexture2D GetCornerIcon()
         {
-            return this.IconState?.GetIcon("255379.png");
+            return this.IconService?.GetIcon("255379.png");
         }
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this._trackedTransactionView = new TrackedTransactionView(() => this.TrackedTransactionState.TrackedTransactions, this.Gw2ApiManager, this.IconState, this.ItemState, this.TranslationState, this.Font)
+            this._trackedTransactionView = new TrackedTransactionView(() => this.TrackedTransactionService.TrackedTransactions, this.Gw2ApiManager, this.IconService, this.ItemService, this.TranslationService, this.Font)
             {
                 DefaultColor = this.ModuleSettings.DefaultGW2Color
             };
@@ -179,22 +179,22 @@
             this._trackedTransactionView.RemoveTracking += this.TrackedTransactionView_RemoveTracking;
 
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView(this.Gw2ApiManager, this.IconState,this.TranslationState, this.SettingEventState, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("255379.png"), () => this._trackedTransactionView, "Tracked Transactions"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("255379.png"), () => new UI.Views.Settings.TransactionSettingsView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Transactions"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView(this.Gw2ApiManager, this.IconService,this.TranslationService, this.SettingEventService, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("255379.png"), () => this._trackedTransactionView, "Tracked Transactions"));
         }
 
         private void TrackedTransactionView_RemoveTracking(object sender, TrackedTransaction e)
         {
-            this.TrackedTransactionState.Remove(e.ItemId, e.Type);
+            this.TrackedTransactionService.Remove(e.ItemId, e.Type);
         }
 
         private void TrackedTransactionView_AddTracking(object sender, TrackedTransaction e)
         {
             AsyncHelper.RunSync(async () =>
             {
-                bool added = await this.TrackedTransactionState.Add(e.ItemId, e.WishPrice, e.Type);
+                bool added = await this.TrackedTransactionService.Add(e.ItemId, e.WishPrice, e.Type);
                 if (!added)
                 {
                     throw new Exception("Item could not be added to tracking list.");
@@ -234,9 +234,9 @@
             this.Logger.Debug("Unloaded views.");
 
             this.Logger.Debug("Unloading states...");
-            this.TradingPostState.Updated -= this.TradingPostState_TransactionsUpdated;
-            this.TrackedTransactionState.TransactionEnteredRange -= this.TrackedTransactionState_TransactionEnteredRange;
-            this.TrackedTransactionState.TransactionLeftRange -= this.TrackedTransactionState_TransactionLeftRange;
+            this.TradingPostService.Updated -= this.TradingPostService_TransactionsUpdated;
+            this.TrackedTransactionService.TransactionEnteredRange -= this.TrackedTransactionService_TransactionEnteredRange;
+            this.TrackedTransactionService.TransactionLeftRange -= this.TrackedTransactionService_TransactionLeftRange;
             this.Logger.Debug("Finished unloading states.");
 
             this.Logger.Debug("Unload base...");
@@ -260,7 +260,7 @@
             return "tradingpost";
         }
 
-        protected override void ConfigureStates(StateConfigurations configurations)
+        protected override void ConfigureServices(ServiceConfigurations configurations)
         {
             configurations.TradingPost.Enabled = true;
             configurations.Items.Enabled = true;

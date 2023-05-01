@@ -29,7 +29,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     {
-        private string LIVE_MAP_API_URL => $"{this.API_URL}/write";//$"http://localhost:3004/v{this.API_VERSION_NO}/{this.WebsiteModuleName}/write";
+        private string LIVE_MAP_API_URL => $"{this.MODULE_API_URL}/write";//$"http://localhost:3004/v{this.API_VERSION_NO}/{this.WebsiteModuleName}/write";
         public const string LIVE_MAP_BROWSER_URL = $"https://gw2map.estreya.de/";
 
         private SocketIOClient.SocketIO GlobalSocket;
@@ -49,7 +49,7 @@
 
         public string GuildId => this._guildId;
 
-        public override string WebsiteModuleName => "live-map";
+        public override string UrlModuleName => "live-map";
 
         protected override string API_VERSION_NO => "1";
 
@@ -377,7 +377,7 @@
 
         public override IView GetSettingsView()
         {
-            return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, this.ModuleSettings,
+            return new UI.Views.SettingsView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.ModuleSettings,
                () => this.GetGlobalUrl(), () => this.GetGuildUrl());
         }
 

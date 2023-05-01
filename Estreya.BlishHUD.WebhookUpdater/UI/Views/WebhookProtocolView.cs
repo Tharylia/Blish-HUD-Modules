@@ -3,7 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Service;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.WebhookUpdater.Models;
 using Microsoft.Xna.Framework;
@@ -18,7 +18,7 @@ public class WebhookProtocolView : BaseView
 {
     private Webhook webhook;
 
-    public WebhookProtocolView(Webhook webhook, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public WebhookProtocolView(Webhook webhook, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
         this.webhook = webhook;
     }

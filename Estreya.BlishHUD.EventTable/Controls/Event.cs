@@ -4,7 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
 using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
@@ -22,8 +22,8 @@ public class Event: IDisposable
     public event EventHandler FinishRequested;
 
     public Models.Event Ev { get; private set; }
-    private IconState _iconState;
-    private TranslationState _translationState;
+    private IconService _iconService;
+    private TranslationService _translationService;
     private readonly Func<DateTime> _getNowAction;
     private readonly DateTime _startTime;
     private readonly DateTime _endTime;
@@ -35,7 +35,7 @@ public class Event: IDisposable
     private readonly Func<bool> _getDrawShadowAction;
     private readonly Func<Color> _getShadowColor;
 
-    public Event(Models.Event ev, IconState iconState, TranslationState translationState,
+    public Event(Models.Event ev, IconService iconService, TranslationService translationService,
         Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
         Func<BitmapFont> getFontAction,
         Func<bool> getDrawBorders,
@@ -46,8 +46,8 @@ public class Event: IDisposable
         Func<Color> getShadowColor)
     {
         this.Ev = ev;
-        this._iconState = iconState;
-        this._translationState = translationState;
+        this._iconService = iconService;
+        this._translationService = translationService;
         this._getNowAction = getNowAction;
         this._startTime = startTime;
         this._endTime = endTime;
@@ -111,23 +111,23 @@ public class Event: IDisposable
         if (isPrev)
         {
             TimeSpan finishedSince = now - this._startTime.AddMinutes(this.Ev.Duration);
-            description += $"{this._translationState.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatTime(finishedSince)}";
+            description += $"{this._translationService.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatTime(finishedSince)}";
         }
         else if (isNext)
         {
             TimeSpan startsIn = this._startTime - now;
-            description += $"{this._translationState.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatTime(startsIn)}";
+            description += $"{this._translationService.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatTime(startsIn)}";
         }
         else if (isCurrent)
         {
             TimeSpan remaining = this.GetTimeRemaining(now);
-            description += $"{this._translationState.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatTime(remaining)}";
+            description += $"{this._translationService.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatTime(remaining)}";
         }
 
         // Absolute
-        description += $" ({this._translationState.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatTime(this._startTime.ToLocalTime())})";
+        description += $" ({this._translationService.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatTime(this._startTime.ToLocalTime())})";
 
-        return new Tooltip(new TooltipView(this.Ev.Name, description, this._iconState.GetIcon(this.Ev.Icon), this._translationState));
+        return new Tooltip(new TooltipView(this.Ev.Name, description, this._iconService.GetIcon(this.Ev.Icon), this._translationService));
     }
 
     public void Render(SpriteBatch spriteBatch, RectangleF bounds)
@@ -255,8 +255,8 @@ public class Event: IDisposable
 
     public void Dispose()
     {
-        this._iconState = null;
-        this._translationState = null;
+        this._iconService = null;
+        this._translationService = null;
         this.Ev = null;
     }
 }

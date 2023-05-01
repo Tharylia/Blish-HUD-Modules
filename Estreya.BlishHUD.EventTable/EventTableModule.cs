@@ -10,13 +10,13 @@
     using Estreya.BlishHUD.EventTable.Controls;
     using Estreya.BlishHUD.EventTable.Managers;
     using Estreya.BlishHUD.EventTable.Models;
-    using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.EventTable.Services;
     using Estreya.BlishHUD.Shared.Controls.World;
     using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.Threading;
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Http;
@@ -43,7 +43,7 @@
     [Export(typeof(Blish_HUD.Modules.Module))]
     public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
-        public override string WebsiteModuleName => "event-table";
+        public override string UrlModuleName => "event-table";
 
         private ConcurrentDictionary<string, EventArea> _areas = new ConcurrentDictionary<string, EventArea>();
 
@@ -58,9 +58,9 @@
 
         private DateTime NowUTC => DateTime.UtcNow;
 
-        #region States
-        public EventState EventState { get; private set; }
-        public DynamicEventState DynamicEventState { get; private set; }
+        #region Services
+        public EventStateService EventStateService { get; private set; }
+        public DynamicEventService DynamicEventService { get; private set; }
         #endregion
 
         private MapUtil MapUtil { get; set; }
@@ -76,13 +76,15 @@
 
         protected override async Task LoadAsync()
         {
+            Stopwatch sw = Stopwatch.StartNew();
             await base.LoadAsync();
 
-            this.BlishHUDAPIState.NewLogin += this.BlishHUDAPIState_NewLogin;
-            this.BlishHUDAPIState.LoggedOut += this.BlishHUDAPIState_LoggedOut;
+            this.BlishHUDAPIService.NewLogin += this.BlishHUDAPIService_NewLogin;
+            this.BlishHUDAPIService.LoggedOut += this.BlishHUDAPIService_LoggedOut;
 
             this.MapUtil = new MapUtil(this.ModuleSettings.MapKeybinding.Value, this.Gw2ApiManager);
-            this.DynamicEventHandler = new DynamicEventHandler(this.MapUtil, this.DynamicEventState, this.Gw2ApiManager, this.ModuleSettings);
+            this.DynamicEventHandler = new DynamicEventHandler(this.MapUtil, this.DynamicEventService, this.Gw2ApiManager, this.ModuleSettings);
+            this.DynamicEventHandler.FoundLostEntities += this.DynamicEventHandler_FoundLostEntities;
 
             await this.DynamicEventHandler.AddDynamicEventsToMap();
             await this.DynamicEventHandler.AddDynamicEventsToWorld();
@@ -96,6 +98,16 @@
 #if DEBUG
             GameService.Input.Keyboard.KeyPressed += this.Keyboard_KeyPressed;
 #endif
+
+            sw.Stop();
+            this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds}ms");
+        }
+
+        private void DynamicEventHandler_FoundLostEntities(object sender, EventArgs e)
+        {
+            Shared.Controls.ScreenNotification.ShowNotification(
+                new string[] { "GameService.Graphics.World.Entities has lost references.", "Expect dynamic event boundaries on screen." },
+                Shared.Controls.ScreenNotification.NotificationType.Warning);
         }
 
         private void Keyboard_KeyPressed(object sender, KeyboardEventArgs e)
@@ -136,12 +148,12 @@
                     this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.RemoveEventHooks(ev));
                     this._eventCategories?.Clear();
 
-                    var request = this.GetFlurlClient().Request(this.API_URL, "events");
+                    var request = this.GetFlurlClient().Request(this.MODULE_API_URL, "events");
 
-                    if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIState.AccessToken))
+                    if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIService.AccessToken))
                     {
                         this.Logger.Info("Include custom events...");
-                        request.WithOAuthBearerToken(this.BlishHUDAPIState.AccessToken);
+                        request.WithOAuthBearerToken(this.BlishHUDAPIService.AccessToken);
                     }
 
                     List<EventCategory> categories = await request.GetJsonAsync<List<EventCategory>>();
@@ -153,7 +165,7 @@
 
                     categories.ForEach(ec =>
                     {
-                        ec.Load(() => this.NowUTC, this.TranslationState);
+                        ec.Load(() => this.NowUTC, this.TranslationService);
                     });
 
                     this.Logger.Debug($"Loaded all event categories.");
@@ -361,8 +373,8 @@
                 return;
             }
 
-            var startsInTranslation = this.TranslationState.GetTranslation("eventArea-reminder-startsIn", "Starts in");
-            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconState)
+            var startsInTranslation = this.TranslationService.GetTranslation("eventArea-reminder-startsIn", "Starts in");
+            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconService)
             {
                 BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value
             };
@@ -397,22 +409,22 @@
                 this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value) { configuration.Name };
             }
 
-            this.ModuleSettings.UpdateDrawerLocalization(configuration, this.TranslationState);
+            this.ModuleSettings.UpdateDrawerLocalization(configuration, this.TranslationService);
 
             EventArea area = new EventArea(
                 configuration,
-                this.IconState,
-                this.TranslationState,
-                this.EventState,
-                this.WorldbossState,
-                this.MapchestState,
-                this.PointOfInterestState,
+                this.IconService,
+                this.TranslationService,
+                this.EventStateService,
+                this.WorldbossService,
+                this.MapchestService,
+                this.PointOfInterestService,
                 this.MapUtil,
                 this.GetFlurlClient(),
-                this.API_URL,
+                this.MODULE_API_URL,
                 () => this.NowUTC,
                 () => this.Version,
-                () => this.BlishHUDAPIState.AccessToken)
+                () => this.BlishHUDAPIService.AccessToken)
             {
                 Parent = GameService.Graphics.SpriteScreen
             };
@@ -441,17 +453,17 @@
         {
             // Reorder Icon: 605018
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
-            //this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconState = this.IconState, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            //this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconService = this.IconService, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
             UI.Views.AreaSettingsView areaSettingsView = new UI.Views.AreaSettingsView(
                 () => this._areas.Values.Select(area => area.Configuration),
                 () => this._eventCategories,
                 this.ModuleSettings,
                 this.Gw2ApiManager,
-                this.IconState,
-                this.TranslationState,
-                this.SettingEventState,
-                this.EventState,
+                this.IconService,
+                this.TranslationService,
+                this.SettingEventService,
+                this.EventStateService,
                 GameService.Content.DefaultFont16)
             { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
@@ -469,12 +481,12 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("1466345.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventState, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconState, this.TranslationState, this.SettingEventState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("156764.png"), () => new UI.Views.CustomEventView(this.Gw2ApiManager, this.IconState, this.TranslationState, this.BlishHUDAPIState) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Custom Events"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("1466345.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156764.png"), () => new UI.Views.CustomEventView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Custom Events"));
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconState.GetIcon("157097.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.API_URL, this.Gw2ApiManager, this.IconState, this.TranslationState, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("157097.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
 
         }
 
@@ -483,7 +495,7 @@
             return "events";
         }
 
-        protected override void ConfigureStates(StateConfigurations configurations)
+        protected override void ConfigureServices(ServiceConfigurations configurations)
         {
             configurations.BlishHUDAPI.Enabled = true;
             configurations.Account.Enabled = true;
@@ -492,47 +504,48 @@
             configurations.PointOfInterests.Enabled = true;
         }
 
-        private void BlishHUDAPIState_NewLogin(object sender, EventArgs e)
+        private void BlishHUDAPIService_NewLogin(object sender, EventArgs e)
         {
             this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
         }
 
-        private void BlishHUDAPIState_LoggedOut(object sender, EventArgs e)
+        private void BlishHUDAPIService_LoggedOut(object sender, EventArgs e)
         {
             this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
         }
 
-        protected override Collection<ManagedState> GetAdditionalStates(string directoryPath)
+        protected override Collection<ManagedService> GetAdditionalServices(string directoryPath)
         {
-            Collection<ManagedState> additionalStates = new Collection<ManagedState>();
+            Collection<ManagedService> additionalServices = new Collection<ManagedService>();
 
-            this.EventState = new EventState(new StateConfiguration()
+            this.EventStateService = new EventStateService (new ServiceConfiguration()
             {
                 AwaitLoading = false,
                 Enabled = true,
                 SaveInterval = TimeSpan.FromSeconds(30)
             }, directoryPath, () => this.NowUTC);
-            this.DynamicEventState = new DynamicEventState(new APIStateConfiguration()
+
+            this.DynamicEventService = new DynamicEventService(new APIServiceConfiguration()
             {
                 AwaitLoading = false,
                 Enabled = true,
                 SaveInterval = Timeout.InfiniteTimeSpan
-            }, this.Gw2ApiManager, this.GetFlurlClient(), this.API_ROOT_URL);
+            }, this.Gw2ApiManager, this.GetFlurlClient(), API_ROOT_URL);
 
-            additionalStates.Add(this.EventState);
-            additionalStates.Add(this.DynamicEventState);
+            additionalServices.Add(this.EventStateService);
+            additionalServices.Add(this.DynamicEventService);
 
-            return additionalStates;
+            return additionalServices;
         }
 
         protected override AsyncTexture2D GetEmblem()
         {
-            return this.IconState.GetIcon(this.IsPrerelease ? "textures/emblem_demo.png" : "102392.png");
+            return this.IconService.GetIcon(this.IsPrerelease ? "textures/emblem_demo.png" : "102392.png");
         }
 
         protected override AsyncTexture2D GetCornerIcon()
         {
-            return this.IconState.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
+            return this.IconService.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
         }
 
         /// <inheritdoc />
@@ -540,17 +553,27 @@
         {
             this.Logger.Debug("Unload module.");
 
+            if (this.DynamicEventHandler != null)
+            {
+                this.DynamicEventHandler.FoundLostEntities -= this.DynamicEventHandler_FoundLostEntities;
+                this.DynamicEventHandler.Dispose();
+                this.DynamicEventHandler = null;
+            }
+
             this.MapUtil?.Dispose();
             this.MapUtil = null;
 
             this.Logger.Debug("Unload drawer.");
 
-            foreach (EventArea area in this._areas.Values)
+            if (this._areas != null)
             {
-                area?.Dispose();
-            }
+                foreach (EventArea area in this._areas.Values)
+                {
+                    area?.Dispose();
+                }
 
-            this._areas?.Clear();
+                this._areas?.Clear();
+            }
 
             this.Logger.Debug("Unloaded drawer.");
 
@@ -567,6 +590,12 @@
             }
 
             this.Logger.Debug("Unloaded events.");
+
+            if (this.BlishHUDAPIService != null)
+            {
+                this.BlishHUDAPIService.NewLogin -= this.BlishHUDAPIService_NewLogin;
+                this.BlishHUDAPIService.LoggedOut -= this.BlishHUDAPIService_LoggedOut;
+            }
 
             this.Logger.Debug("Unload base.");
 

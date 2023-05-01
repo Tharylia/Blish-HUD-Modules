@@ -1,7 +1,7 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.GW2API.Skills;
 
 using Blish_HUD.Content;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Gw2Sharp;
 using Gw2Sharp.WebApi.V2.Models;
 using Newtonsoft.Json;
@@ -14,7 +14,6 @@ using System.Threading.Tasks;
 
 public class Skill : IDisposable
 {
-    [JsonConverter(typeof(StringEnumConverter))]
     public SkillCategory Category { get; set; }
 
     /// <summary>
@@ -53,14 +52,12 @@ public class Skill : IDisposable
     /// The skill type.
     /// If the skill does not have a type, this value is <see langword="null"/>.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
     public SkillType Type { get; set; }
 
     /// <summary>
     /// The weapon type.
     /// If the skill does not have a weapon type, this value is <see langword="null"/>.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
     public SkillWeaponType WeaponType { get; set; }
 
     /// <summary>
@@ -73,14 +70,12 @@ public class Skill : IDisposable
     /// The skill slot.
     /// If the skill does not have a slot, this value is <see langword="null"/>.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
     public SkillSlot Slot { get; set; }
 
     /// <summary>
     /// The dual attunement.
     /// If the skill does not have a dual attunement, this value is <see langword="null"/>.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
     public Attunement DualAttunement { get; set; }
 
     /// <summary>
@@ -93,33 +88,31 @@ public class Skill : IDisposable
     /// If the skill doesn't have any facts, this value is <see langword="null"/>.
     /// </summary>
     /// BUGGY WITH COPY()
-    //public List<SkillFact>? Facts { get; set; }
+    public List<SkillFact> Facts { get; set; }
 
     /// <summary>
     /// The list of traited skill facts.
     /// If the skill doesn't have any traited facts, this value is <see langword="null"/>.
     /// </summary>
     /// BUGGY WITH COPY()
-    //public List<SkillFact>? TraitedFacts { get; set; }
+    public List<SkillFact> TraitedFacts { get; set; }
 
     /// <summary>
     /// The list of skill categories.
     /// If the skill doesn't have any categories, this value is <see langword="null"/>.
     /// </summary>
-    public List<string>? Categories { get; set; }
+    public List<string> Categories { get; set; }
 
     /// <summary>
     /// The list of sub skills.
     /// If the skill doesn't have any sub skills, this value is <see langword="null"/>.
     /// </summary>
-    [JsonProperty("subskills")]
     public List<SkillSubSkill> SubSkills { get; set; }
 
     /// <summary>
     /// The attunement for elementalist weapon skills.
     /// If the skill isn't an elementalist weapon skill, this value is <see langword="null"/>.
     /// </summary>
-    [JsonConverter(typeof(StringEnumConverter))]
     public Attunement Attunement { get; set; }
 
     /// <summary>
@@ -202,8 +195,8 @@ public class Skill : IDisposable
             Slot = skill.Slot?.IsUnknown ?? true ? SkillSlot.Unknown : skill.Slot,
             DualAttunement = skill.DualAttunement?.IsUnknown ?? true ? Attunement.Unknown : skill.DualAttunement,
             Flags = skill.Flags?.List.Select(flag => flag.Value).ToList(),
-            //Facts = skill.Facts?.ToList(),
-            //TraitedFacts = skill.TraitedFacts?.ToList(),
+            Facts = skill.Facts?.ToList(),
+            TraitedFacts = skill.TraitedFacts?.ToList(),
             Categories = skill.Categories?.ToList(),
             SubSkills = skill.SubSkills?.ToList(),
             Attunement = skill.Attunement?.IsUnknown ?? true ? Attunement.Unknown : skill.Attunement,
@@ -247,8 +240,8 @@ public class Skill : IDisposable
             Icon = skill.Icon,
             ChatLink = skill.ChatLink,
             Flags = skill.Flags?.List.Select(flag => flag.Value).ToList(),
-            //Facts = skill.Facts?.ToList(),
-            //TraitedFacts = skill.TraitedFacts?.ToList(),
+            Facts = skill.Facts?.ToList(),
+            TraitedFacts = skill.TraitedFacts?.ToList(),
             Categories = skill.Categories?.ToList(),
         };
 
@@ -280,11 +273,11 @@ public class Skill : IDisposable
         this.IconTexture = null;
     }
 
-    public void LoadTexture(IconState iconState)
+    public void LoadTexture(IconService iconService)
     {
         if (!string.IsNullOrWhiteSpace(this.Icon))
         {
-            this.IconTexture = iconState.GetIcon(this.Icon);
+            this.IconTexture = iconService.GetIcon(this.Icon);
         }
     }
 }

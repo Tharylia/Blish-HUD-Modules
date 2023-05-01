@@ -10,7 +10,7 @@
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.Models.Settings;
     using Estreya.BlishHUD.Shared.Controls;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Microsoft.Xna.Framework;
     using MonoGame.Extended.BitmapFonts;
@@ -34,7 +34,7 @@
 
         private Panel Panel { get; set; }
 
-        public ReorderEventsView(List<EventCategory> allEvents, List<string> order, EventAreaConfiguration areaConfiguration, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+        public ReorderEventsView(List<EventCategory> allEvents, List<string> order, EventAreaConfiguration areaConfiguration, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
         {
             this._allEvents = allEvents;
             this._order = order;
@@ -63,7 +63,7 @@
 
                 if (eventCategory.Icon != null)
                 {
-                        entry.Icon = this.IconState.GetIcon(eventCategory.Icon);
+                        entry.Icon = this.IconService.GetIcon(eventCategory.Icon);
                 }
             }
             
@@ -139,10 +139,10 @@
                 this.SaveClicked?.Invoke(this, (this._areaConfiguration, currentCategories.Select(x => x.Key).ToArray()));
 
                 /*Logger.Debug("Load current external file.");
-                EventSettingsFile eventSettingsFile = await EventTableModule.ModuleInstance.EventFileState.GetLocalFile();
+                EventSettingsFile eventSettingsFile = await EventTableModule.ModuleInstance.EventFileService.GetLocalFile();
                 eventSettingsFile.EventCategories = currentCategories;
                 Logger.Debug("Export updated file.");
-                await EventTableModule.ModuleInstance.EventFileState.ExportFile(eventSettingsFile);
+                await EventTableModule.ModuleInstance.EventFileService.ExportFile(eventSettingsFile);
                 Logger.Debug("Reload events.");
                 await EventTableModule.ModuleInstance.LoadEvents();
                 Shared.Controls.ScreenNotification.ShowNotification(Strings.ReorderEventsView_Save_Success);*/

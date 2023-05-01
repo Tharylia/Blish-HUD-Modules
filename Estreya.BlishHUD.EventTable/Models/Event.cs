@@ -5,10 +5,10 @@
     using Blish_HUD.ArcDps.Models;
     using Blish_HUD.Controls;
     using Blish_HUD.Settings;
-    using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.EventTable.Services;
     using Estreya.BlishHUD.Shared.Attributes;
     using Estreya.BlishHUD.Shared.Extensions;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.Utils;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
@@ -136,7 +136,7 @@
             return eventWidth;
         }
 
-        public void Load(EventCategory ec, Func<DateTime> getNowAction, TranslationState translationState = null)
+        public void Load(EventCategory ec, Func<DateTime> getNowAction, TranslationService translationService = null)
         {
             // Prevent crash on older events.json files
             if (string.IsNullOrWhiteSpace(this.Key))
@@ -154,9 +154,9 @@
 
             this._getNowAction = getNowAction;
 
-            if (translationState != null)
+            if (translationService != null)
             {
-                this.Name = translationState.GetTranslation($"event-{ec.Key}_{this.Key}-name", this.Name);
+                this.Name = translationService.GetTranslation($"event-{ec.Key}_{this.Key}-name", this.Name);
             }
         }
 

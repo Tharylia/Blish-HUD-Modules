@@ -7,15 +7,17 @@
     using System.Text;
     using Microsoft.Xna.Framework.Graphics;
     using Microsoft.Xna.Framework;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Blish_HUD.Content;
+    using Estreya.BlishHUD.Shared.Controls;
+    using Estreya.BlishHUD.Shared.Settings;
 
     public static class WindowUtil
     {
-        public static StandardWindow CreateStandardWindow(string title, Type callingType, Guid guid, IconState iconState, AsyncTexture2D emblem = null)
+        public static Controls.StandardWindow CreateStandardWindow(BaseModuleSettings moduleSettings, string title, Type callingType, Guid guid, IconService iconService, AsyncTexture2D emblem = null)
         {
             var backgroundTexturePath = @"textures\setting_window_background.png";
-            Texture2D windowBackground = iconState?.GetIcon(backgroundTexturePath);
+            Texture2D windowBackground = iconService?.GetIcon(backgroundTexturePath);
             if (windowBackground == null || windowBackground == ContentService.Textures.Error)
             {
                 throw new ArgumentNullException(nameof(windowBackground), $"Module does not include texture \"{backgroundTexturePath}\".");
@@ -26,7 +28,7 @@
             int contentRegionPaddingX = settingsWindowSize.X;
             Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
 
-            var window = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
+            var window = new Controls.StandardWindow(moduleSettings, windowBackground, settingsWindowSize, contentRegion)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Title = title,
@@ -52,10 +54,10 @@
             return window;
         }
 
-        public static TabbedWindow2 CreateTabbedWindow(string title, Type callingType, Guid guid, IconState iconState, AsyncTexture2D emblem = null)
+        public static TabbedWindow2 CreateTabbedWindow(string title, Type callingType, Guid guid, IconService iconService, AsyncTexture2D emblem = null)
         {
             var backgroundTexturePath = @"textures\setting_window_background.png";
-            Texture2D windowBackground = iconState?.GetIcon(backgroundTexturePath);
+            Texture2D windowBackground = iconService?.GetIcon(backgroundTexturePath);
             if (windowBackground == null || windowBackground == ContentService.Textures.Error)
             {
                 throw new ArgumentNullException(nameof(windowBackground), $"Module does not include texture \"{backgroundTexturePath}\".");

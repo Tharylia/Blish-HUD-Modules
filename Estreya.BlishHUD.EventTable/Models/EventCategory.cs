@@ -1,10 +1,10 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Models
 {
     using Blish_HUD;
-    using Estreya.BlishHUD.EventTable.State;
+    using Estreya.BlishHUD.EventTable.Services;
     using Estreya.BlishHUD.Shared.Attributes;
     using Estreya.BlishHUD.Shared.Helpers;
-    using Estreya.BlishHUD.Shared.State;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.Utils;
     using Gw2Sharp.WebApi.V2.Models;
     using Humanizer;
@@ -65,18 +65,18 @@
             }
         }
 
-        public void Load(Func<DateTime> getNowAction, TranslationState translationState = null)
+        public void Load(Func<DateTime> getNowAction, TranslationService translationService = null)
         {
-            if (translationState != null)
+            if (translationService != null)
             {
-                this.Name = translationState.GetTranslation($"eventCategory-{this.Key}-name", this.Name);
+                this.Name = translationService.GetTranslation($"eventCategory-{this.Key}-name", this.Name);
             }
 
             using (this._eventLock.Lock())
             {
                 this.Events.ForEach(ev =>
                 {
-                    ev.Load(this, getNowAction, translationState);
+                    ev.Load(this, getNowAction, translationService);
                 });
             }
         }

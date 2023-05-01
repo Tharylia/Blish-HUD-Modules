@@ -1,0 +1,23 @@
+{
+  "name": "Food Reminder",
+  "version": "0.1.0",
+  "namespace": "estreya.bh.foodReminder",
+  "package": "Estreya.BlishHUD.FoodReminder.dll",
+  "manifest_version": 1,
+  "description": "",
+  "dependencies": {
+    "bh.blishhud": ">=1.0.0"
+  },
+  "url": "https://github.com/Tharylia/Blish-HUD-Modules",
+  "contributors": [
+    {
+      "name": "Estreya",
+      "username": "Estreya.8675"
+    }
+  ],
+  "directories": [
+    "food_reminder"
+  ],
+  "actions": [],
+  "enabled_without_gw2": false
+}

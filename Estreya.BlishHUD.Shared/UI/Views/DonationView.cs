@@ -4,7 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Helpers;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Flurl.Http;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
@@ -26,7 +26,7 @@ public class DonationView : BaseView
     private IFlurlClient _flurlClient;
     private Texture2D _kofiLogo;
 
-    public DonationView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconState iconState, TranslationState translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public DonationView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
         this._flurlClient = flurlClient;
     }

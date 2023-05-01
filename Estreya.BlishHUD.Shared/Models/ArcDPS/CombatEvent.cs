@@ -2,34 +2,34 @@
 
 using Blish_HUD.ArcDps.Models;
 using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
-using Estreya.BlishHUD.Shared.State;
+using Estreya.BlishHUD.Shared.Services;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 
 public abstract class CombatEvent
 {
-    protected Ev Ev { get; private set; }
-    protected Ag Src { get; private set; }
+    public Blish_HUD.ArcDps.Models.CombatEvent RawCombatEvent { get; private set; }
 
-    protected Ag Dst { get; private set; }
+    protected Ev Ev => this.RawCombatEvent?.Ev;
+    protected Ag Src => this.RawCombatEvent?.Src;
+
+    protected Ag Dst => this.RawCombatEvent?.Dst;
 
     public abstract Ag Source { get; }
 
     public abstract Ag Destination { get; }
 
-    public uint SkillId => this.Ev.SkillId;
+    public uint SkillId => this.Ev?.SkillId ?? 0;
 
     public CombatEventCategory Category { get; }
     public CombatEventType Type { get; }
     public CombatEventState State { get; }
     public Skill Skill { get; set; }
 
-    public CombatEvent(Ev ev, Ag src, Ag dst, CombatEventCategory category, CombatEventType type, CombatEventState state)
+    public CombatEvent(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, CombatEventCategory category, CombatEventType type, CombatEventState state)
     {
-        this.Ev = ev;
-        this.Src = src;
-        this.Dst = dst;
+        this.RawCombatEvent = combatEvent;
         this.Category = category;
         this.Type = type;
         this.State = state;
@@ -37,9 +37,7 @@ public abstract class CombatEvent
 
     public void Dispose()
     {
-        this.Ev = null;
-        this.Src = null;
-        this.Dst = null;
+        this.RawCombatEvent = null;
         this.Skill = null; // Don't dispose as its held by skill state
     }
 
@@ -62,6 +60,8 @@ public abstract class CombatEvent
         {
             return CombatEventState.BUFFREMOVE;
         }
+
+        if (ev.IsStateChange == Blish_HUD.ArcDps.ArcDpsEnums.StateChange.BuffInitial) return CombatEventState.BUFFAPPLY;
 
         if (ev.IsStateChange == Blish_HUD.ArcDps.ArcDpsEnums.StateChange.None && ev.IsActivation == Blish_HUD.ArcDps.ArcDpsEnums.Activation.None && ev.IsBuffRemove == Blish_HUD.ArcDps.ArcDpsEnums.BuffRemove.None)
         {
