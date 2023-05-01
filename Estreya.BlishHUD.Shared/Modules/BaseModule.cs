@@ -34,7 +34,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected const string FILE_ROOT_URL = "https://files.estreya.de";
     protected const string FILE_BLISH_ROOT_URL = $"{FILE_ROOT_URL}/blish-hud";
-    protected string API_ROOT_URL = "https://blish-hud.api.estreya.de";
+    protected const string API_ROOT_URL = "https://blish-hud.api.estreya.de";
 
     protected const string GITHUB_OWNER = "Tharylia";
     protected const string GITHUB_REPOSITORY = "Blish-HUD-Modules";
