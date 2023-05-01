@@ -23,8 +23,8 @@
     {
         private readonly ModuleSettings _moduleSettings;
         private readonly Func<List<EventCategory>> _getEvents;
-        private StandardWindow _manageEventsWindow;
-        private StandardWindow _manageReminderTimesWindow;
+        private Shared.Controls.StandardWindow _manageEventsWindow;
+        private Shared.Controls.StandardWindow _manageReminderTimesWindow;
         private static Models.Event _globalChangeTempEvent = new Models.Event();
 
         static ReminderSettingsView()
@@ -51,7 +51,7 @@
 
             this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-manageReminders-btn", "Manage Reminders"), () =>
             {
-                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
+                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
 
                 if (_manageEventsWindow.CurrentView != null)
                 {
@@ -119,7 +119,7 @@
 
         private void ManageReminderTimes(Models.Event ev)
         {
-            this._manageReminderTimesWindow ??= WindowUtil.CreateStandardWindow("Manage Reminder Times", this.GetType(), Guid.Parse("930702ac-bf87-416c-b5ba-cdf9e0266bf7"), this.IconService, this.IconService.GetIcon("1466345.png"));
+            this._manageReminderTimesWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Reminder Times", this.GetType(), Guid.Parse("930702ac-bf87-416c-b5ba-cdf9e0266bf7"), this.IconService, this.IconService.GetIcon("1466345.png"));
             this._manageReminderTimesWindow.Size = new Point(450, this._manageReminderTimesWindow.Height);
 
             if (this._manageReminderTimesWindow?.CurrentView is ManageReminderTimesView mrtv)

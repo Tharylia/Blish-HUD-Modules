@@ -28,7 +28,7 @@
         private readonly DynamicEventService _dynamicEventService;
         private readonly ModuleSettings _moduleSettings;
         private readonly IFlurlClient _flurlClient;
-        private StandardWindow _manageEventsWindow;
+        private Shared.Controls.StandardWindow _manageEventsWindow;
 
         private Texture2D _dynamicEventsInWorldImage;
 
@@ -61,7 +61,7 @@
 
             this.RenderButton(parent, this.TranslationService.GetTranslation("dynamicEventsSettingsView-manageEvents-btn", "Manage Events"), () =>
             {
-                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
+                this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
 
                 if (_manageEventsWindow.CurrentView != null)
                 {

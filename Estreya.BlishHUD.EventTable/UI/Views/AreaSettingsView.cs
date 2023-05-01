@@ -35,8 +35,8 @@ public class AreaSettingsView : BaseSettingsView
     private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private Panel _areaPanel;
 
-    private StandardWindow _manageEventsWindow;
-    private StandardWindow _reorderEventsWindow;
+    private Shared.Controls.StandardWindow _manageEventsWindow;
+    private Shared.Controls.StandardWindow _reorderEventsWindow;
 
     public class AddAreaEventArgs
     {
@@ -531,7 +531,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ReorderEvents(EventAreaConfiguration configuration)
     {
-        this._reorderEventsWindow ??= WindowUtil.CreateStandardWindow("Reorder Events", this.GetType(), Guid.Parse("b5cbbd99-f02d-4229-8dda-869b42ac242e"), this.IconService);
+        this._reorderEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Reorder Events", this.GetType(), Guid.Parse("b5cbbd99-f02d-4229-8dda-869b42ac242e"), this.IconService);
 
         if (_reorderEventsWindow.CurrentView != null)
         {
@@ -552,7 +552,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ManageEvents(EventAreaConfiguration configuration)
     {
-        this._manageEventsWindow ??= WindowUtil.CreateStandardWindow("Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
+        this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
 
         if (_manageEventsWindow.CurrentView != null)
         {
