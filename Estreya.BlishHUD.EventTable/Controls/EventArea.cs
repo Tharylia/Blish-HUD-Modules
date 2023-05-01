@@ -973,6 +973,7 @@ public class EventArea : RenderTargetControl
         {
             case EventCompletedAction.Crossout:
             case EventCompletedAction.ChangeOpacity:
+            case EventCompletedAction.CrossoutAndChangeOpacity:
                 this._eventService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Completed);
                 break;
             case EventCompletedAction.Hide:
