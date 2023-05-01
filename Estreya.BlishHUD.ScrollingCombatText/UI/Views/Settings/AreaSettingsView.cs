@@ -6,7 +6,7 @@ using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.ScrollingCombatText.Models;
 using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.Service;
+using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.UI.Views;
 using Humanizer;
 using Microsoft.Xna.Framework;
@@ -157,12 +157,7 @@ public class AreaSettingsView : BaseSettingsView
 
                 this.AddArea?.Invoke(this, addAreaEventArgs);
 
-                ScrollingTextAreaConfiguration configuration = addAreaEventArgs.AreaConfiguration;
-
-                if (configuration == null)
-                {
-                    throw new ArgumentNullException("Area configuration could not be created.");
-                }
+                ScrollingTextAreaConfiguration configuration = addAreaEventArgs.AreaConfiguration ?? throw new ArgumentNullException("Area configuration could not be created.");
 
                 MenuItem menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
@@ -474,7 +469,7 @@ public class AreaSettingsView : BaseSettingsView
             changedAction?.Invoke();
         }
 
-        Dropdown formatRuleTextSizeSelect = this.RenderDropdown(
+        Shared.Controls.Dropdown formatRuleTextSizeSelect = this.RenderDropdown(
              parent,
             new Point(formatRuleText.Left, formatRuleTextSizeSelectLabel.Top),
             bounds.Width - formatRuleText.Left,
