@@ -5,6 +5,7 @@
     using Blish_HUD.Input;
     using Blish_HUD.Modules.Managers;
     using Blish_HUD.Settings;
+    using Estreya.BlishHUD.Shared.Attributes;
     using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Extensions;
     using Estreya.BlishHUD.Shared.Services;
@@ -266,9 +267,21 @@
                 values.AddRange((T[])Enum.GetValues(settingEntry.SettingType));
             }
 
-            var formattedValues = values.Select(value => value.Humanize(casing)).ToArray();
+            var formattedValues = values.Select(value =>
+            {
+                var translationAttribute = value.GetAttributeOfType<TranslationAttribute>();
 
-            var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, formattedValues, settingEntry.Value.Humanize(casing), onChangeAction: newValue =>
+                return translationAttribute != null
+                    ? this.TranslationService.GetTranslation(translationAttribute.TranslationKey, translationAttribute.DefaultValue)
+                    : value.Humanize(casing);
+            }).ToArray();
+
+            var translationAttribute = settingEntry.Value.GetAttributeOfType<TranslationAttribute>();
+            var selectedValue = translationAttribute != null
+                    ? this.TranslationService.GetTranslation(translationAttribute.TranslationKey, translationAttribute.DefaultValue)
+                    : settingEntry.Value.Humanize(casing);
+
+            var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, formattedValues, selectedValue, onChangeAction: newValue =>
             {
                 try
                 {

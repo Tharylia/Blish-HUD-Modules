@@ -1,5 +1,6 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models
 {
+    using Estreya.BlishHUD.Shared.Attributes;
     using System;
     using System.Collections.Generic;
     using System.ComponentModel;
@@ -7,10 +8,11 @@
 
     public enum CornerIconClickAction
     {
+        [Translation("cornerIconClickAction-none", "None")]
         None,
-        [Description("Toggle Settingswindow")]
+        [Translation("cornerIconClickAction-settings", "Toggle Settingswindow")]
         Settings,
-        [Description("Toggle Visibility")]
+        [Translation("cornerIconClickAction-visibility", "Toggle Visibility")]
         Visibility
     }
 }

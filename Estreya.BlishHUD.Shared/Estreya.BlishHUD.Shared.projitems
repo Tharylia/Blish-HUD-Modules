@@ -10,6 +10,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\IgnoreCopyAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Attributes\TranslationAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Button.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Dropdown.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapBorder.cs" />

@@ -59,7 +59,7 @@
             this.RenderBoolSetting(parent, _moduleSettings.IgnoreZAxisOnDynamicEventsInWorld);
             this.RenderIntSetting(parent, _moduleSettings.DynamicEventsRenderDistance);
 
-            this.RenderButton(parent, this.TranslationService.GetTranslation("dynamicEventsSettingsView-manageEvents-btn", "Manage Events"), () =>
+            this.RenderButton(parent, this.TranslationService.GetTranslation("dynamicEventsSettingsView-btn-manageEvents", "Manage Events"), () =>
             {
                 this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
 
@@ -78,9 +78,11 @@
             if (this._dynamicEventsInWorldImage != null)
             {
                 this.RenderEmptyLine(parent, 100);
-                this.RenderLabel(parent, "Image of dynamic events inside the game world:");
-                var image = new Image(this._dynamicEventsInWorldImage);
-                image.Parent = parent;
+                this.RenderLabel(parent, this.TranslationService.GetTranslation("dynamicEventsSettingsView-lbl-imageOfDynamicEventsInWorld", "Image of dynamic events inside the game world:"));
+                var image = new Image(this._dynamicEventsInWorldImage)
+                {
+                    Parent = parent
+                };
             }
         }
 

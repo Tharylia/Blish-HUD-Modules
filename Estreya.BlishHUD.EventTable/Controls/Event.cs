@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -66,30 +66,30 @@ public class Event : IDisposable
     {
         var menu = new ContextMenuStrip();
 
-        var disableAction = new ContextMenuStripItem("Disable")
+        var disableAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-disable-title", "Disable"))
         {
             Parent = menu,
-            BasicTooltipText = "Disables the event entirely."
+            BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-disable-tooltip", "Disables the event entirely.")
         };
         disableAction.Click += (s, e) =>
         {
             this.DisableRequested?.Invoke(this, EventArgs.Empty);
         };
 
-        var hideAction = new ContextMenuStripItem("Hide")
+        var hideAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-hide-title", "Hide"))
         {
             Parent = menu,
-            BasicTooltipText = "Hides the event until the next reset."
+            BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-hide-tooltip", "Hides the event until the next reset.")
         };
         hideAction.Click += (s, e) =>
         {
             this.HideRequested?.Invoke(this, EventArgs.Empty);
         };
 
-        var finishAction = new ContextMenuStripItem("Finish")
+        var finishAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-finish-title", "Finish"))
         {
             Parent = menu,
-            BasicTooltipText = "Completes the event until the next reset."
+            BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-finish-tooltip", "Completes the event until the next reset.")
         };
         finishAction.Click += (s, e) =>
         {

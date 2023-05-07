@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
@@ -103,12 +103,12 @@ namespace Estreya.BlishHUD.EventTable
             this.ShowDynamicEventInWorld = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventInWorld), false, () => "Show Dynamic Events in World", () => "Whether dynamic events should be shown inside the world.");
             this.ShowDynamicEventInWorld.SettingChanged += this.ShowDynamicEventInWorld_SettingChanged;
 
-            this.ShowDynamicEventsInWorldOnlyWhenInside = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsInWorldOnlyWhenInside), true, () => "Show only when inside.", () => "Whether the dynamic events inside the world should only show up when the player is inside.");
+            this.ShowDynamicEventsInWorldOnlyWhenInside = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsInWorldOnlyWhenInside), true, () => "Show only when inside", () => "Whether the dynamic events inside the world should only show up when the player is inside.");
             this.ShowDynamicEventsInWorldOnlyWhenInside.SettingChanged += this.ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged;
 
             this.IgnoreZAxisOnDynamicEventsInWorld = this.GlobalSettings.DefineSetting(nameof(this.IgnoreZAxisOnDynamicEventsInWorld), true, () => "Ignore Z Axis", () => "Defines whether the z axis should be ignored when calculating the visibility of in world events.");
 
-            this.DynamicEventsRenderDistance = this.GlobalSettings.DefineSetting(nameof(this.DynamicEventsRenderDistance), 300, () => "Dynamic Event Render Distance", () => "Defines the distance in which dynamic events should be rendered");
+            this.DynamicEventsRenderDistance = this.GlobalSettings.DefineSetting(nameof(this.DynamicEventsRenderDistance), 300, () => "Dynamic Event Render Distance", () => "Defines the distance in which dynamic events should be rendered.");
             this.DynamicEventsRenderDistance.SetRange(50, 500);
 
             this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
@@ -307,10 +307,10 @@ namespace Estreya.BlishHUD.EventTable
                 HideOnOpenMap = hideOnOpenMap,
                 HideInPvE_Competetive = hideInPvE_Competetive,
                 HideInPvE_OpenWorld = hideInPvE_OpenWorld,
-                HideInPvP= hideInPvP,
+                HideInPvP = hideInPvP,
                 HideInWvW = hideInWvW,
                 ShowCategoryNames = showCategoryNames,
-                CategoryNameColor  = categoryNameColor,
+                CategoryNameColor = categoryNameColor,
                 EnableColorGradients = enableColorGradients,
             };
         }
@@ -408,6 +408,71 @@ namespace Estreya.BlishHUD.EventTable
             var reminderOpacityDescriptionDefault = this.ReminderOpacity.Description;
             this.ReminderOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-reminderOpacity-name", reminderOpacityDisplayNameDefault);
             this.ReminderOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-reminderOpacity-description", reminderOpacityDescriptionDefault);
+
+            var showDynamicEventsOnMapDisplayNameDefault = this.ShowDynamicEventsOnMap.DisplayName;
+            var showDynamicEventsOnMapDescriptionDefault = this.ShowDynamicEventsOnMap.Description;
+            this.ShowDynamicEventsOnMap.GetDisplayNameFunc = () => translationService.GetTranslation("setting-showDynamicEventsOnMap-name", showDynamicEventsOnMapDisplayNameDefault);
+            this.ShowDynamicEventsOnMap.GetDescriptionFunc = () => translationService.GetTranslation("setting-showDynamicEventsOnMap-description", showDynamicEventsOnMapDescriptionDefault);
+
+            var showDynamicEventInWorldDisplayNameDefault = this.ShowDynamicEventInWorld.DisplayName;
+            var showDynamicEventInWorldDescriptionDefault = this.ShowDynamicEventInWorld.Description;
+            this.ShowDynamicEventInWorld.GetDisplayNameFunc = () => translationService.GetTranslation("setting-showDynamicEventInWorld-name", showDynamicEventInWorldDisplayNameDefault);
+            this.ShowDynamicEventInWorld.GetDescriptionFunc = () => translationService.GetTranslation("setting-showDynamicEventInWorld-description", showDynamicEventInWorldDescriptionDefault);
+
+            var showDynamicEventsInWorldOnlyWhenInsideDisplayNameDefault = this.ShowDynamicEventsInWorldOnlyWhenInside.DisplayName;
+            var showDynamicEventsInWorldOnlyWhenInsideDescriptionDefault = this.ShowDynamicEventsInWorldOnlyWhenInside.Description;
+            this.ShowDynamicEventsInWorldOnlyWhenInside.GetDisplayNameFunc = () => translationService.GetTranslation("setting-showDynamicEventsInWorldOnlyWhenInside-name", showDynamicEventsInWorldOnlyWhenInsideDisplayNameDefault);
+            this.ShowDynamicEventsInWorldOnlyWhenInside.GetDescriptionFunc = () => translationService.GetTranslation("setting-showDynamicEventsInWorldOnlyWhenInside-description", showDynamicEventsInWorldOnlyWhenInsideDescriptionDefault);
+
+            var ignoreZAxisOnDynamicEventsInWorldDisplayNameDefault = this.IgnoreZAxisOnDynamicEventsInWorld.DisplayName;
+            var ignoreZAxisOnDynamicEventsInWorldDescriptionDefault = this.IgnoreZAxisOnDynamicEventsInWorld.Description;
+            this.IgnoreZAxisOnDynamicEventsInWorld.GetDisplayNameFunc = () => translationService.GetTranslation("setting-ignoreZAxisOnDynamicEventsInWorld-name", ignoreZAxisOnDynamicEventsInWorldDisplayNameDefault);
+            this.IgnoreZAxisOnDynamicEventsInWorld.GetDescriptionFunc = () => translationService.GetTranslation("setting-ignoreZAxisOnDynamicEventsInWorld-description", ignoreZAxisOnDynamicEventsInWorldDescriptionDefault);
+
+            var dynamicEventsRenderDistanceDisplayNameDefault = this.DynamicEventsRenderDistance.DisplayName;
+            var dynamicEventsRenderDistanceDescriptionDefault = this.DynamicEventsRenderDistance.Description;
+            this.DynamicEventsRenderDistance.GetDisplayNameFunc = () => translationService.GetTranslation("setting-dynamicEventsRenderDistance-name", dynamicEventsRenderDistanceDisplayNameDefault);
+            this.DynamicEventsRenderDistance.GetDescriptionFunc = () => translationService.GetTranslation("setting-dynamicEventsRenderDistance-description", dynamicEventsRenderDistanceDescriptionDefault);
+
+            var menuEventSortModeDisplayNameDefault = this.MenuEventSortMode.DisplayName;
+            var menuEventSortModeDescriptionDefault = this.MenuEventSortMode.Description;
+            this.MenuEventSortMode.GetDisplayNameFunc = () => translationService.GetTranslation("setting-menuEventSortMode-name", menuEventSortModeDisplayNameDefault);
+            this.MenuEventSortMode.GetDescriptionFunc = () => translationService.GetTranslation("setting-menuEventSortMode-description", menuEventSortModeDescriptionDefault);
+
+            var hideRemindersOnOpenMapDisplayNameDefault = this.HideRemindersOnOpenMap.DisplayName;
+            var hideRemindersOnOpenMapDescriptionDefault = this.HideRemindersOnOpenMap.Description;
+            this.HideRemindersOnOpenMap.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideRemindersOnOpenMap-name", hideRemindersOnOpenMapDisplayNameDefault);
+            this.HideRemindersOnOpenMap.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideRemindersOnOpenMap-description", hideRemindersOnOpenMapDescriptionDefault);
+
+            var hideRemindersOnMissingMumbleTicksDisplayNameDefault = this.HideRemindersOnMissingMumbleTicks.DisplayName;
+            var hideRemindersOnMissingMumbleTicksDescriptionDefault = this.HideRemindersOnMissingMumbleTicks.Description;
+            this.HideRemindersOnMissingMumbleTicks.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideRemindersOnMissingMumbleTicks-name", hideRemindersOnMissingMumbleTicksDisplayNameDefault);
+            this.HideRemindersOnMissingMumbleTicks.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideRemindersOnMissingMumbleTicks-description", hideRemindersOnMissingMumbleTicksDescriptionDefault);
+
+            var hideRemindersInCombatDisplayNameDefault = this.HideRemindersInCombat.DisplayName;
+            var hideRemindersInCombatDescriptionDefault = this.HideRemindersInCombat.Description;
+            this.HideRemindersInCombat.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideRemindersInCombat-name", hideRemindersInCombatDisplayNameDefault);
+            this.HideRemindersInCombat.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideRemindersInCombat-description", hideRemindersInCombatDescriptionDefault);
+
+            var hideRemindersInPvE_OpenWorldDisplayNameDefault = this.HideRemindersInPvE_OpenWorld.DisplayName;
+            var hideRemindersInPvE_OpenWorldDescriptionDefault = this.HideRemindersInPvE_OpenWorld.Description;
+            this.HideRemindersInPvE_OpenWorld.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideRemindersInPvE_OpenWorld-name", hideRemindersInPvE_OpenWorldDisplayNameDefault);
+            this.HideRemindersInPvE_OpenWorld.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideRemindersInPvE_OpenWorld-description", hideRemindersInPvE_OpenWorldDescriptionDefault);
+
+            var hideRemindersInPvE_CompetetiveDisplayNameDefault = this.HideRemindersInPvE_Competetive.DisplayName;
+            var hideRemindersInPvE_CompetetiveDescriptionDefault = this.HideRemindersInPvE_Competetive.Description;
+            this.HideRemindersInPvE_Competetive.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideRemindersInPvE_Competetive-name", hideRemindersInPvE_CompetetiveDisplayNameDefault);
+            this.HideRemindersInPvE_Competetive.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideRemindersInPvE_Competetive-description", hideRemindersInPvE_CompetetiveDescriptionDefault);
+
+            var hideRemindersInWvWDisplayNameDefault = this.HideRemindersInWvW.DisplayName;
+            var hideRemindersInWvWDescriptionDefault = this.HideRemindersInWvW.Description;
+            this.HideRemindersInWvW.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideRemindersInWvW-name", hideRemindersInWvWDisplayNameDefault);
+            this.HideRemindersInWvW.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideRemindersInWvW-description", hideRemindersInWvWDescriptionDefault);
+
+            var hideRemindersInPvPDisplayNameDefault = this.HideRemindersInPvP.DisplayName;
+            var hideRemindersInPvPDescriptionDefault = this.HideRemindersInPvP.Description;
+            this.HideRemindersInPvP.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideRemindersInPvP-name", hideRemindersInPvPDisplayNameDefault);
+            this.HideRemindersInPvP.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideRemindersInPvP-description", hideRemindersInPvPDescriptionDefault);
         }
 
         public void UpdateDrawerLocalization(EventAreaConfiguration drawerConfiguration, TranslationService translationService)
@@ -433,6 +498,16 @@ namespace Estreya.BlishHUD.EventTable
             var historySplitDescriptionDefault = drawerConfiguration.HistorySplit.Description;
             drawerConfiguration.HistorySplit.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHistorySplit-name", historySplitDisplayNameDefault);
             drawerConfiguration.HistorySplit.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHistorySplit-description", historySplitDescriptionDefault);
+
+            var enableHistorySplitScrollingDisplayNameDefault = drawerConfiguration.EnableHistorySplitScrolling.DisplayName;
+            var enableHistorySplitScrollingDescriptionDefault = drawerConfiguration.EnableHistorySplitScrolling.Description;
+            drawerConfiguration.EnableHistorySplitScrolling.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerEnableHistorySplitScrolling-name", enableHistorySplitScrollingDisplayNameDefault);
+            drawerConfiguration.EnableHistorySplitScrolling.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerEnableHistorySplitScrolling-description", enableHistorySplitScrollingDescriptionDefault);
+
+            var historySplitScrollingSpeedDisplayNameDefault = drawerConfiguration.HistorySplitScrollingSpeed.DisplayName;
+            var historySplitScrollingSpeedDescriptionDefault = drawerConfiguration.HistorySplitScrollingSpeed.Description;
+            drawerConfiguration.HistorySplitScrollingSpeed.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHistorySplitScrollingSpeed-name", historySplitScrollingSpeedDisplayNameDefault);
+            drawerConfiguration.HistorySplitScrollingSpeed.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHistorySplitScrollingSpeed-description", historySplitScrollingSpeedDescriptionDefault);
 
             var drawBordersDisplayNameDefault = drawerConfiguration.DrawBorders.DisplayName;
             var drawBordersDescriptionDefault = drawerConfiguration.DrawBorders.Description;
@@ -468,6 +543,131 @@ namespace Estreya.BlishHUD.EventTable
             var eventBackgroundOpacityDescriptionDefault = drawerConfiguration.EventBackgroundOpacity.Description;
             drawerConfiguration.EventBackgroundOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerEventBackgroundOpacity-name", eventBackgroundOpacityDisplayNameDefault);
             drawerConfiguration.EventBackgroundOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerEventBackgroundOpacity-description", eventBackgroundOpacityDescriptionDefault);
+
+            var drawShadowsDisplayNameDefault = drawerConfiguration.DrawShadows.DisplayName;
+            var drawShadowsDescriptionDefault = drawerConfiguration.DrawShadows.Description;
+            drawerConfiguration.DrawShadows.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerDrawShadows-name", drawShadowsDisplayNameDefault);
+            drawerConfiguration.DrawShadows.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerDrawShadows-description", drawShadowsDescriptionDefault);
+
+            var shadowColorDisplayNameDefault = drawerConfiguration.ShadowColor.DisplayName;
+            var shadowColorDescriptionDefault = drawerConfiguration.ShadowColor.Description;
+            drawerConfiguration.ShadowColor.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerShadowColor-name", shadowColorDisplayNameDefault);
+            drawerConfiguration.ShadowColor.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerShadowColor-description", shadowColorDescriptionDefault);
+
+            var drawShadowsForFillerDisplayNameDefault = drawerConfiguration.DrawShadowsForFiller.DisplayName;
+            var drawShadowsForFillerDescriptionDefault = drawerConfiguration.DrawShadowsForFiller.Description;
+            drawerConfiguration.DrawShadowsForFiller.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerDrawShadowsForFiller-name", drawShadowsForFillerDisplayNameDefault);
+            drawerConfiguration.DrawShadowsForFiller.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerDrawShadowsForFiller-description", drawShadowsForFillerDescriptionDefault);
+
+            var fillerShadowColorDisplayNameDefault = drawerConfiguration.FillerShadowColor.DisplayName;
+            var fillerShadowColorDescriptionDefault = drawerConfiguration.FillerShadowColor.Description;
+            drawerConfiguration.FillerShadowColor.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerFillerShadowColor-name", fillerShadowColorDisplayNameDefault);
+            drawerConfiguration.FillerShadowColor.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerFillerShadowColor-description", fillerShadowColorDescriptionDefault);
+
+            var drawIntervalDisplayNameDefault = drawerConfiguration.DrawInterval.DisplayName;
+            var drawIntervalDescriptionDefault = drawerConfiguration.DrawInterval.Description;
+            drawerConfiguration.DrawInterval.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerDrawInterval-name", drawIntervalDisplayNameDefault);
+            drawerConfiguration.DrawInterval.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerDrawInterval-description", drawIntervalDescriptionDefault);
+
+            var limitToCurrentMapDisplayNameDefault = drawerConfiguration.LimitToCurrentMap.DisplayName;
+            var limitToCurrentMapDescriptionDefault = drawerConfiguration.LimitToCurrentMap.Description;
+            drawerConfiguration.LimitToCurrentMap.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerLimitToCurrentMap-name", limitToCurrentMapDisplayNameDefault);
+            drawerConfiguration.LimitToCurrentMap.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerLimitToCurrentMap-description", limitToCurrentMapDescriptionDefault);
+
+            var allowUnspecifiedMapDisplayNameDefault = drawerConfiguration.AllowUnspecifiedMap.DisplayName;
+            var allowUnspecifiedMapDescriptionDefault = drawerConfiguration.AllowUnspecifiedMap.Description;
+            drawerConfiguration.AllowUnspecifiedMap.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerAllowUnspecifiedMap-name", allowUnspecifiedMapDisplayNameDefault);
+            drawerConfiguration.AllowUnspecifiedMap.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerAllowUnspecifiedMap-description", allowUnspecifiedMapDescriptionDefault);
+
+            var timeLineOpacityDisplayNameDefault = drawerConfiguration.TimeLineOpacity.DisplayName;
+            var timeLineOpacityDescriptionDefault = drawerConfiguration.TimeLineOpacity.Description;
+            drawerConfiguration.TimeLineOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerTimeLineOpacity-name", timeLineOpacityDisplayNameDefault);
+            drawerConfiguration.TimeLineOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerTimeLineOpacity-description", timeLineOpacityDescriptionDefault);
+
+            var eventTextOpacityDisplayNameDefault = drawerConfiguration.EventTextOpacity.DisplayName;
+            var eventTextOpacityDescriptionDefault = drawerConfiguration.EventTextOpacity.Description;
+            drawerConfiguration.EventTextOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerEventTextOpacity-name", eventTextOpacityDisplayNameDefault);
+            drawerConfiguration.EventTextOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerEventTextOpacity-description", eventTextOpacityDescriptionDefault);
+
+            var fillerTextOpacityDisplayNameDefault = drawerConfiguration.FillerTextOpacity.DisplayName;
+            var fillerTextOpacityDescriptionDefault = drawerConfiguration.FillerTextOpacity.Description;
+            drawerConfiguration.FillerTextOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerFillerTextOpacity-name", fillerTextOpacityDisplayNameDefault);
+            drawerConfiguration.FillerTextOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerFillerTextOpacity-description", fillerTextOpacityDescriptionDefault);
+
+            var shadowOpacityDisplayNameDefault = drawerConfiguration.ShadowOpacity.DisplayName;
+            var shadowOpacityDescriptionDefault = drawerConfiguration.ShadowOpacity.Description;
+            drawerConfiguration.ShadowOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerShadowOpacity-name", shadowOpacityDisplayNameDefault);
+            drawerConfiguration.ShadowOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerShadowOpacity-description", shadowOpacityDescriptionDefault);
+
+            var fillerShadowOpacityDisplayNameDefault = drawerConfiguration.FillerShadowOpacity.DisplayName;
+            var fillerShadowOpacityDescriptionDefault = drawerConfiguration.FillerShadowOpacity.Description;
+            drawerConfiguration.FillerShadowOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerFillerShadowOpacity-name", fillerShadowOpacityDisplayNameDefault);
+            drawerConfiguration.FillerShadowOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerFillerShadowOpacity-description", fillerShadowOpacityDescriptionDefault);
+
+            var completedEventsBackgroundOpacityDisplayNameDefault = drawerConfiguration.CompletedEventsBackgroundOpacity.DisplayName;
+            var completedEventsBackgroundOpacityDescriptionDefault = drawerConfiguration.CompletedEventsBackgroundOpacity.Description;
+            drawerConfiguration.CompletedEventsBackgroundOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerCompletedEventsBackgroundOpacity-name", completedEventsBackgroundOpacityDisplayNameDefault);
+            drawerConfiguration.CompletedEventsBackgroundOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerCompletedEventsBackgroundOpacity-description", completedEventsBackgroundOpacityDescriptionDefault);
+
+            var completedEventsTextOpacityDisplayNameDefault = drawerConfiguration.CompletedEventsTextOpacity.DisplayName;
+            var completedEventsTextOpacityDescriptionDefault = drawerConfiguration.CompletedEventsTextOpacity.Description;
+            drawerConfiguration.CompletedEventsTextOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerCompletedEventsTextOpacity-name", completedEventsTextOpacityDisplayNameDefault);
+            drawerConfiguration.CompletedEventsTextOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerCompletedEventsTextOpacity-description", completedEventsTextOpacityDescriptionDefault);
+
+            var completedEventsInvertTextColorDisplayNameDefault = drawerConfiguration.CompletedEventsInvertTextColor.DisplayName;
+            var completedEventsInvertTextColorDescriptionDefault = drawerConfiguration.CompletedEventsInvertTextColor.Description;
+            drawerConfiguration.CompletedEventsInvertTextColor.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerCompletedEventsInvertTextColor-name", completedEventsInvertTextColorDisplayNameDefault);
+            drawerConfiguration.CompletedEventsInvertTextColor.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerCompletedEventsInvertTextColor-description", completedEventsInvertTextColorDescriptionDefault);
+
+            var hideOnOpenMapDisplayNameDefault = drawerConfiguration.HideOnOpenMap.DisplayName;
+            var hideOnOpenMapDescriptionDefault = drawerConfiguration.HideOnOpenMap.Description;
+            drawerConfiguration.HideOnOpenMap.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHideOnOpenMap-name", hideOnOpenMapDisplayNameDefault);
+            drawerConfiguration.HideOnOpenMap.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHideOnOpenMap-description", hideOnOpenMapDescriptionDefault);
+
+            var hideOnMissingMumbleTicksDisplayNameDefault = drawerConfiguration.HideOnMissingMumbleTicks.DisplayName;
+            var hideOnMissingMumbleTicksDescriptionDefault = drawerConfiguration.HideOnMissingMumbleTicks.Description;
+            drawerConfiguration.HideOnMissingMumbleTicks.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHideOnMissingMumbleTicks-name", hideOnMissingMumbleTicksDisplayNameDefault);
+            drawerConfiguration.HideOnMissingMumbleTicks.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHideOnMissingMumbleTicks-description", hideOnMissingMumbleTicksDescriptionDefault);
+
+            var hideInCombatDisplayNameDefault = drawerConfiguration.HideInCombat.DisplayName;
+            var hideInCombatDescriptionDefault = drawerConfiguration.HideInCombat.Description;
+            drawerConfiguration.HideInCombat.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHideInCombat-name", hideInCombatDisplayNameDefault);
+            drawerConfiguration.HideInCombat.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHideInCombat-description", hideInCombatDescriptionDefault);
+
+            var hideInPvE_OpenWorldDisplayNameDefault = drawerConfiguration.HideInPvE_OpenWorld.DisplayName;
+            var hideInPvE_OpenWorldDescriptionDefault = drawerConfiguration.HideInPvE_OpenWorld.Description;
+            drawerConfiguration.HideInPvE_OpenWorld.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHideInPvE_OpenWorld-name", hideInPvE_OpenWorldDisplayNameDefault);
+            drawerConfiguration.HideInPvE_OpenWorld.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHideInPvE_OpenWorld-description", hideInPvE_OpenWorldDescriptionDefault);
+
+            var hideInPvE_CompetetiveDisplayNameDefault = drawerConfiguration.HideInPvE_Competetive.DisplayName;
+            var hideInPvE_CompetetiveDescriptionDefault = drawerConfiguration.HideInPvE_Competetive.Description;
+            drawerConfiguration.HideInPvE_Competetive.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHideInPvE_Competetive-name", hideInPvE_CompetetiveDisplayNameDefault);
+            drawerConfiguration.HideInPvE_Competetive.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHideInPvE_Competetive-description", hideInPvE_CompetetiveDescriptionDefault);
+
+            var hideInWvWDisplayNameDefault = drawerConfiguration.HideInWvW.DisplayName;
+            var hideInWvWDescriptionDefault = drawerConfiguration.HideInWvW.Description;
+            drawerConfiguration.HideInWvW.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHideInWvW-name", hideInWvWDisplayNameDefault);
+            drawerConfiguration.HideInWvW.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHideInWvW-description", hideInWvWDescriptionDefault);
+
+            var hideInPvPDisplayNameDefault = drawerConfiguration.HideInPvP.DisplayName;
+            var hideInPvPDescriptionDefault = drawerConfiguration.HideInPvP.Description;
+            drawerConfiguration.HideInPvP.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerHideInPvP-name", hideInPvPDisplayNameDefault);
+            drawerConfiguration.HideInPvP.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerHideInPvP-description", hideInPvPDescriptionDefault);
+
+            var showCategoryNamesDisplayNameDefault = drawerConfiguration.ShowCategoryNames.DisplayName;
+            var showCategoryNamesDescriptionDefault = drawerConfiguration.ShowCategoryNames.Description;
+            drawerConfiguration.ShowCategoryNames.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerShowCategoryNames-name", showCategoryNamesDisplayNameDefault);
+            drawerConfiguration.ShowCategoryNames.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerShowCategoryNames-description", showCategoryNamesDescriptionDefault);
+
+            var categoryNameColorDisplayNameDefault = drawerConfiguration.CategoryNameColor.DisplayName;
+            var categoryNameColorDescriptionDefault = drawerConfiguration.CategoryNameColor.Description;
+            drawerConfiguration.CategoryNameColor.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerCategoryNameColor-name", categoryNameColorDisplayNameDefault);
+            drawerConfiguration.CategoryNameColor.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerCategoryNameColor-description", categoryNameColorDescriptionDefault);
+
+            var enableColorGradientsDisplayNameDefault = drawerConfiguration.EnableColorGradients.DisplayName;
+            var enableColorGradientsDescriptionDefault = drawerConfiguration.EnableColorGradients.Description;
+            drawerConfiguration.EnableColorGradients.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerEnableColorGradients-name", enableColorGradientsDisplayNameDefault);
+            drawerConfiguration.EnableColorGradients.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerEnableColorGradients-description", enableColorGradientsDescriptionDefault);
         }
 
         public override void Unload()

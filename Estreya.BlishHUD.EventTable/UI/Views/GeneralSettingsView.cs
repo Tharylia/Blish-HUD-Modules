@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views
+namespace Estreya.BlishHUD.EventTable.UI.Views
 {
     using Blish_HUD.Controls;
     using Blish_HUD.Modules.Managers;
@@ -45,7 +45,7 @@
             };
 
             var lbl = new FormattedLabelBuilder().SetWidth(visibilityOptionGroup.ContentRegion.Width - 20).AutoSizeHeight().Wrap()
-                .CreatePart("These options are global. The individual area options have priority and will hide it if any matches!", builder =>
+                .CreatePart(this.TranslationService.GetTranslation("generalSettingsView-uiVisibilityWarning", "These options are global. The individual area options have priority and will hide it if any matches!"), builder =>
                 {
                     builder.MakeBold().SetFontSize(Blish_HUD.ContentService.FontSize.Size18);
                 }).Build();
