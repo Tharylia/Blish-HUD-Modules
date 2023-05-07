@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.Services;
+namespace Estreya.BlishHUD.Shared.Services;
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.IO;
@@ -199,11 +199,6 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
     protected override async Task Save()
     {
-        if (Directory.Exists(this.DirectoryPath))
-        {
-            Directory.Delete(this.DirectoryPath, true);
-        }
-
         _ = Directory.CreateDirectory(this.DirectoryPath);
 
         using (await this._apiObjectListLock.LockAsync())
