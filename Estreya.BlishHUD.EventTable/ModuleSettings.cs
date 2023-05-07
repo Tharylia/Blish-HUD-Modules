@@ -21,8 +21,10 @@ namespace Estreya.BlishHUD.EventTable
     public class ModuleSettings : BaseModuleSettings
     {
         private const string EVENT_AREA_SETTINGS = "event-area-settings";
-        public SettingCollection EventAreaSettings { get; private set; }
+        private SettingCollection EventAreaSettings { get; set; }
         public SettingEntry<List<string>> EventAreaNames { get; private set; }
+
+        public SettingEntry<KeyBinding> MapKeybinding { get; private set; }
 
         public SettingEntry<bool> RemindersEnabled { get; private set; }
         public EventReminderPositition ReminderPosition { get; private set; }
