@@ -27,6 +27,10 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Net.Mime.MediaTypeNames;
+using Estreya.BlishHUD.Shared.Extensions;
+using System.Windows.Forms;
+using System.Drawing.Text;
 
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : Settings.BaseModuleSettings where TModule : class
 {
@@ -289,7 +293,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.SkillService = new SkillService(configurations.Skills, this.Gw2ApiManager, this.IconService, directoryPath, this.GetFlurlClient(), FILE_BLISH_ROOT_URL);
+                this.SkillService = new SkillService(configurations.Skills, this.Gw2ApiManager, this.IconService, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
                 this._services.Add(this.SkillService);
             }
 
@@ -536,7 +540,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
             }
 
-            var stateTexts = stateLoadingTexts.Count == 0 ? null : $"Services:\n    " + string.Join("\n    ", stateLoadingTexts);
+            var stateTexts = stateLoadingTexts.Count == 0 ? null : $"Services:\n{new string(' ', 4)}" + string.Join($"\n{new string(' ', 4)}", stateLoadingTexts);
             this.ReportLoading("states", stateTexts);
         }
 
