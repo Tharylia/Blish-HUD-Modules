@@ -45,22 +45,22 @@ public class ScrollingTextAreaEvent : IDisposable
 
     public event EventHandler Disposed;
 
-    public ScrollingTextAreaEvent(Shared.Models.ArcDPS.CombatEvent combatEvent, CombatEventFormatRule formatRule, BitmapFont font, float width, float height)
+    public ScrollingTextAreaEvent(Shared.Models.ArcDPS.CombatEvent combatEvent, CombatEventFormatRule formatRule, BitmapFont font, float maxWidth, float height)
     {
         this._combatEvent = combatEvent;
         this._formatRule = formatRule;
         this._font = font;
-        this.Width = width;
+        this.Width = maxWidth;
         this.Height = height;
 
         this._textWidth = (int)(this._font?.MeasureString(this.ToString()).Width ?? 0);
         this.CalculateLayout();
         this.CalculateScrollingTexts();
+        this.Width = this._textRectangle.Right;
     }
 
     public void Render(SpriteBatch spriteBatch, RectangleF bounds, float opacity)
     {
-
         if (this._combatEvent?.Skill?.IconTexture != null)
         {
             var rect = new RectangleF(this._imageRectangle.Position, this._imageRectangle.Size);
