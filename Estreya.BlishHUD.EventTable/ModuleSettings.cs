@@ -51,7 +51,7 @@ namespace Estreya.BlishHUD.EventTable
 
         public SettingEntry<List<string>> DisabledDynamicEventIds { get; private set; }
 
-        public SettingEntry<MenuEventSortMode> MenuEventSortMenu { get; private set; }
+        public SettingEntry<MenuEventSortMode> MenuEventSortMode { get; private set; }
 
         public SettingEntry<bool> HideRemindersOnMissingMumbleTicks { get; private set; }
         public SettingEntry<bool> HideRemindersInCombat { get; private set; }
@@ -113,7 +113,7 @@ namespace Estreya.BlishHUD.EventTable
 
             this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
 
-            this.MenuEventSortMenu = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMenu), MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events in menu views are sorted by.");
+            this.MenuEventSortMode = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMode), Models.MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events in menu views are sorted by.");
 
             this.HideRemindersOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersOnOpenMap), false, () => "Hide Reminders on open Map", () => "Whether the reminders should hide when the map is open.");
 
