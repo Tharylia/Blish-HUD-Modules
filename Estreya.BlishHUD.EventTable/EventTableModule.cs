@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -45,16 +45,16 @@
     {
         public override string UrlModuleName => "event-table";
 
-        private ConcurrentDictionary<string, EventArea> _areas = new ConcurrentDictionary<string, EventArea>();
+        private ConcurrentDictionary<string, EventArea> _areas;
 
         private AsyncLock _eventCategoryLock = new AsyncLock();
         private List<EventCategory> _eventCategories = new List<EventCategory>();
 
         private static TimeSpan _updateEventsInterval = TimeSpan.FromMinutes(30);
-        private AsyncRef<double> _lastEventUpdate = new AsyncRef<double>(0);
+        private AsyncRef<double> _lastEventUpdate;
 
         private static TimeSpan _checkDrawerSettingInterval = TimeSpan.FromSeconds(30);
-        private double _lastCheckDrawerSettings = 0;
+        private double _lastCheckDrawerSettings;
 
         private DateTime NowUTC => DateTime.UtcNow;
 
@@ -72,6 +72,15 @@
         [ImportingConstructor]
         public EventTableModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters)
         {
+        }
+
+        protected override void Initialize()
+        {
+            base.Initialize();
+
+            this._areas = new ConcurrentDictionary<string, EventArea>();
+            this._lastEventUpdate = new AsyncRef<double>(0);
+            this._lastCheckDrawerSettings = 0;
         }
 
         protected override async Task LoadAsync()
