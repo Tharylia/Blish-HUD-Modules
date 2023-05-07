@@ -247,7 +247,7 @@ public class AreaSettingsView : BaseSettingsView
 
         settingsPanel.DoUpdate(GameService.Overlay.CurrentGameTime); // Dirty trick to get actual height and width
 
-        this.RenderEnabledSettings(settingsPanel, areaConfiguration);
+        this.RenderGeneralSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -327,7 +327,7 @@ public class AreaSettingsView : BaseSettingsView
         areaName.Width = removeButton.Left - areaName.Left;
     }
 
-    private void RenderEnabledSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    private void RenderGeneralSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
         FlowPanel groupPanel = new FlowPanel()
         {
@@ -339,7 +339,7 @@ public class AreaSettingsView : BaseSettingsView
             ShowBorder = true,
             CanCollapse = true,
             Collapsed = false,
-            Title = "Enabled"
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-general", "General")
         };
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.Enabled);
@@ -360,7 +360,7 @@ public class AreaSettingsView : BaseSettingsView
             ShowBorder = true,
             CanCollapse = true,
             Collapsed = true,
-            Title = "Location & Size"
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-locationAndSize", "Location & Size")
         };
 
         this.RenderIntSetting(groupPanel, areaConfiguration.Location.X);
@@ -385,7 +385,7 @@ public class AreaSettingsView : BaseSettingsView
             ShowBorder = true,
             CanCollapse = true,
             Collapsed = true,
-            Title = "Layout"
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-layout", "Layout")
         };
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.DrawBorders);
@@ -411,7 +411,7 @@ public class AreaSettingsView : BaseSettingsView
             ShowBorder = true,
             CanCollapse = true,
             Collapsed = true,
-            Title = "Visibility"
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-visibility", "Visibility")
         };
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.HideOnMissingMumbleTicks);
@@ -436,7 +436,7 @@ public class AreaSettingsView : BaseSettingsView
             ShowBorder = true,
             CanCollapse = true,
             Collapsed = true,
-            Title = "Text & Color"
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-textAndColor", "Text & Color")
         };
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.FontSize);
@@ -463,6 +463,10 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderColorSetting(groupPanel, areaConfiguration.CategoryNameColor);
 
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.EnableColorGradients);
+
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
     private void RenderBehaviourSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
@@ -477,7 +481,7 @@ public class AreaSettingsView : BaseSettingsView
             ShowBorder = true,
             CanCollapse = true,
             Collapsed = true,
-            Title = "Behaviours"
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-behaviours", "Behaviours")
         };
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.LeftClickAction);
@@ -486,11 +490,16 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel);
 
+        this.RenderBoolSetting(groupPanel, areaConfiguration.EnableHistorySplitScrolling);
+        this.RenderIntSetting(groupPanel, areaConfiguration.HistorySplitScrollingSpeed);
+
+        this.RenderEmptyLine(groupPanel);
+
         this.RenderEnumSetting(groupPanel, areaConfiguration.CompletionAction);
         this.RenderFloatSetting(groupPanel, areaConfiguration.CompletedEventsBackgroundOpacity);
         this.RenderFloatSetting(groupPanel, areaConfiguration.CompletedEventsTextOpacity);
         this.RenderBoolSetting(groupPanel, areaConfiguration.CompletedEventsInvertTextColor);
-        this.RenderButton(groupPanel, "Reset hidden Events", () =>
+        this.RenderButton(groupPanel, this.TranslationService.GetTranslation("areaSettingsView-group-behaviours-btn-resetHiddenEvents", "Reset hidden Events"), () =>
         {
             this._eventStateService.Remove(areaConfiguration.Name, EventStateService.EventStates.Hidden);
         });
@@ -514,7 +523,7 @@ public class AreaSettingsView : BaseSettingsView
             ShowBorder = true,
             CanCollapse = true,
             Collapsed = true,
-            Title = "Fillers"
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-fillers", "Fillers")
         };
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.UseFiller);

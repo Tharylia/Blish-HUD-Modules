@@ -2,9 +2,7 @@
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
-using Blish_HUD.ArcDps.Models;
 using Blish_HUD.Controls;
-using Blish_HUD.Entities;
 using Blish_HUD.Input;
 using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.EventTable.Services;
@@ -16,18 +14,16 @@ using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
 using Gw2Sharp.Models;
+using Humanizer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Graphics.PackedVector;
 using Microsoft.Xna.Framework.Input;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
 using Newtonsoft.Json;
-using SharpDX.MediaFoundation;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -53,7 +49,7 @@ public class EventArea : RenderTargetControl
     private MapUtil _mapUtil;
     private IFlurlClient _flurlClient;
     private string _apiRootUrl;
-    private Func<DateTime> _getNowAction;
+    private readonly Func<DateTime> _getNowAction;
     private readonly Func<SemVer.Version> _getVersion;
     private readonly Func<string> _getAccessToken;
 
@@ -119,6 +115,10 @@ public class EventArea : RenderTargetControl
         }
     }
 
+    private int _tempHistorySplit = -1;
+    private TimeSpan? _savedDrawInterval = null;
+    private MouseEventType _lastMouseEventType;
+
     public EventAreaConfiguration Configuration { get; private set; }
 
     public EventArea(EventAreaConfiguration configuration, IconService iconService, TranslationService translationService, EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<SemVer.Version> getVersion, Func<string> getAccessToken)
@@ -143,6 +143,8 @@ public class EventArea : RenderTargetControl
         GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
 
         this.Click += this.OnLeftMouseButtonPressed;
+        this.MouseLeft += this.OnMouseLeft;
+        this.MouseWheelScrolled += this.OnMouseWheelScrolled;
 
         this.Location_SettingChanged(this, null);
         this.Size_SettingChanged(this, null);
@@ -163,7 +165,6 @@ public class EventArea : RenderTargetControl
         this._flurlClient = flurlClient;
         this._apiRootUrl = apiRootUrl;
 
-        //this._eventStateService.
         if (this._worldbossService != null)
         {
             this._worldbossService.WorldbossCompleted += this.Event_Completed;
@@ -180,6 +181,51 @@ public class EventArea : RenderTargetControl
         {
             this._eventService.StateAdded += this.EventService_ServiceAdded;
             this._eventService.StateRemoved += this.EventService_ServiceRemoved;
+        }
+    }
+
+    private void OnMouseWheelScrolled(object sender, MouseEventArgs e)
+    {
+        if (!this.Configuration.EnableHistorySplitScrolling.Value) return;
+
+        if (this._tempHistorySplit == -1)
+        {
+            this._tempHistorySplit = this.Configuration.HistorySplit.Value;
+        }
+
+        this._savedDrawInterval ??= this.DrawInterval;
+        this.DrawInterval = TimeSpan.FromMilliseconds((int)Models.DrawInterval.INSTANT);
+
+        var scrollDistance = GameService.Input.Mouse.State.ScrollWheelValue;
+
+        var scrollValue = this.Configuration.HistorySplitScrollingSpeed.Value * (scrollDistance >= 0 ? 1 : -1);
+
+        var range = this.Configuration.HistorySplit.GetRange();
+
+        if (range == null || !range.HasValue) return;
+
+        if (this._tempHistorySplit + scrollValue > range.Value.Max)
+        {
+            this._tempHistorySplit = (int)range.Value.Max;
+        }
+        else if (this._tempHistorySplit + scrollValue < range.Value.Min)
+        {
+            this._tempHistorySplit = (int)range.Value.Min;
+        }
+        else
+        {
+
+            this._tempHistorySplit += scrollValue;
+        }
+    }
+
+    private void OnMouseLeft(object sender, MouseEventArgs e)
+    {
+        this._tempHistorySplit = -1;
+        if (this._savedDrawInterval != null)
+        {
+            this.DrawInterval = this._savedDrawInterval.Value;
+            this._savedDrawInterval = null;
         }
     }
 
@@ -346,13 +392,22 @@ public class EventArea : RenderTargetControl
 
     protected override CaptureType CapturesInput()
     {
-        return CaptureType.Mouse | CaptureType.DoNotBlock;
+        //var type = this._lastMouseEventType switch
+        //{
+        //    MouseEventType.MouseWheelScrolled => CaptureType.MouseWheel,
+        //    _ => CaptureType.Mouse | CaptureType.DoNotBlock,
+        //};
+
+        //Logger.Debug($"CaptureType: {type.GetFlags().Humanize()}");
+
+        return CaptureType.Mouse | CaptureType.MouseWheel | CaptureType.DoNotBlock;
     }
 
-    public override Control TriggerMouseInput(MouseEventType mouseEventType, MouseState ms)
-    {
-        return this._activeEvent != null ? base.TriggerMouseInput(mouseEventType, ms) : null;
-    }
+    //public override Control TriggerMouseInput(MouseEventType mouseEventType, MouseState ms)
+    //{
+    //    this._lastMouseEventType = mouseEventType;
+    //    return base.TriggerMouseInput(mouseEventType, ms); // This calls CapturesInput() where we get the last type saved prior.
+    //}
 
     private List<IGrouping<string, string>> GetActiveEventKeysGroupedByCategory()
     {
@@ -412,7 +467,9 @@ public class EventArea : RenderTargetControl
 
     private float GetTimeSpanRatio()
     {
-        float ratio = 0.5f + ((this.Configuration.HistorySplit.Value / 100f) - 0.5f);
+        var historySplit = this._tempHistorySplit != -1 ? this._tempHistorySplit : this.Configuration.HistorySplit.Value;
+
+        float ratio = 0.5f + ((historySplit / 100f) - 0.5f);
         return ratio;
     }
 
@@ -579,7 +636,7 @@ public class EventArea : RenderTargetControl
         {
             foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in orderedControlEvents)
             {
-                if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Ev.Category.TryGetTarget(out var eventCategory))
+                if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Model.Category.TryGetTarget(out var eventCategory))
                 {
                     this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).Width + 5, this._drawXOffset);
                 }
@@ -593,7 +650,7 @@ public class EventArea : RenderTargetControl
                 continue; // We dont have anything to render here
             }
 
-            if (this.Configuration.ShowCategoryNames.Value && controlEventPairs.First().Event.Ev.Category.TryGetTarget(out var eventCategory))
+            if (this.Configuration.ShowCategoryNames.Value && controlEventPairs.First().Event.Model.Category.TryGetTarget(out var eventCategory))
             {
                 var color = this.Configuration.CategoryNameColor.Value.Id == 1 ? Color.Black : this.Configuration.CategoryNameColor.Value.Cloth.ToXnaColor();
                 spriteBatch.DrawString(this.GetFont(), eventCategory.Name, new Vector2(0, y), color);
@@ -603,7 +660,7 @@ public class EventArea : RenderTargetControl
 
             foreach ((DateTime Occurence, Event Event) controlEvent in controlEventPairs)
             {
-                bool disabled = this.EventDisabled(controlEvent.Event.Ev);
+                bool disabled = this.EventDisabled(controlEvent.Event.Model);
                 if (disabled)
                 {
                     // Control can be deleted
@@ -611,7 +668,7 @@ public class EventArea : RenderTargetControl
                     continue;
                 }
 
-                float width = (float)controlEvent.Event.Ev.CalculateWidth(controlEvent.Occurence, times.Min, this.GetWidth(), this.PixelPerMinute);
+                float width = (float)controlEvent.Event.Model.CalculateWidth(controlEvent.Occurence, times.Min, this.GetWidth(), this.PixelPerMinute);
 
                 if (width <= 0)
                 {
@@ -621,7 +678,7 @@ public class EventArea : RenderTargetControl
                 else
                 {
                     // We are good to render
-                    float x = (float)controlEvent.Event.Ev.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute);
+                    float x = (float)controlEvent.Event.Model.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute);
                     x = (x < 0 ? 0 : x) + this.DrawXOffset;
                     RectangleF renderRect = new RectangleF(x, y, width, this.Configuration.EventHeight.Value);
                     controlEvent.Event.Render(spriteBatch, renderRect);
@@ -634,7 +691,7 @@ public class EventArea : RenderTargetControl
 
             foreach ((DateTime Occurence, Event Event) delete in toDelete)
             {
-                Logger.Debug($"Deleted event {delete.Event.Ev.Name}");
+                Logger.Debug($"Deleted event {delete.Event.Model.Name}");
                 this.RemoveEventHooks(delete.Event);
                 delete.Event.Dispose();
                 controlEventPairs.Remove(delete);
@@ -645,12 +702,17 @@ public class EventArea : RenderTargetControl
 
         this._heightFromLastDraw = y == 0 ? 1 : y;
 
-        if (this._activeEvent != null && this._lastActiveEvent?.Ev?.Key != this._activeEvent.Ev.Key)
+        if (this._activeEvent != null && this._lastActiveEvent?.Model?.Key != this._activeEvent.Model.Key)
         {
             // Active event changed
-            var isFiller = this._activeEvent?.Ev?.Filler ?? false;
+            var isFiller = this._activeEvent?.Model?.Filler ?? false;
             this.Tooltip?.Dispose();
             this.Tooltip = null;
+            if (!this.Menu?.Visible ?? false)
+            {
+                this.Menu?.Dispose();
+                this.Menu = null;
+            }
 
             if (!isFiller)
             {
@@ -658,11 +720,18 @@ public class EventArea : RenderTargetControl
                 this.Menu = this._activeEvent?.BuildContextMenu();
             }
 
-            _lastActiveEvent = this._activeEvent;
+            this._lastActiveEvent = this._activeEvent;
         }
         else if (this._activeEvent == null)
         {
-            _lastActiveEvent = null;
+            this._lastActiveEvent = null;
+            this.Tooltip?.Dispose();
+            this.Tooltip = null;
+            if (!this.Menu?.Visible ?? false)
+            {
+                this.Menu?.Dispose();
+                this.Menu = null;
+            }
         }
     }
 
@@ -769,7 +838,7 @@ public class EventArea : RenderTargetControl
                         {
                             if (ev.Filler)
                             {
-                                return Color.Transparent;
+                                return new[] { Color.Transparent };
                             }
 
                             float alpha = this.Configuration.EventBackgroundOpacity.Value;
@@ -779,8 +848,23 @@ public class EventArea : RenderTargetControl
                                 alpha = this.Configuration.CompletedEventsBackgroundOpacity.Value;
                             }
 
-                            System.Drawing.Color colorFromEvent = string.IsNullOrWhiteSpace(ev.BackgroundColorCode) ? System.Drawing.Color.White : System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
-                            return new Color(colorFromEvent.R, colorFromEvent.G, colorFromEvent.B) * alpha;
+                            if (this.Configuration.EnableColorGradients.Value && ev.BackgroundColorGradientCodes != null && ev.BackgroundColorGradientCodes.Length > 0)
+                            {
+                                var colorCodes = ev.BackgroundColorGradientCodes.Select(cc =>
+                                {
+                                    var parsedColor = System.Drawing.ColorTranslator.FromHtml(cc);
+                                    return new Color(parsedColor.R, parsedColor.G, parsedColor.B) * alpha;
+                                });
+
+                                return colorCodes.ToArray();
+                            }
+                            else if (!string.IsNullOrWhiteSpace(ev.BackgroundColorCode))
+                            {
+                                var tempColor = System.Drawing.ColorTranslator.FromHtml(ev.BackgroundColorCode);
+                                return new[] { new Color(tempColor.R, tempColor.G, tempColor.B) * alpha };
+                            }
+
+                            return new[] { Color.White * alpha };
                         },
                         () => ev.Filler ? this.Configuration.DrawShadowsForFiller.Value : this.Configuration.DrawShadows.Value,
                         () =>
@@ -805,7 +889,7 @@ public class EventArea : RenderTargetControl
 
     private void OnLeftMouseButtonPressed(object sender, Blish_HUD.Input.MouseEventArgs e)
     {
-        if (_activeEvent == null || _activeEvent.Ev.Filler)
+        if (this._activeEvent == null || this._activeEvent.Model.Filler)
         {
             return;
         }
@@ -813,19 +897,19 @@ public class EventArea : RenderTargetControl
         switch (this.Configuration.LeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (!string.IsNullOrWhiteSpace(_activeEvent.Ev.Waypoint))
+                if (!string.IsNullOrWhiteSpace(this._activeEvent.Model.Waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(_activeEvent.Ev.Waypoint);
+                    ClipboardUtil.WindowsClipboardService.SetTextAsync(this._activeEvent.Model.Waypoint);
                     Shared.Controls.ScreenNotification.ShowNotification(new string[]
                     {
-                        _activeEvent.Ev.Name,
+                        this._activeEvent.Model.Name,
                         "Copied to clipboard!"
                     });
                 }
 
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (string.IsNullOrWhiteSpace(_activeEvent.Ev.Waypoint))
+                if (string.IsNullOrWhiteSpace(this._activeEvent.Model.Waypoint))
                 {
                     return;
                 }
@@ -836,10 +920,10 @@ public class EventArea : RenderTargetControl
                     return;
                 }
 
-                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(_activeEvent.Ev.Waypoint);
+                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(this._activeEvent.Model.Waypoint);
                 if (poi == null)
                 {
-                    Shared.Controls.ScreenNotification.ShowNotification($"{_activeEvent.Ev.Waypoint} not found!", Shared.Controls.ScreenNotification.NotificationType.Error);
+                    Shared.Controls.ScreenNotification.ShowNotification($"{this._activeEvent.Model.Waypoint} not found!", Shared.Controls.ScreenNotification.NotificationType.Error);
                     return;
                 }
 
@@ -964,7 +1048,7 @@ public class EventArea : RenderTargetControl
     private void Ev_FinishRequested(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        this.FinishEvent(ev.Ev, this.GetNextReset());
+        this.FinishEvent(ev.Model, this.GetNextReset());
     }
 
     private void FinishEvent(Models.Event ev, DateTime until)
@@ -990,15 +1074,15 @@ public class EventArea : RenderTargetControl
     private void Ev_HideRequested(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        this.HideEvent(ev.Ev, this.GetNextReset());
+        this.HideEvent(ev.Model, this.GetNextReset());
     }
 
     private void Ev_DisableRequested(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        if (!this.Configuration.DisabledEventKeys.Value.Contains(ev.Ev.SettingKey))
+        if (!this.Configuration.DisabledEventKeys.Value.Contains(ev.Model.SettingKey))
         {
-            this.Configuration.DisabledEventKeys.Value = new List<string>(this.Configuration.DisabledEventKeys.Value) { ev.Ev.SettingKey };
+            this.Configuration.DisabledEventKeys.Value = new List<string>(this.Configuration.DisabledEventKeys.Value) { ev.Model.SettingKey };
         }
     }
 
@@ -1035,6 +1119,7 @@ public class EventArea : RenderTargetControl
         this._worldbossService = null;
         this._mapchestService = null;
         this._eventService = null;
+        this._translationService = null;
         this._mapUtil = null;
         this._pointOfInterestService = null;
 
@@ -1042,6 +1127,8 @@ public class EventArea : RenderTargetControl
         this._apiRootUrl = null;
 
         this.Click -= this.OnLeftMouseButtonPressed;
+        this.MouseLeft -= this.OnMouseLeft;
+        this.MouseWheelScrolled -= this.OnMouseWheelScrolled;
 
         this.Configuration.EnabledKeybinding.Value.Activated -= this.EnabledKeybinding_Activated;
         this.Configuration.Size.X.SettingChanged -= this.Size_SettingChanged;
@@ -1059,5 +1146,8 @@ public class EventArea : RenderTargetControl
         GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
 
         this.Configuration = null;
+
+        this._allEvents?.Clear();
+        this._allEvents = null;
     }
 }

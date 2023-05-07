@@ -103,9 +103,9 @@ public class ScrollingTextArea : Control
             }
 
             // Width is currently not respected 
-            ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, font, this.Width * 0.5f, this.Configuration.EventHeight.Value)
+            ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, font, this.Width, this.Configuration.EventHeight.Value)
             {
-                BaseTextColor = textColor
+                BaseTextColor = textColor,
             };
 
             scrollingTextAreaEvent.Disposed += this.ScrollingTextAreaEvent_Disposed;
@@ -214,12 +214,12 @@ public class ScrollingTextArea : Control
 
             if (activeEvents.Count >= 2)
             {
-                // Move olders events down, if not enough space
+                // Move olders events down, if not enough spacew
                 ScrollingTextAreaEvent lastChecked = activeEvents[activeEvents.Count - 1];
                 for (int i = activeEvents.Count - 2; i >= 0; i--)
                 {
                     ScrollingTextAreaEvent activeEvent = activeEvents[i];
-                    if (lastChecked.Time < activeEvent.Time + this.DistanceToTime(now, actualScrollspeed, activeEvent.Height))
+                    if (lastChecked.Time <= activeEvent.Time + this.DistanceToTime(now, actualScrollspeed, activeEvent.Height))
                     {
                         activeEvent.Time -= this.DistanceToTime(now, actualScrollspeed, lastChecked.Height);
                     }

@@ -17,7 +17,9 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<LeftClickAction> LeftClickAction { get; set; }
     public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
     public SettingEntry<int> TimeSpan { get; set; } 
-    public SettingEntry<int> HistorySplit { get; set; } 
+    public SettingEntry<int> HistorySplit { get; set; }
+    public SettingEntry<bool> EnableHistorySplitScrolling { get; set; }
+    public SettingEntry<int> HistorySplitScrollingSpeed { get; set; }
     public SettingEntry<bool> DrawBorders { get; set; } 
     public SettingEntry<bool> UseFiller { get; set; }
     public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> FillerTextColor { get; set; }
@@ -60,4 +62,6 @@ public class EventAreaConfiguration : DrawerConfiguration
 
     public SettingEntry<bool> ShowCategoryNames { get; set; }
     public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> CategoryNameColor { get; set; }
+
+    public SettingEntry<bool> EnableColorGradients { get; set; }
 }

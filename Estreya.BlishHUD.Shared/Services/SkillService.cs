@@ -26,13 +26,13 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media.Animation;
 
 public class SkillService : FilesystemAPIService<Skill>
 {
     protected override string BASE_FOLDER_STRUCTURE => "skills";
     protected override string FILE_NAME => "skills.json";
 
-    private const string SKILL_FOLDER_NAME = "skills";
     private const string MISSING_SKILLS_FILE_NAME = "missing_skills.json";
     private const string REMAPPED_SKILLS_FILE_NAME = "remapped_skills.json";
 
@@ -53,18 +53,25 @@ public class SkillService : FilesystemAPIService<Skill>
         Category = SkillCategory.Skill,
     };
 
-    private ConcurrentDictionary<int, (string Name, int HintId)> _missingSkillsFromAPIReportedByArcDPS;
+    private struct MissingArcDPSSkill
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public int HintID { get; set; }
+    }
+
+    private SynchronizedCollection<MissingArcDPSSkill> _missingSkillsFromAPIReportedByArcDPS;
 
     public SkillService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, IconService iconService, string baseFolderPath, IFlurlClient flurlClient, string webRootUrl) : base(apiManager, configuration, baseFolderPath)
     {
         this._iconService = iconService;
         this._flurlClient = flurlClient;
-        this._webRootUrl = webRootUrl;
+        this._webRootUrl = new Uri(new Uri( webRootUrl), "/gw2/api/v2/skills").ToString();
     }
 
     protected override Task DoInitialize()
     {
-        this._missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, (string Name, int HintId)>();
+        this._missingSkillsFromAPIReportedByArcDPS = new SynchronizedCollection<MissingArcDPSSkill>();
         return Task.CompletedTask;
     }
 
@@ -98,14 +105,15 @@ public class SkillService : FilesystemAPIService<Skill>
 
     protected override async Task OnAfterLoadFromAPIAfterSave()
     {
+        this.ReportProgress("Adding missing skills...");
         await this.AddMissingSkills(this.APIObjectList);
+
+        this.ReportProgress("Remap skills...");
         await this.RemapSkillIds(this.APIObjectList);
 
-        Logger.Debug("Loading skill icons..");
-
+        this.ReportProgress("Loading skill icons...");
         this.LoadSkillIcons(this.APIObjectList);
 
-        Logger.Debug("Loaded skill icons..");
         this.SignalUpdated();
     }
 
@@ -188,7 +196,7 @@ public class SkillService : FilesystemAPIService<Skill>
 
     private async Task RemapSkillIds(List<Skill> skills)
     {
-        using var remappedSkillsStream = await this._flurlClient.Request(_webRootUrl, SKILL_FOLDER_NAME, REMAPPED_SKILLS_FILE_NAME).GetStreamAsync();
+        using var remappedSkillsStream = await this._flurlClient.Request(_webRootUrl, REMAPPED_SKILLS_FILE_NAME).GetStreamAsync();
         using var progressStream = new ReadProgressStream(remappedSkillsStream);
         progressStream.ProgressChanged += (s, e) => this.ReportProgress($"Reading remapped skills... {Math.Round(e.Progress, 0)}%");
         JsonSerializer serializer = JsonSerializer.CreateDefault(this._serializerSettings);
@@ -222,7 +230,7 @@ public class SkillService : FilesystemAPIService<Skill>
 
     private async Task AddMissingSkills(List<Skill> skills)
     {
-        var missingSkillsStream = await this._flurlClient.Request(this._webRootUrl, SKILL_FOLDER_NAME, MISSING_SKILLS_FILE_NAME).GetStreamAsync();
+        var missingSkillsStream = await this._flurlClient.Request(this._webRootUrl, MISSING_SKILLS_FILE_NAME).GetStreamAsync();
         using var progressStream = new ReadProgressStream(missingSkillsStream);
         progressStream.ProgressChanged += (s, e) => this.ReportProgress($"Reading missing skills... {Math.Round(e.Progress, 0)}%");
         JsonSerializer serializer = JsonSerializer.CreateDefault(this._serializerSettings);
@@ -277,7 +285,7 @@ public class SkillService : FilesystemAPIService<Skill>
     {
         string missingSkillPath = Path.Combine(this.DirectoryPath, LOCAL_MISSING_SKILL_FILE_NAME);
 
-        await FileUtil.WriteStringAsync(missingSkillPath, JsonConvert.SerializeObject(this._missingSkillsFromAPIReportedByArcDPS.OrderBy(skill => skill.Value).ToDictionary(skill => skill.Key, skill => skill.Value), Formatting.Indented));
+        await FileUtil.WriteStringAsync(missingSkillPath, JsonConvert.SerializeObject(this._missingSkillsFromAPIReportedByArcDPS.OrderBy(skill => skill.ID), Formatting.Indented));
     }
 
     private async Task LoadMissingSkills()
@@ -287,7 +295,7 @@ public class SkillService : FilesystemAPIService<Skill>
         {
             try
             {
-                this._missingSkillsFromAPIReportedByArcDPS = JsonConvert.DeserializeObject<ConcurrentDictionary<int, (string Name, int HintId)>>(await FileUtil.ReadStringAsync(missingSkillPath));
+                this._missingSkillsFromAPIReportedByArcDPS = JsonConvert.DeserializeObject<SynchronizedCollection<MissingArcDPSSkill>>(await FileUtil.ReadStringAsync(missingSkillPath));
             }
             catch (Exception)
             {
@@ -296,7 +304,7 @@ public class SkillService : FilesystemAPIService<Skill>
         }
         else
         {
-            this._missingSkillsFromAPIReportedByArcDPS = new ConcurrentDictionary<int, (string Name, int HintId)>();
+            this._missingSkillsFromAPIReportedByArcDPS = new SynchronizedCollection<MissingArcDPSSkill>();
         }
     }
 
@@ -359,6 +367,8 @@ public class SkillService : FilesystemAPIService<Skill>
 
     public bool AddMissingSkill(int id, string name)
     {
+        if (this._missingSkillsFromAPIReportedByArcDPS.Any(m => m.ID == id)) return false;
+
         int hintId = -1;
         using (this._apiObjectListLock.Lock())
         {
@@ -372,11 +382,24 @@ public class SkillService : FilesystemAPIService<Skill>
             }
         }
 
-        return this._missingSkillsFromAPIReportedByArcDPS?.TryAdd(id, (name, hintId)) ?? false;
+        this._missingSkillsFromAPIReportedByArcDPS?.Add(new MissingArcDPSSkill()
+        {
+            ID = id,
+            Name = name,
+            HintID = hintId
+        });
+
+        return true;
     }
 
     public void RemoveMissingSkill(int id)
     {
-        _ = this._missingSkillsFromAPIReportedByArcDPS?.TryRemove(id, out (string Name, int HintId) _);
+        var items = this._missingSkillsFromAPIReportedByArcDPS.Where(m => m.ID == id).ToList();
+        if (!items.Any()) return;
+
+        foreach (var item in items)
+        {
+            _ = this._missingSkillsFromAPIReportedByArcDPS?.Remove(item);
+        }
     }
 }

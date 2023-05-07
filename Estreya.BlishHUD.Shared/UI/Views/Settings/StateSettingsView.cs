@@ -11,6 +11,8 @@
     using System;
     using System.Collections.ObjectModel;
     using System.Threading.Tasks;
+    using System.CodeDom;
+    using System.Collections.Generic;
 
     public class ServiceSettingsView : BaseSettingsView
     {
@@ -27,7 +29,25 @@
         {
             foreach (ManagedService state in _stateList)
             {
-                if (state.GetType().BaseType.IsGenericType && state.GetType().BaseType.GetGenericTypeDefinition() == typeof(APIService<>))
+                List<Type> baseTypes = new List<Type>();
+
+                var baseType = state.GetType().BaseType;
+
+                while(baseType != null)
+                {
+                    if (baseType.IsGenericType)
+                    {
+                        baseTypes.Add(baseType.GetGenericTypeDefinition());
+                    }
+                    else
+                    {
+                        baseTypes.Add(baseType);
+                    }
+
+                    baseType = baseType.BaseType;
+                }
+
+                if (state.GetType().BaseType.IsGenericType && baseTypes.Contains(typeof(APIService<>)))
                 {
                     var loading = (bool)state.GetType().GetProperty(nameof(APIService<object>.Loading)).GetValue(state);
                     var finished = state.Running && !loading;

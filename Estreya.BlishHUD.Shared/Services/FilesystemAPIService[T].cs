@@ -7,6 +7,7 @@ using Estreya.BlishHUD.Shared.Models.GW2API.Converter;
 using Estreya.BlishHUD.Shared.Utils;
 using Gw2Sharp.WebApi.V2.Models;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -45,6 +46,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
             {
                 new RenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection),
                 new NullableRenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection),
+                new StringEnumConverter()
             }
         };
     }
@@ -199,11 +201,6 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
     protected override async Task Save()
     {
-        if (Directory.Exists(this.DirectoryPath))
-        {
-            Directory.Delete(this.DirectoryPath, true);
-        }
-
         _ = Directory.CreateDirectory(this.DirectoryPath);
 
         using (await this._apiObjectListLock.LockAsync())

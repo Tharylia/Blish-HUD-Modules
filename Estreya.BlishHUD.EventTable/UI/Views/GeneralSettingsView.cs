@@ -45,7 +45,7 @@
             };
 
             var lbl = new FormattedLabelBuilder().SetWidth(visibilityOptionGroup.ContentRegion.Width - 20).AutoSizeHeight().Wrap()
-                .CreatePart("These options are global. The individual area options have priority and will hide it if any matches!", builder =>
+                .CreatePart(this.TranslationService.GetTranslation("generalSettingsView-uiVisibilityWarning", "These options are global. The individual area options have priority and will hide it if any matches!"), builder =>
                 {
                     builder.MakeBold().SetFontSize(Blish_HUD.ContentService.FontSize.Size18);
                 }).Build();
@@ -64,7 +64,7 @@
 
             this.RenderEmptyLine(parent);
 
-            this.RenderEnumSetting(parent, _moduleSettings.MenuEventSortMenu);
+            this.RenderEnumSetting(parent, _moduleSettings.MenuEventSortMode);
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)

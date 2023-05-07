@@ -3,7 +3,6 @@
     using Blish_HUD;
     using Blish_HUD.Content;
     using Blish_HUD.Controls;
-    using Blish_HUD.Entities;
     using Blish_HUD.Input;
     using Blish_HUD.Modules;
     using Blish_HUD.Settings;
@@ -11,23 +10,16 @@
     using Estreya.BlishHUD.EventTable.Managers;
     using Estreya.BlishHUD.EventTable.Models;
     using Estreya.BlishHUD.EventTable.Services;
-    using Estreya.BlishHUD.Shared.Controls.World;
     using Estreya.BlishHUD.Shared.Extensions;
-    using Estreya.BlishHUD.Shared.Helpers;
     using Estreya.BlishHUD.Shared.Modules;
-    using Estreya.BlishHUD.Shared.Settings;
     using Estreya.BlishHUD.Shared.Services;
+    using Estreya.BlishHUD.Shared.Settings;
     using Estreya.BlishHUD.Shared.Threading;
     using Estreya.BlishHUD.Shared.Utils;
     using Flurl.Http;
     using Gw2Sharp.Models;
     using Humanizer;
     using Microsoft.Xna.Framework;
-    using Microsoft.Xna.Framework.Graphics;
-    using Newtonsoft.Json;
-    using Octokit;
-    using SharpDX.MediaFoundation;
-    using SharpDX.X3DAudio;
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
@@ -35,8 +27,6 @@
     using System.ComponentModel.Composition;
     using System.Diagnostics;
     using System.Linq;
-    using System.Net;
-    using System.Text;
     using System.Threading;
     using System.Threading.Tasks;
 
@@ -45,16 +35,16 @@
     {
         public override string UrlModuleName => "event-table";
 
-        private ConcurrentDictionary<string, EventArea> _areas = new ConcurrentDictionary<string, EventArea>();
+        private ConcurrentDictionary<string, EventArea> _areas;
 
         private AsyncLock _eventCategoryLock = new AsyncLock();
         private List<EventCategory> _eventCategories = new List<EventCategory>();
 
         private static TimeSpan _updateEventsInterval = TimeSpan.FromMinutes(30);
-        private AsyncRef<double> _lastEventUpdate = new AsyncRef<double>(0);
+        private AsyncRef<double> _lastEventUpdate;
 
         private static TimeSpan _checkDrawerSettingInterval = TimeSpan.FromSeconds(30);
-        private double _lastCheckDrawerSettings = 0;
+        private double _lastCheckDrawerSettings;
 
         private DateTime NowUTC => DateTime.UtcNow;
 
@@ -72,6 +62,15 @@
         [ImportingConstructor]
         public EventTableModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters)
         {
+        }
+
+        protected override void Initialize()
+        {
+            base.Initialize();
+
+            this._areas = new ConcurrentDictionary<string, EventArea>();
+            this._lastEventUpdate = new AsyncRef<double>(0);
+            this._lastCheckDrawerSettings = 0;
         }
 
         protected override async Task LoadAsync()
@@ -105,8 +104,14 @@
 
         private void DynamicEventHandler_FoundLostEntities(object sender, EventArgs e)
         {
+            var messages = new string[]
+            {
+                this.TranslationService.GetTranslation("dynamicEventHandler-foundLostEntities1","GameService.Graphics.World.Entities has lost references."),
+                this.TranslationService.GetTranslation("dynamicEventHandler-foundLostEntities2","Expect dynamic event boundaries on screen.")
+            };
+
             Shared.Controls.ScreenNotification.ShowNotification(
-                new string[] { "GameService.Graphics.World.Entities has lost references.", "Expect dynamic event boundaries on screen." },
+                messages,
                 Shared.Controls.ScreenNotification.NotificationType.Warning);
         }
 
@@ -145,7 +150,7 @@
                 this.Logger.Debug("Acquired lock.");
                 try
                 {
-                    this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.RemoveEventHooks(ev));
+                    this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(this.RemoveEventHooks);
                     this._eventCategories?.Clear();
 
                     var request = this.GetFlurlClient().Request(this.MODULE_API_URL, "events");
@@ -373,7 +378,7 @@
                 return;
             }
 
-            var startsInTranslation = this.TranslationService.GetTranslation("eventArea-reminder-startsIn", "Starts in");
+            var startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
             var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconService)
             {
                 BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value
@@ -453,7 +458,11 @@
         {
             // Reorder Icon: 605018
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(
+                this.IconService.GetIcon("156736.png"), 
+                () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+                this.TranslationService.GetTranslation("generalSettingsView-title", "General")));
+
             //this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconService = this.IconService, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
             UI.Views.AreaSettingsView areaSettingsView = new UI.Views.AreaSettingsView(
                 () => this._areas.Values.Select(area => area.Configuration),
@@ -481,12 +490,30 @@
                 this.RemoveArea(e);
             };
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => areaSettingsView, "Event Areas"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("1466345.png"), () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Reminders"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("759448.png"), () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Dynamic Events"));
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156764.png"), () => new UI.Views.CustomEventView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Custom Events"));
+            this.SettingsWindow.Tabs.Add(new Tab(
+                this.IconService.GetIcon("605018.png"), 
+                () => areaSettingsView,
+                this.TranslationService.GetTranslation("areaSettingsView-title", "Event Areas")));
 
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("157097.png"), () => new UI.Views.HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
+            this.SettingsWindow.Tabs.Add(new Tab(
+                this.IconService.GetIcon("1466345.png"), 
+                () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+                this.TranslationService.GetTranslation("reminderSettingsView-title", "Reminders")));
+
+            this.SettingsWindow.Tabs.Add(new Tab(
+                this.IconService.GetIcon("759448.png"), 
+                () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+                this.TranslationService.GetTranslation("dynamicEventsSettingsView-title", "Dynamic Events")));
+
+            this.SettingsWindow.Tabs.Add(new Tab(
+                this.IconService.GetIcon("156764.png"), 
+                () => new UI.Views.CustomEventView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+                this.TranslationService.GetTranslation("customEventView-title", "Custom Events")));
+
+            this.SettingsWindow.Tabs.Add(new Tab(
+                this.IconService.GetIcon("157097.png"), 
+                () => new UI.Views.HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+                this.TranslationService.GetTranslation("helpView-title", "Help")));
 
         }
 
@@ -499,6 +526,7 @@
         {
             configurations.BlishHUDAPI.Enabled = true;
             configurations.Account.Enabled = true;
+            configurations.Account.AwaitLoading = true;
             configurations.Worldbosses.Enabled = true;
             configurations.Mapchests.Enabled = true;
             configurations.PointOfInterests.Enabled = true;
@@ -518,7 +546,7 @@
         {
             Collection<ManagedService> additionalServices = new Collection<ManagedService>();
 
-            this.EventStateService = new EventStateService (new ServiceConfiguration()
+            this.EventStateService = new EventStateService(new ServiceConfiguration()
             {
                 AwaitLoading = false,
                 Enabled = true,
@@ -581,7 +609,7 @@
 
             using (this._eventCategoryLock.Lock())
             {
-                foreach (var ec in _eventCategories)
+                foreach (var ec in this._eventCategories)
                 {
                     ec.Events.ForEach(ev => this.RemoveEventHooks(ev));
                 }

@@ -1,4 +1,6 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Models;
+
+using Estreya.BlishHUD.Shared.Attributes;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -8,10 +10,10 @@ using System.Threading.Tasks;
 
 public enum MenuEventSortMode
 {
-    [Description("Default")]
+    [Translation("menuEventSortMode-default","Default")]
     Default,
-    [Description("Alphabetical (A-Z)")]
+    [Translation("menuEventSortMode-alphabetical", "Alphabetical (A-Z)")]
     Alphabetical,
-    [Description("Alphabetical (Z-A)")]
+    [Translation("menuEventSortMode-alphabeticalDesc", "Alphabetical (Z-A)")]
     AlphabeticalDesc
 }

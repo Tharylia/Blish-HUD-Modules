@@ -52,7 +52,15 @@
 
         protected override async Task<List<string>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
         {
-            DateTime lastModifiedUTC = this._accountService.Account?.LastModified.UtcDateTime ?? DateTime.MinValue;
+            _ = await this._accountService.WaitForCompletion(TimeSpan.FromSeconds(30));
+
+            if (this._accountService.Account == null)
+            {
+                this.Logger.Warn($"{this._accountService.GetType().Name} did not return a value. Check can not be performed safely. Abort.");
+                return new List<string>();
+            }
+
+            DateTime lastModifiedUTC = this._accountService.Account.LastModified.UtcDateTime;
 
             DateTime now = DateTime.UtcNow;
             DateTime lastResetUTC = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);

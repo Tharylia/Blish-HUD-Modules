@@ -315,6 +315,16 @@
             this.RegisterCornerIcon.GetDisplayNameFunc = () => translationService.GetTranslation("setting-registerCornerIcon-name", registerCornerIconDisplayNameDefault);
             this.RegisterCornerIcon.GetDescriptionFunc = () => translationService.GetTranslation("setting-registerCornerIcon-description", registerCornerIconDescriptionDefault);
 
+            var cornerIconLeftClickActionDisplayNameDefault = this.CornerIconLeftClickAction.DisplayName;
+            var cornerIconLeftClickActionDescriptionDefault = this.CornerIconLeftClickAction.Description;
+            this.CornerIconLeftClickAction.GetDisplayNameFunc = () => translationService.GetTranslation("setting-cornerIconLeftClickAction-name", cornerIconLeftClickActionDisplayNameDefault);
+            this.CornerIconLeftClickAction.GetDescriptionFunc = () => translationService.GetTranslation("setting-cornerIconLeftClickAction-description", cornerIconLeftClickActionDescriptionDefault);
+
+            var cornerIconRightClickActionDisplayNameDefault = this.CornerIconRightClickAction.DisplayName;
+            var cornerIconRightClickActionDescriptionDefault = this.CornerIconRightClickAction.Description;
+            this.CornerIconRightClickAction.GetDisplayNameFunc = () => translationService.GetTranslation("setting-cornerIconRightClickAction-name", cornerIconRightClickActionDisplayNameDefault);
+            this.CornerIconRightClickAction.GetDescriptionFunc = () => translationService.GetTranslation("setting-cornerIconRightClickAction-description", cornerIconRightClickActionDescriptionDefault);
+
             var hideOnOpenMapDisplayNameDefault = this.HideOnOpenMap.DisplayName;
             var hideOnOpenMapDescriptionDefault = this.HideOnOpenMap.Description;
             this.HideOnOpenMap.GetDisplayNameFunc = () => translationService.GetTranslation("setting-hideOnOpenMap-name", hideOnOpenMapDisplayNameDefault);

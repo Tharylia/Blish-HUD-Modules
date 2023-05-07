@@ -60,12 +60,12 @@ public class ManageReminderTimesView : BaseView
             FlowDirection = ControlFlowDirection.SingleRightToLeft
         };
 
-        this.RenderButton(buttonGroup, "Cancel", () =>
+        this.RenderButton(buttonGroup, this.TranslationService.GetTranslation("manageReminderTimesView-btn-cancel", "Cancel"), () =>
         {
             this.CancelClicked?.Invoke(this, EventArgs.Empty);
         });
 
-        this.RenderButton(buttonGroup, "Save", () =>
+        this.RenderButton(buttonGroup, this.TranslationService.GetTranslation("manageReminderTimesView-btn-save", "Save"), () =>
         {
             this.SaveClicked?.Invoke(this,(this._ev, this._reminderTimes));
         });
@@ -86,17 +86,17 @@ public class ManageReminderTimesView : BaseView
         var addButtonPanel = new Panel()
         {
             Parent = parent,
-            Width = x + 100,
+            Width = x + 120,
             HeightSizingMode = SizingMode.AutoSize
         };
 
-        var addButton = this.RenderButton(addButtonPanel, "Add", () =>
+        var addButton = this.RenderButton(addButtonPanel, this.TranslationService.GetTranslation("manageReminderTimesView-btn-add", "Add"), () =>
         {
             this._reminderTimes.Add(TimeSpan.Zero);
             this.RenderTimes(parent);
         });
         addButton.Left = x;
-        addButton.Width = 100;
+        addButton.Width = 120;
         addButton.Icon = this.IconService.GetIcon("1444520.png");
         addButton.ResizeIcon = false;
     }
@@ -200,14 +200,14 @@ public class ManageReminderTimesView : BaseView
             }
         };
 
-        var removeButton = this.RenderButton(timeSectionPanel, "Remove", () =>
+        var removeButton = this.RenderButton(timeSectionPanel, this.TranslationService.GetTranslation("manageReminderTimesView-btn-remove", "Remove"), () =>
         {
             this._reminderTimes.Remove(time);
             this.RenderTimes(parent);
         }, () => disableRemove);
 
         removeButton.Left = seconds.Right + 10;
-        removeButton.Width = 100;
+        removeButton.Width = 120;
         removeButton.Icon = this.IconService.GetIcon("1444524.png");
         removeButton.ResizeIcon = false;
 

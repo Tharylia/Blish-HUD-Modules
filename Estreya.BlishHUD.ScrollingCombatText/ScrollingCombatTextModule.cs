@@ -12,7 +12,7 @@
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
     using Estreya.BlishHUD.Shared.Modules;
     using Estreya.BlishHUD.Shared.Settings;
-    using Estreya.BlishHUD.Shared.Service;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.Utils;
     using Humanizer;
     using Microsoft.Xna.Framework;

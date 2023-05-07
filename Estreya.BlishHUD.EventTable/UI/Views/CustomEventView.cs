@@ -57,14 +57,14 @@ public class CustomEventView : BaseView
         };
 
         var labelBuilder = this.GetLabelBuilder(parent)
-            .CreatePart("1. Make an account at ", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
-            .CreatePart("Estreya BlishHUD API.", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20).SetHyperLink("https://blish-hud.estreya.de/register"); })
+            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual1", "1. Make an account at") + " ", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
+            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual2", "Estreya BlishHUD API."), builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20).SetHyperLink("https://blish-hud.estreya.de/register"); })
             .CreatePart("\n \n", builder => { })
-            .CreatePart("2. Follow steps send by mail.", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
+            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual3", "2. Follow steps send by mail."), builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
             .CreatePart("\n \n", builder => { })
-            .CreatePart("3. Add your own custom events.", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
+            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual4", "3. Add your own custom events."), builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
             .CreatePart("\n \n", builder => { })
-            .CreatePart("4. Enter login details below.", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); });
+            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual5", "4. Enter login details below."), builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); });
 
         var label = labelBuilder.Build();
         label.Parent = instructionPanel;
@@ -87,9 +87,9 @@ public class CustomEventView : BaseView
 
         const string passwordUnchangedPhrase = "<<Unchanged>>";
 
-        var usernameTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, this._blishHudApiService.GetAPIUsername(), "API Username");
+        var usernameTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, this._blishHudApiService.GetAPIUsername(),this.TranslationService.GetTranslation("customEventView-apiUsername", "API Username"));
 
-        var passwordTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, !string.IsNullOrWhiteSpace(password) ? passwordUnchangedPhrase : null, "API Password");
+        var passwordTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, !string.IsNullOrWhiteSpace(password) ? passwordUnchangedPhrase : null, this.TranslationService.GetTranslation("customEventView-apiPassword", "API Password"));
 
         var buttonPanel = new FlowPanel()
         {
@@ -99,7 +99,7 @@ public class CustomEventView : BaseView
             FlowDirection = ControlFlowDirection.SingleLeftToRight,
         };
 
-        this.RenderButtonAsync(buttonPanel, "Save", async () =>
+        this.RenderButtonAsync(buttonPanel, this.TranslationService.GetTranslation("customEventView-btn-save", "Save"), async () =>
         {
             this._blishHudApiService.SetAPIUsername(usernameTextBox.Text);
             await this._blishHudApiService.SetAPIPassword(passwordTextBox.Text == passwordUnchangedPhrase ? password : passwordTextBox.Text);
@@ -107,13 +107,13 @@ public class CustomEventView : BaseView
             await this._blishHudApiService.Login();
         });
 
-        this.RenderButtonAsync(buttonPanel, "Test Login", async () =>
+        this.RenderButtonAsync(buttonPanel, this.TranslationService.GetTranslation("customEventView-btn-testLogin", "Test Login"), async () =>
         {
             await this._blishHudApiService.TestLogin(usernameTextBox.Text, passwordTextBox.Text == passwordUnchangedPhrase ? password : passwordTextBox.Text);
             this.ShowInfo("Login successful!");
         });
 
-        this.RenderButtonAsync(buttonPanel, "Clear Credentials", async () =>
+        this.RenderButtonAsync(buttonPanel, this.TranslationService.GetTranslation("customEventView-btn-clearCredentials", "Clear Credentials"), async () =>
         {
             this._blishHudApiService.SetAPIUsername(null);
             await this._blishHudApiService.SetAPIPassword(null);

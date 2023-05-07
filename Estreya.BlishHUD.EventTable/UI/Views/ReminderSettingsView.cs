@@ -49,7 +49,7 @@
 
             this.RenderEmptyLine(parent);
 
-            this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-manageReminders-btn", "Manage Reminders"), () =>
+            this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-manageReminders", "Manage Reminders"), () =>
             {
                 this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
 
@@ -65,12 +65,10 @@
                         {
                             new ManageEventsView.CustomActionDefinition()
                             {
-                                Name = "Change Times",
-                                Tooltip = "Click to change the times at which reminders happen.",
+                                Name = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-title","Change Times"),
+                                Tooltip = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-tooltip","Click to change the times at which reminders happen."),
                                 Icon = "1466345.png",
-                                Action = (ev) => {
-                                    this.ManageReminderTimes(ev);
-                                }
+                                Action = this.ManageReminderTimes
                             }
                         }
                     }
@@ -80,7 +78,7 @@
                 _manageEventsWindow.Show(view);
             });
 
-            this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-testReminder-btn", "Test Reminder"), () =>
+            this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-testReminder", "Test Reminder"), () =>
             {
                 var reminder = new EventNotification(new Models.Event()
                 {
@@ -94,7 +92,7 @@
                 reminder.Show(TimeSpan.FromSeconds(_moduleSettings.ReminderDuration.Value));
             });
 
-            this.RenderButton(parent, "Change all Reminder Times", () =>
+            this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-changeAllTimes", "Change all Reminder Times"), () =>
             {
                 this.ManageReminderTimes(_globalChangeTempEvent);
             });
