@@ -122,7 +122,7 @@
 
             var categoryList = eventCategories.GroupBy(ec => ec.Key).Select(ec => ec.First());
 
-            switch (this._moduleSettings.MenuEventSortMenu.Value)
+            switch (this._moduleSettings.MenuEventSortMode.Value)
             {
                 case MenuEventSortMode.Alphabetical:
                     categoryList = categoryList.OrderBy(c => c.Name);

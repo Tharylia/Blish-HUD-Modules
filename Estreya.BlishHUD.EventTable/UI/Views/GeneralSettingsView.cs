@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views
 {
     using Blish_HUD.Controls;
     using Blish_HUD.Modules.Managers;
@@ -64,7 +64,7 @@ namespace Estreya.BlishHUD.EventTable.UI.Views
 
             this.RenderEmptyLine(parent);
 
-            this.RenderEnumSetting(parent, _moduleSettings.MenuEventSortMenu);
+            this.RenderEnumSetting(parent, _moduleSettings.MenuEventSortMode);
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)
