@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Input;
@@ -20,15 +20,6 @@
 
     public class ModuleSettings : BaseModuleSettings
     {
-        #region Global Settings
-        public SettingEntry<KeyBinding> MapKeybinding { get; private set; }
-        #endregion
-
-        #region Events
-        private const string EVENT_SETTINGS = "event-settings";
-        public SettingCollection EventSettings { get; private set; }
-        #endregion
-
         private const string EVENT_AREA_SETTINGS = "event-area-settings";
         public SettingCollection EventAreaSettings { get; private set; }
         public SettingEntry<List<string>> EventAreaNames { get; private set; }
