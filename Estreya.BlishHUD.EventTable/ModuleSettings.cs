@@ -180,6 +180,10 @@ namespace Estreya.BlishHUD.EventTable
 
             var historySplit = this.DrawerSettings.DefineSetting($"{name}-historySplit", 50, () => "History Split", () => "Defines how much history the timespan should contain.");
             historySplit.SetRange(0, 75);
+            var enableHistorySplitScrolling = this.DrawerSettings.DefineSetting($"{name}-enableHistorySplitScrolling", false, () => "Enable History Split Scrolling", () => "Defines if scrolling inside the event area temporary moves the history split until the mouse leaves the area.");
+
+            var historySplitScrollingSpeed = this.DrawerSettings.DefineSetting($"{name}-historySplitScrollingSpeed", 1, () => "History Split Scrolling Speed", () => "Defines the speed when scrolling inside the event area.");
+            historySplitScrollingSpeed.SetRange(1, 10);
 
             var drawBorders = this.DrawerSettings.DefineSetting($"{name}-drawBorders", false, () => "Draw Borders", () => "Whether the events should be rendered with borders.");
             var useFillers = this.DrawerSettings.DefineSetting($"{name}-useFillers", true, () => "Use Filler Events", () => "Whether the empty spaces should be filled by filler events.");
@@ -272,6 +276,8 @@ namespace Estreya.BlishHUD.EventTable
                 ShowTooltips = showTooltips,
                 DrawBorders = drawBorders,
                 HistorySplit = historySplit,
+                EnableHistorySplitScrolling = enableHistorySplitScrolling,
+                HistorySplitScrollingSpeed = historySplitScrollingSpeed,
                 TimeSpan = timespan,
                 UseFiller = useFillers,
                 FillerTextColor = fillerTextColor,
@@ -331,6 +337,8 @@ namespace Estreya.BlishHUD.EventTable
             this.DrawerSettings.UndefineSetting($"{name}-showTooltips");
             this.DrawerSettings.UndefineSetting($"{name}-timespan");
             this.DrawerSettings.UndefineSetting($"{name}-historySplit");
+            this.DrawerSettings.UndefineSetting($"{name}-enableHistorySplitScrolling");
+            this.DrawerSettings.UndefineSetting($"{name}-historySplitScrollingSpeed");
             this.DrawerSettings.UndefineSetting($"{name}-drawBorders");
             this.DrawerSettings.UndefineSetting($"{name}-useFillers");
             this.DrawerSettings.UndefineSetting($"{name}-fillerTextColor");

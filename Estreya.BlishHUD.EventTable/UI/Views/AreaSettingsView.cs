@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
+namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -487,6 +487,11 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEnumSetting(groupPanel, areaConfiguration.LeftClickAction);
         this.RenderBoolSetting(groupPanel, areaConfiguration.AcceptWaypointPrompt);
         this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTooltips);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.EnableHistorySplitScrolling);
+        this.RenderIntSetting(groupPanel, areaConfiguration.HistorySplitScrollingSpeed);
 
         this.RenderEmptyLine(groupPanel);
 
