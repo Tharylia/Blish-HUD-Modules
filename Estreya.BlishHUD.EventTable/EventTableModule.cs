@@ -508,6 +508,7 @@ namespace Estreya.BlishHUD.EventTable
         {
             configurations.BlishHUDAPI.Enabled = true;
             configurations.Account.Enabled = true;
+            configurations.Account.AwaitLoading = true;
             configurations.Worldbosses.Enabled = true;
             configurations.Mapchests.Enabled = true;
             configurations.PointOfInterests.Enabled = true;
