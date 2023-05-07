@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -579,7 +579,7 @@ public class EventArea : RenderTargetControl
         {
             foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in orderedControlEvents)
             {
-                if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Ev.Category.TryGetTarget(out var eventCategory))
+                if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Model.Category.TryGetTarget(out var eventCategory))
                 {
                     this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).Width + 5, this._drawXOffset);
                 }
@@ -593,7 +593,7 @@ public class EventArea : RenderTargetControl
                 continue; // We dont have anything to render here
             }
 
-            if (this.Configuration.ShowCategoryNames.Value && controlEventPairs.First().Event.Ev.Category.TryGetTarget(out var eventCategory))
+            if (this.Configuration.ShowCategoryNames.Value && controlEventPairs.First().Event.Model.Category.TryGetTarget(out var eventCategory))
             {
                 var color = this.Configuration.CategoryNameColor.Value.Id == 1 ? Color.Black : this.Configuration.CategoryNameColor.Value.Cloth.ToXnaColor();
                 spriteBatch.DrawString(this.GetFont(), eventCategory.Name, new Vector2(0, y), color);
@@ -603,7 +603,7 @@ public class EventArea : RenderTargetControl
 
             foreach ((DateTime Occurence, Event Event) controlEvent in controlEventPairs)
             {
-                bool disabled = this.EventDisabled(controlEvent.Event.Ev);
+                bool disabled = this.EventDisabled(controlEvent.Event.Model);
                 if (disabled)
                 {
                     // Control can be deleted
@@ -611,7 +611,7 @@ public class EventArea : RenderTargetControl
                     continue;
                 }
 
-                float width = (float)controlEvent.Event.Ev.CalculateWidth(controlEvent.Occurence, times.Min, this.GetWidth(), this.PixelPerMinute);
+                float width = (float)controlEvent.Event.Model.CalculateWidth(controlEvent.Occurence, times.Min, this.GetWidth(), this.PixelPerMinute);
 
                 if (width <= 0)
                 {
@@ -621,7 +621,7 @@ public class EventArea : RenderTargetControl
                 else
                 {
                     // We are good to render
-                    float x = (float)controlEvent.Event.Ev.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute);
+                    float x = (float)controlEvent.Event.Model.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute);
                     x = (x < 0 ? 0 : x) + this.DrawXOffset;
                     RectangleF renderRect = new RectangleF(x, y, width, this.Configuration.EventHeight.Value);
                     controlEvent.Event.Render(spriteBatch, renderRect);
@@ -634,7 +634,7 @@ public class EventArea : RenderTargetControl
 
             foreach ((DateTime Occurence, Event Event) delete in toDelete)
             {
-                Logger.Debug($"Deleted event {delete.Event.Ev.Name}");
+                Logger.Debug($"Deleted event {delete.Event.Model.Name}");
                 this.RemoveEventHooks(delete.Event);
                 delete.Event.Dispose();
                 controlEventPairs.Remove(delete);
@@ -645,10 +645,10 @@ public class EventArea : RenderTargetControl
 
         this._heightFromLastDraw = y == 0 ? 1 : y;
 
-        if (this._activeEvent != null && this._lastActiveEvent?.Ev?.Key != this._activeEvent.Ev.Key)
+        if (this._activeEvent != null && this._lastActiveEvent?.Model?.Key != this._activeEvent.Model.Key)
         {
             // Active event changed
-            var isFiller = this._activeEvent?.Ev?.Filler ?? false;
+            var isFiller = this._activeEvent?.Model?.Filler ?? false;
             this.Tooltip?.Dispose();
             this.Tooltip = null;
 
@@ -820,7 +820,7 @@ public class EventArea : RenderTargetControl
 
     private void OnLeftMouseButtonPressed(object sender, Blish_HUD.Input.MouseEventArgs e)
     {
-        if (_activeEvent == null || _activeEvent.Ev.Filler)
+        if (this._activeEvent == null || this._activeEvent.Model.Filler)
         {
             return;
         }
@@ -828,19 +828,19 @@ public class EventArea : RenderTargetControl
         switch (this.Configuration.LeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (!string.IsNullOrWhiteSpace(_activeEvent.Ev.Waypoint))
+                if (!string.IsNullOrWhiteSpace(this._activeEvent.Model.Waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(_activeEvent.Ev.Waypoint);
+                    ClipboardUtil.WindowsClipboardService.SetTextAsync(this._activeEvent.Model.Waypoint);
                     Shared.Controls.ScreenNotification.ShowNotification(new string[]
                     {
-                        _activeEvent.Ev.Name,
+                        this._activeEvent.Model.Name,
                         "Copied to clipboard!"
                     });
                 }
 
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (string.IsNullOrWhiteSpace(_activeEvent.Ev.Waypoint))
+                if (string.IsNullOrWhiteSpace(this._activeEvent.Model.Waypoint))
                 {
                     return;
                 }
@@ -851,10 +851,10 @@ public class EventArea : RenderTargetControl
                     return;
                 }
 
-                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(_activeEvent.Ev.Waypoint);
+                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(this._activeEvent.Model.Waypoint);
                 if (poi == null)
                 {
-                    Shared.Controls.ScreenNotification.ShowNotification($"{_activeEvent.Ev.Waypoint} not found!", Shared.Controls.ScreenNotification.NotificationType.Error);
+                    Shared.Controls.ScreenNotification.ShowNotification($"{this._activeEvent.Model.Waypoint} not found!", Shared.Controls.ScreenNotification.NotificationType.Error);
                     return;
                 }
 
@@ -979,7 +979,7 @@ public class EventArea : RenderTargetControl
     private void Ev_FinishRequested(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        this.FinishEvent(ev.Ev, this.GetNextReset());
+        this.FinishEvent(ev.Model, this.GetNextReset());
     }
 
     private void FinishEvent(Models.Event ev, DateTime until)
@@ -1005,15 +1005,15 @@ public class EventArea : RenderTargetControl
     private void Ev_HideRequested(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        this.HideEvent(ev.Ev, this.GetNextReset());
+        this.HideEvent(ev.Model, this.GetNextReset());
     }
 
     private void Ev_DisableRequested(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        if (!this.Configuration.DisabledEventKeys.Value.Contains(ev.Ev.SettingKey))
+        if (!this.Configuration.DisabledEventKeys.Value.Contains(ev.Model.SettingKey))
         {
-            this.Configuration.DisabledEventKeys.Value = new List<string>(this.Configuration.DisabledEventKeys.Value) { ev.Ev.SettingKey };
+            this.Configuration.DisabledEventKeys.Value = new List<string>(this.Configuration.DisabledEventKeys.Value) { ev.Model.SettingKey };
         }
     }
 
