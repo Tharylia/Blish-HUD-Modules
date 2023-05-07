@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -708,6 +708,11 @@ public class EventArea : RenderTargetControl
             var isFiller = this._activeEvent?.Model?.Filler ?? false;
             this.Tooltip?.Dispose();
             this.Tooltip = null;
+            if (!this.Menu?.Visible ?? false)
+            {
+                this.Menu?.Dispose();
+                this.Menu = null;
+            }
 
             if (!isFiller)
             {
@@ -715,11 +720,18 @@ public class EventArea : RenderTargetControl
                 this.Menu = this._activeEvent?.BuildContextMenu();
             }
 
-            _lastActiveEvent = this._activeEvent;
+            this._lastActiveEvent = this._activeEvent;
         }
         else if (this._activeEvent == null)
         {
-            _lastActiveEvent = null;
+            this._lastActiveEvent = null;
+            this.Tooltip?.Dispose();
+            this.Tooltip = null;
+            if (!this.Menu?.Visible ?? false)
+            {
+                this.Menu?.Dispose();
+                this.Menu = null;
+            }
         }
     }
 
