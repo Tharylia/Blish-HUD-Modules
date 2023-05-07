@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -150,7 +150,7 @@ namespace Estreya.BlishHUD.EventTable
                 this.Logger.Debug("Acquired lock.");
                 try
                 {
-                    this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(ev => this.RemoveEventHooks(ev));
+                    this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(this.RemoveEventHooks);
                     this._eventCategories?.Clear();
 
                     var request = this.GetFlurlClient().Request(this.MODULE_API_URL, "events");
@@ -546,7 +546,7 @@ namespace Estreya.BlishHUD.EventTable
         {
             Collection<ManagedService> additionalServices = new Collection<ManagedService>();
 
-            this.EventStateService = new EventStateService (new ServiceConfiguration()
+            this.EventStateService = new EventStateService(new ServiceConfiguration()
             {
                 AwaitLoading = false,
                 Enabled = true,
@@ -609,7 +609,7 @@ namespace Estreya.BlishHUD.EventTable
 
             using (this._eventCategoryLock.Lock())
             {
-                foreach (var ec in _eventCategories)
+                foreach (var ec in this._eventCategories)
                 {
                     ec.Events.ForEach(ev => this.RemoveEventHooks(ev));
                 }
