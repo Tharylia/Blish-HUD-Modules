@@ -117,12 +117,12 @@ public class SkillService : FilesystemAPIService<Skill>
         this.SignalUpdated();
     }
 
-    protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
+    protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
     {
         progress.Report("Loading normal skills..");
         Logger.Debug("Loading normal skills..");
 
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync(this._cancellationTokenSource.Token);
+        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync(cancellationToken);
         List<Skill> skills = skillResponse.Select(skill => Skill.FromAPISkill(skill)).ToList();
 
         Logger.Debug("Loaded normal skills..");
@@ -130,7 +130,7 @@ public class SkillService : FilesystemAPIService<Skill>
         progress.Report("Loading traits..");
         Logger.Debug("Loading traits..");
 
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync(this._cancellationTokenSource.Token);
+        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync(cancellationToken);
         skills = skills.Concat(traitResponse.Select(trait => Skill.FromAPITrait(trait))).ToList();
 
         Logger.Debug("Loaded traits..");
@@ -278,7 +278,7 @@ public class SkillService : FilesystemAPIService<Skill>
 
     protected override void DoUpdate(GameTime gameTime)
     {
-        _ = UpdateUtil.UpdateAsync(this.SaveMissingSkills, gameTime, 60000, this._lastSaveMissingSkill);
+        _ = UpdateUtil.UpdateAsync(this.SaveMissingSkills, gameTime, 60000, this._lastSaveMissingSkill, false);
     }
 
     private async Task SaveMissingSkills()

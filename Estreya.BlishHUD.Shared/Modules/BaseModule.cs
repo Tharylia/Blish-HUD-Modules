@@ -105,7 +105,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     #region Services
     private readonly AsyncLock _servicesLock = new AsyncLock();
-    private Collection<ManagedService> _services = new Collection<ManagedService>();
+    private SynchronizedCollection<ManagedService> _services = new SynchronizedCollection<ManagedService>();
 
     public IconService IconService { get; private set; }
     public TranslationService TranslationService { get; private set; }
@@ -641,6 +641,18 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this._loadingSpinner.BasicTooltipText = text;
         this._loadingSpinner.Visible = show;
+    }
+
+    protected async Task ReloadServices()
+    {
+        var tasks = new List<Task>();
+
+        using (await this._servicesLock.LockAsync())
+        {
+            tasks.AddRange(this._services.Select(s => s.Reload()));
+        }
+
+        await Task.WhenAll(tasks);
     }
 
     /// <inheritdoc />

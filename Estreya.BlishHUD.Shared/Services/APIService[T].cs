@@ -77,7 +77,7 @@ public abstract class APIService<T> : APIService
                     return;
                 }
 
-                List<T> apiObjects = await this.Fetch(apiManager, progress).ConfigureAwait(false);
+                List<T> apiObjects = await this.Fetch(apiManager, progress ,this.CancellationToken).ConfigureAwait(false);
 
                 Logger.Debug("API returned {0} objects.", apiObjects.Count);
 
@@ -146,5 +146,5 @@ public abstract class APIService<T> : APIService
         }
     }
 
-    protected abstract Task<List<T>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress);
+    protected abstract Task<List<T>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken);
 }

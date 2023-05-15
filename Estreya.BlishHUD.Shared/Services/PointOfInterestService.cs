@@ -43,7 +43,7 @@ public class PointOfInterestService : FilesystemAPIService<PointOfInterest>
         }
     }
 
-    protected override async Task<List<PointOfInterest>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
+    protected override async Task<List<PointOfInterest>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
     {
         List<PointOfInterest> pointOfInterests = new List<PointOfInterest>();
 
@@ -51,12 +51,12 @@ public class PointOfInterestService : FilesystemAPIService<PointOfInterest>
         // Continent 2 = Mists
 
         progress.Report("Loading continents...");
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Continent> continents = await apiManager.Gw2ApiClient.V2.Continents.AllAsync();
+        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Continent> continents = await apiManager.Gw2ApiClient.V2.Continents.AllAsync(cancellationToken);
 
         foreach (ContinentDetails continent in continents.Select(x => new ContinentDetails(x)))
         {
             progress.Report($"Loading floors of continent \"{continent.Name}\" ...");
-            Gw2Sharp.WebApi.V2.IApiV2ObjectList<ContinentFloor> floors = await apiManager.Gw2ApiClient.V2.Continents[continent.Id].Floors.AllAsync();
+            Gw2Sharp.WebApi.V2.IApiV2ObjectList<ContinentFloor> floors = await apiManager.Gw2ApiClient.V2.Continents[continent.Id].Floors.AllAsync(cancellationToken);
 
             progress.Report($"Parsing floors of continent \"{continent.Name}\" ...");
             foreach (ContinentFloor floor in floors)
