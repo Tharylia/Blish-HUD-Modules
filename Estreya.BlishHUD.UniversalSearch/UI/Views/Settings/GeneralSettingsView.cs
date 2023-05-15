@@ -3,6 +3,7 @@
     using Blish_HUD.Controls;
     using Blish_HUD.Modules.Managers;
     using Estreya.BlishHUD.Shared.Services;
+    using Estreya.BlishHUD.Shared.Threading.Events;
     using Estreya.BlishHUD.Shared.UI.Views;
     using MonoGame.Extended.BitmapFonts;
     using System;
@@ -13,6 +14,8 @@
     public class GeneralSettingsView : BaseSettingsView
     {
         private readonly ModuleSettings _moduleSettings;
+
+        public event AsyncEventHandler ReloadServicesRequested;
 
         public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconState, TranslationService translationState, SettingEventService settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
         {
@@ -35,6 +38,10 @@
             this.RenderBoolSetting(parent, _moduleSettings.HideInPvE_Competetive);
             this.RenderBoolSetting(parent, _moduleSettings.HideInWvW);
             this.RenderBoolSetting(parent, _moduleSettings.HideInPvP);
+
+            this.RenderEmptyLine(parent);
+
+            //this.RenderButtonAsync(parent, "Reload Services", async () => await (this.ReloadServicesRequested?.Invoke(this) ?? Task.CompletedTask));
 
             //this.RenderEmptyLine(parent);
 

@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.UniversalSearch;
+namespace Estreya.BlishHUD.UniversalSearch;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -204,8 +204,16 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
 
     protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
     {
-        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+        var generalSettingsView = new UI.Views.Settings.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        generalSettingsView.ReloadServicesRequested += this.GeneralSettingsView_ReloadServicesRequested;
+
+        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => generalSettingsView, "General"));
         settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => new UI.Views.Settings.SearchHandlerSettingsView(() => this.GetSearchHandlers().Select(s => s.Configuration), this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Search Handler"));
+    }
+
+    private async Task GeneralSettingsView_ReloadServicesRequested(object sender)
+    {
+        await this.ReloadServices();
     }
 
     private void ToggleWindow(bool show)
