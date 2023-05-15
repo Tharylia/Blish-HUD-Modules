@@ -114,7 +114,7 @@ public abstract class APIService : ManagedService
 
             try
             {
-                IProgress<string> progress = new Progress<string>(newProgress => this.ReportProgress(newProgress));
+                IProgress<string> progress = new Progress<string>(this.ReportProgress);
                 progress.Report($"Loading {this.GetType().Name}");
                 await this.FetchFromAPI(this._apiManager, progress);
                 this.SignalUpdated();
@@ -152,6 +152,6 @@ public abstract class APIService : ManagedService
 
     public async Task<bool> WaitForCompletion(TimeSpan timeout)
     {
-        return await this._eventWaitHandle.WaitOneAsync(timeout, this._cancellationTokenSource.Token);
+        return await this._eventWaitHandle.WaitOneAsync(timeout, this.CancellationToken);
     }
 }

@@ -9,6 +9,7 @@ using Gw2Sharp.WebApi.V2.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using static Estreya.BlishHUD.Shared.Services.TradingPostService;
@@ -29,7 +30,7 @@ public class TradingPostService : APIService<TransactionMapping>
         this._itemService = itemService;
     }
 
-    protected override async Task<List<TransactionMapping>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
+    protected override async Task<List<TransactionMapping>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
     {
         var loadOwn = (this.Scopes & TransactionMappingType.Own) != 0;
         var loadBuy = (this.Scopes & TransactionMappingType.Buy) != 0;
@@ -41,7 +42,7 @@ public class TradingPostService : APIService<TransactionMapping>
         {
             progress.Report("Loading player buy orders...");
             // Buys
-            IApiV2ObjectList<CommerceTransactionCurrent> apiBuys = await apiManager.Gw2ApiClient.V2.Commerce.Transactions.Current.Buys.GetAsync();
+            IApiV2ObjectList<CommerceTransactionCurrent> apiBuys = await apiManager.Gw2ApiClient.V2.Commerce.Transactions.Current.Buys.GetAsync(cancellationToken);
             List<Transaction> buys = apiBuys.ToList().Select(x =>
             {
                 Transaction transaction = new PlayerTransaction()
@@ -67,7 +68,7 @@ public class TradingPostService : APIService<TransactionMapping>
 
             progress.Report("Loading player sell offers...");
             // Sells
-            IApiV2ObjectList<CommerceTransactionCurrent> apiSells = await apiManager.Gw2ApiClient.V2.Commerce.Transactions.Current.Sells.GetAsync();
+            IApiV2ObjectList<CommerceTransactionCurrent> apiSells = await apiManager.Gw2ApiClient.V2.Commerce.Transactions.Current.Sells.GetAsync(cancellationToken);
             List<Transaction> sells = apiSells.ToList().Select(x =>
             {
                 Transaction transaction = new PlayerTransaction()
@@ -94,11 +95,10 @@ public class TradingPostService : APIService<TransactionMapping>
 
             IEnumerable<int> itemIds = transactions.SelectMany(transaction => transaction.Transactions.Select(transaction => transaction.ItemId)).Distinct();
 
-
             #region Is Highest
             progress.Report("Check highest transactions...");
 
-            IReadOnlyList<CommercePrices> rawItemPriceList = await apiManager.Gw2ApiClient.V2.Commerce.Prices.ManyAsync(itemIds);
+            IReadOnlyList<CommercePrices> rawItemPriceList = await apiManager.Gw2ApiClient.V2.Commerce.Prices.ManyAsync(itemIds, cancellationToken);
             Dictionary<int, CommercePrices> itemPriceLookup = rawItemPriceList.ToDictionary(item => item.Id);
 
             foreach (var transactionMapping in transactions.Where(mapping => mapping.Type == TransactionMappingType.Own))
@@ -145,7 +145,7 @@ public class TradingPostService : APIService<TransactionMapping>
             foreach (var itemChunk in tradeableItems.ChunkBy(200))
             {
                 progress.Report($"Loading global buys/sells from items {itemChunk.First().Id} - {itemChunk.Last().Id}...");
-                var listings = await apiManager.Gw2ApiClient.V2.Commerce.Listings.ManyAsync(itemChunk.Select(item => item.Id), this._cancellationTokenSource.Token);
+                var listings = await apiManager.Gw2ApiClient.V2.Commerce.Listings.ManyAsync(itemChunk.Select(item => item.Id), cancellationToken);
 
                 List<Transaction> mappedListings = listings.ToList().SelectMany(itemListing =>
                 {

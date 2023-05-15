@@ -28,10 +28,10 @@
 
         public AchievementService(Gw2ApiManager apiManager, APIServiceConfiguration configuration, string baseFolderPath) : base(apiManager, configuration, baseFolderPath) { }
 
-        protected override async Task<List<Achievement>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
+        protected override async Task<List<Achievement>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
         {
             progress.Report("Loading achievement ids...");
-            var ids = await apiManager.Gw2ApiClient.V2.Achievements.IdsAsync();
+            var ids = await apiManager.Gw2ApiClient.V2.Achievements.IdsAsync(cancellationToken);
 
             progress.Report($"Loading {ids.Count} achievements...");
 
@@ -41,7 +41,7 @@
 
             foreach (var chunk in idChunks)
             {
-                tasks.Add(apiManager.Gw2ApiClient.V2.Achievements.ManyAsync(chunk).ContinueWith(t =>
+                tasks.Add(apiManager.Gw2ApiClient.V2.Achievements.ManyAsync(chunk, cancellationToken).ContinueWith(t =>
                 {
                     var newCount = Interlocked.Add(ref loadedCount, chunk.Count());
 

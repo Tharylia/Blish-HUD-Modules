@@ -117,7 +117,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
             if (forceAPI || !shouldLoadFiles)
             {
                 await base.LoadFromAPI(!canLoadFiles); // Only reset completion if we could not load anything at start
-                if (!this._cancellationTokenSource.Token.IsCancellationRequested)
+                if (!this.CancellationToken.IsCancellationRequested)
                 {
                     try
                     {
@@ -215,5 +215,14 @@ public abstract class FilesystemAPIService<T> : APIService<T>
     private async Task CreateLastUpdatedFile()
     {
         await FileUtil.WriteStringAsync(Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME), DateTime.UtcNow.ToString(DATE_TIME_FORMAT));
+    }
+
+    protected override Task DoClear()
+    {
+        if (!Directory.Exists(this.DirectoryPath)) return Task.CompletedTask;
+
+        Directory.Delete(this.DirectoryPath, true);
+
+        return Task.CompletedTask;
     }
 }

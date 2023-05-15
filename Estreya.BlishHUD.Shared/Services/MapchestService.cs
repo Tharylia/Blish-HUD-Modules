@@ -10,6 +10,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public class MapchestService : APIService<string>
@@ -49,7 +50,7 @@
             this.APIObjectRemoved -= this.APIService_APIObjectRemoved;
         }
 
-        protected override async Task<List<string>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
+        protected override async Task<List<string>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
         {
             _ = await this._accountService.WaitForCompletion(TimeSpan.FromSeconds(30));
 
@@ -70,7 +71,7 @@
                 return new List<string>();
             }
 
-            IApiV2ObjectList<string> mapchests = await apiManager.Gw2ApiClient.V2.Account.MapChests.GetAsync();
+            IApiV2ObjectList<string> mapchests = await apiManager.Gw2ApiClient.V2.Account.MapChests.GetAsync(cancellationToken);
             return mapchests.ToList();
         }
     }

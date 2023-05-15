@@ -6,6 +6,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using System.Text;
+    using System.Threading;
     using System.Threading.Tasks;
 
     public class AccountAchievementService : APIService<AccountAchievement>
@@ -14,10 +15,10 @@
         {
         }
 
-        protected override async Task<List<AccountAchievement>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
+        protected override async Task<List<AccountAchievement>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
         {
             progress.Report("Loading achievements...");
-            var achievements = await apiManager.Gw2ApiClient.V2.Account.Achievements.GetAsync(this._cancellationTokenSource.Token);
+            var achievements = await apiManager.Gw2ApiClient.V2.Account.Achievements.GetAsync(cancellationToken);
             return achievements.ToList();
         }
     }

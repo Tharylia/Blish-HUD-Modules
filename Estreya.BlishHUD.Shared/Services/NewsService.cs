@@ -35,6 +35,12 @@
             this.News = null;
         }
 
+        protected override Task Clear()
+        {
+            this.News?.Clear();
+            return Task.CompletedTask;
+        }
+
         protected override void InternalUpdate(GameTime gameTime) { }
 
         protected override async Task Load()

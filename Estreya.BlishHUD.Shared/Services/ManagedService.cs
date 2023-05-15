@@ -16,7 +16,9 @@
 
         protected ServiceConfiguration Configuration { get; }
 
-        protected CancellationTokenSource _cancellationTokenSource;
+        private CancellationTokenSource _cancellationTokenSource;
+
+        protected CancellationToken CancellationToken => this._cancellationTokenSource.Token;
 
         public bool Running { get; private set; } = false;
         public bool AwaitLoading => this.Configuration.AwaitLoading;
@@ -93,6 +95,9 @@
             }
 
             Logger.Debug("Reloading state.");
+
+            this._cancellationTokenSource.Cancel();
+            this._cancellationTokenSource = new CancellationTokenSource();
 
             await this.Clear();
             await this.Load();

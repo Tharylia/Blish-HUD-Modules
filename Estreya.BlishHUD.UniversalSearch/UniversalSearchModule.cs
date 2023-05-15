@@ -62,7 +62,7 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
     {
         await base.LoadAsync();
 
-        this.LoadSearchHandlers();
+        _ = this.LoadSearchHandlers();
     }
 
     private void InitializeSearchHandlers()
@@ -76,13 +76,13 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
         this._achievementSearchHandler = new AchievementSearchHandler(new List<Gw2Sharp.WebApi.V2.Models.Achievement>(), this.ModuleSettings.AddSearchHandler("achievements", "Achievements"), this.IconService);
     }
 
-    private void LoadSearchHandlers()
+    private async Task LoadSearchHandlers()
     {
         try
         {
             this.ReportLoading("traits", "Loading traits...");
 
-            _ = this.Gw2ApiManager.Gw2ApiClient.V2.Traits.AllAsync().ContinueWith(t =>
+            await this.Gw2ApiManager.Gw2ApiClient.V2.Traits.AllAsync().ContinueWith(t =>
             {
                 this.ReportLoading("traits", null);
 
@@ -187,15 +187,15 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
         configurations.Achievements.Enabled = true;
         configurations.Achievements.AwaitLoading = false;
 
-        configurations.Items.Enabled = true;
-        configurations.Items.AwaitLoading = false; 
+        //configurations.Items.Enabled = true;
+        //configurations.Items.AwaitLoading = false;
     }
 
     private IEnumerable<SearchHandler> GetSearchHandlers()
     {
         return new SearchHandler[]
         {
-            this._achievementSearchHandler,
+            //this._achievementSearchHandler,
             this._landmarkSearchHandler,
             this._skillSearchHandler,
             this._traitSearchHandler
@@ -204,8 +204,16 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
 
     protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
     {
-        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+        var generalSettingsView = new UI.Views.Settings.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        generalSettingsView.ReloadServicesRequested += this.GeneralSettingsView_ReloadServicesRequested;
+
+        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => generalSettingsView, "General"));
         settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => new UI.Views.Settings.SearchHandlerSettingsView(() => this.GetSearchHandlers().Select(s => s.Configuration), this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Search Handler"));
+    }
+
+    private async Task GeneralSettingsView_ReloadServicesRequested(object sender)
+    {
+        await this.ReloadServices();
     }
 
     private void ToggleWindow(bool show)

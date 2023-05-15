@@ -11,11 +11,12 @@ using System.Threading.Tasks;
 
 public abstract class SearchHandler<T> : SearchHandler
 {
-    private Logger _logger = Logger.GetLogger<SearchHandler<T>>();
+    private Logger _logger;
     protected HashSet<T> SearchItems { get; set; }
 
     public SearchHandler(IEnumerable<T> searchItems, SearchHandlerConfiguration configuration) : base(configuration)
     {
+        this._logger = Logger.GetLogger(this.GetType());
         this.UpdateSearchItems(searchItems);
     }
 
@@ -59,6 +60,7 @@ public abstract class SearchHandler<T> : SearchHandler
                 diffs.Add(new WordScoreResult<T>(item, score));
             }
         }
+
         sw.Stop();
         this._logger.Debug($"Finished searching for \"{searchText}\" in {sw.Elapsed.TotalMilliseconds}ms. Found {diffs.Count} results.");
 
