@@ -1,7 +1,7 @@
 {
   "name": "Universal Search",
-  "version": "0.1.0",
-  "namespace": "estreya.bh.universalSearch",
+  "version": "0.8.0",
+  "namespace": "bh.general.universalsearch",
   "package": "Estreya.BlishHUD.UniversalSearch.dll",
   "manifest_version": 1,
   "description": "Allows you to search for in game landmarks (waypoints, POIs, vistas, etc.), skills and traits and copy the chat codes into your clipboard or directly into the ingame chat.",
@@ -15,7 +15,7 @@
       "username": "Estreya.8675"
     }
   ],
-  "directories": ["universal_search"],
+  "directories": [ "universal_search" ],
   "actions": [],
   "enabled_without_gw2": false
 }
