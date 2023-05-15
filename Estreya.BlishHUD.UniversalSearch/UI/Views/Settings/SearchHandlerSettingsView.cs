@@ -195,7 +195,7 @@ public class SearchHandlerSettingsView : BaseSettingsView
             OuterControlPadding = new Vector2(20, 20),
             ShowBorder = true,
             CanCollapse = true,
-            Collapsed = true,
+            //Collapsed = true, // False until more settings added
             Title = "Behaviours"
         };
 
