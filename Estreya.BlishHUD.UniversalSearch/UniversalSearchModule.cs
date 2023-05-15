@@ -62,7 +62,7 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
     {
         await base.LoadAsync();
 
-        this.LoadSearchHandlers();
+        _ = this.LoadSearchHandlers();
     }
 
     private void InitializeSearchHandlers()
@@ -76,13 +76,13 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
         this._achievementSearchHandler = new AchievementSearchHandler(new List<Gw2Sharp.WebApi.V2.Models.Achievement>(), this.ModuleSettings.AddSearchHandler("achievements", "Achievements"), this.IconService);
     }
 
-    private void LoadSearchHandlers()
+    private async Task LoadSearchHandlers()
     {
         try
         {
             this.ReportLoading("traits", "Loading traits...");
 
-            _ = this.Gw2ApiManager.Gw2ApiClient.V2.Traits.AllAsync().ContinueWith(t =>
+            await this.Gw2ApiManager.Gw2ApiClient.V2.Traits.AllAsync().ContinueWith(t =>
             {
                 this.ReportLoading("traits", null);
 
