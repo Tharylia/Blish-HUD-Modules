@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.UniversalSearch;
+﻿namespace Estreya.BlishHUD.UniversalSearch;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -187,15 +187,15 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
         configurations.Achievements.Enabled = true;
         configurations.Achievements.AwaitLoading = false;
 
-        configurations.Items.Enabled = true;
-        configurations.Items.AwaitLoading = false; 
+        //configurations.Items.Enabled = true;
+        //configurations.Items.AwaitLoading = false;
     }
 
     private IEnumerable<SearchHandler> GetSearchHandlers()
     {
         return new SearchHandler[]
         {
-            this._achievementSearchHandler,
+            //this._achievementSearchHandler,
             this._landmarkSearchHandler,
             this._skillSearchHandler,
             this._traitSearchHandler
