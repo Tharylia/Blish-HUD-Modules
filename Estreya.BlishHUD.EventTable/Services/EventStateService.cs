@@ -64,12 +64,7 @@
             this._getNowAction = getNowAction;
         }
 
-        protected override async Task InternalReload()
-        {
-            await this.Clear();
-
-            await this.Load();
-        }
+        protected override Task InternalReload() => Task.CompletedTask;
 
         protected override void InternalUpdate(GameTime gameTime)
         {
