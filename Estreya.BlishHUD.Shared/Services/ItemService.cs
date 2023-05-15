@@ -63,73 +63,62 @@ public class ItemService : FilesystemAPIService<Item>
         }
     }
 
-    protected override async Task<List<Item>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress)
+    protected override async Task<List<Item>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
     {
         List<Item> items = new List<Item>();
 
         progress.Report("Load item ids...");
 
-        var itemIds = await apiManager.Gw2ApiClient.V2.Items.IdsAsync(this._cancellationTokenSource.Token);
+        var itemIds = await apiManager.Gw2ApiClient.V2.Items.IdsAsync(cancellationToken);
 
+        progress.Report($"Loading items... 0/{itemIds.Count}");
         Logger.Info($"Start loading items: {itemIds.First()} - {itemIds.Last()}");
 
+        int loadedItems = 0;
         int chunkSize = 200;
-        foreach (var itemIdChunk in itemIds.ChunkBy(chunkSize))
+        var chunks = itemIds.ChunkBy(chunkSize);
+
+        var chunkGroups = chunks.ChunkBy(20);
+
+        foreach (var chunkGroup in chunkGroups)
         {
-            if (this._cancellationTokenSource.Token.IsCancellationRequested)
+            cancellationToken.ThrowIfCancellationRequested();
+
+            // Load a group in parallel
+            var tasks = new List<Task<List<Item>>>();
+
+            foreach (var idChunk in chunkGroup)
             {
-                break;
-            }
+                cancellationToken.ThrowIfCancellationRequested();
 
-            try
-            {
-                try
-                {
-                    var itemChunk = await this.FetchChunk(apiManager, progress, itemIdChunk);
-
-                    items.AddRange(itemChunk);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Warn(ex, $"Failed loading items with chunk size {chunkSize}:");
-
-                    chunkSize = 10;
-
-                    Logger.Debug($"Try load failed chunk in smaller chunk size: {chunkSize}");
-
-                    foreach (var smallerItemIdChunk in itemIdChunk.ChunkBy(chunkSize))
+                tasks.Add(this.FetchChunk(apiManager, idChunk, cancellationToken)
+                    .ContinueWith(resultTask =>
                     {
-                        try
-                        {
-                            var itemChunk = await this.FetchChunk(apiManager, progress, smallerItemIdChunk);
+                        var resultItems = resultTask.IsFaulted ? new List<Item>() : resultTask.Result;
 
-                            items.AddRange(itemChunk);
-                        }
-                        catch (Exception smallerEx)
-                        {
-                            Logger.Warn(smallerEx, $"Failed loading items with chunk size {chunkSize}:");
-                        }
-                    }
-                }
+                        var newCount = Interlocked.Add(ref loadedItems, resultItems.Count);
+                        progress.Report($"Loading items... {newCount}/{itemIds.Count}");
+                        return resultItems;
+                    }));
             }
-            catch (Exception ex)
-            {
-                Logger.Warn(ex, "Failed loading items:");
-            }
+
+            var itemGroup = await Task.WhenAll(tasks);
+            var fetchedItems = itemGroup.SelectMany(i => i).ToList();
+
+            items.AddRange(fetchedItems);
         }
 
         return items;
     }
 
-    private async Task<List<Item>> FetchChunk(Gw2ApiManager apiManager, IProgress<string> progress, IEnumerable<int> itemIdChunk)
+    private async Task<List<Item>> FetchChunk(Gw2ApiManager apiManager, IEnumerable<int> itemIdChunk, CancellationToken cancellationToken)
     {
-        string message = $"Start loading items by id: {itemIdChunk.First()} - {itemIdChunk.Last()}";
+        Logger.Debug($"Start loading items by id: {itemIdChunk.First()} - {itemIdChunk.Last()}");
 
-        progress.Report(message);
-        Logger.Debug(message);
+        var items = await apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIdChunk, cancellationToken);
 
-        var items = await apiManager.Gw2ApiClient.V2.Items.ManyAsync(itemIdChunk, this._cancellationTokenSource.Token);
+        Logger.Debug($"Finished loading items by id: {itemIdChunk.First()} - {itemIdChunk.Last()}");
 
-        return items.Select(apiItem => Item.FromAPI(apiItem)).ToList();
+        return items.Select(Item.FromAPI).ToList();
     }
 }
