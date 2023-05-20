@@ -111,6 +111,13 @@ public class AreaSettingsView : BaseSettingsView
 
         addButton.Location = new Point(areaOverviewPanel.Left, areaOverviewPanel.Bottom + 10);
         addButton.Width = areaOverviewPanel.Width;
+
+        if (this._menuItems.Count > 0)
+        {
+            var menuItem = this._menuItems.First();
+            ScrollingTextAreaConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
+            this.BuildEditPanel(newParent, areaPanelBounds, menuItem.Value, areaConfiguration);
+        }
     }
     private void CreateAreaPanel(Panel parent, Rectangle bounds)
     {
@@ -498,10 +505,10 @@ public class AreaSettingsView : BaseSettingsView
             selectorPanel: this.MainPanel,
             innerSelectorPanelPadding: new Thickness(20, 20));
 
-        Button suggestBetterColorButton = this.RenderButton(parent, "Suggest better format colors", 
-            () => ScrollingCombatTextModule.ModuleInstance.GitHubHelper.OpenIssueWindow("Color ... would look better for ..."));
+        //Button suggestBetterColorButton = this.RenderButton(parent, "Suggest better format colors", 
+        //    () => ScrollingCombatTextModule.ModuleInstance.GitHubHelper.OpenIssueWindow("Color ... would look better for ..."));
 
-        suggestBetterColorButton.Location = new Point(0, colorLabel.Bottom + 20);
+        //suggestBetterColorButton.Location = new Point(0, colorLabel.Bottom + 20);
     }
 
     private void ClearAreaPanel()
