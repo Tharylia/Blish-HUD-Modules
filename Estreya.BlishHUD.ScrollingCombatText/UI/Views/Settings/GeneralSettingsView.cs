@@ -13,36 +13,31 @@
 
     public class GeneralSettingsView : BaseSettingsView
     {
-        public GeneralSettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+        private readonly ModuleSettings _moduleSettings;
+
+        public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
         {
+            this._moduleSettings = moduleSettings;
         }
 
         protected override void BuildView(FlowPanel parent)
         {
-            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.GlobalDrawerVisible);
-            this.RenderKeybindingSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.GlobalDrawerVisibleHotkey);
-            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.RegisterCornerIcon);
-            this.RenderEnumSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.CornerIconLeftClickAction);
-            this.RenderEnumSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.CornerIconRightClickAction);
+            this.RenderBoolSetting(parent, this._moduleSettings.GlobalDrawerVisible);
+            this.RenderKeybindingSetting(parent, this._moduleSettings.GlobalDrawerVisibleHotkey);
+            this.RenderBoolSetting(parent, this._moduleSettings.RegisterCornerIcon);
+            this.RenderEnumSetting(parent, this._moduleSettings.CornerIconLeftClickAction);
+            this.RenderEnumSetting(parent, this._moduleSettings.CornerIconRightClickAction);
 
             this.RenderEmptyLine(parent);
 
-            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideOnMissingMumbleTicks);
-            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideOnOpenMap);
-            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInPvE_OpenWorld);
-            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInPvE_Competetive);
-            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInWvW);
-            this.RenderBoolSetting(parent, ScrollingCombatTextModule.ModuleInstance.ModuleSettings.HideInPvP);
-
-            //this.RenderEmptyLine(parent);
-
-            //this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.BuildDirection);
-
+            this.RenderBoolSetting(parent, this._moduleSettings.HideOnMissingMumbleTicks);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideOnOpenMap);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInPvE_OpenWorld);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInPvE_Competetive);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInWvW);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInPvP);
         }
 
-        protected override Task<bool> InternalLoad(IProgress<string> progress)
-        {
-            return Task.FromResult(true);
-        }
+        protected override Task<bool> InternalLoad(IProgress<string> progress) => Task.FromResult(true);
     }
 }

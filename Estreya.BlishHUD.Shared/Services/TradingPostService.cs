@@ -128,6 +128,7 @@ public class TradingPostService : APIService<TransactionMapping>
 
         if (transactions.Count > 0 || loadBuy || loadSell)
         {
+            progress.Report($"Waiting for {this._itemService.GetType().Name} to complete...");
             var itemServiceCompleted = await this._itemService.WaitForCompletion(TimeSpan.FromMinutes(10));
             if (!itemServiceCompleted)
             {

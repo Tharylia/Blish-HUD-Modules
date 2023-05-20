@@ -11,7 +11,7 @@ public class HealCombatEvent : CombatEvent
 
     public override Blish_HUD.ArcDps.Models.Ag Destination => this.Dst;
 
-    public int Value => this.Ev.Value;
+    public int Value => this.Ev.BuffDmg;
 
     public HealCombatEvent(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, CombatEventCategory category, CombatEventType type, CombatEventState state) : base(combatEvent, category, type, state)
     {

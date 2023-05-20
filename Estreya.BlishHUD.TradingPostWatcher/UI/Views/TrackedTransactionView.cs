@@ -7,9 +7,10 @@
     using Estreya.BlishHUD.Shared.Controls;
     using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
     using Estreya.BlishHUD.Shared.Models.GW2API.Items;
-    using Estreya.BlishHUD.Shared.Service;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.UI.Views;
     using Estreya.BlishHUD.Shared.Utils;
+    using Estreya.BlishHUD.TradingPostWatcher.Models;
     using Humanizer;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
@@ -63,7 +64,7 @@
 
             foreach (TrackedTransaction trackedTransaction in this._trackedTransactions)
             {
-                MenuItem menuItem = new MenuItem(this.GetMenuItemText(trackedTransaction), TradingPostWatcherModule.ModuleInstance.IconService.GetIcon(trackedTransaction.Item?.Icon))
+                MenuItem menuItem = new MenuItem(this.GetMenuItemText(trackedTransaction), this.IconService.GetIcon(trackedTransaction.Item?.Icon))
                 {
                     Parent = trackedOverviewMenu,
                     WidthSizingMode = SizingMode.Fill,
@@ -77,7 +78,7 @@
             }
 
 
-            StandardButton addButton = this.RenderButton(parent, "Add", () =>
+            Button addButton = this.RenderButton(parent, "Add", () =>
             {
                 this.BuildAddTransactionPanel(parent, transactionPanelBounds, trackedOverviewMenu);
             });
@@ -174,29 +175,25 @@
                 Location = new Point(copperInput.Right + 10, 0)
             };
 
-            Dropdown transactionTypeDropDown = new Dropdown()
+            TrackedTransactionType trackedTransactionType = TrackedTransactionType.BuyGT;
+            var transactionTypeDropDown = this.RenderDropdown<TrackedTransactionType>(this._transactionPanel, Point.Zero, 1, trackedTransactionType, onChangeAction: val =>
             {
-                Parent = this._transactionPanel
-            };
-
-            foreach (string transactionType in Enum.GetNames(typeof(TransactionType)))
-            {
-                transactionTypeDropDown.Items.Add(transactionType);
-            }
+                trackedTransactionType = val;
+            });
 
             Label typeDescription = new Label
             {
                 Parent = this._transactionPanel,
                 AutoSizeHeight = true,
-                Text = "Buy: Tracks the price of the highest buy orders. Notifies when prices are greater or equal to the wish price.\n" +
-                "Sell: Tracks the price of the lowest sell offers. Notifies when prices are lower or equal to the wish price."
+                Text = "Buy >=: Tracks the price of the highest buy orders. Notifies when prices are greater or equal to the wish price.\n" +
+                "Buy <=: Tracks the price of the highest buy orders. Notifies when prices are less or equal to the wish price.\n"+
+                "Sell >=: Tracks the price of the lowest sell offers. Notifies when prices are higher or equal to the wish price.\n" +
+                "Sell <=: Tracks the price of the lowest sell offers. Notifies when prices are less or equal to the wish price."
             };
 
-            StandardButton saveButton = this.RenderButton(this._transactionPanel, "Save", () =>
+            Button saveButton = this.RenderButton(this._transactionPanel, "Save", () =>
             {
-                TransactionType type = (TransactionType)Enum.Parse(typeof(TransactionType), transactionTypeDropDown.SelectedItem);
-
-                if (this._trackedTransactions.Any(trackedTransaction => trackedTransaction.Type == type && trackedTransaction.ItemId == loadedItem.Item.Id))
+                if (this._trackedTransactions.Any(trackedTransaction => trackedTransaction.Type == trackedTransactionType && trackedTransaction.ItemId == loadedItem.Item.Id))
                 {
                     this.ShowError("Item already tracked");
                     return;
@@ -207,7 +204,7 @@
                     ItemId = loadedItem.Item.Id,
                     Item = loadedItem.Item,
                     Created = DateTime.UtcNow,
-                    Type = type,
+                    Type = trackedTransactionType,
                     WishPrice = GW2Utils.ToCoins(int.Parse(goldInput.Text), int.Parse(silverInput.Text), int.Parse(copperInput.Text))
                 };
 
@@ -225,26 +222,21 @@
             saveButton.Right = panelBounds.Right - 20;
             saveButton.Bottom = panelBounds.Bottom - 20;
 
-            StandardButton cancelButton = this.RenderButton(this._transactionPanel, "Cancel", () =>
+            Button cancelButton = this.RenderButton(this._transactionPanel, "Cancel", () =>
             {
                 this.ClearTransactionPanel();
             });
             cancelButton.Right = saveButton.Left - 10;
             cancelButton.Bottom = panelBounds.Bottom - 20;
 
-            StandardButton loadItemButton = this.RenderButtonAsync(this._transactionPanel, "Load Item", async () =>
+            Button loadItemButton = this.RenderButtonAsync(this._transactionPanel, "Load Item", async () =>
             {
                 if (this._itemService?.Loading ?? true)
                 {
                     throw new Exception("Items are still being loaded.");
                 }
 
-                Item item = this._itemService?.GetItemByName(itemName.Text.Trim());
-
-                if (item == null)
-                {
-                    throw new Exception($"The name \"{itemName.Text}\" is not a valid item.");
-                }
+                Item item = (this._itemService?.GetItemByName(itemName.Text.Trim())) ?? throw new Exception($"The name \"{itemName.Text}\" is not a valid item.");
 
                 Blish_HUD.Content.AsyncTexture2D itemIcon = this.IconService?.GetIcon(item.Icon) ?? ContentService.Textures.Error;
                 loadedItem = (item, itemIcon);
@@ -317,7 +309,7 @@
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
 
-            StandardButton removeButton = this.RenderButton(this._transactionPanel, "Remove", () =>
+            Button removeButton = this.RenderButton(this._transactionPanel, "Remove", () =>
             {
                 this.RemoveTracking?.Invoke(this, trackedTransaction);
                 Shared.Controls.Menu menu = menuItem.Parent as Shared.Controls.Menu;
@@ -383,20 +375,12 @@
             coinInputPanel.Left = itemImage.Left;
             coinInputPanel.Size = new Point(panelBounds.Width - (copperInput.Left * 2), panelBounds.Height - copperInput.Top);
 
-            Dropdown transactionTypeDropDown = new Dropdown
+            TrackedTransactionType trackedTransactionType = trackedTransaction.Type;
+            var transactionTypeDropDown  =this.RenderDropdown<TrackedTransactionType>(this._transactionPanel, new Point(coinInputPanel.Left, coinInputPanel.Bottom + 80), removeButton.Right - coinInputPanel.Left, trackedTransactionType, onChangeAction: val =>
             {
-                Parent = this._transactionPanel,
-                SelectedItem = Enum.GetName(typeof(TransactionType), trackedTransaction.Type),
-                Top = coinInputPanel.Bottom + 80,
-                Left = coinInputPanel.Left
-            };
-            transactionTypeDropDown.Width = removeButton.Right - transactionTypeDropDown.Left;
-
-            foreach (string transactionType in Enum.GetNames(typeof(TransactionType)))
-            {
-                transactionTypeDropDown.Items.Add(transactionType);
-            }
-
+                trackedTransactionType = val;
+            });
+            
             Label typeDescription = new Label
             {
                 Parent = this._transactionPanel,
@@ -404,23 +388,25 @@
                 Left = transactionTypeDropDown.Left,
                 Width = removeButton.Right - transactionTypeDropDown.Left,
                 AutoSizeHeight = true,
-                Text = "Buy: Tracks the price of the highest buy orders. Notifies when prices are greater or equal to the wish price.\n" +
-                "Sell: Tracks the price of the lowest sell offers. Notifies when prices are lower or equal to the wish price."
+                WrapText = true,
+                Font = GameService.Content.DefaultFont18,
+                Text = "Buy >=: Tracks the price of the highest buy orders. Notifies when prices are greater or equal to the wish price.\n" +
+                "Buy <=: Tracks the price of the highest buy orders. Notifies when prices are less or equal to the wish price.\n" +
+                "Sell >=: Tracks the price of the lowest sell offers. Notifies when prices are higher or equal to the wish price.\n" +
+                "Sell <=: Tracks the price of the lowest sell offers. Notifies when prices are less or equal to the wish price."
             };
 
-            StandardButton saveButton = this.RenderButton(this._transactionPanel, "Save", () =>
+            Button saveButton = this.RenderButton(this._transactionPanel, "Save", () =>
             {
                 try
                 {
-                    TransactionType type = (TransactionType)Enum.Parse(typeof(TransactionType), transactionTypeDropDown.SelectedItem);
-
-                    if (this._trackedTransactions.Any(checkTransaction => checkTransaction.Type == type && checkTransaction.ItemId == trackedTransaction.ItemId && !checkTransaction.Equals(trackedTransaction)))
+                    if (this._trackedTransactions.Any(checkTransaction => checkTransaction.Type == trackedTransactionType && checkTransaction.ItemId == trackedTransaction.ItemId && !checkTransaction.Equals(trackedTransaction)))
                     {
                         this.ShowError("Item already tracked");
                         return;
                     }
 
-                    trackedTransaction.Type = type;
+                    trackedTransaction.Type = trackedTransactionType;
                     trackedTransaction.WishPrice = GW2Utils.ToCoins(int.Parse(goldInput.Text), int.Parse(silverInput.Text), int.Parse(copperInput.Text));
                     menuItem.Text = this.GetMenuItemText(trackedTransaction);
                 }
@@ -432,7 +418,7 @@
             saveButton.Right = panelBounds.Right - 20;
             saveButton.Bottom = panelBounds.Bottom - 20;
 
-            StandardButton cancelButton = this.RenderButton(this._transactionPanel, "Cancel", () =>
+            Button cancelButton = this.RenderButton(this._transactionPanel, "Cancel", () =>
             {
                 this.ClearTransactionPanel();
             });
@@ -443,7 +429,26 @@
 
         private string GetMenuItemText(TrackedTransaction trackedTransaction)
         {
-            return $"{trackedTransaction.Type.Humanize().Substring(0, 1)}: {trackedTransaction.Item?.Name ?? "Unknown"}";
+            string typeName = null;
+
+            switch (trackedTransaction.Type)
+            {
+                case TrackedTransactionType.BuyGT:
+                    typeName = "B >=";
+                    break;
+                case TrackedTransactionType.BuyLT:
+                    typeName = "B <=";
+                    break;
+                case TrackedTransactionType.SellGT:
+                    typeName = "S >=";
+                    break;
+                case TrackedTransactionType.SellLT:
+                    typeName = "S <=";
+                    break;
+                default:
+                    break;
+            }
+            return $"{typeName} : {trackedTransaction.Item?.Name ?? "Unknown"}";
         }
 
         private void ClearTransactionPanel()

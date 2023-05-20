@@ -5,10 +5,15 @@ using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
+using Blish_HUD.Settings;
+using Estreya.BlishHUD.Shared.Attributes;
 using Estreya.BlishHUD.Shared.Controls;
+using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.Services;
+using Humanizer;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
+using SharpDX.DXGI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -262,6 +267,47 @@ public abstract class BaseView : View
         return checkBox;
     }
 
+    protected Controls.Dropdown RenderDropdown<T>(Panel parent, Point location, int width, T? value, T[] values = null, Action<T> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null) where T : struct,Enum
+    {
+        onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
+        var casing = LetterCasing.Title;
+
+        Controls.Dropdown dropdown = new Controls.Dropdown
+        {
+            Parent = parent,
+            Width = width,
+            Location = location,
+        };
+
+        values ??= (T[])Enum.GetValues(typeof(T));
+
+        var formattedValues = values.Select(value => value.GetTranslatedValue(this.TranslationService, casing)).ToArray();
+
+        string selectedValue = null;
+        if (value != null)
+        {
+            selectedValue = value.GetTranslatedValue(this.TranslationService, casing);
+        }
+
+        foreach (var valueToAdd in formattedValues)
+        {
+            dropdown.Items.Add(valueToAdd);
+        }
+
+        dropdown.SelectedItem = selectedValue;
+
+        if (onChangeAction != null)
+        {
+            dropdown.ValueChanged += (s, e) =>
+            {
+                var scopeDropdown = s as Controls.Dropdown;
+                onChangeAction?.Invoke(values[formattedValues.ToList().IndexOf(scopeDropdown.SelectedItem)]);
+            };
+        }
+
+        return dropdown;
+    }
+
     protected Controls.Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null)
     {
         onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
@@ -329,14 +375,14 @@ public abstract class BaseView : View
         };
     }
 
-    protected Label GetLabel(Panel parent, string text, Color? color = null, BitmapFont font= null)
+    protected Label GetLabel(Panel parent, string text, Color? color = null, BitmapFont font = null)
     {
         font ??= this.Font;
         return new Label()
         {
             Parent = parent,
             Text = text,
-            Font = font ,
+            Font = font,
             TextColor = color ?? Color.White,
             AutoSizeHeight = !string.IsNullOrWhiteSpace(text),
             Width = (int)font.MeasureString(text).Width + 20

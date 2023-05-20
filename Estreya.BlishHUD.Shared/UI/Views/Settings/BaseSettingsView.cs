@@ -247,13 +247,11 @@
             return (panel, label.TitleLabel, keybindingAssigner);
         }
 
-        protected (Panel Panel, Label label, Controls.Dropdown dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T : Enum
+        protected (Panel Panel, Label label, Controls.Dropdown dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T : struct,Enum
         {
             Panel panel = this.GetPanel(parent);
 
             var label = base.RenderLabel(panel, settingEntry.DisplayName);
-
-            var casing = LetterCasing.Title;
 
             var values = new List<T>();
 
@@ -267,25 +265,11 @@
                 values.AddRange((T[])Enum.GetValues(settingEntry.SettingType));
             }
 
-            var formattedValues = values.Select(value =>
-            {
-                var translationAttribute = value.GetAttributeOfType<TranslationAttribute>();
-
-                return translationAttribute != null
-                    ? this.TranslationService.GetTranslation(translationAttribute.TranslationKey, translationAttribute.DefaultValue)
-                    : value.Humanize(casing);
-            }).ToArray();
-
-            var translationAttribute = settingEntry.Value.GetAttributeOfType<TranslationAttribute>();
-            var selectedValue = translationAttribute != null
-                    ? this.TranslationService.GetTranslation(translationAttribute.TranslationKey, translationAttribute.DefaultValue)
-                    : settingEntry.Value.Humanize(casing);
-
-            var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, formattedValues, selectedValue, onChangeAction: newValue =>
+            var dropdown = base.RenderDropdown(panel, this.CONTROL_LOCATION, CONTROL_WIDTH, settingEntry.Value, values.ToArray(), onChangeAction: newValue =>
             {
                 try
                 {
-                    settingEntry.Value = values[formattedValues.ToList().IndexOf(newValue)];
+                    settingEntry.Value = newValue;
                 }
                 catch (Exception ex)
                 {

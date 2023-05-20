@@ -1,4 +1,8 @@
 ﻿namespace Estreya.BlishHUD.Shared.Extensions;
+
+using Estreya.BlishHUD.Shared.Attributes;
+using Estreya.BlishHUD.Shared.Services;
+using Humanizer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -25,5 +29,18 @@ public static  class EnumExtensions
         var memInfo = type.GetMember(enumVal.ToString());
         var attributes = memInfo[0].GetCustomAttributes(typeof(T), false);
         return (attributes.Length > 0) ? (T)attributes[0] : null;
+    }
+
+    public static string GetTranslatedValue(this Enum enumVal, TranslationService translationService)
+    {
+        return GetTranslatedValue(enumVal, translationService, LetterCasing.Title);
+    }
+
+    public static string GetTranslatedValue(this Enum enumVal, TranslationService translationService, LetterCasing fallbackCasing)
+    {
+        var translationsAttribute = enumVal.GetAttributeOfType<TranslationAttribute>();
+        return translationsAttribute != null
+            ? translationService.GetTranslation(translationsAttribute.TranslationKey, translationsAttribute.DefaultValue)
+            : enumVal.Humanize(fallbackCasing);
     }
 }

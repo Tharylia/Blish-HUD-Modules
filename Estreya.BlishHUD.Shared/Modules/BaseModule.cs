@@ -57,8 +57,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected abstract string API_VERSION_NO { get; }
 
-    protected static TModule Instance;
-
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
 
     private ModuleSettingsView _defaultSettingView;
@@ -128,7 +126,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
     {
         this.Logger = Logger.GetLogger(this.GetType());
-        Instance = this as TModule;
     }
 
     protected sealed override void DefineSettings(SettingCollection settings)
@@ -655,7 +652,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         await Task.WhenAll(tasks);
     }
 
-    /// <inheritdoc />
     protected override void Unload()
     {
         this.Logger.Debug("Unload settings...");
@@ -689,20 +685,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Unloaded settings window.");
 
-        this.Logger.Debug("Unload corner icon...");
-
-        this.HandleCornerIcon(false);
-        this._loadingSpinner?.Dispose();
-        this._loadingSpinner = null;
-
-        this.Logger.Debug("Unloaded corner icon.");
-
         this.Logger.Debug("Unloading states...");
 
         using (this._servicesLock.Lock())
         {
-            this._services.ToList().ForEach(state => state?.Dispose());
-            this._services.Clear();
+            this._services?.ToList().ForEach(state => state?.Dispose());
+            this._services?.Clear();
 
             this.AccountService = null;
             this.ArcDPSService = null;
@@ -726,10 +714,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Unloaded flurl client.");
 
-        this.Logger.Debug("Unload module instance...");
+        this.Logger.Debug("Unload corner icon...");
 
-        Instance = null;
+        this._loadingTexts?.Clear();
 
-        this.Logger.Debug("Unloaded module instance.");
+        this.HandleCornerIcon(false);
+        this._loadingSpinner?.Dispose();
+        this._loadingSpinner = null;
+
+        this.Logger.Debug("Unloaded corner icon.");
     }
 }
