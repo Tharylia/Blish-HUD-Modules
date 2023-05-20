@@ -28,6 +28,11 @@ public class AsyncLock
         return _semaphore.CurrentCount > 0;
     }
 
+    public void ThrowIfBusy(string message = null)
+    {
+        if (!this.IsFree()) throw new LockBusyException(message);
+    }
+
     public Task<IDisposable> LockAsync()
     {
         var waitTask = _semaphore.WaitAsync();
@@ -51,5 +56,12 @@ public class AsyncLock
         {
             _semaphore.Release();
         }
+    }
+
+    public class LockBusyException : Exception
+    {
+        public LockBusyException() : this(null) { }
+
+        public LockBusyException(string message) : base(message ?? "The lock is currently busy and can't be entered.") { }
     }
 }

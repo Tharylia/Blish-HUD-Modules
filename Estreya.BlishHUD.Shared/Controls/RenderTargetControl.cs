@@ -116,6 +116,8 @@ public abstract class RenderTargetControl : Control
 
     private void CreateRenderTarget()
     {
+        this._renderTargetLock.ThrowIfBusy("Deadlock detected.");
+
         int width = Math.Max(this.Width, 1);
         int height = Math.Max(this.Height, 1);
 
