@@ -16,6 +16,10 @@
         private string Title { get; set; }
         private string Description { get; set; }
         private AsyncTexture2D Icon { get; set; }
+
+        public Color NameTextColor { get; set; } = Color.White;
+        public Color DescriptionTextColor { get; set; } = Control.StandardColors.DisabledText;
+
         public TooltipView(string title, string description, TranslationService translationService, Gw2ApiManager apiManager = null, IconService iconService = null) : base(apiManager, iconService, translationService)
         {
             this.Title = title;
@@ -51,10 +55,11 @@
                 VerticalAlignment = VerticalAlignment.Middle,
                 Font = GameService.Content.DefaultFont16,
                 Text = this.Title,
-                Parent = parent
+                Parent = parent,
+                TextColor = this.NameTextColor
             };
 
-            Label descriptionLabel = new Label()
+            Label descriptionLabel = new Label
             {
                 AutoSizeHeight = true,
                 AutoSizeWidth = false,
@@ -62,13 +67,12 @@
                 Padding = new Thickness(0, 8, 0, 0),
                 HorizontalAlignment = HorizontalAlignment.Left,
                 VerticalAlignment = VerticalAlignment.Middle,
-                TextColor = Control.StandardColors.DisabledText,
+                TextColor = this.DescriptionTextColor,
                 WrapText = true,
                 Text = this.Description,
-                Parent = parent
+                Parent = parent,
+                Width = (int)Math.Max(nameLabel.Width, 500)
             };
-
-            descriptionLabel.Width = (int)Math.Max(nameLabel.Width, 500);
         }
 
         protected override Task<bool> InternalLoad(IProgress<string> progress)

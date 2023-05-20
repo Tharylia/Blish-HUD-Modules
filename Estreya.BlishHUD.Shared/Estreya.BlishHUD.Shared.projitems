@@ -79,7 +79,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerLocation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerSize.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\CurrentTransaction.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\TrackedTransaction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\Transaction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\TransactionType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Converter\BottomUpRectangleConverter.cs" />
@@ -96,6 +95,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\RemappedSkillID.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\Skill.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Skills\SkillCategory.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\IRenderable.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\IVisibilityChanging.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\News.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ScreenRegion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseModule.cs" />

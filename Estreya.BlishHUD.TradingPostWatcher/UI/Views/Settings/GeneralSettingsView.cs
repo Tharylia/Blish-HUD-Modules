@@ -2,7 +2,7 @@
 {
     using Blish_HUD.Controls;
     using Blish_HUD.Modules.Managers;
-    using Estreya.BlishHUD.Shared.Service;
+    using Estreya.BlishHUD.Shared.Services;
     using Estreya.BlishHUD.Shared.UI.Views;
     using MonoGame.Extended.BitmapFonts;
     using System;
@@ -12,29 +12,32 @@
 
     public class GeneralSettingsView : BaseSettingsView
     {
-        public GeneralSettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService,settingEventService, font)
+        private readonly ModuleSettings _moduleSettings;
+
+        public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
         {
+            this._moduleSettings = moduleSettings;
         }
 
         protected override void BuildView(FlowPanel parent)
         {
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.GlobalDrawerVisible);
-            this.RenderKeybindingSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.GlobalDrawerVisibleHotkey);
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.RegisterCornerIcon);
+            this.RenderBoolSetting(parent, this._moduleSettings.GlobalDrawerVisible);
+            this.RenderKeybindingSetting(parent, this._moduleSettings.GlobalDrawerVisibleHotkey);
+            this.RenderBoolSetting(parent, this._moduleSettings.RegisterCornerIcon);
 
             this.RenderEmptyLine(parent);
 
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideOnMissingMumbleTicks);
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideOnOpenMap);
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideInCombat);
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideInWvW);
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideInPvP);
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideInPvE_OpenWorld);
-            this.RenderBoolSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.HideInPvE_Competetive);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideOnMissingMumbleTicks);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideOnOpenMap);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInCombat);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInWvW);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInPvP);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInPvE_OpenWorld);
+            this.RenderBoolSetting(parent, this._moduleSettings.HideInPvE_Competetive);
 
             //this.RenderEmptyLine(parent);
 
-            //this.RenderSetting(parent, TradingPostWatcherModule.ModuleInstance.ModuleSettings.BuildDirection);
+            //this.RenderSetting(parent, this._moduleSettings.BuildDirection);
 
         }
 
