@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.ScrollingCombatText
+namespace Estreya.BlishHUD.ScrollingCombatText
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -259,10 +259,10 @@
 
             foreach (var area in this._areas.Values)
             {
-                area.Dispose();
+                area?.Dispose();
             }
 
-            _areas.Clear();
+            _areas?.Clear();
 
             this.Logger.Debug("Unloaded drawer.");
 
@@ -271,9 +271,12 @@
 #endif
 
             this.Logger.Debug("Unloading states...");
+            if (this.ArcDPSService != null)
+            {
             this.ArcDPSService.Unavailable -= this.ArcDPSService_Unavailable;
             this.ArcDPSService.Started -= this.ArcDPSService_Started;
             this.ArcDPSService.Stopped -= this.ArcDPSService_Stopped;
+            }
             this.Logger.Debug("Finished unloading states.");
 
             this.Logger.Debug("Unload base.");
