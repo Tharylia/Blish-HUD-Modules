@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.ScrollingCombatText
+﻿namespace Estreya.BlishHUD.ScrollingCombatText
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -29,16 +29,11 @@ namespace Estreya.BlishHUD.ScrollingCombatText
     {
         public override string UrlModuleName => "scrolling-combat-text";
 
-        internal static ScrollingCombatTextModule ModuleInstance => Instance;
-
-        internal GitHubHelper GitHubHelper => base.GithubHelper;
+        protected override string GetDirectoryName() => "scrolling_combat_text";
 
         protected override string API_VERSION_NO => "1";
 
         private Dictionary<string, ScrollingTextArea> _areas = new Dictionary<string, ScrollingTextArea>();
-
-        #region Services
-        #endregion
 
         [ImportingConstructor]
         public ScrollingCombatTextModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
@@ -57,18 +52,6 @@ namespace Estreya.BlishHUD.ScrollingCombatText
 
             // Wait for skills to be loaded.
             //await this.SkillService.WaitAsync();
-
-            this.ModuleSettings.ModuleSettingsChanged += (sender, eventArgs) =>
-            {
-                switch (eventArgs.Name)
-                {
-                    case nameof(this.ModuleSettings.GlobalDrawerVisible):
-                        this.ToggleContainers(this.ModuleSettings.GlobalDrawerVisible.Value);
-                        break;
-                    default:
-                        break;
-                }
-            };
 
             foreach (string areaName in this.ModuleSettings.ScrollingAreaNames.Value)
             {
@@ -182,7 +165,7 @@ namespace Estreya.BlishHUD.ScrollingCombatText
 
         protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
         {
-            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+            this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new UI.Views.Settings.GeneralSettingsView(this.ModuleSettings,this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
             var areaSettingsView = new UI.Views.Settings.AreaSettingsView(() => this._areas.Values.Select(area => area.Configuration), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
@@ -273,9 +256,9 @@ namespace Estreya.BlishHUD.ScrollingCombatText
             this.Logger.Debug("Unloading states...");
             if (this.ArcDPSService != null)
             {
-            this.ArcDPSService.Unavailable -= this.ArcDPSService_Unavailable;
-            this.ArcDPSService.Started -= this.ArcDPSService_Started;
-            this.ArcDPSService.Stopped -= this.ArcDPSService_Stopped;
+                this.ArcDPSService.Unavailable -= this.ArcDPSService_Unavailable;
+                this.ArcDPSService.Started -= this.ArcDPSService_Started;
+                this.ArcDPSService.Stopped -= this.ArcDPSService_Stopped;
             }
             this.Logger.Debug("Finished unloading states.");
 
@@ -291,11 +274,6 @@ namespace Estreya.BlishHUD.ScrollingCombatText
             var moduleSettings = new ModuleSettings(settings);
 
             return moduleSettings;
-        }
-
-        protected override string GetDirectoryName()
-        {
-            return "scrolling_combat_text";
         }
 
         protected override void ConfigureServices(ServiceConfigurations configurations)
