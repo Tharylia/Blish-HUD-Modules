@@ -219,6 +219,7 @@ public class ScrollingTextArea : Control
                 for (int i = activeEvents.Count - 2; i >= 0; i--)
                 {
                     ScrollingTextAreaEvent activeEvent = activeEvents[i];
+                    // If events seem to overlap, check if activeEvent.Height is -1 for whatever reason.
                     if (lastChecked.Time <= activeEvent.Time + this.DistanceToTime(now, actualScrollspeed, activeEvent.Height))
                     {
                         activeEvent.Time -= this.DistanceToTime(now, actualScrollspeed, lastChecked.Height);
