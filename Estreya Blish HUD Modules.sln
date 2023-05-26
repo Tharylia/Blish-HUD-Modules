@@ -21,6 +21,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.ArcDPSLogM
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.UniversalSearch", "Estreya.BlishHUD.UniversalSearch\Estreya.BlishHUD.UniversalSearch.csproj", "{A4536EF3-88BB-4DAE-930E-AB37DB2C37F9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Estreya.BlishHUD.LookingForGroup", "Estreya.BlishHUD.LookingForGroup\Estreya.BlishHUD.LookingForGroup.csproj", "{776AE5F6-0902-4BB3-B177-A554D312F4B5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -93,6 +95,14 @@ Global
 		{A4536EF3-88BB-4DAE-930E-AB37DB2C37F9}.Release|Any CPU.Build.0 = Release|Any CPU
 		{A4536EF3-88BB-4DAE-930E-AB37DB2C37F9}.Release|x64.ActiveCfg = Release|Any CPU
 		{A4536EF3-88BB-4DAE-930E-AB37DB2C37F9}.Release|x64.Build.0 = Release|Any CPU
+		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Debug|x64.Build.0 = Debug|Any CPU
+		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Release|x64.ActiveCfg = Release|Any CPU
+		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
