@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable
+namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -454,8 +454,15 @@
             return moduleSettings;
         }
 
-        protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
+        protected override void OnSettingWindowBuild(Shared.Controls.TabbedWindow settingWindow)
         {
+            settingWindow.SavesSize = true;
+            settingWindow.CanResize = true;
+            settingWindow.RebuildViewAfterResize = true;
+            settingWindow.UnloadOnRebuild = false;
+            settingWindow.MinSize = settingWindow.Size;
+            settingWindow.MaxSize = new Point(settingWindow.Width * 2, settingWindow.Height * 3);
+            settingWindow.RebuildDelay = 500;
             // Reorder Icon: 605018
 
             this.SettingsWindow.Tabs.Add(new Tab(
