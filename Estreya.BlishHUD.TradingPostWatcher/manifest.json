@@ -15,7 +15,9 @@
       "username": "Estreya.8675"
     }
   ],
-  "directories": [ "tradingpost" ],
+  "directories": [
+    "tradingpost"
+  ],
   "actions": [],
   "enabled_without_gw2": false,
   "api_permissions": {

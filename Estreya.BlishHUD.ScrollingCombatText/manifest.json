@@ -15,7 +15,9 @@
       "username": "Estreya.8675"
     }
   ],
-  "directories": [ "scrolling_combat_text" ],
+  "directories": [
+    "scrolling_combat_text"
+  ],
   "actions": [],
   "enabled_without_gw2": false
 }

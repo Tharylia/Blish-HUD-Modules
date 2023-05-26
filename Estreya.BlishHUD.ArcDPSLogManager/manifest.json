@@ -15,7 +15,9 @@
       "username": "Estreya.8675"
     }
   ],
-  "directories": ["log_manager"],
+  "directories": [
+    "log_manager"
+  ],
   "actions": [],
   "enabled_without_gw2": false
 }

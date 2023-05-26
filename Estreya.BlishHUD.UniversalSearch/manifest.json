@@ -15,7 +15,9 @@
       "username": "Estreya.8675"
     }
   ],
-  "directories": [ "universal_search" ],
+  "directories": [
+    "universal_search"
+  ],
   "actions": [],
   "enabled_without_gw2": false
 }
