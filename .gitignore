@@ -2,3 +2,10 @@
 **/obj
 **/.vs
 **/*.csproj.user
+docs/_site
+docs/event-table
+docs/scrolling-combat-text
+docs/live-map
+docs/trading-post-watcher
+docs/universal-search
+docs/webhook-updater

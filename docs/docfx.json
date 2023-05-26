@@ -1,0 +1,158 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "src": "../Estreya.BlishHUD.EventTable",
+          "files": [
+            "*.csproj"
+          ],
+          "exclude": [
+            "**/obj/**",
+            "**/bin/**"
+          ]
+        }
+      ],
+      "dest": "event-table",
+      "properties": {
+        "TargetFramework": "net48"
+      }
+    },
+    {
+      "src": [
+        {
+          "src": "../Estreya.BlishHUD.ScrollingCombatText",
+          "files": [
+            "*.csproj"
+          ],
+          "exclude": [
+            "**/obj/**",
+            "**/bin/**"
+          ]
+        }
+      ],
+      "dest": "scrolling-combat-text",
+      "properties": {
+        "TargetFramework": "net48"
+      }
+    },
+    {
+      "src": [
+        {
+          "src": "../Estreya.BlishHUD.LiveMap",
+          "files": [
+            "*.csproj"
+          ],
+          "exclude": [
+            "**/obj/**",
+            "**/bin/**"
+          ]
+        }
+      ],
+      "dest": "live-map",
+      "properties": {
+        "TargetFramework": "net48"
+      }
+    },
+    {
+      "src": [
+        {
+          "src": "../Estreya.BlishHUD.TradingPostWatcher",
+          "files": [
+            "*.csproj"
+          ],
+          "exclude": [
+            "**/obj/**",
+            "**/bin/**"
+          ]
+        }
+      ],
+      "dest": "trading-post-watcher",
+      "properties": {
+        "TargetFramework": "net48"
+      }
+    },
+    {
+      "src": [
+        {
+          "src": "../Estreya.BlishHUD.UniversalSearch",
+          "files": [
+            "*.csproj"
+          ],
+          "exclude": [
+            "**/obj/**",
+            "**/bin/**"
+          ]
+        }
+      ],
+      "dest": "universal-search",
+      "properties": {
+        "TargetFramework": "net48"
+      }
+    },
+    {
+      "src": [
+        {
+          "src": "../Estreya.BlishHUD.WebhookUpdater",
+          "files": [
+            "*.csproj"
+          ],
+          "exclude": [
+            "**/obj/**",
+            "**/bin/**"
+          ]
+        }
+      ],
+      "dest": "webhook-updater",
+      "properties": {
+        "TargetFramework": "net48"
+      }
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "event-table/**.yml",
+          "scrolling-combat-text/**.yml",
+          "live-map/**.yml",
+          "trading-post-watcher/**.yml",
+          "universal-search/**.yml",
+          "webhook-updater/**.yml",
+          "*.md",
+          "toc.yml"
+        ],
+        "exclude": [
+          "_site/**"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "images/**"
+        ]
+      }
+    ],
+    "dest": "_site",
+    "template": [
+      "default",
+      "templates/singulinkfx"
+    ],
+    "globalMetadata": {
+      "_appTitle": "Estreya BlishHUD Modules",
+      "_enableSearch": false,
+      "_disableContribution": true,
+      "_appName": "Estreya BlishHUD",
+      "_appFaviconPath": "images/dc454bfa6d14d7be708133588054862d.jpg",
+      "_appLogoPath": "images/dc454bfa6d14d7be708133588054862d.jpg",
+      "_copyrightFooter": "© Estreya. All rights reserved.",
+      "_disableSideFilter": false,
+      "_enableNewTab": true,
+      "_disableBreadcrumb": false
+    }
+  },
+  "xrefService": [
+    "https://xref.docs.microsoft.com/query?uid={uid}"
+  ]
+}
