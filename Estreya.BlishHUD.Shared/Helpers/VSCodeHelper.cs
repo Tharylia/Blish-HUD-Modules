@@ -1,10 +1,8 @@
 ﻿namespace Estreya.BlishHUD.Shared.Helpers;
+
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 public static class VSCodeHelper
@@ -29,7 +27,7 @@ public static class VSCodeHelper
                 throw new FileNotFoundException($"Path \"{filePath2}\" does not exist.");
             }
 
-            var exePath = GetExePath();
+            string exePath = GetExePath();
 
             if (string.IsNullOrWhiteSpace(exePath))
             {
@@ -37,7 +35,7 @@ public static class VSCodeHelper
             }
 
             // --wait is important as vs code is started from a cmd window and exits before finishing
-            var vsCodeProcess = Process.Start($"{exePath}", $"--wait --diff \"{filePath1}\" \"{filePath2}\"");
+            Process vsCodeProcess = Process.Start($"{exePath}", $"--wait --diff \"{filePath1}\" \"{filePath2}\"");
 
             vsCodeProcess.WaitForExit();
         });
@@ -52,7 +50,7 @@ public static class VSCodeHelper
                 throw new FileNotFoundException($"Path \"{filePath}\" does not exist.");
             }
 
-            var exePath = GetExePath();
+            string exePath = GetExePath();
 
             if (string.IsNullOrWhiteSpace(exePath))
             {
@@ -60,7 +58,7 @@ public static class VSCodeHelper
             }
 
             // --wait is important as vs code is started from a cmd window and exits before finishing
-            var vsCodeProcess = Process.Start($"{exePath}", $"--wait \"{filePath}\"");
+            Process vsCodeProcess = Process.Start($"{exePath}", $"--wait \"{filePath}\"");
 
             vsCodeProcess.WaitForExit();
         });
@@ -68,7 +66,7 @@ public static class VSCodeHelper
 
     public static string GetExePath()
     {
-        var userExe = Environment.ExpandEnvironmentVariables(USER_EXE);
+        string userExe = Environment.ExpandEnvironmentVariables(USER_EXE);
 
         return File.Exists(SYSTEM_EXE) ? SYSTEM_EXE : File.Exists(userExe) ? userExe : null;
     }

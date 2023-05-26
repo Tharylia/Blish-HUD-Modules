@@ -1,118 +1,109 @@
-﻿namespace Estreya.BlishHUD.Shared.Utils
+﻿namespace Estreya.BlishHUD.Shared.Utils;
+
+using Blish_HUD;
+using Microsoft.Xna.Framework;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Threading;
+
+public static class UpdateUtil
 {
-    using Blish_HUD;
-    using Estreya.BlishHUD.Shared.Threading;
-    using Microsoft.Xna.Framework;
-    using System;
-    using System.Collections.Generic;
-    using System.Threading.Tasks;
+    private static readonly Logger Logger = Logger.GetLogger(typeof(UpdateUtil));
 
-    public static class UpdateUtil
+    private static readonly SynchronizedCollection<IntPtr> _asyncStateMonitor = new SynchronizedCollection<IntPtr>();
+
+    public static void Update(Action<GameTime> call, GameTime gameTime, double interval, ref double lastCheck)
     {
-        private static readonly Logger Logger = Logger.GetLogger(typeof(UpdateUtil));
+        lastCheck += gameTime.ElapsedGameTime.TotalMilliseconds;
 
-        private static readonly SynchronizedCollection<IntPtr> _asyncStateMonitor = new SynchronizedCollection<IntPtr>();
-
-        public static void Update(Action<GameTime> call, GameTime gameTime, double interval, ref double lastCheck)
+        if (lastCheck >= interval)
         {
-            lastCheck += gameTime.ElapsedGameTime.TotalMilliseconds;
+            call(gameTime);
+            lastCheck = 0;
+        }
+    }
 
-            if (lastCheck >= interval)
-            {
-                call(gameTime);
-                lastCheck = 0;
-            }
+    public static void Update(Action call, GameTime gameTime, double interval, ref double lastCheck)
+    {
+        lastCheck += gameTime.ElapsedGameTime.TotalMilliseconds;
+
+        if (lastCheck >= interval)
+        {
+            call();
+            lastCheck = 0;
+        }
+    }
+
+    public static async Task UpdateAsync(Func<GameTime, Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true)
+    {
+        lastCheck.Value += gameTime.ElapsedGameTime.TotalMilliseconds;
+
+        if (lastCheck.Value < interval || _asyncStateMonitor.Contains(call.Method.MethodHandle.Value))
+        {
+            return;
         }
 
-        public static void Update(Action call, GameTime gameTime, double interval, ref double lastCheck)
-        {
-            lastCheck += gameTime.ElapsedGameTime.TotalMilliseconds;
+        _asyncStateMonitor.Add(call.Method.MethodHandle.Value);
 
-            if (lastCheck >= interval)
-            {
-                call();
-                lastCheck = 0;
-            }
+        string methodName = $"{call.Target.GetType().FullName}.{call.Method.Name}()";
+
+        if (doLogging)
+        {
+            Logger.Debug("Start running update function '{0}'.", methodName);
         }
 
-        public static async Task UpdateAsync(Func<GameTime, Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true)
+        try
         {
-            lastCheck.Value += gameTime.ElapsedGameTime.TotalMilliseconds;
+            Task task = call.Invoke(gameTime);
+            await task;
 
-            if (lastCheck.Value >= interval)
-            {
-                if (_asyncStateMonitor.Contains(call.Method.MethodHandle.Value))
-                {
-                    //Logger.Debug($"Async {methodName} has been skipped because it has not completed running.");
-                    return;
-                }
-
-                _asyncStateMonitor.Add(call.Method.MethodHandle.Value);
-
-                var methodName = $"{call.Target.GetType().FullName}.{call.Method.Name}()";
-
-                if (doLogging)
-                {
-                    Logger.Debug("Start running update function '{0}'.", methodName);
-                }
-
-                try
-                {
-                    var task = call.Invoke(gameTime);
-                    await task;
-                }
-                finally
-                {
-                    _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
-                }
-
-                if (doLogging)
-                {
-                    Logger.Debug("Update function '{0}' finished running.", methodName);
-                }
-
-                lastCheck.Value = 0;
-            }
+            lastCheck.Value = 0;
+        }
+        finally
+        {
+            _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
         }
 
-        public static async Task UpdateAsync(Func<Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true)
+        if (doLogging)
         {
-            lastCheck.Value += gameTime.ElapsedGameTime.TotalMilliseconds;
+            Logger.Debug("Update function '{0}' finished running.", methodName);
+        }
+    }
 
-            if (lastCheck.Value >= interval)
-            {
-                if (_asyncStateMonitor.Contains(call.Method.MethodHandle.Value))
-                {
-                    //Logger.Debug($"Async {methodName} has been skipped because it has not completed running.");
-                    return;
-                }
+    public static async Task UpdateAsync(Func<Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true)
+    {
+        lastCheck.Value += gameTime.ElapsedGameTime.TotalMilliseconds;
 
-                _asyncStateMonitor.Add(call.Method.MethodHandle.Value);
+        if (lastCheck.Value < interval || _asyncStateMonitor.Contains(call.Method.MethodHandle.Value))
+        {
+            return;
+        }
 
-                var methodName = $"{call.Target.GetType().FullName}.{call.Method.Name}()";
+        _asyncStateMonitor.Add(call.Method.MethodHandle.Value);
 
-                if (doLogging)
-                {
-                    Logger.Debug("Start running update function '{0}'.", methodName);
-                }
+        string methodName = $"{call.Target.GetType().FullName}.{call.Method.Name}()";
 
-                try
-                {
-                    var task = call.Invoke();
-                    await task;
-                }
-                finally
-                {
-                    _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
-                }
+        if (doLogging)
+        {
+            Logger.Debug("Start running update function '{0}'.", methodName);
+        }
 
-                if (doLogging)
-                {
-                    Logger.Debug("Update function '{0}' finished running.", methodName);
-                }
+        try
+        {
+            Task task = call.Invoke();
+            await task;
 
-                lastCheck.Value = 0;
-            }
+            lastCheck.Value = 0;
+        }
+        finally
+        {
+            _ = _asyncStateMonitor.Remove(call.Method.MethodHandle.Value);
+        }
+
+        if (doLogging)
+        {
+            Logger.Debug("Update function '{0}' finished running.", methodName);
         }
     }
 }

@@ -3,40 +3,42 @@
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.EventTable.Controls;
-using Estreya.BlishHUD.EventTable.Models;
-using Estreya.BlishHUD.EventTable.Services;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
+using Controls;
+using Gw2Sharp.WebApi.V2;
+using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
+using Services;
+using Shared.Services;
+using Shared.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using Color = Microsoft.Xna.Framework.Color;
+using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 public class ManageDynamicEventsSettingsView : BaseView
 {
     private static readonly Logger Logger = Logger.GetLogger<ManageDynamicEventsSettingsView>();
-    private static Point MAIN_PADDING = new Point(20, 20);
+    private static readonly Point MAIN_PADDING = new Point(20, 20);
     private readonly DynamicEventService _dynamicEventService;
     private readonly Func<List<string>> _getDisabledEventGuids;
-    private List<Gw2Sharp.WebApi.V2.Models.Map> _maps = new List<Gw2Sharp.WebApi.V2.Models.Map>();
-
-    public event EventHandler<ManageEventsView.EventChangedArgs> EventChanged;
-
-
-    public Panel Panel { get; private set; }
+    private readonly List<Map> _maps = new List<Map>();
 
     public ManageDynamicEventsSettingsView(DynamicEventService dynamicEventService, Func<List<string>> getDisabledEventGuids, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
         this._dynamicEventService = dynamicEventService;
         this._getDisabledEventGuids = getDisabledEventGuids;
     }
+
+    public Panel Panel { get; private set; }
+
+    public event EventHandler<ManageEventsView.EventChangedArgs> EventChanged;
+
     private void UpdateToggleButton(GlowButton button)
     {
-        GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
+        GameService.Graphics.QueueMainThreadRender(graphicDevice =>
         {
             button.Icon = button.Checked
                 ? this.IconService.GetIcon("784259.png")
@@ -50,18 +52,18 @@ public class ManageDynamicEventsSettingsView : BaseView
         {
             Parent = parent,
             Location = new Point(MAIN_PADDING.X, MAIN_PADDING.Y),
-            Width = parent.ContentRegion.Width - MAIN_PADDING.X * 1,
+            Width = parent.ContentRegion.Width - (MAIN_PADDING.X * 1),
             Height = parent.ContentRegion.Height - MAIN_PADDING.Y,
             CanScroll = true
         };
 
         Rectangle contentRegion = this.Panel.ContentRegion;
 
-        var maps = this._maps.Where(m => this._dynamicEventService.Events?.Any(de => de.MapId == m.Id) ?? false);
+        IEnumerable<Map> maps = this._maps.Where(m => this._dynamicEventService.Events?.Any(de => de.MapId == m.Id) ?? false);
 
-        TextBox searchBox = new TextBox()
+        TextBox searchBox = new TextBox
         {
-            Parent = Panel,
+            Parent = this.Panel,
             Width = Panel.MenuStandard.Size.X,
             Location = new Point(0, contentRegion.Y),
             PlaceholderText = "Search..."
@@ -70,7 +72,7 @@ public class ManageDynamicEventsSettingsView : BaseView
         Panel eventCategoriesPanel = new Panel
         {
             Title = "Maps",
-            Parent = Panel,
+            Parent = this.Panel,
             CanScroll = true,
             ShowBorder = true,
             Location = new Point(0, searchBox.Bottom + Panel.MenuStandard.ControlOffset.Y)
@@ -90,8 +92,8 @@ public class ManageDynamicEventsSettingsView : BaseView
             FlowDirection = ControlFlowDirection.LeftToRight,
             CanScroll = true,
             ShowBorder = true,
-            Location = new Point(eventCategoriesPanel.Right + Panel.ControlStandard.ControlOffset.X, contentRegion.Y),
-            Parent = Panel
+            Location = new Point(eventCategoriesPanel.Right + Control.ControlStandard.ControlOffset.X, contentRegion.Y),
+            Parent = this.Panel
         };
 
         eventPanel.Size = new Point(contentRegion.Width - eventPanel.Location.X - MAIN_PADDING.X, contentRegion.Height - (int)(StandardButton.STANDARD_CONTROL_HEIGHT * 1.25));
@@ -121,7 +123,7 @@ public class ManageDynamicEventsSettingsView : BaseView
         {
             if (s is MenuItem menuItem)
             {
-                Gw2Sharp.WebApi.V2.Models.Map map = maps.Where(map => map.Name == menuItem.Text).FirstOrDefault();
+                Map map = maps.Where(map => map.Name == menuItem.Text).FirstOrDefault();
 
                 eventPanel.FilterChildren<DataDetailsButton<DynamicEventService.DynamicEvent>>(detailsButton =>
                 {
@@ -137,14 +139,14 @@ public class ManageDynamicEventsSettingsView : BaseView
 
         #endregion
 
-        Panel buttons = new Panel()
+        Panel buttons = new Panel
         {
-            Parent = Panel,
+            Parent = this.Panel,
             Location = new Point(eventPanel.Left, eventPanel.Bottom),
-            Size = new Point(eventPanel.Width, StandardButton.STANDARD_CONTROL_HEIGHT),
+            Size = new Point(eventPanel.Width, StandardButton.STANDARD_CONTROL_HEIGHT)
         };
 
-        StandardButton checkAllButton = new StandardButton()
+        StandardButton checkAllButton = new StandardButton
         {
             Text = "Check all",
             Parent = buttons,
@@ -170,7 +172,7 @@ public class ManageDynamicEventsSettingsView : BaseView
             });
         };
 
-        StandardButton uncheckAllButton = new StandardButton()
+        StandardButton uncheckAllButton = new StandardButton
         {
             Text = "Uncheck all",
             Parent = buttons,
@@ -196,34 +198,33 @@ public class ManageDynamicEventsSettingsView : BaseView
             });
         };
 
-        var eventList = this._dynamicEventService.Events/*.Where(e => !string.IsNullOrWhiteSpace(e.Name))*/.ToList();
-        foreach (var map in maps.Where(m => m.Id == GameService.Gw2Mumble.CurrentMap.Id)) // Limit to current map at the moment. Due to performance limits.
+        List<DynamicEventService.DynamicEvent> eventList = this._dynamicEventService.Events /*.Where(e => !string.IsNullOrWhiteSpace(e.Name))*/.ToList();
+        foreach (Map map in maps.Where(m => m.Id == GameService.Gw2Mumble.CurrentMap.Id)) // Limit to current map at the moment. Due to performance limits.
         {
             IEnumerable<DynamicEventService.DynamicEvent> events = eventList.Where(e => e.MapId == map.Id);
             foreach (DynamicEventService.DynamicEvent e in events)
             {
                 bool enabled = !this._getDisabledEventGuids().Contains(e.ID);
 
-                DataDetailsButton<DynamicEventService.DynamicEvent> button = new DataDetailsButton<DynamicEventService.DynamicEvent>()
+                DataDetailsButton<DynamicEventService.DynamicEvent> button = new DataDetailsButton<DynamicEventService.DynamicEvent>
                 {
                     Data = e,
                     Parent = eventPanel,
                     Text = e.Name,
                     ShowToggleButton = true,
-                    FillColor = Color.LightBlue,
+                    FillColor = Color.LightBlue
                     //Size = new Point((events.ContentRegion.Size.X - Panel.ControlStandard.Size.X) / 2, events.ContentRegion.Size.X - Panel.ControlStandard.Size.X)
                 };
 
                 if (e.Icon?.FileID != null)
                 {
-                    GameService.Graphics.QueueMainThreadRender((graphicDevice) =>
+                    GameService.Graphics.QueueMainThreadRender(graphicDevice =>
                     {
                         button.Icon = this.IconService.GetIcon($"{e.Icon.FileID}.png");
                     });
                 }
 
-
-                GlowButton toggleButton = new GlowButton()
+                GlowButton toggleButton = new GlowButton
                 {
                     Parent = button,
                     Checked = enabled,
@@ -234,7 +235,7 @@ public class ManageDynamicEventsSettingsView : BaseView
 
                 toggleButton.CheckedChanged += (s, eventArgs) =>
                 {
-                    this.EventChanged?.Invoke(this, new ManageEventsView.EventChangedArgs()
+                    this.EventChanged?.Invoke(this, new ManageEventsView.EventChangedArgs
                     {
                         OldService = !eventArgs.Checked,
                         NewService = eventArgs.Checked,
@@ -258,15 +259,14 @@ public class ManageDynamicEventsSettingsView : BaseView
     {
         try
         {
-            var maps = await this.APIManager.Gw2ApiClient.V2.Maps.AllAsync();
+            IApiV2ObjectList<Map> maps = await this.APIManager.Gw2ApiClient.V2.Maps.AllAsync();
             this._maps.AddRange(maps);
             return true;
         }
         catch (Exception ex)
         {
-            Logger.Debug(ex, $"Failed to add maps:");
+            Logger.Debug(ex, "Failed to add maps:");
             return false;
         }
-
     }
 }

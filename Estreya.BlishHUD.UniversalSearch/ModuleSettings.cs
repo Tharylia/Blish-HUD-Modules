@@ -2,22 +2,17 @@
 
 using Blish_HUD.Input;
 using Blish_HUD.Settings;
-using Estreya.BlishHUD.Shared.Settings;
-using Estreya.BlishHUD.UniversalSearch.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.Xna.Framework.Input;
+using Models;
+using Shared.Settings;
 
 public class ModuleSettings : BaseModuleSettings
 {
-
-    private SettingCollection _searchHandlerSettings { get; set; }
-
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(Microsoft.Xna.Framework.Input.ModifierKeys.Alt, Microsoft.Xna.Framework.Input.Keys.U))
+    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.U))
     {
     }
+
+    private SettingCollection _searchHandlerSettings { get; set; }
 
     protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
     {
@@ -30,24 +25,24 @@ public class ModuleSettings : BaseModuleSettings
 
     public SearchHandlerConfiguration AddSearchHandler(string name, string displayName)
     {
-        var enabled = this._searchHandlerSettings.DefineSetting($"{name}-enabled", true, () => "Enabled", () => "Defines if the search handler is enabled and shown in the search window. (Needs a window rebuild)");
+        SettingEntry<bool> enabled = this._searchHandlerSettings.DefineSetting($"{name}-enabled", true, () => "Enabled", () => "Defines if the search handler is enabled and shown in the search window. (Needs a window rebuild)");
 
-        var searchMode = this._searchHandlerSettings.DefineSetting($"{name}-searchMode", SearchMode.Any, () => "Search Mode", () => "Defines the mode for filtering the results.");
+        SettingEntry<SearchMode> searchMode = this._searchHandlerSettings.DefineSetting($"{name}-searchMode", SearchMode.Any, () => "Search Mode", () => "Defines the mode for filtering the results.");
 
-        var minSearchResultsCount = 1;
-        var maxSearchResultsCount = 50;
-        var maxSearchResults = this._searchHandlerSettings.DefineSetting($"{name}-maxSearchResults", 5, () => "Max Search Results", () => $"Defines the max number of shown search results. (Min: {minSearchResultsCount}, Max: {maxSearchResultsCount})");
+        int minSearchResultsCount = 1;
+        int maxSearchResultsCount = 50;
+        SettingEntry<int> maxSearchResults = this._searchHandlerSettings.DefineSetting($"{name}-maxSearchResults", 5, () => "Max Search Results", () => $"Defines the max number of shown search results. (Min: {minSearchResultsCount}, Max: {maxSearchResultsCount})");
         maxSearchResults.SetRange(minSearchResultsCount, maxSearchResultsCount);
 
-        var includeBrokenItems = this._searchHandlerSettings.DefineSetting($"{name}-includeBrokenItems", false, () => "Include Broken Items", () => "Defines if broken api items should be included. (e.g.: No Name, Placeholder Name, ...)");
+        SettingEntry<bool> includeBrokenItems = this._searchHandlerSettings.DefineSetting($"{name}-includeBrokenItems", false, () => "Include Broken Items", () => "Defines if broken api items should be included. (e.g.: No Name, Placeholder Name, ...)");
 
-        var notifyOnCopy = this._searchHandlerSettings.DefineSetting($"{name}-notifyOnCopy", true, () => "Notify on copying Result", () => "Whether a Screen Notification should be displayed after copying a result.");
+        SettingEntry<bool> notifyOnCopy = this._searchHandlerSettings.DefineSetting($"{name}-notifyOnCopy", true, () => "Notify on copying Result", () => "Whether a Screen Notification should be displayed after copying a result.");
 
-        var closeWindowAfterCopy = this._searchHandlerSettings.DefineSetting($"{name}-closeWindowAfterCopy", true, () => "Close Window after Copy", () => "Whether the search window should be closed after a successful copy.");
+        SettingEntry<bool> closeWindowAfterCopy = this._searchHandlerSettings.DefineSetting($"{name}-closeWindowAfterCopy", true, () => "Close Window after Copy", () => "Whether the search window should be closed after a successful copy.");
 
-        var pasteInChatAfterCopy = this._searchHandlerSettings.DefineSetting($"{name}-pasteInChatAfterCopy", true, () => "Paste in Chat after Copy", () => "Whether the copied information should be pasted in chat.");
+        SettingEntry<bool> pasteInChatAfterCopy = this._searchHandlerSettings.DefineSetting($"{name}-pasteInChatAfterCopy", true, () => "Paste in Chat after Copy", () => "Whether the copied information should be pasted in chat.");
 
-        return new SearchHandlerConfiguration()
+        return new SearchHandlerConfiguration
         {
             Name = displayName,
             Enabled = enabled,
@@ -56,7 +51,7 @@ public class ModuleSettings : BaseModuleSettings
             IncludeBrokenItem = includeBrokenItems,
             NotifyOnCopy = notifyOnCopy,
             CloseWindowAfterCopy = closeWindowAfterCopy,
-            PasteInChatAfterCopy= pasteInChatAfterCopy,
+            PasteInChatAfterCopy = pasteInChatAfterCopy
         };
     }
 

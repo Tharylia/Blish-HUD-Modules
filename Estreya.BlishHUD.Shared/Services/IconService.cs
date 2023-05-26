@@ -3,14 +3,11 @@
 using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Helpers;
-using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -18,6 +15,16 @@ using System.Threading.Tasks;
 
 public class IconService : ManagedService
 {
+    public enum IconSource
+    {
+        Core,
+        Module,
+        RenderAPI,
+        DAT,
+        Wiki,
+        Unknown
+    }
+
     public const string RENDER_API_URL = "https://render.guildwars2.com/file/";
     public const string WIKI_URL = "https://wiki.guildwars2.com/images/";
 
@@ -36,7 +43,10 @@ public class IconService : ManagedService
         this._contentsManager = contentsManager;
     }
 
-    protected override Task Initialize() => Task.CompletedTask;
+    protected override Task Initialize()
+    {
+        return Task.CompletedTask;
+    }
 
     protected override void InternalUnload()
     {
@@ -44,11 +54,14 @@ public class IconService : ManagedService
 
     protected override void InternalUpdate(GameTime gameTime) { }
 
-    protected override Task Load() => Task.CompletedTask;
+    protected override Task Load()
+    {
+        return Task.CompletedTask;
+    }
 
     public AsyncTexture2D GetIcon(string identifier)
     {
-        var iconSources = this.DetermineIconSources(identifier);
+        List<IconSource> iconSources = this.DetermineIconSources(identifier);
         return this.GetIcon(identifier, iconSources);
     }
 
@@ -60,10 +73,10 @@ public class IconService : ManagedService
 
         foreach (IconSource source in iconSources)
         {
-            var sourceIdentifier = this.ParseIdentifierBySource(identifier, source);
+            string sourceIdentifier = this.ParseIdentifierBySource(identifier, source);
             if (string.IsNullOrWhiteSpace(sourceIdentifier))
             {
-                Logger.Warn($"Can't load texture by {identifier} with source {source}");
+                this.Logger.Warn($"Can't load texture by {identifier} with source {source}");
                 continue;
             }
 
@@ -73,11 +86,19 @@ public class IconService : ManagedService
                 {
                     case IconSource.Core:
                         Texture2D coreTexture = GameService.Content.GetTexture(sourceIdentifier);
-                        if (coreTexture != ContentService.Textures.Error) icon.SwapTexture(coreTexture);
+                        if (coreTexture != ContentService.Textures.Error)
+                        {
+                            icon.SwapTexture(coreTexture);
+                        }
+
                         break;
                     case IconSource.Module:
                         Texture2D moduleTexture = this._contentsManager.GetTexture(sourceIdentifier);
-                        if (moduleTexture != ContentService.Textures.Error) icon.SwapTexture(moduleTexture);
+                        if (moduleTexture != ContentService.Textures.Error)
+                        {
+                            icon.SwapTexture(moduleTexture);
+                        }
+
                         break;
                     case IconSource.RenderAPI:
                         icon = GameService.Content.GetRenderServiceTexture(sourceIdentifier);
@@ -86,23 +107,24 @@ public class IconService : ManagedService
                         icon = AsyncTexture2D.FromAssetId(Convert.ToInt32(sourceIdentifier));
                         break;
                     case IconSource.Wiki:
-                        var wikiUrl = !identifier.StartsWith(WIKI_URL) ? $"{WIKI_URL}{sourceIdentifier}" : sourceIdentifier;
-                        var wikiTextureBytes = _webclient.DownloadData(wikiUrl);
+                        string wikiUrl = !identifier.StartsWith(WIKI_URL) ? $"{WIKI_URL}{sourceIdentifier}" : sourceIdentifier;
+                        byte[] wikiTextureBytes = _webclient.DownloadData(wikiUrl);
                         icon = TextureUtil.FromStreamPremultiplied(new MemoryStream(wikiTextureBytes));
                         break;
                     case IconSource.Unknown:
                         // Don't have anything to fetch.
                         break;
-                    default:
-                        break;
                 }
             }
             catch (Exception ex)
             {
-                Logger.Error(ex, "Could not load icon {0}:", identifier);
+                this.Logger.Error(ex, "Could not load icon {0}:", identifier);
             }
 
-            if (icon != null) break;
+            if (icon != null)
+            {
+                break;
+            }
         }
 
         return icon switch
@@ -129,7 +151,7 @@ public class IconService : ManagedService
             case IconSource.Module:
                 return _regexModuleRef.Match(identifier).Groups[1].Value;
             case IconSource.RenderAPI:
-                var renderApiMatch = _regexRenderServiceSignatureFileIdPair.Match(identifier);
+                Match renderApiMatch = _regexRenderServiceSignatureFileIdPair.Match(identifier);
                 return $"{renderApiMatch.Groups[1].Value}/{renderApiMatch.Groups[2].Value}";
             case IconSource.DAT:
                 return _regexDat.Match(identifier).Groups[1].Value;
@@ -144,7 +166,10 @@ public class IconService : ManagedService
     {
         List<IconSource> iconSources = new List<IconSource>();
 
-        if (string.IsNullOrEmpty(identifier)) return iconSources;
+        if (string.IsNullOrEmpty(identifier))
+        {
+            return iconSources;
+        }
 
         if (_regexRenderServiceSignatureFileIdPair.IsMatch(identifier))
         {
@@ -177,15 +202,5 @@ public class IconService : ManagedService
         }
 
         return iconSources;
-    }
-
-    public enum IconSource
-    {
-        Core,
-        Module,
-        RenderAPI,
-        DAT,
-        Wiki,
-        Unknown
     }
 }

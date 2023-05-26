@@ -1,16 +1,10 @@
 ﻿namespace Estreya.BlishHUD.LiveMap.Models.Player;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
 public class PlayerFacing
 {
-    [JsonPropertyName("angle")]
-    public double Angle { get; set; }
+    [JsonPropertyName("angle")] public double Angle { get; set; }
 
     public override bool Equals(object obj)
     {
@@ -19,7 +13,7 @@ public class PlayerFacing
             return false;
         }
 
-        var equals = true;
+        bool equals = true;
 
         equals &= this.Angle == playerFacing.Angle;
 

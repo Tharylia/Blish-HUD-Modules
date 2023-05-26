@@ -1,16 +1,13 @@
 ﻿namespace Estreya.BlishHUD.UniversalSearch.Controls.Tooltips;
-using Blish_HUD.Content;
-using Blish_HUD;
 
-using Gw2Sharp.WebApi.V2.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Blish_HUD;
 using Blish_HUD.Controls;
+using Gw2Sharp.WebApi;
+using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
-using Estreya.BlishHUD.UniversalSearch.Utils;
+using Utils;
+using Color = Microsoft.Xna.Framework.Color;
+using StringUtil = Utils.StringUtil;
 
 public class TraitTooltip : Tooltip
 {
@@ -20,35 +17,35 @@ public class TraitTooltip : Tooltip
 
     public TraitTooltip(Trait trait)
     {
-        _trait = trait;
+        this._trait = trait;
 
-        var traitTitle = new Label()
+        Label traitTitle = new Label
         {
-            Text = _trait.Name,
+            Text = this._trait.Name,
             Font = Content.DefaultFont18,
             TextColor = ContentService.Colors.Chardonnay,
             AutoSizeHeight = true,
             AutoSizeWidth = true,
-            Parent = this,
+            Parent = this
         };
 
-        var traitDescription = new Label()
+        Label traitDescription = new Label
         {
-            Text = Utils.StringUtil.SanitizeTraitDescription(_trait.Description),
+            Text = StringUtil.SanitizeTraitDescription(this._trait.Description),
             Font = Content.DefaultFont16,
             AutoSizeWidth = true,
             AutoSizeHeight = true,
             Location = new Point(0, traitTitle.Bottom + 5),
-            Parent = this,
+            Parent = this
         };
 
         LabelUtil.HandleMaxWidth(traitDescription, MAX_WIDTH);
 
         Control lastFact = traitDescription;
-        if (_trait.Facts != null)
+        if (this._trait.Facts != null)
         {
             TraitFactRecharge rechargeFact = null;
-            foreach (var fact in _trait.Facts)
+            foreach (TraitFact fact in this._trait.Facts)
             {
                 switch (fact)
                 {
@@ -56,14 +53,14 @@ public class TraitTooltip : Tooltip
                         rechargeFact = traitFactRecharge;
                         break;
                     default:
-                        lastFact = CreateFact(fact, lastFact);
+                        lastFact = this.CreateFact(fact, lastFact);
                         break;
                 }
             }
 
             if (rechargeFact != null)
             {
-                CreateRechargeFact(rechargeFact);
+                this.CreateRechargeFact(rechargeFact);
             }
         }
     }
@@ -76,38 +73,39 @@ public class TraitTooltip : Tooltip
             return lastFact;
         }
 
-        var icon = fact.Icon;
+        RenderUrl? icon = fact.Icon;
 
         if (fact is TraitFactPrefixedBuff prefixedBuff)
         {
             icon = prefixedBuff.Prefix.Icon;
         }
 
-        var factImage = new Image()
+        Image factImage = new Image
         {
-            Texture = icon != null ? Content.GetRenderServiceTexture(icon) : (AsyncTexture2D)ContentService.Textures.Error,
+            Texture = icon != null ? Content.GetRenderServiceTexture(icon) : ContentService.Textures.Error,
             Size = new Point(32, 32),
             Location = new Point(0, lastFact.Bottom + 5),
-            Parent = this,
+            Parent = this
         };
 
-        var factDescription = new Label()
+        Label factDescription = new Label
         {
-            Text = GetTextForFact(fact),
+            Text = this.GetTextForFact(fact),
             Font = Content.DefaultFont16,
-            TextColor = new Microsoft.Xna.Framework.Color(161, 161, 161),
+            TextColor = new Color(161, 161, 161),
             Height = factImage.Height,
             VerticalAlignment = VerticalAlignment.Middle,
             AutoSizeWidth = true,
             Location = new Point(factImage.Width + 5, lastFact.Bottom + 5),
-            Parent = this,
+            Parent = this
         };
 
         LabelUtil.HandleMaxWidth(
             factDescription,
             MAX_WIDTH,
             factImage.Width,
-            () => {
+            () =>
+            {
                 factDescription.AutoSizeHeight = true;
                 factDescription.RecalculateLayout();
                 factImage.Location = new Point(0, factDescription.Location.Y + ((factDescription.Height / 2) - (factImage.Height / 2)));
@@ -123,8 +121,8 @@ public class TraitTooltip : Tooltip
             case TraitFactAttributeAdjust attributeAdjust:
                 return $"{attributeAdjust.Text}: {attributeAdjust.Value}";
             case TraitFactBuff buff:
-                var applyCountText = buff.ApplyCount != null && buff.ApplyCount != 1 ? buff.ApplyCount + "x " : string.Empty;
-                var durationText = buff.Duration != 0 ? $" ({buff.Duration}s) " : string.Empty;
+                string applyCountText = buff.ApplyCount != null && buff.ApplyCount != 1 ? buff.ApplyCount + "x " : string.Empty;
+                string durationText = buff.Duration != 0 ? $" ({buff.Duration}s) " : string.Empty;
                 return $"{applyCountText}{buff.Status}{durationText}: {buff.Description}";
             case TraitFactBuffConversion buffConversion:
                 return string.Format("Gain {0} Based on a Percentage of {1}: {2}%", buffConversion.Target, buffConversion.Source, buffConversion.Percent);
@@ -158,22 +156,22 @@ public class TraitTooltip : Tooltip
 
     private void CreateRechargeFact(TraitFactRecharge skillFactRecharge)
     {
-        var cooldownImage = new Image()
+        Image cooldownImage = new Image
         {
-            Texture = skillFactRecharge.Icon != null ? Content.GetRenderServiceTexture(skillFactRecharge.Icon) : (AsyncTexture2D)ContentService.Textures.Error,
+            Texture = skillFactRecharge.Icon != null ? Content.GetRenderServiceTexture(skillFactRecharge.Icon) : ContentService.Textures.Error,
             Visible = true,
             Size = new Point(16, 16),
-            Parent = this,
+            Parent = this
         };
 
-        cooldownImage.Location = new Point(Width - cooldownImage.Width, 1);
+        cooldownImage.Location = new Point(this.Width - cooldownImage.Width, 1);
 
-        var cooldownText = new Label()
+        Label cooldownText = new Label
         {
             Text = skillFactRecharge.Value.ToString(),
             AutoSizeWidth = true,
             AutoSizeHeight = true,
-            Parent = this,
+            Parent = this
         };
         cooldownText.Location = new Point(cooldownImage.Left - cooldownText.Width - 2, 0);
     }

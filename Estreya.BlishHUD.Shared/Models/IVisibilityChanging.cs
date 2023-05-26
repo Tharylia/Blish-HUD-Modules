@@ -1,11 +1,6 @@
-﻿namespace Estreya.BlishHUD.Shared.Models
-{
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
+﻿namespace Estreya.BlishHUD.Shared.Models;
 
-    public interface IVisibilityChanging
-    {
-        bool CalculateVisibility();
-    }
+public interface IVisibilityChanging
+{
+    bool CalculateVisibility();
 }

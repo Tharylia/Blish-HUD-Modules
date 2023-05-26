@@ -1,28 +1,28 @@
 ﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Models;
-using Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
+using Extensions;
 using Gw2Sharp.WebApi.V2;
 using Gw2Sharp.WebApi.V2.Models;
+using Models.GW2API.Commerce;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
-using static Estreya.BlishHUD.Shared.Services.TradingPostService;
+using static TradingPostService;
+using Item = Models.GW2API.Items.Item;
 
 public class TradingPostService : APIService<TransactionMapping>
 {
+    public enum TransactionMappingType
+    {
+        Sell,
+        Buy,
+        Own
+    }
+
     private readonly ItemService _itemService;
-
-    public TransactionMappingType Scopes { get; set; } = TransactionMappingType.Own;
-
-    public List<Transaction> Buys => this.APIObjectList.Where(mapping => mapping.Type == TransactionMappingType.Buy).SelectMany(mapping => mapping.Transactions).ToList();
-    public List<Transaction> Sells => this.APIObjectList.Where(mapping => mapping.Type == TransactionMappingType.Sell).SelectMany(mapping => mapping.Transactions).ToList();
-    public List<PlayerTransaction> OwnTransactions => this.APIObjectList.Where(mapping => mapping.Type == TransactionMappingType.Own).SelectMany(mapping => mapping.Transactions.Select(transactions => transactions as PlayerTransaction)).ToList();
 
     public TradingPostService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, ItemService itemService) :
         base(apiManager, configuration)
@@ -30,11 +30,17 @@ public class TradingPostService : APIService<TransactionMapping>
         this._itemService = itemService;
     }
 
+    public TransactionMappingType Scopes { get; set; } = TransactionMappingType.Own;
+
+    public List<Transaction> Buys => this.APIObjectList.Where(mapping => mapping.Type == TransactionMappingType.Buy).SelectMany(mapping => mapping.Transactions).ToList();
+    public List<Transaction> Sells => this.APIObjectList.Where(mapping => mapping.Type == TransactionMappingType.Sell).SelectMany(mapping => mapping.Transactions).ToList();
+    public List<PlayerTransaction> OwnTransactions => this.APIObjectList.Where(mapping => mapping.Type == TransactionMappingType.Own).SelectMany(mapping => mapping.Transactions.Select(transactions => transactions as PlayerTransaction)).ToList();
+
     protected override async Task<List<TransactionMapping>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        var loadOwn = (this.Scopes & TransactionMappingType.Own) != 0;
-        var loadBuy = (this.Scopes & TransactionMappingType.Buy) != 0;
-        var loadSell = (this.Scopes & TransactionMappingType.Sell) != 0;
+        bool loadOwn = (this.Scopes & TransactionMappingType.Own) != 0;
+        bool loadBuy = (this.Scopes & TransactionMappingType.Buy) != 0;
+        bool loadSell = (this.Scopes & TransactionMappingType.Sell) != 0;
 
         List<TransactionMapping> transactions = new List<TransactionMapping>();
 
@@ -45,7 +51,7 @@ public class TradingPostService : APIService<TransactionMapping>
             IApiV2ObjectList<CommerceTransactionCurrent> apiBuys = await apiManager.Gw2ApiClient.V2.Commerce.Transactions.Current.Buys.GetAsync(cancellationToken);
             List<Transaction> buys = apiBuys.ToList().Select(x =>
             {
-                Transaction transaction = new PlayerTransaction()
+                Transaction transaction = new PlayerTransaction
                 {
                     ItemId = x.ItemId,
                     Price = x.Price,
@@ -59,7 +65,7 @@ public class TradingPostService : APIService<TransactionMapping>
 
             if (buys.Count > 0)
             {
-                transactions.Add(new TransactionMapping()
+                transactions.Add(new TransactionMapping
                 {
                     Type = TransactionMappingType.Own,
                     Transactions = buys
@@ -71,7 +77,7 @@ public class TradingPostService : APIService<TransactionMapping>
             IApiV2ObjectList<CommerceTransactionCurrent> apiSells = await apiManager.Gw2ApiClient.V2.Commerce.Transactions.Current.Sells.GetAsync(cancellationToken);
             List<Transaction> sells = apiSells.ToList().Select(x =>
             {
-                Transaction transaction = new PlayerTransaction()
+                Transaction transaction = new PlayerTransaction
                 {
                     ItemId = x.ItemId,
                     Price = x.Price,
@@ -83,10 +89,9 @@ public class TradingPostService : APIService<TransactionMapping>
                 return transaction;
             }).ToList();
 
-
             if (sells.Count > 0)
             {
-                transactions.Add(new TransactionMapping()
+                transactions.Add(new TransactionMapping
                 {
                     Type = TransactionMappingType.Own,
                     Transactions = sells
@@ -96,14 +101,15 @@ public class TradingPostService : APIService<TransactionMapping>
             IEnumerable<int> itemIds = transactions.SelectMany(transaction => transaction.Transactions.Select(transaction => transaction.ItemId)).Distinct();
 
             #region Is Highest
+
             progress.Report("Check highest transactions...");
 
             IReadOnlyList<CommercePrices> rawItemPriceList = await apiManager.Gw2ApiClient.V2.Commerce.Prices.ManyAsync(itemIds, cancellationToken);
             Dictionary<int, CommercePrices> itemPriceLookup = rawItemPriceList.ToDictionary(item => item.Id);
 
-            foreach (var transactionMapping in transactions.Where(mapping => mapping.Type == TransactionMappingType.Own))
+            foreach (TransactionMapping transactionMapping in transactions.Where(mapping => mapping.Type == TransactionMappingType.Own))
             {
-                foreach (var transaction in transactionMapping.Transactions)
+                foreach (Transaction transaction in transactionMapping.Transactions)
                 {
                     if (transaction is PlayerTransaction playerTransaction)
                     {
@@ -115,38 +121,36 @@ public class TradingPostService : APIService<TransactionMapping>
                             case TransactionType.Sell:
                                 playerTransaction.IsHighest = itemPriceLookup[transaction.ItemId].Sells.UnitPrice == transaction.Price;
                                 break;
-                            default:
-                                break;
                         }
-
                     }
                 }
             }
-            #endregion
 
+            #endregion
         }
 
         if (transactions.Count > 0 || loadBuy || loadSell)
         {
             progress.Report($"Waiting for {this._itemService.GetType().Name} to complete...");
-            var itemServiceCompleted = await this._itemService.WaitForCompletion(TimeSpan.FromMinutes(10));
+            bool itemServiceCompleted = await this._itemService.WaitForCompletion(TimeSpan.FromMinutes(10));
             if (!itemServiceCompleted)
             {
-                Logger.Warn("ItemService did not complete in the predefined timespan.");
+                this.Logger.Warn("ItemService did not complete in the predefined timespan.");
             }
         }
 
         if (loadBuy || loadSell)
         {
-            var tradeableItems = this._itemService.Items.Where(item => !item.Flags.Any(flag => flag is ItemFlag.AccountBound or ItemFlag.SoulbindOnAcquire)).ToList();
+            List<Item> tradeableItems = this._itemService.Items.Where(item => !item.Flags.Any(flag => flag is ItemFlag.AccountBound or ItemFlag.SoulbindOnAcquire)).ToList();
 
             #region Buys/Sells
+
             progress.Report("Loading global buys/sells...");
 
-            foreach (var itemChunk in tradeableItems.ChunkBy(200))
+            foreach (IEnumerable<Item> itemChunk in tradeableItems.ChunkBy(200))
             {
                 progress.Report($"Loading global buys/sells from items {itemChunk.First().Id} - {itemChunk.Last().Id}...");
-                var listings = await apiManager.Gw2ApiClient.V2.Commerce.Listings.ManyAsync(itemChunk.Select(item => item.Id), cancellationToken);
+                IReadOnlyList<CommerceListings> listings = await apiManager.Gw2ApiClient.V2.Commerce.Listings.ManyAsync(itemChunk.Select(item => item.Id), cancellationToken);
 
                 List<Transaction> mappedListings = listings.ToList().SelectMany(itemListing =>
                 {
@@ -155,9 +159,9 @@ public class TradingPostService : APIService<TransactionMapping>
                     if (loadBuy)
                     {
                         progress.Report($"Loading global buys: {itemListing.Buys.Count}...");
-                        foreach (var buyListing in itemListing.Buys)
+                        foreach (CommerceListing buyListing in itemListing.Buys)
                         {
-                            Transaction buyTransaction = new Transaction()
+                            Transaction buyTransaction = new Transaction
                             {
                                 ItemId = itemListing.Id,
                                 Price = buyListing.UnitPrice,
@@ -172,9 +176,9 @@ public class TradingPostService : APIService<TransactionMapping>
                     if (loadSell)
                     {
                         progress.Report($"Loading global sells: {itemListing.Sells.Count}...");
-                        foreach (var sellListing in itemListing.Sells)
+                        foreach (CommerceListing sellListing in itemListing.Sells)
                         {
-                            Transaction sellTransaction = new Transaction()
+                            Transaction sellTransaction = new Transaction
                             {
                                 ItemId = itemListing.Id,
                                 Price = sellListing.UnitPrice,
@@ -189,30 +193,33 @@ public class TradingPostService : APIService<TransactionMapping>
                     return listingTransactions;
                 }).ToList();
 
-                transactions.Add(new TransactionMapping()
+                transactions.Add(new TransactionMapping
                 {
                     Type = TransactionMappingType.Buy,
                     Transactions = mappedListings.Where(mappedListing => mappedListing.Type == TransactionType.Buy).ToList()
                 });
 
-                transactions.Add(new TransactionMapping()
+                transactions.Add(new TransactionMapping
                 {
                     Type = TransactionMappingType.Sell,
                     Transactions = mappedListings.Where(mappedListing => mappedListing.Type == TransactionType.Sell).ToList()
                 });
             }
+
             #endregion
         }
 
         #region Set Item
+
         progress.Report("Loading items...");
-        foreach (var transactionMapping in transactions)
+        foreach (TransactionMapping transactionMapping in transactions)
         {
-            foreach (var transaction in transactionMapping.Transactions)
+            foreach (Transaction transaction in transactionMapping.Transactions)
             {
                 transaction.Item = this._itemService.GetItemById(transaction.ItemId);
             }
         }
+
         #endregion
 
         return transactions;
@@ -223,37 +230,30 @@ public class TradingPostService : APIService<TransactionMapping>
         switch (transactionType)
         {
             case TransactionType.Buy:
-                var itemBuys = this.Buys.Where(buy => buy.ItemId == itemId);
+                IEnumerable<Transaction> itemBuys = this.Buys.Where(buy => buy.ItemId == itemId);
                 if (itemBuys.Any())
                 {
                     return itemBuys.First().Price;
                 }
-                else
-                {
-                    var itemPrices = await this._apiManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(itemId);
-                    return itemPrices.Buys.UnitPrice;
-                }
+
+            {
+                CommercePrices itemPrices = await this._apiManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(itemId);
+                return itemPrices.Buys.UnitPrice;
+            }
             case TransactionType.Sell:
-                var itemSells = this.Sells.Where(sell => sell.ItemId == itemId);
+                IEnumerable<Transaction> itemSells = this.Sells.Where(sell => sell.ItemId == itemId);
                 if (itemSells.Any())
                 {
                     return itemSells.First().Price;
                 }
-                else
-                {
-                    var itemPrices = await this._apiManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(itemId);
-                    return itemPrices.Sells.UnitPrice;
-                }
+
+            {
+                CommercePrices itemPrices = await this._apiManager.Gw2ApiClient.V2.Commerce.Prices.GetAsync(itemId);
+                return itemPrices.Sells.UnitPrice;
+            }
             default:
                 throw new ArgumentException($"Invalid transaction type: {transactionType}");
         }
-    }
-
-    public enum TransactionMappingType
-    {
-        Sell,
-        Buy,
-        Own
     }
 
     public struct TransactionMapping

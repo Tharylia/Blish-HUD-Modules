@@ -1,13 +1,8 @@
 ﻿namespace Estreya.BlishHUD.FoodReminder.Controls;
 
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.FoodReminder.Models;
 using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Models;
 
 public abstract class TableControl : Control
 {
@@ -20,6 +15,6 @@ public abstract class TableControl : Control
 
     public override void DoUpdate(GameTime gameTime)
     {
-            this.Width = (int)(this._sizes.Name.Value + this._sizes.Food.Value + this._sizes.Utility.Value + this._sizes.Reinforced.Value);
+        this.Width = (int)(this._sizes.Name.Value + this._sizes.Food.Value + this._sizes.Utility.Value + this._sizes.Reinforced.Value);
     }
 }

@@ -2,25 +2,20 @@
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Flurl.Util;
-using Humanizer;
 using MonoGame.Extended.BitmapFonts;
+using Shared.Services;
+using Shared.UI.Views;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 public class SettingsView : BaseSettingsView
 {
-    private readonly ModuleSettings _moduleSettings;
     private readonly Func<string> _getGlobalUrl;
     private readonly Func<string> _getGuildUrl;
+    private readonly ModuleSettings _moduleSettings;
 
-    public SettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, ModuleSettings moduleSettings,  Func<string> getGlobalUrl, Func<string> getGuildUrl, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public SettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, ModuleSettings moduleSettings, Func<string> getGlobalUrl, Func<string> getGuildUrl, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
         this._moduleSettings = moduleSettings;
         this._getGlobalUrl = getGlobalUrl;
@@ -29,22 +24,22 @@ public class SettingsView : BaseSettingsView
 
     protected override void BuildView(FlowPanel parent)
     {
-        this.RenderBoolSetting(parent, _moduleSettings.HideCommander);
-        this.RenderBoolSetting(parent, _moduleSettings.StreamerModeEnabled);
-        this.RenderBoolSetting(parent, _moduleSettings.FollowOnMap);
-        this.RenderBoolSetting(parent, _moduleSettings.SendGroupInformation);
+        this.RenderBoolSetting(parent, this._moduleSettings.HideCommander);
+        this.RenderBoolSetting(parent, this._moduleSettings.StreamerModeEnabled);
+        this.RenderBoolSetting(parent, this._moduleSettings.FollowOnMap);
+        this.RenderBoolSetting(parent, this._moduleSettings.SendGroupInformation);
 
         this.RenderEmptyLine(parent);
 
         this.RenderButton(parent, "Open Global Map", () =>
         {
-            Process.Start(_getGlobalUrl());
+            Process.Start(this._getGlobalUrl());
         });
 
         this.RenderButton(parent, "Open Guild Map", () =>
         {
-            Process.Start(_getGuildUrl());
-        }, () => string.IsNullOrWhiteSpace(_getGuildUrl()));
+            Process.Start(this._getGuildUrl());
+        }, () => string.IsNullOrWhiteSpace(this._getGuildUrl()));
     }
 
     protected override Task<bool> InternalLoad(IProgress<string> progress)

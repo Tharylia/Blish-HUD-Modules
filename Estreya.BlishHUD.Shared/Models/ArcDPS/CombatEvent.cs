@@ -1,14 +1,20 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.ArcDPS;
 
+using Blish_HUD.ArcDps;
 using Blish_HUD.ArcDps.Models;
-using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
-using Estreya.BlishHUD.Shared.Services;
-using Microsoft.Xna.Framework.Graphics;
+using GW2API.Skills;
 using System;
-using System.Collections.Generic;
 
 public abstract class CombatEvent
 {
+    public CombatEvent(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, CombatEventCategory category, CombatEventType type, CombatEventState state)
+    {
+        this.RawCombatEvent = combatEvent;
+        this.Category = category;
+        this.Type = type;
+        this.State = state;
+    }
+
     public Blish_HUD.ArcDps.Models.CombatEvent RawCombatEvent { get; private set; }
 
     protected Ev Ev => this.RawCombatEvent?.Ev;
@@ -27,14 +33,6 @@ public abstract class CombatEvent
     public CombatEventState State { get; }
     public Skill Skill { get; set; }
 
-    public CombatEvent(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, CombatEventCategory category, CombatEventType type, CombatEventState state)
-    {
-        this.RawCombatEvent = combatEvent;
-        this.Category = category;
-        this.Type = type;
-        this.State = state;
-    }
-
     public void Dispose()
     {
         this.RawCombatEvent = null;
@@ -44,26 +42,31 @@ public abstract class CombatEvent
     public static CombatEventState GetState(Ev ev)
     {
         if (ev == null)
+        {
             throw new ArgumentNullException(nameof(ev), "Ev can't be null.");
+        }
 
-        if (ev.IsStateChange != Blish_HUD.ArcDps.ArcDpsEnums.StateChange.None)
+        if (ev.IsStateChange != ArcDpsEnums.StateChange.None)
         {
             return CombatEventState.STATECHANGE;
         }
 
-        if (ev.IsStateChange == Blish_HUD.ArcDps.ArcDpsEnums.StateChange.None && ev.IsActivation != Blish_HUD.ArcDps.ArcDpsEnums.Activation.None)
+        if (ev.IsStateChange == ArcDpsEnums.StateChange.None && ev.IsActivation != ArcDpsEnums.Activation.None)
         {
             return CombatEventState.ACTIVATION;
         }
 
-        if (ev.IsStateChange == Blish_HUD.ArcDps.ArcDpsEnums.StateChange.None && ev.IsActivation == Blish_HUD.ArcDps.ArcDpsEnums.Activation.None && ev.IsBuffRemove != Blish_HUD.ArcDps.ArcDpsEnums.BuffRemove.None && ev.Buff)
+        if (ev.IsStateChange == ArcDpsEnums.StateChange.None && ev.IsActivation == ArcDpsEnums.Activation.None && ev.IsBuffRemove != ArcDpsEnums.BuffRemove.None && ev.Buff)
         {
             return CombatEventState.BUFFREMOVE;
         }
 
-        if (ev.IsStateChange == Blish_HUD.ArcDps.ArcDpsEnums.StateChange.BuffInitial) return CombatEventState.BUFFAPPLY;
+        if (ev.IsStateChange == ArcDpsEnums.StateChange.BuffInitial)
+        {
+            return CombatEventState.BUFFAPPLY;
+        }
 
-        if (ev.IsStateChange == Blish_HUD.ArcDps.ArcDpsEnums.StateChange.None && ev.IsActivation == Blish_HUD.ArcDps.ArcDpsEnums.Activation.None && ev.IsBuffRemove == Blish_HUD.ArcDps.ArcDpsEnums.BuffRemove.None)
+        if (ev.IsStateChange == ArcDpsEnums.StateChange.None && ev.IsActivation == ArcDpsEnums.Activation.None && ev.IsBuffRemove == ArcDpsEnums.BuffRemove.None)
         {
             // Can be buff apply, buff damage or direct damage
 

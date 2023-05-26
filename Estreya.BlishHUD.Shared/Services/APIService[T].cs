@@ -1,35 +1,28 @@
 ﻿namespace Estreya.BlishHUD.Shared.Services;
 
-using Blish_HUD;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Helpers;
-using Estreya.BlishHUD.Shared.Threading;
-using Estreya.BlishHUD.Shared.Utils;
 using Gw2Sharp.WebApi.Exceptions;
-using Gw2Sharp.WebApi.V2.Clients;
 using Gw2Sharp.WebApi.V2.Models;
 using Humanizer;
-using Microsoft.Xna.Framework;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Utils;
 
 public abstract class APIService<T> : APIService
 {
     protected readonly AsyncLock _apiObjectListLock = new AsyncLock();
 
+    public APIService(Gw2ApiManager apiManager, APIServiceConfiguration configuration) : base(apiManager, configuration)
+    {
+    }
+
     protected List<T> APIObjectList { get; } = new List<T>();
 
     protected event EventHandler<T> APIObjectAdded;
     protected event EventHandler<T> APIObjectRemoved;
-
-    public APIService(Gw2ApiManager apiManager, APIServiceConfiguration configuration) : base(apiManager, configuration)
-    {
-    }
 
     protected sealed override async Task Clear()
     {
@@ -43,15 +36,18 @@ public abstract class APIService<T> : APIService
         await this.DoClear();
     }
 
-    protected virtual Task DoClear() => Task.CompletedTask;
+    protected virtual Task DoClear()
+    {
+        return Task.CompletedTask;
+    }
 
     protected override async Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress)
     {
-        this.Logger.Info($"Check for api objects.");
+        this.Logger.Info("Check for api objects.");
 
         if (apiManager == null)
         {
-            Logger.Warn("API Manager is null");
+            this.Logger.Warn("API Manager is null");
             return;
         }
 
@@ -66,32 +62,36 @@ public abstract class APIService<T> : APIService
             List<T> oldAPIObjectList;
             using (await this._apiObjectListLock.LockAsync())
             {
-                oldAPIObjectList = this.APIObjectList.ToArray().ToList()/*.Copy()*/;
+                oldAPIObjectList = this.APIObjectList.ToArray().ToList() /*.Copy()*/;
                 this.APIObjectList.Clear();
 
-                Logger.Debug("Got {0} api objects from previous fetch.", oldAPIObjectList.Count);
+                this.Logger.Debug("Got {0} api objects from previous fetch.", oldAPIObjectList.Count);
 
                 if (!this._apiManager.HasPermissions(this.Configuration.NeededPermissions))
                 {
-                    Logger.Warn("API Manager does not have needed permissions: {0}", this.Configuration.NeededPermissions.Humanize());
+                    this.Logger.Warn("API Manager does not have needed permissions: {0}", this.Configuration.NeededPermissions.Humanize());
                     return;
                 }
 
-                List<T> apiObjects = await this.Fetch(apiManager, progress ,this.CancellationToken).ConfigureAwait(false);
+                List<T> apiObjects = await this.Fetch(apiManager, progress, this.CancellationToken).ConfigureAwait(false);
 
-                Logger.Debug("API returned {0} objects.", apiObjects.Count);
+                this.Logger.Debug("API returned {0} objects.", apiObjects.Count);
 
                 this.APIObjectList.AddRange(apiObjects);
 
-                progress.Report("Check what api objects are new..");
+                progress.Report($"Check what api objects are new.. 0/{apiObjects.Count}");
                 // Check if new api objects have been added.
-                foreach (T apiObject in apiObjects)
+                for (int i = 0; i < apiObjects.Count; i++)
                 {
+                    progress.Report($"Check what api objects are new.. {i}/{apiObjects.Count}");
+
+                    T apiObject = apiObjects[i];
+
                     if (!oldAPIObjectList.Any(oldApiObject => oldApiObject.GetHashCode() == apiObject.GetHashCode()))
                     {
                         if (apiObjects.Count <= 25)
                         {
-                            Logger.Debug($"API Object added: {apiObject}");
+                            this.Logger.Debug($"API Object added: {apiObject}");
                         }
 
                         try
@@ -100,21 +100,22 @@ public abstract class APIService<T> : APIService
                         }
                         catch (Exception ex)
                         {
-                            Logger.Error(ex, "Error handling api object added event:");
+                            this.Logger.Error(ex, "Error handling api object added event:");
                         }
                     }
                 }
 
-                progress.Report("Check what api objects are removed..");
+                progress.Report($"Check what api objects are removed.. 0/{oldAPIObjectList.Count}");
                 // Immediately after login the api still reports some objects as available because the account record has not been updated yet.
                 // After another request to the api they should disappear.
                 for (int i = oldAPIObjectList.Count - 1; i >= 0; i--)
                 {
+                    progress.Report($"Check what api objects are removed.. {oldAPIObjectList.Count - i}/{oldAPIObjectList.Count}");
                     T oldApiObject = oldAPIObjectList[i];
 
                     if (!apiObjects.Any(apiObject => apiObject.GetHashCode() == oldApiObject.GetHashCode()))
                     {
-                        Logger.Debug($"API Object disappeared from the api: {oldApiObject}");
+                        this.Logger.Debug($"API Object disappeared from the api: {oldApiObject}");
 
                         _ = oldAPIObjectList.Remove(oldApiObject);
 
@@ -124,25 +125,25 @@ public abstract class APIService<T> : APIService
                         }
                         catch (Exception ex)
                         {
-                            Logger.Error(ex, "Error handling api object removed event:");
+                            this.Logger.Error(ex, "Error handling api object removed event:");
                         }
                     }
                 }
             }
 
-            this.Logger.Info($"Check for api objects finished.");
+            this.Logger.Info("Check for api objects finished.");
         }
         catch (MissingScopesException msex)
         {
-            Logger.Warn(msex, "Could not update api objects due to missing scopes:");
+            this.Logger.Warn(msex, "Could not update api objects due to missing scopes:");
         }
         catch (InvalidAccessTokenException iatex)
         {
-            Logger.Warn(iatex, "Could not update api objects due to invalid access token:");
+            this.Logger.Warn(iatex, "Could not update api objects due to invalid access token:");
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex, "Error updating api objects:");
+            this.Logger.Warn(ex, "Error updating api objects:");
         }
     }
 

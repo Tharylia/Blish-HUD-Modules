@@ -1,29 +1,26 @@
-﻿namespace Estreya.BlishHUD.Shared.Extensions
+﻿namespace Estreya.BlishHUD.Shared.Extensions;
+
+public static class NumberExtensions
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
-    using System.Text;
+    private const float METER_TO_INCHES_RATIO = 39.3700787f;
 
-    public static class NumberExtensions
+    public static double ToInches(this double value)
     {
-        private const float METER_TO_INCHES_RATIO = 39.3700787f;
+        return value * METER_TO_INCHES_RATIO;
+    }
 
-        public static double ToInches(this double value)
-        {
-            return value * METER_TO_INCHES_RATIO;
-        }
-        public static float ToInches(this float value)
-        {
-            return value * METER_TO_INCHES_RATIO;
-        }
-        public static double ToMeters(this double value)
-        {
-            return value / METER_TO_INCHES_RATIO;
-        }
-        public static float ToMeters(this float value)
-        {
-            return value / METER_TO_INCHES_RATIO;
-        }
+    public static float ToInches(this float value)
+    {
+        return value * METER_TO_INCHES_RATIO;
+    }
+
+    public static double ToMeters(this double value)
+    {
+        return value / METER_TO_INCHES_RATIO;
+    }
+
+    public static float ToMeters(this float value)
+    {
+        return value / METER_TO_INCHES_RATIO;
     }
 }

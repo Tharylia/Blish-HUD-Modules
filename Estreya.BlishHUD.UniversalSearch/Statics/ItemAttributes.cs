@@ -1,15 +1,11 @@
 ﻿namespace Estreya.BlishHUD.UniversalSearch.Statics;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
-using System.Text;
-using System.Threading.Tasks;
 
 public static class ItemAttributes
 {
     public static class Exotic
     {
+        public static float BackItem = 85.36f;
+
         public static class Armor
         {
             public const float Shoulders = 128.04f;
@@ -20,8 +16,6 @@ public static class ItemAttributes
             public const float Leggings = 256.08f;
             public const float Coat = 384.12f;
         }
-
-        public static float BackItem = 85.36f;
 
         public static class Trinket
         {
@@ -57,6 +51,8 @@ public static class ItemAttributes
 
     public static class Ascended
     {
+        public static float BackItem = 89.628f;
+
         public static class Armor
         {
             public const float Shoulders = 134.442f;
@@ -67,8 +63,6 @@ public static class ItemAttributes
             public const float Leggings = 268.884f;
             public const float Coat = 403.326f;
         }
-
-        public static float BackItem = 89.628f;
 
         public static class Trinket
         {

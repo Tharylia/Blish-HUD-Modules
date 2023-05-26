@@ -1,4 +1,5 @@
 ﻿namespace Estreya.BlishHUD.Shared.Threading;
+
 public class AsyncRef<T>
 {
     public AsyncRef() { }
@@ -12,7 +13,4 @@ public class AsyncRef<T>
         T value = this.Value;
         return value == null ? "" : value.ToString();
     }
-
-    public static implicit operator T(AsyncRef<T> r) { return r.Value; }
-    public static implicit operator AsyncRef<T>(T value) { return new AsyncRef<T>(value); }
 }

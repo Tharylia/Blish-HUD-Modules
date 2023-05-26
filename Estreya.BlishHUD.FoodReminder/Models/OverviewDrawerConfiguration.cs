@@ -1,12 +1,7 @@
 ﻿namespace Estreya.BlishHUD.FoodReminder.Models;
 
 using Blish_HUD.Settings;
-using Estreya.BlishHUD.Shared.Models.Drawers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Shared.Models.Drawers;
 
 public class OverviewDrawerConfiguration : DrawerConfiguration
 {

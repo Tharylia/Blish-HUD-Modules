@@ -1,33 +1,32 @@
-﻿namespace Estreya.BlishHUD.Shared.Helpers
+﻿namespace Estreya.BlishHUD.Shared.Helpers;
+
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+public static class AsyncHelper
 {
-    using System;
-    using System.Threading;
-    using System.Threading.Tasks;
+    private static readonly TaskFactory _myTaskFactory = new
+        TaskFactory(CancellationToken.None,
+            TaskCreationOptions.None,
+            TaskContinuationOptions.None,
+            TaskScheduler.Default);
 
-    public static class AsyncHelper
+    public static TResult RunSync<TResult>(Func<Task<TResult>> func)
     {
-        private static readonly TaskFactory _myTaskFactory = new
-          TaskFactory(CancellationToken.None,
-                      TaskCreationOptions.None,
-                      TaskContinuationOptions.None,
-                      TaskScheduler.Default);
+        return _myTaskFactory
+               .StartNew(func)
+               .Unwrap()
+               .GetAwaiter()
+               .GetResult();
+    }
 
-        public static TResult RunSync<TResult>(Func<Task<TResult>> func)
-        {
-            return AsyncHelper._myTaskFactory
-              .StartNew<Task<TResult>>(func)
-              .Unwrap<TResult>()
-              .GetAwaiter()
-              .GetResult();
-        }
-
-        public static void RunSync(Func<Task> func)
-        {
-            AsyncHelper._myTaskFactory
-              .StartNew<Task>(func)
-              .Unwrap()
-              .GetAwaiter()
-              .GetResult();
-        }
+    public static void RunSync(Func<Task> func)
+    {
+        _myTaskFactory
+            .StartNew(func)
+            .Unwrap()
+            .GetAwaiter()
+            .GetResult();
     }
 }

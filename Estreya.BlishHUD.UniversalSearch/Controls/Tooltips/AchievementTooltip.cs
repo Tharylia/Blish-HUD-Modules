@@ -1,9 +1,12 @@
 ﻿namespace Estreya.BlishHUD.UniversalSearch.Controls.Tooltips;
+
 using Blish_HUD;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.UniversalSearch.Utils;
 using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
+using Utils;
+using Color = Microsoft.Xna.Framework.Color;
+using StringUtil = Utils.StringUtil;
 
 public class AchievementTooltip : Tooltip
 {
@@ -15,24 +18,24 @@ public class AchievementTooltip : Tooltip
     {
         this._achivement = achievement;
 
-        var traitTitle = new Label()
+        Label traitTitle = new Label
         {
             Text = this._achivement.Name,
             Font = Content.DefaultFont18,
             TextColor = ContentService.Colors.Chardonnay,
             AutoSizeHeight = true,
             AutoSizeWidth = true,
-            Parent = this,
+            Parent = this
         };
 
-        var traitDescription = new Label()
+        Label traitDescription = new Label
         {
-            Text = Utils.StringUtil.SanitizeTraitDescription(this._achivement.Description),
+            Text = StringUtil.SanitizeTraitDescription(this._achivement.Description),
             Font = Content.DefaultFont16,
             AutoSizeWidth = true,
             AutoSizeHeight = true,
             Location = new Point(0, traitTitle.Bottom + 5),
-            Parent = this,
+            Parent = this
         };
 
         LabelUtil.HandleMaxWidth(traitDescription, MAX_WIDTH);
@@ -40,7 +43,7 @@ public class AchievementTooltip : Tooltip
         Control lastBit = traitDescription;
         if (this._achivement.Bits != null)
         {
-            foreach (var bit in this._achivement.Bits)
+            foreach (AchievementBit bit in this._achivement.Bits)
             {
                 lastBit = this.CreateBit(bit, lastBit);
             }
@@ -49,16 +52,16 @@ public class AchievementTooltip : Tooltip
 
     private Control CreateBit(AchievementBit bit, Control lastBit)
     {
-        var factDescription = new Label()
+        Label factDescription = new Label
         {
             Text = this.GetTextForBit(bit),
             Font = Content.DefaultFont16,
-            TextColor = new Microsoft.Xna.Framework.Color(161, 161, 161),
+            TextColor = new Color(161, 161, 161),
             Height = 32,
             VerticalAlignment = VerticalAlignment.Middle,
             AutoSizeWidth = true,
             Location = new Point(0, lastBit.Bottom + 5),
-            Parent = this,
+            Parent = this
         };
 
         LabelUtil.HandleMaxWidth(
@@ -83,7 +86,7 @@ public class AchievementTooltip : Tooltip
             AchievementSkinBit achievementSkinBit => achievementSkinBit.Id.ToString(),
             AchievementMinipetBit achievementMinipetBit => achievementMinipetBit.Id.ToString(),
             AchievementItemBit achievementItemBit => achievementItemBit.Id.ToString(),
-            _ => null,
+            _ => null
         };
     }
 }

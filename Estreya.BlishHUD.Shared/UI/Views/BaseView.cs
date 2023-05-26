@@ -5,39 +5,29 @@ using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
-using Blish_HUD.Settings;
-using Estreya.BlishHUD.Shared.Attributes;
-using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Services;
+using Controls;
+using Extensions;
+using Gw2Sharp.WebApi.V2;
 using Humanizer;
 using Microsoft.Xna.Framework;
+using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
-using SharpDX.DXGI;
+using Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Color = Gw2Sharp.WebApi.V2.Models.Color;
+using Dropdown = Controls.Dropdown;
+using KeybindingAssigner = Controls.KeybindingAssigner;
+using Thickness = Blish_HUD.Controls.Thickness;
 
 public abstract class BaseView : View
 {
-    protected int CONTROL_X_SPACING { get; set; } = 20;
-    protected int LABEL_WIDTH { get; set; } = 250;
-
     private static readonly Logger Logger = Logger.GetLogger<BaseView>();
 
-    protected static List<Gw2Sharp.WebApi.V2.Models.Color> Colors { get; set; }
-
     private CancellationTokenSource _messageCancellationTokenSource;
-
-    protected Gw2ApiManager APIManager { get; }
-    protected BitmapFont Font { get; }
-    public Gw2Sharp.WebApi.V2.Models.Color DefaultColor { get; set; }
-
-    protected IconService IconService { get; }
-    protected TranslationService TranslationService { get; }
-    protected Panel MainPanel { get; private set; }
 
     public BaseView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null)
     {
@@ -46,6 +36,19 @@ public abstract class BaseView : View
         this.TranslationService = translationService;
         this.Font = font ?? GameService.Content.DefaultFont16;
     }
+
+    protected int CONTROL_X_SPACING { get; set; } = 20;
+    protected int LABEL_WIDTH { get; set; } = 250;
+
+    protected static List<Color> Colors { get; set; }
+
+    protected Gw2ApiManager APIManager { get; }
+    protected BitmapFont Font { get; }
+    public Color DefaultColor { get; set; }
+
+    protected IconService IconService { get; }
+    protected TranslationService TranslationService { get; }
+    protected Panel MainPanel { get; private set; }
 
     protected sealed override async Task<bool> Load(IProgress<string> progress)
     {
@@ -57,7 +60,7 @@ public abstract class BaseView : View
             {
                 if (this.APIManager != null)
                 {
-                    var colors = await this.APIManager.Gw2ApiClient.V2.Colors.AllAsync();
+                    IApiV2ObjectList<Color> colors = await this.APIManager.Gw2ApiClient.V2.Colors.AllAsync();
                     Colors = colors.ToList();
                 }
             }
@@ -67,7 +70,7 @@ public abstract class BaseView : View
                 if (this.DefaultColor != null)
                 {
                     Logger.Debug($"Adding default color: {this.DefaultColor.Name}");
-                    Colors = new List<Gw2Sharp.WebApi.V2.Models.Color>() { this.DefaultColor };
+                    Colors = new List<Color> { this.DefaultColor };
                 }
             }
         }
@@ -83,12 +86,12 @@ public abstract class BaseView : View
     {
         Rectangle bounds = buildPanel.ContentRegion;
 
-        Panel parentPanel = new Panel()
+        Panel parentPanel = new Panel
         {
             Size = bounds.Size,
             //WidthSizingMode = SizingMode.Fill,
             //HeightSizingMode = SizingMode.Fill,
-            AutoSizePadding = new Point(15, 15),
+            //AutoSizePadding = new Point(15, 15),
             Parent = buildPanel
         };
 
@@ -108,7 +111,7 @@ public abstract class BaseView : View
 
     protected void RenderEmptyLine(Panel parent, int height = 25)
     {
-        new Panel()
+        new Panel
         {
             Parent = parent,
             Height = height,
@@ -135,11 +138,15 @@ public abstract class BaseView : View
         {
             textBox.TextChanged += (s, e) =>
             {
-                if (changing) return;
+                if (changing)
+                {
+                    return;
+                }
+
                 changing = true;
 
-                var scopeTextBox = s as TextBox;
-                var ea = e as ValueChangedEventArgs<string>;
+                TextBox scopeTextBox = s as TextBox;
+                ValueChangedEventArgs<string> ea = e as ValueChangedEventArgs<string>;
 
                 onBeforeChangeAction(ea?.PreviousValue, scopeTextBox.Text).ContinueWith(resultTask =>
                 {
@@ -163,7 +170,7 @@ public abstract class BaseView : View
         {
             textBox.EnterPressed += (s, e) =>
             {
-                var scopeTextBox = s as TextBox;
+                TextBox scopeTextBox = s as TextBox;
 
                 onEnterAction?.Invoke(scopeTextBox.Text);
 
@@ -185,7 +192,7 @@ public abstract class BaseView : View
         {
             Parent = parent,
             Location = location,
-            Width = width,
+            Width = width
         };
 
         trackBar.MinValue = range?.Min ?? 0;
@@ -197,7 +204,7 @@ public abstract class BaseView : View
         {
             trackBar.ValueChanged += (s, e) =>
             {
-                var scopeTrackBar = s as TrackBar;
+                TrackBar scopeTrackBar = s as TrackBar;
                 onChangeAction?.Invoke((int)scopeTrackBar.Value);
             };
         }
@@ -214,7 +221,7 @@ public abstract class BaseView : View
             Parent = parent,
             SmallStep = true,
             Location = location,
-            Width = width,
+            Width = width
         };
 
         trackBar.MinValue = range?.Min ?? 0f;
@@ -226,7 +233,7 @@ public abstract class BaseView : View
         {
             trackBar.ValueChanged += (s, e) =>
             {
-                var scopeTrackBar = s as TrackBar;
+                TrackBar scopeTrackBar = s as TrackBar;
                 onChangeAction?.Invoke(scopeTrackBar.Value);
             };
         }
@@ -242,7 +249,7 @@ public abstract class BaseView : View
         {
             Parent = parent,
             Checked = value,
-            Location = location,
+            Location = location
         };
 
         if (onChangeAction != null)
@@ -251,7 +258,7 @@ public abstract class BaseView : View
             {
                 onBeforeChangeAction(!e.Checked, e.Checked).ContinueWith(resultTask =>
                 {
-                    var scopeCheckbox = s as Checkbox;
+                    Checkbox scopeCheckbox = s as Checkbox;
                     if (resultTask.Result)
                     {
                         onChangeAction?.Invoke(scopeCheckbox.Checked);
@@ -267,21 +274,21 @@ public abstract class BaseView : View
         return checkBox;
     }
 
-    protected Controls.Dropdown RenderDropdown<T>(Panel parent, Point location, int width, T? value, T[] values = null, Action<T> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null) where T : struct,Enum
+    protected Dropdown RenderDropdown<T>(Panel parent, Point location, int width, T? value, T[] values = null, Action<T> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null) where T : struct, Enum
     {
         onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
-        var casing = LetterCasing.Title;
+        LetterCasing casing = LetterCasing.Title;
 
-        Controls.Dropdown dropdown = new Controls.Dropdown
+        Dropdown dropdown = new Dropdown
         {
             Parent = parent,
             Width = width,
-            Location = location,
+            Location = location
         };
 
         values ??= (T[])Enum.GetValues(typeof(T));
 
-        var formattedValues = values.Select(value => value.GetTranslatedValue(this.TranslationService, casing)).ToArray();
+        string[] formattedValues = values.Select(value => value.GetTranslatedValue(this.TranslationService, casing)).ToArray();
 
         string selectedValue = null;
         if (value != null)
@@ -289,7 +296,7 @@ public abstract class BaseView : View
             selectedValue = value.GetTranslatedValue(this.TranslationService, casing);
         }
 
-        foreach (var valueToAdd in formattedValues)
+        foreach (string valueToAdd in formattedValues)
         {
             dropdown.Items.Add(valueToAdd);
         }
@@ -300,7 +307,7 @@ public abstract class BaseView : View
         {
             dropdown.ValueChanged += (s, e) =>
             {
-                var scopeDropdown = s as Controls.Dropdown;
+                Dropdown scopeDropdown = s as Dropdown;
                 onChangeAction?.Invoke(values[formattedValues.ToList().IndexOf(scopeDropdown.SelectedItem)]);
             };
         }
@@ -308,20 +315,20 @@ public abstract class BaseView : View
         return dropdown;
     }
 
-    protected Controls.Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null)
+    protected Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null)
     {
         onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
 
-        Controls.Dropdown dropdown = new Controls.Dropdown
+        Dropdown dropdown = new Dropdown
         {
             Parent = parent,
             Width = width,
-            Location = location,
+            Location = location
         };
 
         if (values != null)
         {
-            foreach (var valueToAdd in values)
+            foreach (string valueToAdd in values)
             {
                 dropdown.Items.Add(valueToAdd);
             }
@@ -333,7 +340,7 @@ public abstract class BaseView : View
         {
             dropdown.ValueChanged += (s, e) =>
             {
-                var scopeDropdown = s as Controls.Dropdown;
+                Dropdown scopeDropdown = s as Dropdown;
                 onChangeAction?.Invoke(scopeDropdown.SelectedItem);
             };
         }
@@ -341,23 +348,23 @@ public abstract class BaseView : View
         return dropdown;
     }
 
-    protected Shared.Controls.KeybindingAssigner RenderKeybinding(Panel parent, Point location, int width, KeyBinding value, Action<KeyBinding> onChangeAction = null, Func<KeyBinding, KeyBinding, Task<bool>> onBeforeChangeAction = null)
+    protected KeybindingAssigner RenderKeybinding(Panel parent, Point location, int width, KeyBinding value, Action<KeyBinding> onChangeAction = null, Func<KeyBinding, KeyBinding, Task<bool>> onBeforeChangeAction = null)
     {
         onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
 
-        Shared.Controls.KeybindingAssigner keybindingAssigner = new Shared.Controls.KeybindingAssigner(false)
+        KeybindingAssigner keybindingAssigner = new KeybindingAssigner(false)
         {
             Parent = parent,
             Width = width,
             Location = location,
-            KeyBinding = value,
+            KeyBinding = value
         };
 
         if (onChangeAction != null)
         {
             keybindingAssigner.BindingChanged += (s, e) =>
             {
-                var scopeKeybindingAssigner = s as Shared.Controls.KeybindingAssigner;
+                KeybindingAssigner scopeKeybindingAssigner = s as KeybindingAssigner;
                 onChangeAction?.Invoke(scopeKeybindingAssigner.KeyBinding);
             };
         }
@@ -375,15 +382,15 @@ public abstract class BaseView : View
         };
     }
 
-    protected Label GetLabel(Panel parent, string text, Color? color = null, BitmapFont font = null)
+    protected Label GetLabel(Panel parent, string text, Microsoft.Xna.Framework.Color? color = null, BitmapFont font = null)
     {
         font ??= this.Font;
-        return new Label()
+        return new Label
         {
             Parent = parent,
             Text = text,
             Font = font,
-            TextColor = color ?? Color.White,
+            TextColor = color ?? Microsoft.Xna.Framework.Color.White,
             AutoSizeHeight = !string.IsNullOrWhiteSpace(text),
             Width = (int)font.MeasureString(text).Width + 20
         };
@@ -391,11 +398,11 @@ public abstract class BaseView : View
 
     private Button BuildButton(Panel parent, string text, Func<bool> disabledCallback = null)
     {
-        Button button = new Button()
+        Button button = new Button
         {
             Parent = parent,
             Text = text,
-            Enabled = !disabledCallback?.Invoke() ?? true,
+            Enabled = !disabledCallback?.Invoke() ?? true
         };
 
         int measuredWidth = (int)this.Font.MeasureString(text).Width + 10;
@@ -453,17 +460,17 @@ public abstract class BaseView : View
         return button;
     }
 
-    protected (Label TitleLabel, Label ValueLabel) RenderLabel(Panel parent, string title, string value = null, Color? textColorTitle = null, Color? textColorValue = null, int? valueXLocation = null)
+    protected (Label TitleLabel, Label ValueLabel) RenderLabel(Panel parent, string title, string value = null, Microsoft.Xna.Framework.Color? textColorTitle = null, Microsoft.Xna.Framework.Color? textColorValue = null, int? valueXLocation = null)
     {
         Panel panel = this.GetPanel(parent);
 
-        Label titleLabel = this.GetLabel(panel, title, color: textColorTitle);
+        Label titleLabel = this.GetLabel(panel, title, textColorTitle);
 
         Label valueLabel = null;
 
         if (value != null)
         {
-            valueLabel = this.GetLabel(panel, value, color: textColorValue);
+            valueLabel = this.GetLabel(panel, value, textColorValue);
             valueLabel.Left = valueXLocation ?? titleLabel.Right + this.CONTROL_X_SPACING;
         }
         else
@@ -472,21 +479,20 @@ public abstract class BaseView : View
         }
 
         return (titleLabel, valueLabel);
-
     }
 
-    protected ColorBox RenderColorBox(Panel parent, Point location, Gw2Sharp.WebApi.V2.Models.Color initialColor, Action<Gw2Sharp.WebApi.V2.Models.Color> onChange, Panel selectorPanel = null, Thickness? innerSelectorPanelPadding = null)
+    protected ColorBox RenderColorBox(Panel parent, Point location, Color initialColor, Action<Color> onChange, Panel selectorPanel = null, Thickness? innerSelectorPanelPadding = null)
     {
         Panel panel = this.GetPanel(parent);
 
-        ColorBox colorBox = new ColorBox()
+        ColorBox colorBox = new ColorBox
         {
             Location = location,
             Parent = panel,
             Color = initialColor
         };
 
-        var selectorPanelCreated = selectorPanel == null;
+        bool selectorPanelCreated = selectorPanel == null;
 
         if (selectorPanel == null)
         {
@@ -494,7 +500,7 @@ public abstract class BaseView : View
             selectorPanel.Visible = false;
         }
 
-        ColorPicker colorPicker = new ColorPicker()
+        ColorPicker colorPicker = new ColorPicker
         {
             Parent = selectorPanel,
             ZIndex = int.MaxValue,
@@ -502,12 +508,12 @@ public abstract class BaseView : View
             WidthSizingMode = SizingMode.Fill,
             HeightSizingMode = SizingMode.Fill,
             Padding = innerSelectorPanelPadding ?? Thickness.Zero,
-            AssociatedColorBox = colorBox,
+            AssociatedColorBox = colorBox
         };
 
         if (Colors != null)
         {
-            foreach (Gw2Sharp.WebApi.V2.Models.Color color in Colors.OrderBy(color => color.Categories.FirstOrDefault()))
+            foreach (Color color in Colors.OrderBy(color => color.Categories.FirstOrDefault()))
             {
                 colorPicker.Colors.Add(color);
             }
@@ -527,7 +533,7 @@ public abstract class BaseView : View
                 colorPicker.DoUpdate(null); // This is kinda painful.
 
                 // Hack to get lineup right
-                Gw2Sharp.WebApi.V2.Models.Color tempColor = new Gw2Sharp.WebApi.V2.Models.Color()
+                Color tempColor = new Color
                 {
                     Id = int.MaxValue,
                     Name = "temp"
@@ -541,14 +547,13 @@ public abstract class BaseView : View
             {
                 Logger.Warn(ex, "Hacky colorpicker resize failed.. Nothing to prevent this..");
             }
-
         };
 
         colorPicker.SelectedColorChanged += (sender, eArgs) =>
         {
-            var colorPicker = sender as ColorPicker;
+            ColorPicker colorPicker = sender as ColorPicker;
 
-            Gw2Sharp.WebApi.V2.Models.Color selectedColor = colorPicker.SelectedColor;
+            Color selectedColor = colorPicker.SelectedColor;
 
             onChange?.Invoke(selectedColor);
 
@@ -563,16 +568,16 @@ public abstract class BaseView : View
         return colorBox;
     }
 
-    private void ShowMessage(string message, Color color, int durationMS, BitmapFont font = null)
+    private void ShowMessage(string message, Microsoft.Xna.Framework.Color color, int durationMS, BitmapFont font = null)
     {
-        _messageCancellationTokenSource?.Cancel();
-        _messageCancellationTokenSource = new CancellationTokenSource();
+        this._messageCancellationTokenSource?.Cancel();
+        this._messageCancellationTokenSource = new CancellationTokenSource();
 
         font ??= this.Font;
 
-        var textSize = font.MeasureString(message);
+        Size2 textSize = font.MeasureString(message);
 
-        var messagePanel = new Panel();
+        Panel messagePanel = new Panel();
         messagePanel.HeightSizingMode = SizingMode.Standard;
         messagePanel.Height = (int)textSize.Height;
         messagePanel.WidthSizingMode = SizingMode.Standard;
@@ -580,7 +585,7 @@ public abstract class BaseView : View
 
         messagePanel.Location = new Point((this.MainPanel.Width / 2) - (messagePanel.Width / 2), this.MainPanel.Bottom - messagePanel.Height);
 
-        _ = this.GetLabel(messagePanel, message, color: color, font: font);
+        _ = this.GetLabel(messagePanel, message, color, font);
 
         messagePanel.Parent = this.MainPanel;
 
@@ -588,7 +593,7 @@ public abstract class BaseView : View
         {
             try
             {
-                await Task.Delay(durationMS, _messageCancellationTokenSource.Token);
+                await Task.Delay(durationMS, this._messageCancellationTokenSource.Token);
             }
             catch (Exception) { }
 
@@ -598,12 +603,12 @@ public abstract class BaseView : View
 
     protected void ShowError(string message)
     {
-        this.ShowMessage(message, Color.Red, 5000, GameService.Content.DefaultFont18);
+        this.ShowMessage(message, Microsoft.Xna.Framework.Color.Red, 5000, GameService.Content.DefaultFont18);
     }
 
     protected void ShowInfo(string message)
     {
-        this.ShowMessage(message, Color.White, 2500, GameService.Content.DefaultFont18);
+        this.ShowMessage(message, Microsoft.Xna.Framework.Color.White, 2500, GameService.Content.DefaultFont18);
     }
 
     protected override void Unload()

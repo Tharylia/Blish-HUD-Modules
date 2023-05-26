@@ -1,8 +1,8 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.Models;
 
 using Blish_HUD.Settings;
-using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.Models.Drawers;
+using Shared.Models.ArcDPS;
+using Shared.Models.Drawers;
 using System.Collections.Generic;
 
 public class ScrollingTextAreaConfiguration : DrawerConfiguration

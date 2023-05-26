@@ -1,42 +1,42 @@
-﻿namespace Estreya.BlishHUD.Shared.Helpers
+﻿namespace Estreya.BlishHUD.Shared.Helpers;
+
+using Microsoft.Xna.Framework;
+using MonoGame.Extended;
+using System;
+
+public static class MathHelper
 {
-    using Microsoft.Xna.Framework;
-    using MonoGame.Extended;
-    using System;
-
-    public static class MathHelper
+    public static float CalculateAngle(Point start, Point arrival)
     {
-        public static float CalculateAngle(Point start, Point arrival)
-        {
-            float radian = (float)Math.Atan2(arrival.Y - start.Y, arrival.X - start.X);
+        float radian = (float)Math.Atan2(arrival.Y - start.Y, arrival.X - start.X);
 
-            return radian;
-        }
+        return radian;
+    }
 
-        public static float CalculateAngle(Point2 start, Point2 arrival)
-        {
-            float radian = (float)Math.Atan2(arrival.Y - start.Y, arrival.X - start.X);
+    public static float CalculateAngle(Point2 start, Point2 arrival)
+    {
+        float radian = (float)Math.Atan2(arrival.Y - start.Y, arrival.X - start.X);
 
-            return radian;
-        }
-        public static double CalculateDistance(Point start, Point arrival)
-        {
-            double deltaX = Math.Pow(arrival.X - start.X, 2);
-            double deltaY = Math.Pow(arrival.Y - start.Y, 2);
+        return radian;
+    }
 
-            double distance = Math.Sqrt(deltaY + deltaX);
+    public static double CalculateDistance(Point start, Point arrival)
+    {
+        double deltaX = Math.Pow(arrival.X - start.X, 2);
+        double deltaY = Math.Pow(arrival.Y - start.Y, 2);
 
-            return distance;
-        }
+        double distance = Math.Sqrt(deltaY + deltaX);
 
-        public static float CalculateDistance(Point2 start, Point2 arrival)
-        {
-            double deltaX = Math.Pow(arrival.X - start.X, 2);
-            double deltaY = Math.Pow(arrival.Y - start.Y, 2);
+        return distance;
+    }
 
-            float distance = (float)Math.Sqrt(deltaY + deltaX);
+    public static float CalculateDistance(Point2 start, Point2 arrival)
+    {
+        double deltaX = Math.Pow(arrival.X - start.X, 2);
+        double deltaY = Math.Pow(arrival.Y - start.Y, 2);
 
-            return distance;
-        }
+        float distance = (float)Math.Sqrt(deltaY + deltaX);
+
+        return distance;
     }
 }

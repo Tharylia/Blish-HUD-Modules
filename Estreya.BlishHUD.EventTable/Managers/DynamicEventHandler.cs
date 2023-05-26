@@ -1,37 +1,40 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Managers;
+
 using Blish_HUD;
+using Blish_HUD.Entities;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.EventTable.Services;
-using Estreya.BlishHUD.Shared.Controls.Map;
-using Estreya.BlishHUD.Shared.Controls.World;
-using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Utils;
+using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
+using Services;
+using Shared.Controls.Map;
+using Shared.Controls.World;
+using Shared.Extensions;
+using Shared.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using static Estreya.BlishHUD.EventTable.Services.DynamicEventService;
+using static Services.DynamicEventService;
+using Color = Microsoft.Xna.Framework.Color;
 
 public class DynamicEventHandler : IDisposable, IUpdatable
 {
     private static readonly Logger Logger = Logger.GetLogger<DynamicEventHandler>();
-    private readonly MapUtil _mapUtil;
-    private readonly DynamicEventService _dynamicEventService;
-    private readonly Gw2ApiManager _apiManager;
-    private readonly ModuleSettings _moduleSettings;
-    private ConcurrentDictionary<string, MapEntity> _mapEntities = new ConcurrentDictionary<string, MapEntity>();
-    private ConcurrentDictionary<string, List<WorldEntity>> _worldEntities = new ConcurrentDictionary<string, List<WorldEntity>>();
-
-    private ConcurrentQueue<(string Key, bool Add)> _entityQueue = new ConcurrentQueue<(string Key, bool Add)>();
 
     private static TimeSpan _checkLostEntitiesInterval = TimeSpan.FromSeconds(5);
-    private double _lastLostEntitiesCheck = 0;
+    private readonly Gw2ApiManager _apiManager;
+    private readonly DynamicEventService _dynamicEventService;
+    private readonly MapUtil _mapUtil;
+    private readonly ModuleSettings _moduleSettings;
 
-    private bool _notifiedLostEntities = false;
-    public event EventHandler FoundLostEntities;
+    private readonly ConcurrentQueue<(string Key, bool Add)> _entityQueue = new ConcurrentQueue<(string Key, bool Add)>();
+    private double _lastLostEntitiesCheck;
+    private readonly ConcurrentDictionary<string, MapEntity> _mapEntities = new ConcurrentDictionary<string, MapEntity>();
+
+    private bool _notifiedLostEntities;
+    private readonly ConcurrentDictionary<string, List<WorldEntity>> _worldEntities = new ConcurrentDictionary<string, List<WorldEntity>>();
 
     public DynamicEventHandler(MapUtil mapUtil, DynamicEventService dynamicEventService, Gw2ApiManager apiManager,
         ModuleSettings moduleSettings)
@@ -46,17 +49,63 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         this._moduleSettings.DisabledDynamicEventIds.SettingChanged += this.DisabledDynamicEventIds_SettingChanged;
     }
 
+    public void Dispose()
+    {
+        GameService.Graphics.World.RemoveEntities(this._worldEntities.Values.SelectMany(v => v));
+        this._worldEntities?.Clear();
+
+        this._mapEntities?.Values.ToList().ForEach(me => this._mapUtil.RemoveEntity(me));
+        this._mapEntities?.Clear();
+
+        GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
+        this._moduleSettings.ShowDynamicEventsOnMap.SettingChanged -= this.ShowDynamicEventsOnMap_SettingChanged;
+        this._moduleSettings.ShowDynamicEventInWorld.SettingChanged -= this.ShowDynamicEventsInWorldSetting_SettingChanged;
+        this._moduleSettings.DisabledDynamicEventIds.SettingChanged -= this.DisabledDynamicEventIds_SettingChanged;
+    }
+
+    public void Update(GameTime gameTime)
+    {
+        UpdateUtil.Update(this.CheckLostEntityReferences, gameTime, _checkLostEntitiesInterval.TotalMilliseconds, ref this._lastLostEntitiesCheck);
+
+        while (this._entityQueue.TryDequeue(out (string Key, bool Add) element))
+        {
+            try
+            {
+                DynamicEvent dynamicEvent = this._dynamicEventService.Events.Where(e => e.ID == element.Key).First();
+                if (element.Add)
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        await this.AddDynamicEventToMap(dynamicEvent);
+                        await this.AddDynamicEventToWorld(dynamicEvent);
+                    });
+                }
+                else
+                {
+                    this.RemoveDynamicEventFromMap(dynamicEvent);
+                    this.RemoveDynamicEventFromWorld(dynamicEvent);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Debug(ex, $"Failed updating event {element.Key}");
+            }
+        }
+    }
+
+    public event EventHandler FoundLostEntities;
+
     private void DisabledDynamicEventIds_SettingChanged(object sender, ValueChangedEventArgs<List<string>> e)
     {
-        var newElements = e.NewValue.Where(newKey => !e.PreviousValue.Any(oldKey => oldKey == newKey));
-        var removeElements = e.PreviousValue.Where(oldKey => !e.NewValue.Any(newKey => newKey == oldKey));
+        IEnumerable<string> newElements = e.NewValue.Where(newKey => !e.PreviousValue.Any(oldKey => oldKey == newKey));
+        IEnumerable<string> removeElements = e.PreviousValue.Where(oldKey => !e.NewValue.Any(newKey => newKey == oldKey));
 
-        foreach (var newElement in newElements)
+        foreach (string newElement in newElements)
         {
             this._entityQueue.Enqueue((newElement, false));
         }
 
-        foreach (var oldElement in removeElements)
+        foreach (string oldElement in removeElements)
         {
             this._entityQueue.Enqueue((oldElement, true));
         }
@@ -85,9 +134,12 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             this._mapEntities?.Values.ToList().ForEach(m => this._mapUtil.RemoveEntity(m));
             this._mapEntities?.Clear();
 
-            if (!this._moduleSettings.ShowDynamicEventsOnMap.Value || !GameService.Gw2Mumble.IsAvailable) return;
+            if (!this._moduleSettings.ShowDynamicEventsOnMap.Value || !GameService.Gw2Mumble.IsAvailable)
+            {
+                return;
+            }
 
-            var success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
+            bool success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
 
             if (!success)
             {
@@ -95,16 +147,16 @@ public class DynamicEventHandler : IDisposable, IUpdatable
                 return;
             }
 
-            var mapId = GameService.Gw2Mumble.CurrentMap.Id;
-            var events = this._dynamicEventService.GetEventsByMap(mapId)?.Where(de => !this._moduleSettings.DisabledDynamicEventIds.Value.Contains(de.ID)).OrderByDescending(d => d.Location.Points?.Length ?? 0).ThenByDescending(d => d.Location.Radius);
+            int mapId = GameService.Gw2Mumble.CurrentMap.Id;
+            IOrderedEnumerable<DynamicEvent> events = this._dynamicEventService.GetEventsByMap(mapId)?.Where(de => !this._moduleSettings.DisabledDynamicEventIds.Value.Contains(de.ID)).OrderByDescending(d => d.Location.Points?.Length ?? 0).ThenByDescending(d => d.Location.Radius);
             if (events == null)
             {
                 Logger.Debug($"No events found for map {mapId}");
                 return;
             }
 
-            var mapEntites = new List<MapEntity>();
-            foreach (var ev in events)
+            List<MapEntity> mapEntites = new List<MapEntity>();
+            foreach (DynamicEvent ev in events)
             {
                 await this.AddDynamicEventToMap(ev);
             }
@@ -128,9 +180,12 @@ public class DynamicEventHandler : IDisposable, IUpdatable
     {
         this.RemoveDynamicEventFromMap(dynamicEvent);
 
-        if (!this._moduleSettings.ShowDynamicEventsOnMap.Value || !GameService.Gw2Mumble.IsAvailable) return;
+        if (!this._moduleSettings.ShowDynamicEventsOnMap.Value || !GameService.Gw2Mumble.IsAvailable)
+        {
+            return;
+        }
 
-        var success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
+        bool success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
 
         if (!success)
         {
@@ -140,25 +195,29 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         try
         {
-            var coords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1]);
+            Vector2 coords = new Vector2(dynamicEvent.Location.Center[0], dynamicEvent.Location.Center[1]);
             switch (dynamicEvent.Location.Type)
             {
                 case "sphere":
                 case "cylinder":
-                    var circle = this._mapUtil.AddCircle(coords.X, coords.Y, dynamicEvent.Location.Radius * (1 / 24f), Color.DarkOrange, 3);
+                    MapEntity circle = this._mapUtil.AddCircle(coords.X, coords.Y, dynamicEvent.Location.Radius * (1 / 24f), Color.DarkOrange, 3);
                     circle.TooltipText = $"{dynamicEvent.Name} (Level {dynamicEvent.Level})";
                     this._mapEntities.AddOrUpdate(dynamicEvent.ID, circle, (_, _) => circle);
                     break;
                 case "poly":
-                    var points = new List<float[]>();
-                    foreach (var item in dynamicEvent.Location.Points)
+                    List<float[]> points = new List<float[]>();
+                    foreach (float[] item in dynamicEvent.Location.Points)
                     {
-                        var polyCoords = new Vector2((float)item[0], (float)item[1]);
+                        Vector2 polyCoords = new Vector2(item[0], item[1]);
 
-                        points.Add(new float[] { (float)polyCoords.X, (float)polyCoords.Y });
+                        points.Add(new[]
+                        {
+                            polyCoords.X,
+                            polyCoords.Y
+                        });
                     }
 
-                    var border = this._mapUtil.AddBorder(coords.X, coords.Y, points.ToArray(), Color.DarkOrange, 4);
+                    MapEntity border = this._mapUtil.AddBorder(coords.X, coords.Y, points.ToArray(), Color.DarkOrange, 4);
                     border.TooltipText = $"{dynamicEvent.Name} (Level {dynamicEvent.Level})";
                     this._mapEntities.AddOrUpdate(dynamicEvent.ID, border, (_, _) => border);
                     break;
@@ -176,10 +235,8 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         {
             return worldEntity.IsPlayerInside(!this._moduleSettings.IgnoreZAxisOnDynamicEventsInWorld.Value);
         }
-        else
-        {
-            return this._moduleSettings.DynamicEventsRenderDistance.Value >= worldEntity.DistanceToPlayer;
-        }
+
+        return this._moduleSettings.DynamicEventsRenderDistance.Value >= worldEntity.DistanceToPlayer;
 
         return true;
     }
@@ -189,9 +246,12 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         GameService.Graphics.World.RemoveEntities(this._worldEntities.Values.SelectMany(v => v));
         this._worldEntities?.Clear();
 
-        if (!this._moduleSettings.ShowDynamicEventInWorld.Value || !GameService.Gw2Mumble.IsAvailable) return;
+        if (!this._moduleSettings.ShowDynamicEventInWorld.Value || !GameService.Gw2Mumble.IsAvailable)
+        {
+            return;
+        }
 
-        var success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
+        bool success = await this._dynamicEventService.WaitForCompletion(TimeSpan.FromMinutes(5));
 
         if (!success)
         {
@@ -199,17 +259,17 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             return;
         }
 
-        var mapId = GameService.Gw2Mumble.CurrentMap.Id;
-        var events = this._dynamicEventService.GetEventsByMap(mapId)
-            .Where(de => !this._moduleSettings.DisabledDynamicEventIds.Value.Contains(de.ID));
+        int mapId = GameService.Gw2Mumble.CurrentMap.Id;
+        IEnumerable<DynamicEvent> events = this._dynamicEventService.GetEventsByMap(mapId)
+                                               .Where(de => !this._moduleSettings.DisabledDynamicEventIds.Value.Contains(de.ID));
         if (events == null)
         {
             Logger.Debug($"No events found for map {mapId}");
             return;
         }
 
-        var sw = Stopwatch.StartNew();
-        foreach (var ev in events)
+        Stopwatch sw = Stopwatch.StartNew();
+        foreach (DynamicEvent ev in events)
         {
             await this.AddDynamicEventToWorld(ev);
         }
@@ -231,16 +291,19 @@ public class DynamicEventHandler : IDisposable, IUpdatable
     {
         this.RemoveDynamicEventFromWorld(dynamicEvent);
 
-        if (!this._moduleSettings.ShowDynamicEventInWorld.Value || !GameService.Gw2Mumble.IsAvailable) return;
+        if (!this._moduleSettings.ShowDynamicEventInWorld.Value || !GameService.Gw2Mumble.IsAvailable)
+        {
+            return;
+        }
 
         try
         {
-            var map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(dynamicEvent.MapId);
-            var centerAsMapCoords = new Vector2((float)dynamicEvent.Location.Center[0], (float)dynamicEvent.Location.Center[1]);
-            var centerAsWorldMeters = map.MapCoordsToWorldMeters(new Vector2((float)centerAsMapCoords.X, (float)centerAsMapCoords.Y));
-            centerAsWorldMeters.Z = (float)Math.Abs(dynamicEvent.Location.Center[2].ToMeters());
+            Map map = await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(dynamicEvent.MapId);
+            Vector2 centerAsMapCoords = new Vector2(dynamicEvent.Location.Center[0], dynamicEvent.Location.Center[1]);
+            Vector3 centerAsWorldMeters = map.MapCoordsToWorldMeters(new Vector2(centerAsMapCoords.X, centerAsMapCoords.Y));
+            centerAsWorldMeters.Z = Math.Abs(dynamicEvent.Location.Center[2].ToMeters());
 
-            var entites = new List<WorldEntity>();
+            List<WorldEntity> entites = new List<WorldEntity>();
             switch (dynamicEvent.Location.Type)
             {
                 case "poly":
@@ -251,8 +314,6 @@ public class DynamicEventHandler : IDisposable, IUpdatable
                     break;
                 case "cylinder":
                     entites.Add(this.GetCylinder(dynamicEvent, map, centerAsWorldMeters, this.WorldEventRenderCondition));
-                    break;
-                default:
                     break;
             }
 
@@ -265,25 +326,24 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         }
     }
 
-    private WorldEntity GetSphere(DynamicEventService.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetSphere(DynamicEvent ev, Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
-        var tessellation = 50;
-        var connections = tessellation / 5;
+        int tessellation = 50;
+        int connections = tessellation / 5;
 
         if (connections > tessellation)
         {
             throw new ArgumentOutOfRangeException("connections", "connections can't be greater than tessellation");
         }
 
-        var radius = (float)ev.Location.Radius.ToMeters();
+        float radius = ev.Location.Radius.ToMeters();
 
-        var points = new List<Vector3>();
+        List<Vector3> points = new List<Vector3>();
 
         for (int i = 0; i < tessellation; i++)
         {
             float circumferenceProgress = (float)i / tessellation;
             float currentRadian = (float)(circumferenceProgress * 2 * Math.PI);
-
 
             float xScaled = (float)Math.Cos(currentRadian);
             float yScaled = (float)Math.Sin(currentRadian);
@@ -295,10 +355,10 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         }
 
         // Polygone needs everything double
-        var first = true;
+        bool first = true;
         points = points.SelectMany(t =>
         {
-            var arr = Enumerable.Repeat(t, first ? 1 : 2);
+            IEnumerable<Vector3> arr = Enumerable.Repeat(t, first ? 1 : 2);
             first = false;
             return arr;
         }).ToList();
@@ -309,33 +369,33 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         //var polygones = new List<WorldPolygone>();
         //polygones.Add(new WorldPolygone(centerAsWorldMeters, points.ToArray(), Color.White, renderCondition));
 
-        var connectionSteps = tessellation / connections;
-        var bendSteps = 12f;
+        int connectionSteps = tessellation / connections;
+        float bendSteps = 12f;
 
-        var connectionPoints = new List<Vector3>();
+        List<Vector3> connectionPoints = new List<Vector3>();
 
         for (int p = 0; p < tessellation; p += connectionSteps)
         {
             Vector3 point = points[p * 2];
-            var mid = new Vector3(point.X, point.Y, 0);
+            Vector3 mid = new Vector3(point.X, point.Y, 0);
 
-            var bendPointsUp = new List<Vector3>();
-            var up = new Vector3(0, 0, radius);
+            List<Vector3> bendPointsUp = new List<Vector3>();
+            Vector3 up = new Vector3(0, 0, radius);
             Vector3 centerUp = new Vector3(mid.X + up.X, mid.Y + up.Y, mid.Z + up.Z);
 
             for (float ratio = 0; ratio <= 1; ratio += 1 / bendSteps)
             {
-                var tangent1 = Vector3.Lerp(mid, centerUp, ratio);
-                var tangent2 = Vector3.Lerp(centerUp, up, ratio);
-                var curve = Vector3.Lerp(tangent1, tangent2, ratio);
+                Vector3 tangent1 = Vector3.Lerp(mid, centerUp, ratio);
+                Vector3 tangent2 = Vector3.Lerp(centerUp, up, ratio);
+                Vector3 curve = Vector3.Lerp(tangent1, tangent2, ratio);
 
                 bendPointsUp.Add(curve);
             }
 
-            var bendPointsUpFirst = true;
+            bool bendPointsUpFirst = true;
             bendPointsUp = bendPointsUp.SelectMany(t =>
             {
-                var arr = Enumerable.Repeat(t, bendPointsUpFirst ? 1 : 2);
+                IEnumerable<Vector3> arr = Enumerable.Repeat(t, bendPointsUpFirst ? 1 : 2);
                 bendPointsUpFirst = false;
                 return arr;
             }).ToList();
@@ -343,23 +403,23 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             connectionPoints.AddRange(bendPointsUp);
             //polygones.Add(new WorldPolygone(centerAsWorldMeters, bendPointsUp.ToArray(), Color.White, renderCondition));
 
-            var down = new Vector3(0, 0, -radius);
-            var bendPointsDown = new List<Vector3>();
+            Vector3 down = new Vector3(0, 0, -radius);
+            List<Vector3> bendPointsDown = new List<Vector3>();
             Vector3 centerDown = new Vector3(mid.X + down.X, mid.Y + down.Y, mid.Z + down.Z);
 
             for (float ratio = 0; ratio <= 1; ratio += 1 / bendSteps)
             {
-                var tangent1 = Vector3.Lerp(mid, centerDown, ratio);
-                var tangent2 = Vector3.Lerp(centerDown, down, ratio);
-                var curve = Vector3.Lerp(tangent1, tangent2, ratio);
+                Vector3 tangent1 = Vector3.Lerp(mid, centerDown, ratio);
+                Vector3 tangent2 = Vector3.Lerp(centerDown, down, ratio);
+                Vector3 curve = Vector3.Lerp(tangent1, tangent2, ratio);
 
                 bendPointsDown.Add(curve);
             }
 
-            var bendPointsDownFirst = true;
+            bool bendPointsDownFirst = true;
             bendPointsDown = bendPointsDown.SelectMany(t =>
             {
-                var arr = Enumerable.Repeat(t, bendPointsDownFirst ? 1 : 2);
+                IEnumerable<Vector3> arr = Enumerable.Repeat(t, bendPointsDownFirst ? 1 : 2);
                 bendPointsDownFirst = false;
                 return arr;
             }).ToList();
@@ -367,25 +427,25 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             connectionPoints.AddRange(bendPointsDown);
         }
 
-        var allPoints = points.Concat(connectionPoints);
+        IEnumerable<Vector3> allPoints = points.Concat(connectionPoints);
         return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
     }
 
-    private WorldEntity GetCylinder(DynamicEventService.DynamicEvent ev, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetCylinder(DynamicEvent ev, Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
-        var tessellation = 50;
-        var connections = tessellation / 4;
+        int tessellation = 50;
+        int connections = tessellation / 4;
 
         if (connections > tessellation)
         {
             throw new ArgumentOutOfRangeException("connections", "connections can't be greater than tessellation");
         }
 
-        var radius = (float)ev.Location.Radius.ToMeters();
+        float radius = ev.Location.Radius.ToMeters();
 
-        var height = (float)ev.Location.Height.ToMeters();
+        float height = ev.Location.Height.ToMeters();
 
-        var points = new List<Vector3>();
+        List<Vector3> points = new List<Vector3>();
 
         for (int i = 0; i < tessellation; i++)
         {
@@ -402,10 +462,10 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         }
 
         // Polygone needs everything double
-        var first = true;
+        bool first = true;
         points = points.SelectMany(t =>
         {
-            var arr = Enumerable.Repeat(t, first ? 1 : 2);
+            IEnumerable<Vector3> arr = Enumerable.Repeat(t, first ? 1 : 2);
             first = false;
             return arr;
         }).ToList();
@@ -413,14 +473,18 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         // Connect end to start
         points.Add(points[0]);
 
-        var zRanges = new double[] { 0, height };
-        var perZRangePoints = zRanges.OrderBy(z => z).Select(z =>
+        double[] zRanges =
         {
-            var p = points.Select(mp => new Vector3(mp.X, mp.Y, (float)z)).ToArray();
+            0,
+            height
+        };
+        Vector3[][] perZRangePoints = zRanges.OrderBy(z => z).Select(z =>
+        {
+            Vector3[] p = points.Select(mp => new Vector3(mp.X, mp.Y, (float)z)).ToArray();
             return p;
         }).ToArray();
 
-        var connectPoints = new List<Vector3>();
+        List<Vector3> connectPoints = new List<Vector3>();
 
         for (int p = 0; p < connections; p++)
         {
@@ -435,8 +499,8 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
             for (int i = 0; i < perZRangePoints.Length - 1; i++)
             {
-                var curr = perZRangePoints[i];
-                var next = perZRangePoints[i + 1];
+                Vector3[] curr = perZRangePoints[i];
+                Vector3[] next = perZRangePoints[i + 1];
 
                 if (curr.Length != next.Length)
                 {
@@ -448,60 +512,58 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             }
         }
 
-        var allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
+        IEnumerable<Vector3> allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
 
         return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
     }
 
-    private WorldEntity GetPolygone(DynamicEventService.DynamicEvent dynamicEvent, Gw2Sharp.WebApi.V2.Models.Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
+    private WorldEntity GetPolygone(DynamicEvent dynamicEvent, Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
     {
-
         // Map all event points to world coordinates
-        var points = dynamicEvent.Location.Points.Select(p =>
+        Vector3[] points = dynamicEvent.Location.Points.Select(p =>
         {
-            var mapCoords = new Vector2((float)p[0], (float)p[1]);
-            var worldCoords = map.MapCoordsToWorldMeters(new Vector2((float)mapCoords.X, (float)mapCoords.Y));
-            var vector = new Vector3((float)worldCoords.X, (float)worldCoords.Y, centerAsWorldMeters.Z);
+            Vector2 mapCoords = new Vector2(p[0], p[1]);
+            Vector3 worldCoords = map.MapCoordsToWorldMeters(new Vector2(mapCoords.X, mapCoords.Y));
+            Vector3 vector = new Vector3(worldCoords.X, worldCoords.Y, centerAsWorldMeters.Z);
             return vector;
         }).ToArray();
 
         // Polygone needs everything double
-        var first = true;
+        bool first = true;
         points = points.SelectMany(t =>
         {
-            var arr = Enumerable.Repeat(t, first ? 1 : 2);
+            IEnumerable<Vector3> arr = Enumerable.Repeat(t, first ? 1 : 2);
             first = false;
             return arr;
         }).ToArray();
 
         // Connect end to start
-        var pointList = points.ToList();
+        List<Vector3> pointList = points.ToList();
         pointList.Add(points[0]);
         points = pointList.ToArray();
 
         // Polygone needs stuff as offset from center
-        var mappedPoints = new Vector3[points.Length];
+        Vector3[] mappedPoints = new Vector3[points.Length];
 
         for (int i = 0; i < points.Length; i++)
         {
-            var curPoint = points[i];
-            var offset = curPoint - centerAsWorldMeters;
-
+            Vector3 curPoint = points[i];
+            Vector3 offset = curPoint - centerAsWorldMeters;
 
             mappedPoints[i] = offset;
         }
 
-        var perZRangePoints = dynamicEvent.Location.ZRange.OrderBy(z => z).Select(z => centerAsWorldMeters.Z + z.ToMeters()).Select(z =>
+        Vector3[][] perZRangePoints = dynamicEvent.Location.ZRange.OrderBy(z => z).Select(z => centerAsWorldMeters.Z + z.ToMeters()).Select(z =>
         {
-            var p = mappedPoints.Select(mp => new Vector3(mp.X, mp.Y, (float)z)).ToArray();
+            Vector3[] p = mappedPoints.Select(mp => new Vector3(mp.X, mp.Y, z)).ToArray();
             return p;
         }).ToArray();
 
-        var connectPoints = new List<Vector3>();
+        List<Vector3> connectPoints = new List<Vector3>();
         for (int i = 0; i < perZRangePoints.Length - 1; i++)
         {
-            var curr = perZRangePoints[i];
-            var next = perZRangePoints[i + 1];
+            Vector3[] curr = perZRangePoints[i];
+            Vector3[] next = perZRangePoints[i + 1];
 
             if (curr.Length != next.Length)
             {
@@ -510,36 +572,22 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
             for (int p = 0; p < curr.Length; p++)
             {
-                var currP = curr[p];
-                var nextP = next[p];
+                Vector3 currP = curr[p];
+                Vector3 nextP = next[p];
                 connectPoints.Add(currP);
                 connectPoints.Add(nextP);
             }
         }
 
-        var allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
+        IEnumerable<Vector3> allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
 
         return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
     }
 
-    public void Dispose()
-    {
-        GameService.Graphics.World.RemoveEntities(this._worldEntities.Values.SelectMany(v => v));
-        this._worldEntities?.Clear();
-
-        this._mapEntities?.Values.ToList().ForEach(me => this._mapUtil.RemoveEntity(me));
-        this._mapEntities?.Clear();
-
-        GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
-        this._moduleSettings.ShowDynamicEventsOnMap.SettingChanged -= this.ShowDynamicEventsOnMap_SettingChanged;
-        this._moduleSettings.ShowDynamicEventInWorld.SettingChanged -= this.ShowDynamicEventsInWorldSetting_SettingChanged;
-        this._moduleSettings.DisabledDynamicEventIds.SettingChanged -= this.DisabledDynamicEventIds_SettingChanged;
-    }
-
     private void CheckLostEntityReferences()
     {
-        var lostEntities = GameService.Graphics.World.Entities.Where(e => e is WorldEntity);
-        var hasEntities = lostEntities.Any();
+        IEnumerable<IEntity> lostEntities = GameService.Graphics.World.Entities.Where(e => e is WorldEntity);
+        bool hasEntities = lostEntities.Any();
 
         if (!this._notifiedLostEntities && !this._moduleSettings.ShowDynamicEventInWorld.Value && hasEntities)
         {
@@ -555,36 +603,6 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         if (this._moduleSettings.ShowDynamicEventInWorld.Value)
         {
             this._notifiedLostEntities = false;
-        }
-    }
-
-    public void Update(GameTime gameTime)
-    {
-        UpdateUtil.Update(this.CheckLostEntityReferences, gameTime, _checkLostEntitiesInterval.TotalMilliseconds, ref this._lastLostEntitiesCheck);
-
-        while (this._entityQueue.TryDequeue(out var element))
-        {
-            try
-            {
-                var dynamicEvent = this._dynamicEventService.Events.Where(e => e.ID == element.Key).First();
-                if (element.Add)
-                {
-                    _ = Task.Run(async () =>
-                    {
-                        await this.AddDynamicEventToMap(dynamicEvent);
-                        await this.AddDynamicEventToWorld(dynamicEvent);
-                    });
-                }
-                else
-                {
-                    this.RemoveDynamicEventFromMap(dynamicEvent);
-                    this.RemoveDynamicEventFromWorld(dynamicEvent);
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Debug(ex, $"Failed updating event {element.Key}");
-            }
         }
     }
 }

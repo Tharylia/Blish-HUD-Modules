@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable
+﻿namespace Estreya.BlishHUD.EventTable
 {
     using Blish_HUD;
     using Blish_HUD.Content;
@@ -49,8 +49,10 @@ namespace Estreya.BlishHUD.EventTable
         private DateTime NowUTC => DateTime.UtcNow;
 
         #region Services
+
         public EventStateService EventStateService { get; private set; }
         public DynamicEventService DynamicEventService { get; private set; }
+
         #endregion
 
         private MapUtil MapUtil { get; set; }
@@ -106,8 +108,8 @@ namespace Estreya.BlishHUD.EventTable
         {
             var messages = new string[]
             {
-                this.TranslationService.GetTranslation("dynamicEventHandler-foundLostEntities1","GameService.Graphics.World.Entities has lost references."),
-                this.TranslationService.GetTranslation("dynamicEventHandler-foundLostEntities2","Expect dynamic event boundaries on screen.")
+                this.TranslationService.GetTranslation("dynamicEventHandler-foundLostEntities1", "GameService.Graphics.World.Entities has lost references."),
+                this.TranslationService.GetTranslation("dynamicEventHandler-foundLostEntities2", "Expect dynamic event boundaries on screen.")
             };
 
             Shared.Controls.ScreenNotification.ShowNotification(
@@ -242,7 +244,6 @@ namespace Estreya.BlishHUD.EventTable
 
         private void ToggleContainers(bool show)
         {
-
             if (!this.ModuleSettings.GlobalDrawerVisible.Value)
             {
                 show = false;
@@ -269,7 +270,6 @@ namespace Estreya.BlishHUD.EventTable
                 }
             });
         }
-
 
         protected override void Update(GameTime gameTime)
         {
@@ -327,28 +327,48 @@ namespace Estreya.BlishHUD.EventTable
             // All maps not specified as competetive will be treated as open world
             if (this.ModuleSettings.HideRemindersInPvE_OpenWorld.Value)
             {
-                MapType[] pveOpenWorldMapTypes = new[] { MapType.Public, MapType.Instance, MapType.Tutorial, MapType.PublicMini };
+                MapType[] pveOpenWorldMapTypes = new[]
+                {
+                    MapType.Public,
+                    MapType.Instance,
+                    MapType.Tutorial,
+                    MapType.PublicMini
+                };
 
                 show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !Shared.MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
             }
 
             if (this.ModuleSettings.HideRemindersInPvE_Competetive.Value)
             {
-                MapType[] pveCompetetiveMapTypes = new[] { MapType.Instance };
+                MapType[] pveCompetetiveMapTypes = new[]
+                {
+                    MapType.Instance
+                };
 
                 show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && Shared.MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
             }
 
             if (this.ModuleSettings.HideRemindersInWvW.Value)
             {
-                MapType[] wvwMapTypes = new[] { MapType.EternalBattlegrounds, MapType.GreenBorderlands, MapType.RedBorderlands, MapType.BlueBorderlands, MapType.EdgeOfTheMists };
+                MapType[] wvwMapTypes = new[]
+                {
+                    MapType.EternalBattlegrounds,
+                    MapType.GreenBorderlands,
+                    MapType.RedBorderlands,
+                    MapType.BlueBorderlands,
+                    MapType.EdgeOfTheMists
+                };
 
                 show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && wvwMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
             }
 
             if (this.ModuleSettings.HideRemindersInPvP.Value)
             {
-                MapType[] pvpMapTypes = new[] { MapType.Pvp, MapType.Tournament };
+                MapType[] pvpMapTypes = new[]
+                {
+                    MapType.Pvp,
+                    MapType.Tournament
+                };
 
                 show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pvpMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
             }
@@ -379,10 +399,7 @@ namespace Estreya.BlishHUD.EventTable
             }
 
             var startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
-            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconService)
-            {
-                BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value
-            };
+            var notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconService) { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
             notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
         }
 
@@ -429,10 +446,7 @@ namespace Estreya.BlishHUD.EventTable
                 this.MODULE_API_URL,
                 () => this.NowUTC,
                 () => this.Version,
-                () => this.BlishHUDAPIService.AccessToken)
-            {
-                Parent = GameService.Graphics.SpriteScreen
-            };
+                () => this.BlishHUDAPIService.AccessToken) { Parent = GameService.Graphics.SpriteScreen };
 
             _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
         }
@@ -466,7 +480,7 @@ namespace Estreya.BlishHUD.EventTable
             // Reorder Icon: 605018
 
             this.SettingsWindow.Tabs.Add(new Tab(
-                this.IconService.GetIcon("156736.png"), 
+                this.IconService.GetIcon("156736.png"),
                 () => new UI.Views.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
                 this.TranslationService.GetTranslation("generalSettingsView-title", "General")));
 
@@ -480,8 +494,7 @@ namespace Estreya.BlishHUD.EventTable
                 this.TranslationService,
                 this.SettingEventService,
                 this.EventStateService,
-                GameService.Content.DefaultFont16)
-            { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+                GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
             areaSettingsView.AddArea += (s, e) =>
             {
                 e.AreaConfiguration = this.AddArea(e.Name);
@@ -498,30 +511,29 @@ namespace Estreya.BlishHUD.EventTable
             };
 
             this.SettingsWindow.Tabs.Add(new Tab(
-                this.IconService.GetIcon("605018.png"), 
+                this.IconService.GetIcon("605018.png"),
                 () => areaSettingsView,
                 this.TranslationService.GetTranslation("areaSettingsView-title", "Event Areas")));
 
             this.SettingsWindow.Tabs.Add(new Tab(
-                this.IconService.GetIcon("1466345.png"), 
+                this.IconService.GetIcon("1466345.png"),
                 () => new UI.Views.ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
                 this.TranslationService.GetTranslation("reminderSettingsView-title", "Reminders")));
 
             this.SettingsWindow.Tabs.Add(new Tab(
-                this.IconService.GetIcon("759448.png"), 
+                this.IconService.GetIcon("759448.png"),
                 () => new UI.Views.DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
                 this.TranslationService.GetTranslation("dynamicEventsSettingsView-title", "Dynamic Events")));
 
             this.SettingsWindow.Tabs.Add(new Tab(
-                this.IconService.GetIcon("156764.png"), 
+                this.IconService.GetIcon("156764.png"),
                 () => new UI.Views.CustomEventView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
                 this.TranslationService.GetTranslation("customEventView-title", "Custom Events")));
 
             this.SettingsWindow.Tabs.Add(new Tab(
-                this.IconService.GetIcon("157097.png"), 
+                this.IconService.GetIcon("157097.png"),
                 () => new UI.Views.HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
                 this.TranslationService.GetTranslation("helpView-title", "Help")));
-
         }
 
         protected override string GetDirectoryName()
@@ -638,6 +650,7 @@ namespace Estreya.BlishHUD.EventTable
 
             this.Logger.Debug("Unloaded base.");
         }
+
+        protected override int GetCornerIconPriority() => 1_289_351_278;
     }
 }
-

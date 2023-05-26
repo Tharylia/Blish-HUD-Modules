@@ -2,32 +2,33 @@
 
 using Blish_HUD.ArcDps.Common;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class Player
 {
-    public string Name { get; private set; }
+    private FoodDefinition _food;
 
     private DateTimeOffset _foodUpdatedAt;
 
-    private FoodDefinition _food;
+    private UtilityDefinition _utility;
+
+    private DateTimeOffset _utilityUpdatedAt;
+
+    public Player(string name)
+    {
+        this.Name = name;
+    }
+
+    public string Name { get; private set; }
 
     public FoodDefinition Food
     {
-        get => _food;
+        get => this._food;
         set
         {
             this._food = value;
             this._foodUpdatedAt = DateTimeOffset.UtcNow;
         }
     }
-
-    private DateTimeOffset _utilityUpdatedAt;
-
-    private UtilityDefinition _utility;
 
     public UtilityDefinition Utility
     {
@@ -44,11 +45,6 @@ public class Player
     public bool Tracked { get; set; }
 
     public CommonFields.Player? ArcDPSPlayer { get; set; }
-
-    public Player(string name)
-    {
-        this.Name = name;
-    }
 
     public bool IsFoodRemoveable => this._food != null && DateTimeOffset.UtcNow - this._foodUpdatedAt >= TimeSpan.FromMilliseconds(500); // Remove events can be fired after add.
     public bool IsUtilityRemoveable => this._utility != null && DateTimeOffset.UtcNow - this._utilityUpdatedAt >= TimeSpan.FromMilliseconds(500); // Remove events can be fired after add.

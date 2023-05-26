@@ -1,60 +1,64 @@
 ﻿namespace Estreya.BlishHUD.Shared.Utils;
+
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 public class AsyncLock
 {
+    private readonly IDisposable _releaser;
     private readonly Task<IDisposable> _releaserTask;
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
-    private readonly IDisposable _releaser;
 
     public AsyncLock()
     {
-        _releaser = new Releaser(_semaphore);
-        _releaserTask = Task.FromResult(_releaser);
+        this._releaser = new Releaser(this._semaphore);
+        this._releaserTask = Task.FromResult(this._releaser);
     }
+
     public IDisposable Lock()
     {
-        _semaphore.Wait();
-        return _releaser;
+        this._semaphore.Wait();
+        return this._releaser;
     }
 
     public bool IsFree()
     {
-        return _semaphore.CurrentCount > 0;
+        return this._semaphore.CurrentCount > 0;
     }
 
     public void ThrowIfBusy(string message = null)
     {
-        if (!this.IsFree()) throw new LockBusyException(message);
+        if (!this.IsFree())
+        {
+            throw new LockBusyException(message);
+        }
     }
 
     public Task<IDisposable> LockAsync()
     {
-        var waitTask = _semaphore.WaitAsync();
+        Task waitTask = this._semaphore.WaitAsync();
         return waitTask.IsCompleted
-            ? _releaserTask
+            ? this._releaserTask
             : waitTask.ContinueWith(
-                (_, releaser) => (IDisposable)releaser,
-                _releaser,
+                (_, releaser) => (IDisposable)releaser, this._releaser,
                 CancellationToken.None,
                 TaskContinuationOptions.ExecuteSynchronously,
                 TaskScheduler.Default);
     }
+
     private class Releaser : IDisposable
     {
         private readonly SemaphoreSlim _semaphore;
+
         public Releaser(SemaphoreSlim semaphore)
         {
-            _semaphore = semaphore;
+            this._semaphore = semaphore;
         }
+
         public void Dispose()
         {
-            _semaphore.Release();
+            this._semaphore.Release();
         }
     }
 

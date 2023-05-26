@@ -1,85 +1,100 @@
 ﻿namespace Estreya.BlishHUD.Shared.Services;
+
+using Gw2Sharp.WebApi.V2.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class ServiceConfigurations
 {
-    public ServiceConfiguration BlishHUDAPI { get; } = new ServiceConfiguration()
+    public ServiceConfiguration BlishHUDAPI { get; } = new ServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = true
     };
 
-    public APIServiceConfiguration Account { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration Account { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = true,
-        NeededPermissions = new List<Gw2Sharp.WebApi.V2.Models.TokenPermission>() { Gw2Sharp.WebApi.V2.Models.TokenPermission.Account },
+        NeededPermissions = new List<TokenPermission> { TokenPermission.Account },
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIServiceConfiguration Mapchests { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration Mapchests { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false,
-        NeededPermissions = new List<Gw2Sharp.WebApi.V2.Models.TokenPermission>() { Gw2Sharp.WebApi.V2.Models.TokenPermission.Account, Gw2Sharp.WebApi.V2.Models.TokenPermission.Progression },
+        NeededPermissions = new List<TokenPermission>
+        {
+            TokenPermission.Account,
+            TokenPermission.Progression
+        },
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIServiceConfiguration Worldbosses { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration Worldbosses { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false,
-        NeededPermissions = new List<Gw2Sharp.WebApi.V2.Models.TokenPermission>() { Gw2Sharp.WebApi.V2.Models.TokenPermission.Account, Gw2Sharp.WebApi.V2.Models.TokenPermission.Progression },
+        NeededPermissions = new List<TokenPermission>
+        {
+            TokenPermission.Account,
+            TokenPermission.Progression
+        },
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 
-    public APIServiceConfiguration PointOfInterests { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration PointOfInterests { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public APIServiceConfiguration Skills { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration Skills { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public APIServiceConfiguration TradingPost { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration TradingPost { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false,
-        NeededPermissions = new List<Gw2Sharp.WebApi.V2.Models.TokenPermission>() { Gw2Sharp.WebApi.V2.Models.TokenPermission.Account, Gw2Sharp.WebApi.V2.Models.TokenPermission.Tradingpost },
+        NeededPermissions = new List<TokenPermission>
+        {
+            TokenPermission.Account,
+            TokenPermission.Tradingpost
+        },
         UpdateInterval = TimeSpan.FromMinutes(2)
     };
 
-    public APIServiceConfiguration Items { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration Items { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public ServiceConfiguration ArcDPS { get; } = new ServiceConfiguration()
+    public ServiceConfiguration ArcDPS { get; } = new ServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false
     };
 
-    public APIServiceConfiguration Achievements { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration Achievements { get; } = new APIServiceConfiguration
     {
         Enabled = false,
-        AwaitLoading = false,
+        AwaitLoading = false
     };
 
-    public APIServiceConfiguration AccountAchievements { get; } = new APIServiceConfiguration()
+    public APIServiceConfiguration AccountAchievements { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false,
-        NeededPermissions = new List<Gw2Sharp.WebApi.V2.Models.TokenPermission>() { Gw2Sharp.WebApi.V2.Models.TokenPermission.Account, Gw2Sharp.WebApi.V2.Models.TokenPermission.Progression },
+        NeededPermissions = new List<TokenPermission>
+        {
+            TokenPermission.Account,
+            TokenPermission.Progression
+        },
         UpdateInterval = TimeSpan.FromMinutes(5).Add(TimeSpan.FromMilliseconds(100))
     };
 }

@@ -3,15 +3,13 @@
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Service;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.WebhookUpdater.Models;
 using Microsoft.Xna.Framework;
+using Models;
 using MonoGame.Extended.BitmapFonts;
+using Shared.Services;
+using Shared.UI.Views;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 public class WebhookProtocolView : BaseView
@@ -25,24 +23,24 @@ public class WebhookProtocolView : BaseView
 
     protected override void InternalBuild(Panel parent)
     {
-        FlowPanel protocolStack = new FlowPanel()
+        FlowPanel protocolStack = new FlowPanel
         {
             Parent = parent,
-            OuterControlPadding = new Vector2(20,20),
+            OuterControlPadding = new Vector2(20, 20),
             Size = parent.ContentRegion.Size,
             FlowDirection = ControlFlowDirection.SingleTopToBottom,
-            CanScroll = true,
+            CanScroll = true
         };
 
-        foreach (var protocol in webhook.Configuration.Protocol.Value.OrderByDescending(p => p.TimestampUTC))
+        foreach (WebhookProtocol protocol in this.webhook.Configuration.Protocol.Value.OrderByDescending(p => p.TimestampUTC))
         {
-            FlowPanel protocolInfo = new FlowPanel()
+            FlowPanel protocolInfo = new FlowPanel
             {
                 Parent = protocolStack,
-                Width = protocolStack.ContentRegion.Width - 20 * 2,
+                Width = protocolStack.ContentRegion.Width - (20 * 2),
                 ShowBorder = true,
                 HeightSizingMode = SizingMode.AutoSize,
-                FlowDirection = ControlFlowDirection.SingleTopToBottom,
+                FlowDirection = ControlFlowDirection.SingleTopToBottom
             };
 
             const int valueXLocation = 110;
@@ -61,7 +59,7 @@ public class WebhookProtocolView : BaseView
 
             this.RenderEmptyLine(protocolInfo);
 
-            FlowPanel buttonRow = new FlowPanel()
+            FlowPanel buttonRow = new FlowPanel
             {
                 Parent = protocolInfo,
                 FlowDirection = ControlFlowDirection.LeftToRight,
@@ -88,7 +86,10 @@ public class WebhookProtocolView : BaseView
         }
     }
 
-    protected override Task<bool> InternalLoad(IProgress<string> progress) => Task.FromResult(true);
+    protected override Task<bool> InternalLoad(IProgress<string> progress)
+    {
+        return Task.FromResult(true);
+    }
 
     protected override void Unload()
     {

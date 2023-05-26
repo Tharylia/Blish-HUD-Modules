@@ -1,9 +1,10 @@
 ﻿namespace Estreya.BlishHUD.Shared.Utils;
+
+using Blish_HUD.Debug;
 using System;
 using System.IO;
-using System.IO.Pipes;
-using System.Runtime.CompilerServices;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 public static class FileUtil
@@ -18,13 +19,13 @@ public static class FileUtil
         try
         {
             byte[] result = new byte[stream.Length];
-            var read = await stream.ReadAsync(result, 0, (int)stream.Length);
+            int read = await stream.ReadAsync(result, 0, (int)stream.Length);
 
             return result;
         }
         catch (Exception ex)
         {
-            Blish_HUD.Debug.Contingency.NotifyFileSaveAccessDenied("stream", ex?.Message ?? "Failed to read stream.");
+            Contingency.NotifyFileSaveAccessDenied("stream", ex?.Message ?? "Failed to read stream.");
         }
 
         return new byte[0];
@@ -49,7 +50,7 @@ public static class FileUtil
 
         try
         {
-            using FileStream fileStream = FileUtil.ReadStream(path);
+            using FileStream fileStream = ReadStream(path);
             byte[] result = new byte[fileStream.Length];
             _ = await fileStream.ReadAsync(result, 0, (int)fileStream.Length);
 
@@ -57,7 +58,7 @@ public static class FileUtil
         }
         catch (Exception ex)
         {
-            Blish_HUD.Debug.Contingency.NotifyFileSaveAccessDenied(path, ex?.Message ?? "Failed to read file.");
+            Contingency.NotifyFileSaveAccessDenied(path, ex?.Message ?? "Failed to read file.");
         }
 
         return new byte[0];
@@ -82,7 +83,12 @@ public static class FileUtil
 
         string text = await ReadStringAsync(path);
 
-        return string.IsNullOrWhiteSpace(text) ? new string[0] : text.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+        return string.IsNullOrWhiteSpace(text)
+            ? new string[0]
+            : text.Split(new[]
+            {
+                "\r\n"
+            }, StringSplitOptions.RemoveEmptyEntries);
     }
 
     public static async Task WriteBytesAsync(string path, byte[] data)
@@ -105,7 +111,7 @@ public static class FileUtil
         }
         catch (Exception ex)
         {
-            Blish_HUD.Debug.Contingency.NotifyFileSaveAccessDenied(path, ex?.Message ?? "Failed to write file.");
+            Contingency.NotifyFileSaveAccessDenied(path, ex?.Message ?? "Failed to write file.");
         }
     }
 
@@ -144,9 +150,9 @@ public static class FileUtil
 
     public static string SanitizeFileName(string fileName)
     {
-        string invalidChars = System.Text.RegularExpressions.Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars()));
+        string invalidChars = Regex.Escape(new string(Path.GetInvalidFileNameChars()));
         string invalidRegStr = string.Format(@"([{0}]*\.+$)|([{0}]+)", invalidChars);
 
-        return System.Text.RegularExpressions.Regex.Replace(fileName, invalidRegStr, "_");
+        return Regex.Replace(fileName, invalidRegStr, "_");
     }
 }

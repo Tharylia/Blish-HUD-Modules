@@ -1,17 +1,16 @@
 ﻿namespace Estreya.BlishHUD.WebhookUpdater.Models;
 
 using Blish_HUD.Settings;
-using Estreya.BlishHUD.Shared.Threading;
 using Humanizer.Localisation;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 public class WebhookConfiguration
 {
+    public WebhookConfiguration(string name)
+    {
+        this.Name = name;
+    }
+
     public string Name { get; set; }
 
     public SettingEntry<bool> Enabled { get; set; }
@@ -35,9 +34,4 @@ public class WebhookConfiguration
     public SettingEntry<bool> CollectProtocols { get; set; }
 
     public SettingEntry<List<WebhookProtocol>> Protocol { get; set; }
-
-    public WebhookConfiguration(string name)
-    {
-        this.Name = name;
-    }
 }

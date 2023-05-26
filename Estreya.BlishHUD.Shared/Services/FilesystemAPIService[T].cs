@@ -1,26 +1,20 @@
 ﻿namespace Estreya.BlishHUD.Shared.Services;
+
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.IO;
-using Estreya.BlishHUD.Shared.Json.Converter;
-using Estreya.BlishHUD.Shared.Models.GW2API.Converter;
-using Estreya.BlishHUD.Shared.Utils;
-using Gw2Sharp.WebApi.V2.Models;
+using IO;
+using Json.Converter;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Runtime.Serialization;
-using System.Text;
 using System.Threading.Tasks;
+using Utils;
 
 public abstract class FilesystemAPIService<T> : APIService<T>
 {
-    protected abstract string BASE_FOLDER_STRUCTURE { get; }
-    protected abstract string FILE_NAME { get; }
-
     private const string LAST_UPDATED_FILE_NAME = "last_updated.txt";
 
     private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
@@ -29,17 +23,22 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
     protected JsonSerializerSettings _serializerSettings;
 
-    protected string DirectoryPath => Path.Combine(this._baseModulePath, this.BASE_FOLDER_STRUCTURE);
-
     protected FilesystemAPIService(Gw2ApiManager apiManager, APIServiceConfiguration configuration, string baseModulePath) : base(apiManager, configuration)
     {
         this.CreateJsonSettings();
         this._baseModulePath = baseModulePath;
     }
 
+    protected abstract string BASE_FOLDER_STRUCTURE { get; }
+    protected abstract string FILE_NAME { get; }
+
+    protected string DirectoryPath => Path.Combine(this._baseModulePath, this.BASE_FOLDER_STRUCTURE);
+
+    protected virtual bool ForceAPI => false;
+
     private void CreateJsonSettings()
     {
-        this._serializerSettings = new JsonSerializerSettings()
+        this._serializerSettings = new JsonSerializerSettings
         {
             TypeNameHandling = TypeNameHandling.All,
             Converters = new JsonConverter[]
@@ -51,8 +50,6 @@ public abstract class FilesystemAPIService<T> : APIService<T>
         };
     }
 
-    protected virtual bool ForceAPI => false;
-
     protected override async Task Load()
     {
         try
@@ -63,7 +60,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
             if (forceAPI)
             {
-                this.Logger.Debug($"Force API is active.");
+                this.Logger.Debug("Force API is active.");
             }
 
             if (!forceAPI && canLoadFiles)
@@ -72,16 +69,19 @@ public abstract class FilesystemAPIService<T> : APIService<T>
                 {
                     this.Loading = true;
 
-                    var filePath = Path.Combine(this.DirectoryPath, this.FILE_NAME);
+                    string filePath = Path.Combine(this.DirectoryPath, this.FILE_NAME);
 
-                    var handled = await this.OnBeforeFilesystemLoad(filePath);
-                    if (handled) return;
+                    bool handled = await this.OnBeforeFilesystemLoad(filePath);
+                    if (handled)
+                    {
+                        return;
+                    }
 
                     this.ReportProgress("Loading file content...");
 
-                    using var stream = FileUtil.ReadStream(filePath);
+                    using FileStream stream = FileUtil.ReadStream(filePath);
 
-                    using var progressStream = new ReadProgressStream(stream);
+                    using ReadProgressStream progressStream = new ReadProgressStream(stream);
                     progressStream.ProgressChanged += (s, e) => this.ReportProgress($"Parsing json... {Math.Round(e.Progress, 0)}%");
 
                     JsonSerializer serializer = JsonSerializer.CreateDefault(this._serializerSettings);
@@ -89,11 +89,11 @@ public abstract class FilesystemAPIService<T> : APIService<T>
                     using StreamReader sr = new StreamReader(progressStream);
                     using JsonReader reader = new JsonTextReader(sr);
 
-                    var entities = serializer.Deserialize<List<T>>(reader);
+                    List<T> entities = serializer.Deserialize<List<T>>(reader);
 
                     await this.OnAfterFilesystemLoad(entities);
 
-                    using (_apiObjectListLock.Lock())
+                    using (this._apiObjectListLock.Lock())
                     {
                         this.APIObjectList.Clear();
                         this.APIObjectList.AddRange(entities);
@@ -101,7 +101,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
                     this.SignalUpdated();
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     this.Logger.Warn(ex, "Could not load from filesystem. Fallback to API.");
                     forceAPI = true;
@@ -116,7 +116,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
             // Refresh files after we loaded the prior saved
             if (forceAPI || !shouldLoadFiles)
             {
-                await base.LoadFromAPI(!canLoadFiles); // Only reset completion if we could not load anything at start
+                await this.LoadFromAPI(!canLoadFiles); // Only reset completion if we could not load anything at start
                 if (!this.CancellationToken.IsCancellationRequested)
                 {
                     try
@@ -135,56 +135,77 @@ public abstract class FilesystemAPIService<T> : APIService<T>
                 }
             }
 
-            Logger.Debug("Loaded {0} entities.", this.APIObjectList.Count);
+            this.Logger.Debug("Loaded {0} entities.", this.APIObjectList.Count);
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex, "Failed loading entites:");
+            this.Logger.Warn(ex, "Failed loading entites:");
         }
     }
 
     /// <summary>
-    /// Called before the filesystem load started.
+    ///     Called before the filesystem load started.
     /// </summary>
     /// <param name="filePath"></param>
     /// <returns>True, if the method handled the loading. Otherwise false.</returns>
-    protected virtual Task<bool> OnBeforeFilesystemLoad(string filePath) => Task.FromResult(false);
+    protected virtual Task<bool> OnBeforeFilesystemLoad(string filePath)
+    {
+        return Task.FromResult(false);
+    }
 
     /// <summary>
-    /// Called after the filesystem load finished and before added to api object list.
+    ///     Called after the filesystem load finished and before added to api object list.
     /// </summary>
     /// <param name="loadedEntites"></param>
-    protected virtual Task OnAfterFilesystemLoad(List<T> loadedEntites) => Task.CompletedTask;
+    protected virtual Task OnAfterFilesystemLoad(List<T> loadedEntites)
+    {
+        return Task.CompletedTask;
+    }
 
     /// <summary>
-    /// Called after the load from api finished and before calling save.
+    ///     Called after the load from api finished and before calling save.
     /// </summary>
-    protected virtual Task OnAfterLoadFromAPIBeforeSave() => Task.CompletedTask;
+    protected virtual Task OnAfterLoadFromAPIBeforeSave()
+    {
+        return Task.CompletedTask;
+    }
 
     /// <summary>
-    /// Called after the load from api finished and after calling save.
+    ///     Called after the load from api finished and after calling save.
     /// </summary>
-    protected virtual Task OnAfterLoadFromAPIAfterSave() => Task.CompletedTask;
+    protected virtual Task OnAfterLoadFromAPIAfterSave()
+    {
+        return Task.CompletedTask;
+    }
 
     private bool CanLoadFiles()
     {
-        var baseDirectoryExists = Directory.Exists(this.DirectoryPath);
+        bool baseDirectoryExists = Directory.Exists(this.DirectoryPath);
 
-        if (!baseDirectoryExists) return false;
+        if (!baseDirectoryExists)
+        {
+            return false;
+        }
 
-        var savedFileExists = System.IO.File.Exists(Path.Combine(this.DirectoryPath, this.FILE_NAME));
+        bool savedFileExists = File.Exists(Path.Combine(this.DirectoryPath, this.FILE_NAME));
 
-        if (!savedFileExists) return false;
+        if (!savedFileExists)
+        {
+            return false;
+        }
 
         return true;
     }
 
     private async Task<bool> ShouldLoadFiles()
     {
-        if (!this.CanLoadFiles()) return false;
+        if (!this.CanLoadFiles())
+        {
+            return false;
+        }
 
         string lastUpdatedFilePath = Path.Combine(this.DirectoryPath, LAST_UPDATED_FILE_NAME);
-        if (System.IO.File.Exists(lastUpdatedFilePath))
+        if (File.Exists(lastUpdatedFilePath))
         {
             string dateString = await FileUtil.ReadStringAsync(lastUpdatedFilePath);
             if (!DateTime.TryParseExact(dateString, DATE_TIME_FORMAT, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime lastUpdated))
@@ -205,7 +226,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
         using (await this._apiObjectListLock.LockAsync())
         {
-            var itemJson = JsonConvert.SerializeObject(this.APIObjectList, Formatting.Indented, this._serializerSettings);
+            string itemJson = JsonConvert.SerializeObject(this.APIObjectList, Formatting.Indented, this._serializerSettings);
             await FileUtil.WriteStringAsync(Path.Combine(this.DirectoryPath, this.FILE_NAME), itemJson);
         }
 
@@ -219,7 +240,10 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
     protected override Task DoClear()
     {
-        if (!Directory.Exists(this.DirectoryPath)) return Task.CompletedTask;
+        if (!Directory.Exists(this.DirectoryPath))
+        {
+            return Task.CompletedTask;
+        }
 
         Directory.Delete(this.DirectoryPath, true);
 

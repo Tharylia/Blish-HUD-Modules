@@ -1,27 +1,20 @@
 ﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
+using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.EventTable.Controls;
-using Estreya.BlishHUD.EventTable.Models;
-using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Helpers;
-using Estreya.BlishHUD.Shared.Security;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
+using Shared.Helpers;
+using Shared.Services;
+using Shared.UI.Views;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 
 public class CustomEventView : BaseView
 {
-    private static Point PADDING = new Point(25, 25);
-    private BlishHudApiService _blishHudApiService;
+    private static readonly Point PADDING = new Point(25, 25);
+    private readonly BlishHudApiService _blishHudApiService;
 
     public CustomEventView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BlishHudApiService blishHudApiService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
@@ -30,11 +23,11 @@ public class CustomEventView : BaseView
 
     protected override void InternalBuild(Panel parent)
     {
-        var flowPanel = new FlowPanel()
+        FlowPanel flowPanel = new FlowPanel
         {
             Parent = parent,
-            Width = parent.ContentRegion.Width - PADDING.X * 2,
-            Height = parent.ContentRegion.Height - PADDING.Y * 2,
+            Width = parent.ContentRegion.Width - (PADDING.X * 2),
+            Height = parent.ContentRegion.Height - (PADDING.Y * 2),
             Location = new Point(PADDING.X, PADDING.Y),
             CanScroll = true,
             FlowDirection = ControlFlowDirection.SingleTopToBottom
@@ -46,7 +39,7 @@ public class CustomEventView : BaseView
 
     private void BuildInstructionSection(FlowPanel parent)
     {
-        var instructionPanel = new FlowPanel()
+        FlowPanel instructionPanel = new FlowPanel
         {
             Parent = parent,
             OuterControlPadding = new Vector2(20, 20),
@@ -56,17 +49,17 @@ public class CustomEventView : BaseView
             ShowBorder = true
         };
 
-        var labelBuilder = this.GetLabelBuilder(parent)
-            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual1", "1. Make an account at") + " ", builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
-            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual2", "Estreya BlishHUD API."), builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20).SetHyperLink("https://blish-hud.estreya.de/register"); })
-            .CreatePart("\n \n", builder => { })
-            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual3", "2. Follow steps send by mail."), builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
-            .CreatePart("\n \n", builder => { })
-            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual4", "3. Add your own custom events."), builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); })
-            .CreatePart("\n \n", builder => { })
-            .CreatePart(this.TranslationService.GetTranslation("customEventView-manual5", "4. Enter login details below."), builder => { builder.SetFontSize(Blish_HUD.ContentService.FontSize.Size20); });
+        FormattedLabelBuilder labelBuilder = this.GetLabelBuilder(parent)
+                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual1", "1. Make an account at") + " ", builder => { builder.SetFontSize(ContentService.FontSize.Size20); })
+                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual2", "Estreya BlishHUD API."), builder => { builder.SetFontSize(ContentService.FontSize.Size20).SetHyperLink("https://blish-hud.estreya.de/register"); })
+                                                 .CreatePart("\n \n", builder => { })
+                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual3", "2. Follow steps send by mail."), builder => { builder.SetFontSize(ContentService.FontSize.Size20); })
+                                                 .CreatePart("\n \n", builder => { })
+                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual4", "3. Add your own custom events."), builder => { builder.SetFontSize(ContentService.FontSize.Size20); })
+                                                 .CreatePart("\n \n", builder => { })
+                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual5", "4. Enter login details below."), builder => { builder.SetFontSize(ContentService.FontSize.Size20); });
 
-        var label = labelBuilder.Build();
+        FormattedLabel label = labelBuilder.Build();
         label.Parent = instructionPanel;
 
         this.RenderEmptyLine(instructionPanel, 20);
@@ -74,29 +67,29 @@ public class CustomEventView : BaseView
 
     private void BuildLoginSection(FlowPanel parent)
     {
-        var loginPanel = new FlowPanel()
+        FlowPanel loginPanel = new FlowPanel
         {
             Parent = parent,
             WidthSizingMode = SizingMode.AutoSize,
             HeightSizingMode = SizingMode.AutoSize,
             ControlPadding = new Vector2(0, 5),
-            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom
         };
 
-        var password = AsyncHelper.RunSync(() => this._blishHudApiService.GetAPIPassword());
+        string password = AsyncHelper.RunSync(() => this._blishHudApiService.GetAPIPassword());
 
         const string passwordUnchangedPhrase = "<<Unchanged>>";
 
-        var usernameTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, this._blishHudApiService.GetAPIUsername(),this.TranslationService.GetTranslation("customEventView-apiUsername", "API Username"));
+        TextBox usernameTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, this._blishHudApiService.GetAPIUsername(), this.TranslationService.GetTranslation("customEventView-apiUsername", "API Username"));
 
-        var passwordTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, !string.IsNullOrWhiteSpace(password) ? passwordUnchangedPhrase : null, this.TranslationService.GetTranslation("customEventView-apiPassword", "API Password"));
+        TextBox passwordTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, !string.IsNullOrWhiteSpace(password) ? passwordUnchangedPhrase : null, this.TranslationService.GetTranslation("customEventView-apiPassword", "API Password"));
 
-        var buttonPanel = new FlowPanel()
+        FlowPanel buttonPanel = new FlowPanel
         {
             Parent = loginPanel,
             WidthSizingMode = SizingMode.AutoSize,
             HeightSizingMode = SizingMode.AutoSize,
-            FlowDirection = ControlFlowDirection.SingleLeftToRight,
+            FlowDirection = ControlFlowDirection.SingleLeftToRight
         };
 
         this.RenderButtonAsync(buttonPanel, this.TranslationService.GetTranslation("customEventView-btn-save", "Save"), async () =>
@@ -124,8 +117,11 @@ public class CustomEventView : BaseView
 
     private FormattedLabelBuilder GetLabelBuilder(Panel parent)
     {
-        return new FormattedLabelBuilder().SetWidth(parent.ContentRegion.Width - PADDING.X * 2).AutoSizeHeight().SetVerticalAlignment(VerticalAlignment.Top);
+        return new FormattedLabelBuilder().SetWidth(parent.ContentRegion.Width - (PADDING.X * 2)).AutoSizeHeight().SetVerticalAlignment(VerticalAlignment.Top);
     }
 
-    protected override Task<bool> InternalLoad(IProgress<string> progress) => Task.FromResult(true);
+    protected override Task<bool> InternalLoad(IProgress<string> progress)
+    {
+        return Task.FromResult(true);
+    }
 }

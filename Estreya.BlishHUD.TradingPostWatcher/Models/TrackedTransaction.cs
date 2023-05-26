@@ -1,13 +1,9 @@
 ﻿namespace Estreya.BlishHUD.TradingPostWatcher.Models;
 
-using Estreya.BlishHUD.Shared.Models.GW2API.Items;
 using Humanizer;
 using Newtonsoft.Json;
+using Shared.Models.GW2API.Items;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class TrackedTransaction
 {
@@ -21,8 +17,7 @@ public class TrackedTransaction
 
     public TrackedTransactionType Type { get; set; }
 
-    [JsonIgnore]
-    public Item Item { get; set; }
+    [JsonIgnore] public Item Item { get; set; }
 
     public override string ToString()
     {
@@ -34,11 +29,11 @@ public class TrackedTransaction
         unchecked
         {
             int hash = 17;
-            hash = hash * 23 + this.ItemId.GetHashCode();
-            hash = hash * 23 + this.WishPrice.GetHashCode();
-            hash = hash * 23 + this.ActualPrice.GetHashCode();
-            hash = hash * 23 + this.Created.GetHashCode();
-            hash = hash * 23 + this.Type.GetHashCode();
+            hash = (hash * 23) + this.ItemId.GetHashCode();
+            hash = (hash * 23) + this.WishPrice.GetHashCode();
+            hash = (hash * 23) + this.ActualPrice.GetHashCode();
+            hash = (hash * 23) + this.Created.GetHashCode();
+            hash = (hash * 23) + this.Type.GetHashCode();
             return hash;
         }
     }

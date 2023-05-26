@@ -2,19 +2,14 @@
 
 using Blish_HUD;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.Shared.Models.GW2API.PointOfInterest;
 using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Shared.Models.GW2API.PointOfInterest;
 
 public class LandmarkTooltip : Tooltip
 {
-    public LandmarkTooltip(PointOfInterest pointOfInterest, PointOfInterest closestWaypoint )
+    public LandmarkTooltip(PointOfInterest pointOfInterest, PointOfInterest closestWaypoint)
     {
-        var detailsName = new Label()
+        Label detailsName = new Label
         {
             Text = pointOfInterest.Name,
             Font = Content.DefaultFont16,
@@ -25,24 +20,24 @@ public class LandmarkTooltip : Tooltip
             AutoSizeWidth = true,
             AutoSizeHeight = true,
             VerticalAlignment = VerticalAlignment.Middle,
-            Parent = this,
+            Parent = this
         };
 
-        var detailsHintCopyChatCode = new Label()
+        Label detailsHintCopyChatCode = new Label
         {
-            Text = "Left Click: Copy chat code to clipboard",// Strings.Common.Landmark_Details_CopyChatCode,
+            Text = "Left Click: Copy chat code to clipboard", // Strings.Common.Landmark_Details_CopyChatCode,
             Font = Content.DefaultFont16,
             Location = new Point(10, detailsName.Bottom + 5),
             TextColor = Color.White,
             ShowShadow = true,
             AutoSizeWidth = true,
             AutoSizeHeight = true,
-            Parent = this,
+            Parent = this
         };
 
-        var detailsClosestWaypointTitle = new Label()
+        Label detailsClosestWaypointTitle = new Label
         {
-            Text = "Closest Waypoint",// Strings.Common.Landmark_Details_ClosestWaypoint,
+            Text = "Closest Waypoint", // Strings.Common.Landmark_Details_ClosestWaypoint,
             Font = Content.DefaultFont16,
             Location = new Point(10, detailsHintCopyChatCode.Bottom + 12),
             Height = 11,
@@ -51,10 +46,10 @@ public class LandmarkTooltip : Tooltip
             ShowShadow = true,
             AutoSizeWidth = true,
             AutoSizeHeight = true,
-            Parent = this,
+            Parent = this
         };
 
-        var detailsClosestWaypoint = new Label()
+        Label detailsClosestWaypoint = new Label
         {
             Text = closestWaypoint.Map.Name + ": " + closestWaypoint.Name,
             Font = Content.DefaultFont14,
@@ -64,12 +59,12 @@ public class LandmarkTooltip : Tooltip
             ShowShadow = true,
             AutoSizeWidth = true,
             AutoSizeHeight = true,
-            Parent = this,
+            Parent = this
         };
 
-        new Label()
+        new Label
         {
-            Text = "Shift + Click: Copy closest waypoint to clipboard.",// Strings.Common.Landmark_Details_CopyClosestWaypoint,
+            Text = "Shift + Click: Copy closest waypoint to clipboard.", // Strings.Common.Landmark_Details_CopyClosestWaypoint,
             Font = Content.DefaultFont14,
             Location = new Point(10, detailsClosestWaypoint.Bottom + 5),
             TextColor = Color.White,
@@ -78,7 +73,7 @@ public class LandmarkTooltip : Tooltip
             AutoSizeWidth = true,
             AutoSizeHeight = true,
             Visible = true,
-            Parent = this,
+            Parent = this
         };
     }
 }
