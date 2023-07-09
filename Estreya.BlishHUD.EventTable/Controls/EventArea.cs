@@ -1075,34 +1075,41 @@ public class EventArea : RenderTarget2DControl
 
     private void AddEventHooks(Event ev)
     {
-        //ev.LeftMouseButtonPressed += this.EventControl_LeftMouseButtonPressed;
         ev.HideRequested += this.Ev_HideRequested;
-        ev.FinishRequested += this.Ev_FinishRequested;
+        ev.ToggleFinishRequested += this.Ev_ToggleFinishRequested;
         ev.DisableRequested += this.Ev_DisableRequested;
     }
 
     private void RemoveEventHooks(Event ev)
     {
-        //ev.LeftMouseButtonPressed -= this.EventControl_LeftMouseButtonPressed;
         ev.HideRequested -= this.Ev_HideRequested;
-        ev.FinishRequested -= this.Ev_FinishRequested;
+        ev.ToggleFinishRequested -= this.Ev_ToggleFinishRequested;
         ev.DisableRequested -= this.Ev_DisableRequested;
     }
 
-    private void Ev_FinishRequested(object sender, EventArgs e)
+    private void Ev_ToggleFinishRequested(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        this.FinishEvent(ev.Model, this.GetNextReset());
+
+        this.ToggleFinishEvent(ev.Model, this.GetNextReset(ev.Model));
     }
 
-    private void FinishEvent(Models.Event ev, DateTime until)
+    private void ToggleFinishEvent(Models.Event ev, DateTime until)
     {
         switch (this.Configuration.CompletionAction.Value)
         {
             case EventCompletedAction.Crossout:
             case EventCompletedAction.ChangeOpacity:
             case EventCompletedAction.CrossoutAndChangeOpacity:
-                this._eventService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Completed);
+                if (this._eventStateService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed))
+                {
+                    this._eventStateService.Remove(this.Configuration.Name, ev.SettingKey);
+                }
+                else
+                {
+                    this._eventStateService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Completed);
+                }
+
                 break;
             case EventCompletedAction.Hide:
                 this.HideEvent(ev, until);
