@@ -16,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
 using Button = Shared.Controls.Button;
 using Control = Blish_HUD.Controls.Control;
 using HorizontalAlignment = Blish_HUD.Controls.HorizontalAlignment;
@@ -485,7 +486,38 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.LeftClickAction);
         this.RenderBoolSetting(groupPanel, areaConfiguration.AcceptWaypointPrompt);
-        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTooltips);
+
+        this.RenderEmptyLine(groupPanel);
+
+        FlowPanel tooltipOptionGroup = new FlowPanel
+        {
+            Parent = groupPanel,
+            Width = groupPanel.ContentRegion.Width,
+            HeightSizingMode = SizingMode.AutoSize,
+            OuterControlPadding = new Vector2(10, 20),
+            ShowBorder = true,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom
+        };
+
+        this.RenderBoolSetting(tooltipOptionGroup, areaConfiguration.ShowTooltips);
+
+        this.RenderEmptyLine(tooltipOptionGroup);
+
+        this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventAbsoluteTimeFormatString);
+        FormattedLabel lbl = new FormattedLabelBuilder().SetWidth(tooltipOptionGroup.ContentRegion.Width - 20).AutoSizeHeight().Wrap()
+                                                        .CreatePart(this.TranslationService.GetTranslation("areaSettingsView-tooltipOptionGroup-absoluteTimeFormatExamples", "Examples:\n24-Hour: HH\\:mm\n12-Hour: hh\\:mm tt"), builder =>
+                                                        {
+                                                            builder.MakeBold().SetFontSize(ContentService.FontSize.Size16);
+                                                        }).Build();
+        lbl.Parent = tooltipOptionGroup;
+
+        this.RenderEmptyLine(tooltipOptionGroup);
+
+        this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanDaysFormatString);
+        this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanHoursFormatString);
+        this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanMinutesFormatString);
+
+        this.RenderEmptyLine(tooltipOptionGroup, 20);
 
         this.RenderEmptyLine(groupPanel);
 

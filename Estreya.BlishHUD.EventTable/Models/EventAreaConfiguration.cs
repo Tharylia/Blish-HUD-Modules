@@ -62,4 +62,9 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<Color> CategoryNameColor { get; set; }
 
     public SettingEntry<bool> EnableColorGradients { get; set; }
+
+    public SettingEntry<string> EventAbsoluteTimeFormatString { get; set; }
+    public SettingEntry<string> EventTimespanDaysFormatString { get; set; }
+    public SettingEntry<string> EventTimespanHoursFormatString { get; set; }
+    public SettingEntry<string> EventTimespanMinutesFormatString { get; set; }
 }

@@ -72,7 +72,7 @@ public class ModuleSettings : BaseModuleSettings
     protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
     {
         this.MapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.MapKeybinding), new KeyBinding(Keys.M), () => "Open Map Hotkey", () => "Defines the key used to open the fullscreen map.");
-        this.MapKeybinding.SettingChanged += this.SettingChanged;
+        this.MapKeybinding.SettingChanged += this.LogSettingChanged;
         this.MapKeybinding.Value.Enabled = true;
         this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
 
@@ -263,6 +263,13 @@ public class ModuleSettings : BaseModuleSettings
 
         SettingEntry<bool> enableColorGradients = this.DrawerSettings.DefineSetting($"{name}-enableColorGradients", false, () => "Enable Color Gradients", () => "Defines if supported events should have a smoother color gradient from and to the next event.");
 
+        SettingEntry<string> eventTimespanDaysFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanDaysFormatString", "dd\\.hh\\:mm\\:ss", () => "Days Format String", () => "Defines the format strings for timespans over 1 day.");
+        SettingEntry<string> eventTimespanHoursFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanHoursFormatString", "hh\\:mm\\:ss", () => "Hours Format String", () => "Defines the format strings for timespans over 1 hours.");
+        SettingEntry<string> eventTimespanMinutesFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanMinutesFormatString", "mm\\:ss", () => "Minutes Format String", () => "Defines the fallback format strings for timespans.");
+
+        SettingEntry<string> eventAbsoluteTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-eventAbsoluteTimeFormatString", "HH\\:mm", () => "Absolute Time Format String", () => "Defines the format strings for absolute time.");
+
+
         return new EventAreaConfiguration
         {
             Name = drawer.Name,
@@ -314,7 +321,11 @@ public class ModuleSettings : BaseModuleSettings
             HideInWvW = hideInWvW,
             ShowCategoryNames = showCategoryNames,
             CategoryNameColor = categoryNameColor,
-            EnableColorGradients = enableColorGradients
+            EnableColorGradients = enableColorGradients,
+            EventTimespanDaysFormatString = eventTimespanDaysFormatString,
+            EventTimespanHoursFormatString = eventTimespanHoursFormatString,
+            EventTimespanMinutesFormatString = eventTimespanMinutesFormatString,
+            EventAbsoluteTimeFormatString = eventAbsoluteTimeFormatString,
         };
     }
 
@@ -376,6 +387,10 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-showCategoryNames");
         this.DrawerSettings.UndefineSetting($"{name}-categoryNameColor");
         this.DrawerSettings.UndefineSetting($"{name}-enableColorGradients");
+        this.DrawerSettings.UndefineSetting($"{name}-eventTimespanDaysFormatString");
+        this.DrawerSettings.UndefineSetting($"{name}-eventTimespanHoursFormatString");
+        this.DrawerSettings.UndefineSetting($"{name}-eventTimespanMinutesFormatString");
+        this.DrawerSettings.UndefineSetting($"{name}-eventAbsoluteTimeFormatString");
     }
 
     public override void UpdateLocalization(TranslationService translationService)

@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -894,7 +894,9 @@ public class EventArea : RenderTarget2DControl
                             return ev.Filler
                                 ? (this.Configuration.FillerShadowColor.Value.Id == 1 ? Microsoft.Xna.Framework.Color.Black : this.Configuration.FillerShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.FillerShadowOpacity.Value
                                 : (this.Configuration.ShadowColor.Value.Id == 1 ? Microsoft.Xna.Framework.Color.Black : this.Configuration.ShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.ShadowOpacity.Value;
-                        });
+                        },
+                        () => this.Configuration.EventAbsoluteTimeFormatString.Value,
+                        () => (this.Configuration.EventTimespanDaysFormatString.Value, this.Configuration.EventTimespanHoursFormatString.Value, this.Configuration.EventTimespanMinutesFormatString.Value));
 
                     this.AddEventHooks(newEventControl);
 
