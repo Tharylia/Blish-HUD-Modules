@@ -15,6 +15,8 @@ using ColorUtil = Shared.Utils.ColorUtil;
 
 public class Event : IDisposable
 {
+    private static Logger logger = Logger.GetLogger<Event>();
+
     private readonly DateTime _endTime;
     private readonly Func<Color[]> _getColorAction;
     private readonly Func<bool> _getDrawBorders;
@@ -264,9 +266,10 @@ public class Event : IDisposable
 
             return ts.ToString(formatStrings.MinutesFormat, CultureInfo.InvariantCulture);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return "Format fail";
+            logger.Warn(ex, $"Failed to format timespan {ts}:");
+            return string.Empty;
         }
     }
 
@@ -276,9 +279,10 @@ public class Event : IDisposable
         {
             return dt.ToLocalTime().ToString(this._getAbsoluteTimeFormatStrings(), CultureInfo.InvariantCulture);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            return "Format fail";
+            logger.Warn(ex, $"Failed to format datetime {dt}:");
+            return string.Empty;
         }
     }
 
