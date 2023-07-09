@@ -276,8 +276,5 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         }
     }
 
-    protected override int GetCornerIconPriority()
-    {
-        return 1_289_351_273;
-    }
+    protected override int CornerIconPriority => 1_289_351_273;
 }

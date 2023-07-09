@@ -303,8 +303,5 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
         base.Unload();
     }
 
-    protected override int GetCornerIconPriority()
-    {
-        return 1_289_351_274;
-    }
+    protected override int CornerIconPriority => 1_289_351_274;
 }

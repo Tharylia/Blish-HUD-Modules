@@ -291,8 +291,5 @@ public class ScrollingCombatTextModule : BaseModule<ScrollingCombatTextModule, M
         configurations.ArcDPS.Enabled = true;
     }
 
-    protected override int GetCornerIconPriority()
-    {
-        return 1_289_351_277;
-    }
+    protected override int CornerIconPriority => 1_289_351_277;
 }

@@ -11,16 +11,28 @@ using Newtonsoft.Json;
 using Services;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using static Blish_HUD.ContentService;
 
+/// <summary>
+///     Defines the base settings used by all modules.
+/// </summary>
 public abstract class BaseModuleSettings
 {
+    /// <summary>
+    ///     The base settings collection passed by blish hud core.
+    /// </summary>
     protected readonly SettingCollection _settings;
 
     private KeyBinding _globalEnabledKeybinding;
-    protected Logger Logger;
+    protected readonly Logger Logger;
 
-    public BaseModuleSettings(SettingCollection settings, KeyBinding globalEnabledKeybinding)
+    /// <summary>
+    ///     Creates a new base module settings instance.
+    /// </summary>
+    /// <param name="settings">The base settings passed by blish hud core.</param>
+    /// <param name="globalEnabledKeybinding">The global keybinding used to trigger ui visibility.</param>
+    protected BaseModuleSettings(SettingCollection settings, KeyBinding globalEnabledKeybinding)
     {
         this.Logger = Logger.GetLogger(this.GetType());
 
@@ -35,13 +47,23 @@ public abstract class BaseModuleSettings
         this.InitializeAdditionalSettings(this._settings);
     }
 
+    /// <summary>
+    ///     Gets the default gw2 color (dye remover).
+    /// </summary>
     public Color DefaultGW2Color { get; private set; }
 
+    /// <summary>
+    ///     Initializes the drawer settings collection.
+    /// </summary>
+    /// <param name="settings"></param>
     private void InitializeDrawerSettings(SettingCollection settings)
     {
         this.DrawerSettings = settings.AddSubCollection(DRAWER_SETTINGS);
     }
 
+    /// <summary>
+    ///     Builds the default gw2 color (dye remover).
+    /// </summary>
     private void BuildDefaultColor()
     {
         this.DefaultGW2Color = new Color
@@ -113,102 +135,122 @@ public abstract class BaseModuleSettings
         };
     }
 
-    protected virtual void InitializeAdditionalSettings(SettingCollection settings)
-    {
-        /* NOOP */
-    }
+    /// <summary>
+    ///     Used to add additional settings apart from the global settings.
+    /// </summary>
+    /// <param name="settings"></param>
+    protected virtual void InitializeAdditionalSettings(SettingCollection settings) { /* NOOP */ }
 
+    /// <summary>
+    ///     Initializes all base defined global settings.
+    /// </summary>
+    /// <param name="settings"></param>
     private void InitializeGlobalSettings(SettingCollection settings)
     {
         this.GlobalSettings = settings.AddSubCollection(GLOBAL_SETTINGS);
 
         this.GlobalDrawerVisible = this.GlobalSettings.DefineSetting(nameof(this.GlobalDrawerVisible), true, () => "Global Visible", () => "Whether the modules drawers should be visible.");
-        this.GlobalDrawerVisible.SettingChanged += this.SettingChanged;
+        this.GlobalDrawerVisible.SettingChanged += this.LogSettingChanged;
 
         bool globalHotkeyEnabled = this._globalEnabledKeybinding != null;
         if (this._globalEnabledKeybinding == null)
         {
-            this._globalEnabledKeybinding = new KeyBinding(ModifierKeys.Ctrl | ModifierKeys.Alt | ModifierKeys.Shift, Keys.Enter);
-            this.Logger.Debug("No default keybinding defined. Building temp keybinding. Enabled = {0}", globalHotkeyEnabled);
+            this._globalEnabledKeybinding = new KeyBinding();
+            this.Logger.Debug("No default keybinding defined. Building temp empty keybinding. Enabled = {0}", globalHotkeyEnabled);
         }
 
         this.GlobalDrawerVisibleHotkey = this.GlobalSettings.DefineSetting(nameof(this.GlobalDrawerVisibleHotkey), this._globalEnabledKeybinding, () => "Global Visible Hotkey", () => "Defines the hotkey used to toggle the global visibility.");
-        this.GlobalDrawerVisibleHotkey.SettingChanged += this.SettingChanged;
+        this.GlobalDrawerVisibleHotkey.SettingChanged += this.LogSettingChanged;
         this.GlobalDrawerVisibleHotkey.Value.Enabled = globalHotkeyEnabled;
         this.GlobalDrawerVisibleHotkey.Value.Activated += this.GlobalEnabledHotkey_Activated;
         this.GlobalDrawerVisibleHotkey.Value.IgnoreWhenInTextField = true;
         this.GlobalDrawerVisibleHotkey.Value.BlockSequenceFromGw2 = globalHotkeyEnabled;
 
         this.RegisterCornerIcon = this.GlobalSettings.DefineSetting(nameof(this.RegisterCornerIcon), true, () => "Register Corner Icon", () => "Whether the module should register a corner icon.");
-        this.RegisterCornerIcon.SettingChanged += this.SettingChanged;
+        this.RegisterCornerIcon.SettingChanged += this.LogSettingChanged;
         this.RegisterCornerIcon.SettingChanged += this.RegisterCornerIcon_SettingChanged;
 
         this.CornerIconLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconLeftClickAction), CornerIconClickAction.Settings, () => "Corner Icon Left Click Action", () => "Defines the action of the corner icon when left clicked.");
-        this.CornerIconLeftClickAction.SettingChanged += this.SettingChanged;
+        this.CornerIconLeftClickAction.SettingChanged += this.LogSettingChanged;
 
         this.CornerIconRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconRightClickAction), CornerIconClickAction.None, () => "Corner Icon Right Click Action", () => "Defines the action of the corner icon when right clicked.");
-        this.CornerIconRightClickAction.SettingChanged += this.SettingChanged;
+        this.CornerIconRightClickAction.SettingChanged += this.LogSettingChanged;
 
         this.HideOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideOnOpenMap), true, () => "Hide on open Map", () => "Whether the modules drawers should hide when the map is open.");
-        this.HideOnOpenMap.SettingChanged += this.SettingChanged;
+        this.HideOnOpenMap.SettingChanged += this.LogSettingChanged;
 
         this.HideOnMissingMumbleTicks = this.GlobalSettings.DefineSetting(nameof(this.HideOnMissingMumbleTicks), true, () => "Hide on Cutscenes", () => "Whether the modules drawers should hide when cutscenes are played.");
-        this.HideOnMissingMumbleTicks.SettingChanged += this.SettingChanged;
+        this.HideOnMissingMumbleTicks.SettingChanged += this.LogSettingChanged;
 
         this.HideInCombat = this.GlobalSettings.DefineSetting(nameof(this.HideInCombat), false, () => "Hide in Combat", () => "Whether the modules drawers should hide when in combat.");
-        this.HideInCombat.SettingChanged += this.SettingChanged;
+        this.HideInCombat.SettingChanged += this.LogSettingChanged;
 
         this.HideInPvE_OpenWorld = this.GlobalSettings.DefineSetting(nameof(this.HideInPvE_OpenWorld), false, () => "Hide in PvE (Open World)", () => "Whether the drawers should hide when in PvE (Open World).");
-        this.HideInPvE_OpenWorld.SettingChanged += this.SettingChanged;
+        this.HideInPvE_OpenWorld.SettingChanged += this.LogSettingChanged;
 
         this.HideInPvE_Competetive = this.GlobalSettings.DefineSetting(nameof(this.HideInPvE_Competetive), false, () => "Hide in PvE (Competetive)", () => "Whether the drawers should hide when in PvE (Competetive).");
-        this.HideInPvE_Competetive.SettingChanged += this.SettingChanged;
+        this.HideInPvE_Competetive.SettingChanged += this.LogSettingChanged;
 
         this.HideInWvW = this.GlobalSettings.DefineSetting(nameof(this.HideInWvW), false, () => "Hide in WvW", () => "Whether the drawers should hide when in world vs. world.");
-        this.HideInWvW.SettingChanged += this.SettingChanged;
+        this.HideInWvW.SettingChanged += this.LogSettingChanged;
 
         this.HideInPvP = this.GlobalSettings.DefineSetting(nameof(this.HideInPvP), false, () => "Hide in PvP", () => "Whether the drawers should hide when in player vs. player.");
-        this.HideInPvP.SettingChanged += this.SettingChanged;
+        this.HideInPvP.SettingChanged += this.LogSettingChanged;
 
         this.DebugEnabled = this.GlobalSettings.DefineSetting(nameof(this.DebugEnabled), false, () => "Debug Enabled", () => "Whether the module runs in debug mode.");
-        this.DebugEnabled.SettingChanged += this.SettingChanged;
+        this.DebugEnabled.SettingChanged += this.LogSettingChanged;
 
         this.BlishAPIUsername = this.GlobalSettings.DefineSetting(nameof(this.BlishAPIUsername), (string)null, () => "Blish API Username", () => "Defines the login username for the Estreya Blish HUD API.");
 
         //this.NotifiedNews = this.GlobalSettings.DefineSetting(nameof(this.NotifiedNews), new List<string>(), () => "Notified News", () => "The news already notified about.");
         //this.NotifyOnUnreadNews = this.GlobalSettings.DefineSetting(nameof(this.NotifyOnUnreadNews), true, () => "Notify on unread News", () => "Whether the module should notify you when new news arrive.");
 
-        this.HandleEnabledServices();
+        this.HandleEnabledStates();
 
         this.DoInitializeGlobalSettings(this.GlobalSettings);
     }
 
+    /// <summary>
+    ///     Handles the changed event for <see cref="RegisterCornerIcon"/>.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The value changed event args.</param>
     private void RegisterCornerIcon_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
     {
-        this.HandleEnabledServices();
+        this.HandleEnabledStates();
     }
 
+    /// <summary>
+    ///     Handles the changed event for <see cref="GlobalDrawerVisible"/>.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The event args.</param>
     private void GlobalEnabledHotkey_Activated(object sender, EventArgs e)
     {
         this.GlobalDrawerVisible.Value = !this.GlobalDrawerVisible.Value;
     }
 
-    private void HandleEnabledServices()
+    /// <summary>
+    ///     Handles the enabled state changes.
+    /// </summary>
+    private void HandleEnabledStates()
     {
         this.CornerIconLeftClickAction.SetDisabled(!this.RegisterCornerIcon.Value);
         this.CornerIconRightClickAction.SetDisabled(!this.RegisterCornerIcon.Value);
     }
 
-    protected virtual void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
-    {
-        /* NOOP */
-    }
+    /// <summary>
+    ///     Used to initialize additional global settings.
+    /// </summary>
+    /// <param name="globalSettingCollection"></param>
+    protected virtual void DoInitializeGlobalSettings(SettingCollection globalSettingCollection) { /* NOOP */ }
 
-    protected virtual void DoInitializeLocationSettings(SettingCollection locationSettingCollection)
-    {
-        /* NOOP */
-    }
-
+    /// <summary>
+    ///     Adds a new base drawer.
+    /// </summary>
+    /// <param name="name">The name of the new drawer.</param>
+    /// <param name="defaultBuildDirection">The default build direction of the drawer.</param>
+    /// <returns>The newly created configuration.</returns>
     public DrawerConfiguration AddDrawer(string name, BuildDirection defaultBuildDirection = BuildDirection.Top)
     {
         int maxHeight = 1080;
@@ -261,6 +303,10 @@ public abstract class BaseModuleSettings
         return configuration;
     }
 
+    /// <summary>
+    ///     Removes drawer settings with the given name.
+    /// </summary>
+    /// <param name="name">The name of the drawer.</param>
     public void RemoveDrawer(string name)
     {
         this.DrawerSettings.UndefineSetting($"{name}-enabled");
@@ -276,6 +322,10 @@ public abstract class BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-textColor");
     }
 
+    /// <summary>
+    ///     Checks drawer size and position settings.
+    /// </summary>
+    /// <param name="configuration">The configuration to perform the check on.</param>
     public void CheckDrawerSizeAndPosition(DrawerConfiguration configuration)
     {
         bool buildFromBottom = configuration.BuildDirection.Value == BuildDirection.Bottom;
@@ -309,6 +359,10 @@ public abstract class BaseModuleSettings
         configuration.Size.Y.SetRange(minHeight, maxHeight);
     }
 
+    /// <summary>
+    ///     Updates the locatilizations of settings.
+    /// </summary>
+    /// <param name="translationService">The translation services used to fetch translations.</param>
     public virtual void UpdateLocalization(TranslationService translationService)
     {
         string globalDrawerVisibleDisplayNameDefault = this.GlobalDrawerVisible.DisplayName;
@@ -372,6 +426,11 @@ public abstract class BaseModuleSettings
         this.HideInPvP.GetDescriptionFunc = () => translationService.GetTranslation("setting-hideInPVP-description", hideInPVPDescriptionDefault);
     }
 
+    /// <summary>
+    ///     Updates drawer localizations.
+    /// </summary>
+    /// <param name="drawerConfiguration">The configuration to update.</param>
+    /// <param name="translationService">The translation services used to fetch translations.</param>
     public void UpdateDrawerLocalization(DrawerConfiguration drawerConfiguration, TranslationService translationService)
     {
         string enabledDisplayNameDefault = drawerConfiguration.Enabled.DisplayName;
@@ -430,29 +489,32 @@ public abstract class BaseModuleSettings
         drawerConfiguration.TextColor.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerTextColor-description", textColorDescriptionDefault);
     }
 
+    /// <summary>
+    ///     Unloads the base module settings.
+    /// </summary>
     public virtual void Unload()
     {
         // Global Settings
-        this.GlobalDrawerVisible.SettingChanged -= this.SettingChanged;
-        this.GlobalDrawerVisibleHotkey.SettingChanged -= this.SettingChanged;
+        this.GlobalDrawerVisible.SettingChanged -= this.LogSettingChanged;
+        this.GlobalDrawerVisibleHotkey.SettingChanged -= this.LogSettingChanged;
         this.GlobalDrawerVisibleHotkey.Value.Enabled = false;
         this.GlobalDrawerVisibleHotkey.Value.Activated -= this.GlobalEnabledHotkey_Activated;
-        this.RegisterCornerIcon.SettingChanged -= this.SettingChanged;
+        this.RegisterCornerIcon.SettingChanged -= this.LogSettingChanged;
         this.RegisterCornerIcon.SettingChanged -= this.RegisterCornerIcon_SettingChanged;
-        this.HideOnOpenMap.SettingChanged -= this.SettingChanged;
-        this.HideOnMissingMumbleTicks.SettingChanged -= this.SettingChanged;
-        this.HideInPvE_OpenWorld.SettingChanged -= this.SettingChanged;
-        this.HideInPvE_Competetive.SettingChanged -= this.SettingChanged;
-        this.HideInCombat.SettingChanged -= this.SettingChanged;
-        this.HideInPvP.SettingChanged -= this.SettingChanged;
-        this.DebugEnabled.SettingChanged -= this.SettingChanged;
+        this.HideOnOpenMap.SettingChanged -= this.LogSettingChanged;
+        this.HideOnMissingMumbleTicks.SettingChanged -= this.LogSettingChanged;
+        this.HideInPvE_OpenWorld.SettingChanged -= this.LogSettingChanged;
+        this.HideInPvE_Competetive.SettingChanged -= this.LogSettingChanged;
+        this.HideInCombat.SettingChanged -= this.LogSettingChanged;
+        this.HideInPvP.SettingChanged -= this.LogSettingChanged;
+        this.DebugEnabled.SettingChanged -= this.LogSettingChanged;
     }
 
-    protected void SettingChanged<T>(object sender, ValueChangedEventArgs<T> e)
+    protected void LogSettingChanged<T>(object sender, ValueChangedEventArgs<T> e)
     {
         SettingEntry<T> settingEntry = (SettingEntry<T>)sender;
-        string prevValue = e.PreviousValue.GetType() == typeof(string) ? e.PreviousValue.ToString() : JsonConvert.SerializeObject(e.PreviousValue);
-        string newValue = e.NewValue.GetType() == typeof(string) ? e.NewValue.ToString() : JsonConvert.SerializeObject(e.NewValue);
+        string prevValue = e.PreviousValue is string ? e.PreviousValue.ToString() : JsonConvert.SerializeObject(e.PreviousValue);
+        string newValue = e.NewValue is string ? e.NewValue.ToString() : JsonConvert.SerializeObject(e.NewValue);
         this.Logger.Debug($"Changed setting \"{settingEntry.EntryKey}\" from \"{prevValue}\" to \"{newValue}\"");
     }
 

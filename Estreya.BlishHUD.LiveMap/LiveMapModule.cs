@@ -402,8 +402,5 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
         return null;
     }
 
-    protected override int GetCornerIconPriority()
-    {
-        return 1_289_351_275;
-    }
+    protected override int CornerIconPriority => 1_289_351_275;
 }

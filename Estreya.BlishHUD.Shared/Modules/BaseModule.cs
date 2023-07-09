@@ -8,6 +8,7 @@ using Blish_HUD.Input;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
+using Exceptions;
 using Extensions;
 using Flurl.Http;
 using Gw2Sharp.Models;
@@ -160,7 +161,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     #endregion
 
-    public BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
+    /// <summary>
+    ///     Creates a new instance of the module class.
+    /// </summary>
+    /// <param name="moduleParameters">The default module parameters passed from blish hud core.</param>
+    protected BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
     {
         this.Logger = Logger.GetLogger(this.GetType());
     }
@@ -170,8 +175,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.ModuleSettings = this.DefineModuleSettings(settings) as TSettings;
     }
 
+    /// <summary>
+    ///     Defines the module settings used in the module.
+    /// </summary>
+    /// <param name="settings">The default module settings.</param>
+    /// <returns>The created settings for the module.</returns>
     protected abstract BaseModuleSettings DefineModuleSettings(SettingCollection settings);
 
+    /// <summary>
+    ///     Initializes all variables for a fresh start.
+    /// </summary>
     protected override void Initialize()
     {
         string directoryName = this.GetDirectoryName();
@@ -184,6 +197,9 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
     }
 
+    /// <summary>
+    ///     Loads all default services and resources. 
+    /// </summary>
     protected override async Task LoadAsync()
     {
         await this.ThrowIfModuleInvalid(true);
@@ -199,10 +215,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     }
 
     /// <summary>
-    ///     Checks if
+    ///     Checks if the current module satisfies all api backend criteria.
     /// </summary>
-    /// <param name="showScreenNotification"></param>
-    /// <returns></returns>
+    /// <param name="showScreenNotification">Whether a failure to satisfy all criteria should be shown via <see cref="Blish_HUD.Controls.ScreenNotification"/>.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task ThrowIfModuleInvalid(bool showScreenNotification)
     {
         // This function will fail if the backend is down. No catch needed as the module is useless anyway in that case.
@@ -233,9 +249,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             ScreenNotification.ShowNotification(messages.ToArray(), ScreenNotification.NotificationType.Error, duration: 10);
         }
 
-        //throw new ModuleInvalidException(validationResponse.Message);
+        throw new ModuleInvalidException(validationResponse.Message);
     }
 
+    /// <summary>
+    ///     Handles the changed event for the setting <see cref="BaseModuleSettings.RegisterCornerIcon"/>.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The value changed event args.</param>
     private void RegisterCornerIcon_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
     {
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
@@ -243,6 +264,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected abstract string GetDirectoryName();
 
+    /// <summary>
+    ///     Initializes all services and starts them.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Gets thrown if the directory path could not be loaded for depending services.</exception>
     private async Task InitializeServices()
     {
         string directoryName = this.GetDirectoryName();
@@ -433,14 +458,25 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
     }
 
+    /// <summary>
+    ///     Used to configure the nessecary services for the module.
+    /// </summary>
+    /// <param name="configurations">The base configuration which can be adapted for the module.</param>
     protected virtual void ConfigureServices(ServiceConfigurations configurations) { }
 
+    /// <summary>
+    ///     Gets called before all services are started.
+    ///     <para/>
+    ///     Can be used to attach event handlers.
+    /// </summary>
     protected virtual void OnBeforeServicesStarted() { }
 
-    protected virtual Collection<ManagedService> GetAdditionalServices(string directoryPath)
-    {
-        return null;
-    }
+    /// <summary>
+    ///     Gets additional services which should be started.
+    /// </summary>
+    /// <param name="directoryPath">The directory root path for the module.</param>
+    /// <returns>A collection of additional services.</returns>
+    protected virtual Collection<ManagedService> GetAdditionalServices(string directoryPath) => null;
 
     private void HandleCornerIcon(bool show)
     {
@@ -452,7 +488,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 {
                     IconName = this.Name,
                     Icon = this.GetCornerIcon(),
-                    Priority = this.GetCornerIconPriority()
+                    Priority = this.CornerIconPriority
                 };
 
                 this.OnCornerIconBuild();
@@ -469,7 +505,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
     }
 
-    protected abstract int GetCornerIconPriority();
+    /// <summary>
+    ///     Gets the corner icon priority.
+    /// </summary>
+    /// <returns></returns>
+    protected abstract int CornerIconPriority { get; }
 
     protected virtual void OnCornerIconBuild()
     {

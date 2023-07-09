@@ -357,10 +357,7 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
         this.Logger.Debug("Unloaded base.");
     }
 
-    protected override int GetCornerIconPriority()
-    {
-        return 1_289_351_276;
-    }
+    protected override int CornerIconPriority => 1_289_351_276;
 
     #region Services
 
