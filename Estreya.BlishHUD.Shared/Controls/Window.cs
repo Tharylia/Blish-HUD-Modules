@@ -19,6 +19,8 @@ using System.Threading.Tasks;
 
 public abstract class Window : Container, IWindow, IViewContainer
 {
+    private Logger _logger;
+
     private const int STANDARD_TITLEBAR_HEIGHT = 40;
 
     private const int STANDARD_TITLEBAR_VERTICAL_OFFSET = 11;
@@ -139,6 +141,8 @@ public abstract class Window : Container, IWindow, IViewContainer
 
     private Window()
     {
+        this._logger = Logger.GetLogger(this.GetType());
+
         this.Opacity = 0f;
         this.Visible = false;
         this._zIndex = 41;
