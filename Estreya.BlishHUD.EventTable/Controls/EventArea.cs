@@ -347,7 +347,6 @@ public class EventArea : RenderTarget2DControl
 
     private void Event_Completed(object sender, string apiCode)
     {
-        DateTime until = this.GetNextReset();
         List<Models.Event> events = new List<Models.Event>();
         using (this._eventLock.Lock())
         {
@@ -356,7 +355,8 @@ public class EventArea : RenderTarget2DControl
 
         events.ForEach(ev =>
         {
-            this.FinishEvent(ev, until);
+            DateTime until = this.GetNextReset(ev);
+            this.ToggleFinishEvent(ev, until);
         });
     }
 
@@ -1118,7 +1118,7 @@ public class EventArea : RenderTarget2DControl
     private void Ev_HideRequested(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        this.HideEvent(ev.Model, this.GetNextReset());
+        this.HideEvent(ev.Model, this.GetNextReset(ev.Model));
     }
 
     private void Ev_DisableRequested(object sender, EventArgs e)
@@ -1130,11 +1130,18 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
-    private DateTime GetNextReset()
+    private DateTime GetNextReset(Models.Event ev)
     {
         DateTime nowUTC = this._getNowAction().ToUniversalTime();
 
-        return new DateTime(nowUTC.Year, nowUTC.Month, nowUTC.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1);
+        var addDuration = TimeSpan.FromDays(1);
+
+        if (ev.Duration >= addDuration.TotalMinutes)
+        {
+            // No idea yet
+        }
+
+        return new DateTime(nowUTC.Year, nowUTC.Month, nowUTC.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(Math.Ceiling(addDuration.TotalDays));
     }
 
     protected override void InternalDispose()
