@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -37,7 +37,7 @@ using Version = SemVer.Version;
 
 public class EventArea : RenderTarget2DControl
 {
-    private static readonly Logger Logger = Logger.GetLogger<EventArea>();
+    private readonly Logger _logger = Logger.GetLogger<EventArea>();
 
     private static TimeSpan _updateEventOccurencesInterval = TimeSpan.FromMinutes(15);
 
@@ -61,7 +61,7 @@ public class EventArea : RenderTarget2DControl
     private List<string> _eventCategoryOrdering;
 
     private readonly AsyncLock _eventLock = new AsyncLock();
-    private EventStateService _eventService;
+    private EventStateService _eventStateService;
     private IFlurlClient _flurlClient;
 
     private int _heightFromLastDraw = 1; // Blish does not render controls at y 0 with 0 height
@@ -118,7 +118,7 @@ public class EventArea : RenderTarget2DControl
         this._getAccessToken = getAccessToken;
         this._iconService = iconService;
         this._translationService = translationService;
-        this._eventService = eventService;
+        this._eventStateService = eventService;
         this._worldbossService = worldbossService;
         this._mapchestService = mapchestService;
         this._pointOfInterestService = pointOfInterestService;
@@ -138,10 +138,10 @@ public class EventArea : RenderTarget2DControl
             this._mapchestService.MapchestRemoved += this.Event_Removed;
         }
 
-        if (this._eventService != null)
+        if (this._eventStateService != null)
         {
-            this._eventService.StateAdded += this.EventService_ServiceAdded;
-            this._eventService.StateRemoved += this.EventService_ServiceRemoved;
+            this._eventStateService.StateAdded += this.EventService_ServiceAdded;
+            this._eventStateService.StateRemoved += this.EventService_ServiceRemoved;
         }
     }
 
@@ -341,7 +341,7 @@ public class EventArea : RenderTarget2DControl
 
         events.ForEach(ev =>
         {
-            this._eventService.Remove(this.Configuration.Name, ev.SettingKey);
+            this._eventStateService.Remove(this.Configuration.Name, ev.SettingKey);
         });
     }
 
@@ -495,6 +495,7 @@ public class EventArea : RenderTarget2DControl
         List<string> activeEventKeys = this.GetActiveEventKeys();
 
         ConcurrentDictionary<string, List<Models.Event>> fillers = await this.GetFillers(times.Now, times.Min, times.Max, activeEventKeys);
+
         using (await this._eventLock.LockAsync())
         {
             foreach (EventCategory ec in this._allEvents)
@@ -513,19 +514,20 @@ public class EventArea : RenderTarget2DControl
     {
         try
         {
-            if (activeEventKeys == null || activeEventKeys.Count == 0)
+            // Don't load fillers if we don't need them
+            if (!this.Configuration.UseFiller.Value || activeEventKeys == null || activeEventKeys.Count == 0)
             {
                 return new ConcurrentDictionary<string, List<Models.Event>>();
             }
 
-            Logger.Info("Load fillers...");
+            _logger.Info("Load fillers...");
 
             IFlurlRequest flurlRequest = this._flurlClient.Request(this._apiRootUrl, "fillers");
 
             string accessToken = this._getAccessToken();
             if (!string.IsNullOrWhiteSpace(accessToken))
             {
-                Logger.Info("Include custom event fillers...");
+                _logger.Info("Include custom event fillers...");
                 flurlRequest.WithOAuthBearerToken(accessToken);
             }
 
@@ -537,7 +539,7 @@ public class EventArea : RenderTarget2DControl
             }
 
             IEnumerable<string> eventKeys = activeEvents.Select(a => a.SettingKey).Distinct();
-            Logger.Debug($"Fetch fillers with active keys: {string.Join(", ", eventKeys.ToArray())}");
+            _logger.Debug($"Fetch fillers with active keys: {string.Join(", ", eventKeys.ToArray())}");
 
             HttpResponseMessage response = await flurlRequest.PostJsonAsync(new OnlineFillerRequest
             {
@@ -580,7 +582,7 @@ public class EventArea : RenderTarget2DControl
         catch (FlurlHttpException ex)
         {
             string error = await ex.GetResponseStringAsync();
-            Logger.Warn($"Could not load fillers from {ex.Call.Request.RequestUri}: {error}");
+            _logger.Warn($"Could not load fillers from {ex.Call.Request.RequestUri}: {error}");
         }
 
         return new ConcurrentDictionary<string, List<Models.Event>>();
@@ -588,7 +590,7 @@ public class EventArea : RenderTarget2DControl
 
     private bool EventCategoryDisabled(EventCategory ec)
     {
-        bool finished = this._eventService?.Contains(this.Configuration.Name, ec.Key, EventStateService.EventStates.Completed) ?? false;
+        bool finished = this._eventStateService?.Contains(this.Configuration.Name, ec.Key, EventStateService.EventStates.Completed) ?? false;
 
         return finished;
     }
@@ -621,7 +623,7 @@ public class EventArea : RenderTarget2DControl
     {
         bool enabled = !this.Configuration.DisabledEventKeys.Value.Contains(settingKey);
 
-        enabled &= !this._eventService.Contains(this.Configuration.Name, settingKey, EventStateService.EventStates.Hidden);
+        enabled &= !this._eventStateService.Contains(this.Configuration.Name, settingKey, EventStateService.EventStates.Hidden);
 
         return !enabled;
     }
@@ -701,7 +703,7 @@ public class EventArea : RenderTarget2DControl
 
             foreach ((DateTime Occurence, Event Event) delete in toDelete)
             {
-                Logger.Debug($"Deleted event {delete.Event.Model.Name}");
+                _logger.Debug($"Deleted event {delete.Event.Model.Name}");
                 this.RemoveEventHooks(delete.Event);
                 delete.Event.Dispose();
                 controlEventPairs.Remove(delete);
@@ -767,7 +769,7 @@ public class EventArea : RenderTarget2DControl
             }
             else
             {
-                Logger.Debug($"Event lock is busy. Can't update category {categoryKey}");
+                _logger.Debug($"Event lock is busy. Can't update category {categoryKey}");
             }
 
             //eventKey == Event.SettingsKey
@@ -823,7 +825,7 @@ public class EventArea : RenderTarget2DControl
                         occurence.AddMinutes(ev.Duration),
                         this.GetFont,
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
-                        () => this.Configuration.CompletionAction.Value is EventCompletedAction.Crossout or EventCompletedAction.CrossoutAndChangeOpacity && this._eventService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed),
+                        () => this.Configuration.CompletionAction.Value is EventCompletedAction.Crossout or EventCompletedAction.CrossoutAndChangeOpacity && this._eventStateService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed),
                         () =>
                         {
                             Microsoft.Xna.Framework.Color defaultTextColor = Microsoft.Xna.Framework.Color.Black;
@@ -834,7 +836,7 @@ public class EventArea : RenderTarget2DControl
                                     : this.Configuration.TextColor.Value.Cloth.ToXnaColor();
                             float alpha = ev.Filler ? this.Configuration.FillerTextOpacity.Value : this.Configuration.EventTextOpacity.Value;
 
-                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed))
+                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventStateService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed))
                             {
                                 if (this.Configuration.CompletedEventsInvertTextColor.Value)
                                 {
@@ -858,7 +860,7 @@ public class EventArea : RenderTarget2DControl
 
                             float alpha = this.Configuration.EventBackgroundOpacity.Value;
 
-                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed))
+                            if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventStateService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed))
                             {
                                 alpha = this.Configuration.CompletedEventsBackgroundOpacity.Value;
                             }
@@ -900,7 +902,7 @@ public class EventArea : RenderTarget2DControl
 
                     this.AddEventHooks(newEventControl);
 
-                    Logger.Debug($"Added event {ev.Name} with occurence {occurence}");
+                    _logger.Debug($"Added event {ev.Name} with occurence {occurence}");
 
                     using (this._controlLock.Lock())
                     {
@@ -1119,7 +1121,7 @@ public class EventArea : RenderTarget2DControl
 
     private void HideEvent(Models.Event ev, DateTime until)
     {
-        this._eventService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Hidden);
+        this._eventStateService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Hidden);
     }
 
     private void Ev_HideRequested(object sender, EventArgs e)
@@ -1167,16 +1169,16 @@ public class EventArea : RenderTarget2DControl
             this._mapchestService.MapchestRemoved -= this.Event_Removed;
         }
 
-        if (this._eventService != null)
+        if (this._eventStateService != null)
         {
-            this._eventService.StateAdded -= this.EventService_ServiceAdded;
-            this._eventService.StateRemoved -= this.EventService_ServiceRemoved;
+            this._eventStateService.StateAdded -= this.EventService_ServiceAdded;
+            this._eventStateService.StateRemoved -= this.EventService_ServiceRemoved;
         }
 
         this._iconService = null;
         this._worldbossService = null;
         this._mapchestService = null;
-        this._eventService = null;
+        this._eventStateService = null;
         this._translationService = null;
         this._mapUtil = null;
         this._pointOfInterestService = null;
