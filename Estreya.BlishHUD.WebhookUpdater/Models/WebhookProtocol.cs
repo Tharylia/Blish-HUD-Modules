@@ -3,11 +3,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net;
-using System.Text;
-using System.Threading.Tasks;
 
 public class WebhookProtocol
 {
@@ -31,13 +27,13 @@ public class WebhookProtocol
 
     public class ProtocolException
     {
-        public string Message { get; set; }
-        public string Stacktrace { get; set; }
-
         public ProtocolException(Exception exception)
         {
             this.Message = exception?.Message;
             this.Stacktrace = exception?.StackTrace;
         }
+
+        public string Message { get; set; }
+        public string Stacktrace { get; set; }
     }
 }

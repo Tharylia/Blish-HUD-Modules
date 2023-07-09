@@ -3,53 +3,51 @@
 using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
-using Blish_HUD.Controls.Intern;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.Helpers;
-using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.Service;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.Shared.Utils;
-using Estreya.BlishHUD.WebhookUpdater.Models;
-using Humanizer;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+using Models;
 using MonoGame.Extended.BitmapFonts;
+using Shared.Controls;
+using Shared.Helpers;
+using Shared.Services;
+using Shared.UI.Views;
+using Shared.Utils;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using static Blish_HUD.ContentService;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
+using System.Windows.Forms;
+using Button = Shared.Controls.Button;
+using Control = Blish_HUD.Controls.Control;
+using HorizontalAlignment = Blish_HUD.Controls.HorizontalAlignment;
+using Label = Blish_HUD.Controls.Label;
 using Menu = Shared.Controls.Menu;
+using MenuItem = Blish_HUD.Controls.MenuItem;
+using Panel = Blish_HUD.Controls.Panel;
+using StandardWindow = Shared.Controls.StandardWindow;
+using TextBox = Blish_HUD.Controls.TextBox;
 
 public class WebhookSettingsView : BaseSettingsView
 {
-    private static readonly Logger Logger = Logger.GetLogger<WebhookSettingsView>();
     private const int PADDING_X = 20;
     private const int PADDING_Y = 20;
-
+    private static readonly Logger Logger = Logger.GetLogger<WebhookSettingsView>();
+    private readonly ModuleSettings _moduleSettings;
     private readonly Func<IEnumerable<Webhook>> _webhooksFunc;
-    private IEnumerable<Webhook> _webhooks;
-    private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
-    private Panel _webhookPanel;
+    private readonly Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private StandardWindow _protocolWindow;
+    private Panel _webhookPanel;
+    private IEnumerable<Webhook> _webhooks;
 
-    public class AddWebhookEventArgs
+    public WebhookSettingsView(ModuleSettings moduleSettings, Func<IEnumerable<Webhook>> getWebhooks, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
-        public string Name { get; set; }
-        public Webhook Webhook { get; set; }
+        this._moduleSettings = moduleSettings;
+        this._webhooksFunc = getWebhooks;
     }
 
     public event EventHandler<AddWebhookEventArgs> AddWebhook;
     public event EventHandler<Webhook> RemoveWebhook;
-
-    public WebhookSettingsView(Func<IEnumerable<Webhook>> getWebhooks, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
-    {
-        this._webhooksFunc = getWebhooks;
-    }
 
     private void LoadConfigurations()
     {
@@ -66,7 +64,7 @@ public class WebhookSettingsView : BaseSettingsView
         newParent.HeightSizingMode = parent.HeightSizingMode;
         newParent.WidthSizingMode = parent.WidthSizingMode;
 
-        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, newParent.ContentRegion.Width - PADDING_X, newParent.ContentRegion.Height - PADDING_Y * 2);
+        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, newParent.ContentRegion.Width - PADDING_X, newParent.ContentRegion.Height - (PADDING_Y * 2));
 
         Panel webhookOverviewPanel = this.GetPanel(newParent);
         webhookOverviewPanel.ShowBorder = true;
@@ -76,7 +74,7 @@ public class WebhookSettingsView : BaseSettingsView
         webhookOverviewPanel.Location = new Point(bounds.X, bounds.Y);
         webhookOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X - 75, bounds.Height - StandardButton.STANDARD_CONTROL_HEIGHT);
 
-        Shared.Controls.Menu webhookOverviewMenu = new Shared.Controls.Menu
+        Menu webhookOverviewMenu = new Menu
         {
             Parent = webhookOverviewPanel,
             WidthSizingMode = SizingMode.Fill
@@ -114,7 +112,7 @@ public class WebhookSettingsView : BaseSettingsView
             };
         });
 
-        StandardButton addButton = this.RenderButton(newParent, this.TranslationService.GetTranslation("webhookSettingsView-add-btn", "Add"), () =>
+        Button addButton = this.RenderButton(newParent, this.TranslationService.GetTranslation("webhookSettingsView-add-btn", "Add"), () =>
         {
             this.BuildAddPanel(newParent, webhookPanelBounds, webhookOverviewMenu);
         });
@@ -124,11 +122,12 @@ public class WebhookSettingsView : BaseSettingsView
 
         if (this._menuItems.Count > 0)
         {
-            var menuItem = this._menuItems.First();
+            KeyValuePair<string, MenuItem> menuItem = this._menuItems.First();
             Webhook webhook = this._webhooks.Where(webhook => webhook.Configuration.Name == menuItem.Key).First();
             this.BuildEditPanel(newParent, webhookPanelBounds, menuItem.Value, webhook);
         }
     }
+
     private void CreateWebhookPanel(Panel parent, Rectangle bounds)
     {
         this.ClearWebhookPanel();
@@ -148,14 +147,14 @@ public class WebhookSettingsView : BaseSettingsView
 
         Rectangle panelBounds = this._webhookPanel.ContentRegion;
 
-        TextBox webhookName = new TextBox()
+        TextBox webhookName = new TextBox
         {
             Parent = this._webhookPanel,
             Location = new Point(20, 20),
             PlaceholderText = "Webhook Name"
         };
 
-        StandardButton saveButton = this.RenderButton(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-save-btn", "Save"), () =>
+        Button saveButton = this.RenderButton(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-save-btn", "Save"), () =>
         {
             try
             {
@@ -167,19 +166,11 @@ public class WebhookSettingsView : BaseSettingsView
                     return;
                 }
 
-                AddWebhookEventArgs addWebhookEventArgs = new AddWebhookEventArgs()
-                {
-                    Name = name
-                };
+                AddWebhookEventArgs addWebhookEventArgs = new AddWebhookEventArgs { Name = name };
 
                 this.AddWebhook?.Invoke(this, addWebhookEventArgs);
 
-                Webhook webhook = addWebhookEventArgs.Webhook;
-
-                if (webhook == null)
-                {
-                    throw new ArgumentNullException("Webhook configuration could not be created.");
-                }
+                Webhook webhook = addWebhookEventArgs.Webhook ?? throw new ArgumentNullException("Webhook configuration could not be created.");
 
                 MenuItem menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
@@ -200,18 +191,18 @@ public class WebhookSettingsView : BaseSettingsView
 
         webhookName.TextChanged += (s, e) =>
         {
-            var textBox = s as TextBox;
+            TextBox textBox = s as TextBox;
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
-        StandardButton cancelButton = this.RenderButton(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-cancel-btn", "Cancel"), () =>
+        Button cancelButton = this.RenderButton(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-cancel-btn", "Cancel"), () =>
         {
             this.ClearWebhookPanel();
         });
         cancelButton.Right = saveButton.Left - 10;
         cancelButton.Bottom = panelBounds.Bottom - 20;
 
-        webhookName.Width = (panelBounds.Right - 20) - webhookName.Left;
+        webhookName.Width = panelBounds.Right - 20 - webhookName.Left;
     }
 
     private void BuildEditPanel(Panel parent, Rectangle bounds, MenuItem menuItem, Webhook webhook)
@@ -225,17 +216,17 @@ public class WebhookSettingsView : BaseSettingsView
 
         Rectangle panelBounds = new Rectangle(this._webhookPanel.ContentRegion.Location, new Point(this._webhookPanel.ContentRegion.Size.X - 50, this._webhookPanel.ContentRegion.Size.Y));
 
-        Label webhookName = new Label()
+        Label webhookName = new Label
         {
             Location = new Point(20, 20),
             Parent = this._webhookPanel,
             Font = GameService.Content.DefaultFont18,
             AutoSizeHeight = true,
             Text = webhook.Configuration.Name,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
         };
 
-        var triggerButton = this.RenderButtonAsync(this._webhookPanel, "Trigger", async () =>
+        Button triggerButton = this.RenderButtonAsync(this._webhookPanel, "Trigger", async () =>
         {
             await webhook.TriggerAsync();
             Logger.Info($"Webhook \"{webhook.Configuration.Name}\" was triggered manually.");
@@ -244,7 +235,7 @@ public class WebhookSettingsView : BaseSettingsView
         triggerButton.Top = webhookName.Top;
         triggerButton.Left = webhookName.Left;
 
-        var showProtocolsButton = this.RenderButton(this._webhookPanel, "Protocols", () =>
+        Button showProtocolsButton = this.RenderButton(this._webhookPanel, "Protocols", () =>
         {
             this.ShowProtocols(webhook);
         });
@@ -252,7 +243,7 @@ public class WebhookSettingsView : BaseSettingsView
         showProtocolsButton.Top = triggerButton.Bottom + 5;
         showProtocolsButton.Left = triggerButton.Left;
 
-        FlowPanel settingsPanel = new FlowPanel()
+        FlowPanel settingsPanel = new FlowPanel
         {
             Left = webhookName.Left,
             Top = webhookName.Bottom + 50,
@@ -275,26 +266,26 @@ public class WebhookSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
-        var lastAdded = settingsPanel.Children.Last();
+        Control lastAdded = settingsPanel.Children.Last();
 
-        StandardButton removeButton = this.RenderButtonAsync(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-remove-btn", "Remove"), async () =>
+        Button removeButton = this.RenderButtonAsync(this._webhookPanel, this.TranslationService.GetTranslation("webhookSettingsView-remove-btn", "Remove"), async () =>
         {
-            var dialog = new ConfirmDialog(
-                    $"Delete Webhook \"{webhook.Configuration.Name}\"", $"Your are in the process of deleting the webhook \"{webhook.Configuration.Name}\".\nThis action will delete all settings.\n\nContinue?",
-                    this.IconService,
-                    new[]
-                    {
-                        new ButtonDefinition("Yes", System.Windows.Forms.DialogResult.Yes),
-                        new ButtonDefinition("No", System.Windows.Forms.DialogResult.No)
-                    })
-            {
-                SelectedButtonIndex = 1
-            };
+            ConfirmDialog dialog = new ConfirmDialog(
+                $"Delete Webhook \"{webhook.Configuration.Name}\"", $"Your are in the process of deleting the webhook \"{webhook.Configuration.Name}\".\nThis action will delete all settings.\n\nContinue?",
+                this.IconService,
+                new[]
+                {
+                    new ButtonDefinition("Yes", DialogResult.Yes),
+                    new ButtonDefinition("No", DialogResult.No)
+                }) { SelectedButtonIndex = 1 };
 
-            var result = await dialog.ShowDialog();
+            DialogResult result = await dialog.ShowDialog();
             dialog.Dispose();
 
-            if (result != System.Windows.Forms.DialogResult.Yes) return;
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
 
             this.RemoveWebhook?.Invoke(this, webhook);
             Menu menu = menuItem.Parent as Menu;
@@ -313,7 +304,7 @@ public class WebhookSettingsView : BaseSettingsView
 
     private void RenderEnabledSettings(FlowPanel settingsPanel, Webhook webhook)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -333,7 +324,7 @@ public class WebhookSettingsView : BaseSettingsView
 
     private void RenderBehaviourSettings(FlowPanel settingsPanel, Webhook webhook)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -354,8 +345,8 @@ public class WebhookSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel);
 
-        var urlTextBox = this.RenderTextSetting(groupPanel, webhook.Configuration.Url).textBox;
-        urlTextBox.Width = groupPanel.ContentRegion.Width - urlTextBox.Left - 20 * 2;
+        TextBox urlTextBox = this.RenderTextSetting(groupPanel, webhook.Configuration.Url).textBox;
+        urlTextBox.Width = groupPanel.ContentRegion.Width - urlTextBox.Left - (20 * 2);
 
         this.RenderTextSetting(groupPanel, webhook.Configuration.ContentType);
         this.RenderEnumSetting(groupPanel, webhook.Configuration.HTTPMethod);
@@ -364,7 +355,7 @@ public class WebhookSettingsView : BaseSettingsView
 
         this.RenderButtonAsync(groupPanel, "Edit Content", async () =>
         {
-            var tempFile = FileUtil.CreateTempFile("handlebars");
+            string tempFile = FileUtil.CreateTempFile("handlebars");
             await FileUtil.WriteStringAsync(tempFile, webhook.Configuration.Content.Value);
 
             await VSCodeHelper.EditAsync(tempFile);
@@ -391,7 +382,7 @@ public class WebhookSettingsView : BaseSettingsView
             int contentRegionPaddingX = settingsWindowSize.X;
             Rectangle contentRegion = new Rectangle(contentRegionPaddingX, contentRegionPaddingY, settingsWindowSize.Width - 6, settingsWindowSize.Height - contentRegionPaddingY);
 
-            this._protocolWindow = new StandardWindow(windowBackground, settingsWindowSize, contentRegion)
+            this._protocolWindow = new StandardWindow(this._moduleSettings, windowBackground, settingsWindowSize, contentRegion)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Title = "Webhook Protocols",
@@ -400,13 +391,13 @@ public class WebhookSettingsView : BaseSettingsView
             };
         }
 
-        if (_protocolWindow.CurrentView != null)
+        if (this._protocolWindow.CurrentView != null)
         {
-            var manageEventView = _protocolWindow.CurrentView as WebhookProtocolView;
+            WebhookProtocolView manageEventView = this._protocolWindow.CurrentView as WebhookProtocolView;
         }
 
-        var view = new WebhookProtocolView(webhook, this.APIManager, this.IconService, this.TranslationService);
-        _protocolWindow.Show(view);
+        WebhookProtocolView view = new WebhookProtocolView(webhook, this.APIManager, this.IconService, this.TranslationService);
+        this._protocolWindow.Show(view);
     }
 
     private void ClearWebhookPanel()
@@ -436,5 +427,11 @@ public class WebhookSettingsView : BaseSettingsView
 
         this._protocolWindow?.Dispose();
         this._protocolWindow = null;
+    }
+
+    public class AddWebhookEventArgs
+    {
+        public string Name { get; set; }
+        public Webhook Webhook { get; set; }
     }
 }

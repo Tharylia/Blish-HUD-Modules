@@ -1,23 +1,18 @@
-﻿
-namespace Estreya.BlishHUD.Shared.Security;
+﻿namespace Estreya.BlishHUD.Shared.Security;
 
 using Blish_HUD;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.Shared.Utils;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading.Tasks;
+using Utils;
 
 public class PasswordManager
 {
     private static readonly Logger Logger = Logger.GetLogger<PasswordManager>();
+    private readonly string _directoryPath;
 
     private byte[] _passwordEntroy;
-    private readonly string _directoryPath;
 
     public PasswordManager(string directoryPath)
     {
@@ -26,12 +21,12 @@ public class PasswordManager
 
     public void InitializeEntropy(byte[] data)
     {
-        _passwordEntroy = data;
+        this._passwordEntroy = data;
     }
 
     public async Task Save(string key, byte[] data, bool silent = false)
     {
-        var protectedData = this.EncryptData(data, silent);
+        byte[] protectedData = this.EncryptData(data, silent);
 
         if (protectedData != null)
         {
@@ -41,7 +36,7 @@ public class PasswordManager
 
     public void Delete(string key)
     {
-        var filePath = Path.Combine(this._directoryPath, $"{key}.pwd");
+        string filePath = Path.Combine(this._directoryPath, $"{key}.pwd");
         if (File.Exists(filePath))
         {
             File.Delete(filePath);
@@ -50,18 +45,18 @@ public class PasswordManager
 
     public async Task<byte[]> Retrive(string key, bool silent = false)
     {
-        var protectedData = await this.ReadPasswordFile(key);
+        byte[] protectedData = await this.ReadPasswordFile(key);
 
         return this.DecryptData(protectedData, silent);
     }
 
     private async Task WritePasswordFile(string key, byte[] data)
     {
-        var dataString = Convert.ToBase64String(data);
+        string dataString = Convert.ToBase64String(data);
 
         _ = Directory.CreateDirectory(this._directoryPath);
 
-        var filePath = Path.Combine(this._directoryPath, $"{key}.pwd");
+        string filePath = Path.Combine(this._directoryPath, $"{key}.pwd");
 
         await FileUtil.WriteStringAsync(filePath, dataString);
     }
@@ -73,28 +68,28 @@ public class PasswordManager
             throw new ArgumentNullException(nameof(key), "Key can't be null.");
         }
 
-        var filePath = Path.Combine(this._directoryPath, $"{key}.pwd");
+        string filePath = Path.Combine(this._directoryPath, $"{key}.pwd");
 
         if (!File.Exists(filePath))
         {
             return null;
         }
 
-        var fileContent = await FileUtil.ReadStringAsync(filePath);
+        string fileContent = await FileUtil.ReadStringAsync(filePath);
 
         if (string.IsNullOrWhiteSpace(fileContent))
         {
             return null;
         }
 
-        var data = Convert.FromBase64String(fileContent);
+        byte[] data = Convert.FromBase64String(fileContent);
 
         return data;
     }
 
     private byte[] EncryptData(byte[] data, bool silent = false)
     {
-        if (_passwordEntroy == null)
+        if (this._passwordEntroy == null)
         {
             throw new ArgumentException("Entroy was not initialized.");
         }
@@ -106,7 +101,7 @@ public class PasswordManager
 
         try
         {
-            byte[] protectedData = ProtectedData.Protect(data, _passwordEntroy, DataProtectionScope.CurrentUser);
+            byte[] protectedData = ProtectedData.Protect(data, this._passwordEntroy, DataProtectionScope.CurrentUser);
 
             return protectedData;
         }
@@ -124,7 +119,7 @@ public class PasswordManager
 
     private byte[] DecryptData(byte[] data, bool silent = false)
     {
-        if (_passwordEntroy == null)
+        if (this._passwordEntroy == null)
         {
             throw new ArgumentException("Entroy was not initialized.");
         }
@@ -136,7 +131,7 @@ public class PasswordManager
 
         try
         {
-            byte[] clearData = ProtectedData.Unprotect(data, _passwordEntroy, DataProtectionScope.CurrentUser);
+            byte[] clearData = ProtectedData.Unprotect(data, this._passwordEntroy, DataProtectionScope.CurrentUser);
             return clearData;
         }
         catch (Exception ex)

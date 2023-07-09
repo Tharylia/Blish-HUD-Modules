@@ -7,14 +7,14 @@ using System;
 
 public abstract class RectangleConverter : JsonConverter<Rectangle>
 {
-    private RectangleDirectionType DirectionType { get; }
-
     public RectangleConverter(RectangleDirectionType directionType)
     {
         this.DirectionType = directionType;
     }
 
-    public override Rectangle ReadJson(JsonReader reader, Type objectType, Rectangle existingValue, bool hasExistingValue, Newtonsoft.Json.JsonSerializer serializer)
+    private RectangleDirectionType DirectionType { get; }
+
+    public override Rectangle ReadJson(JsonReader reader, Type objectType, Rectangle existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
         serializer.Converters.Add(new CoordinatesConverter());
 

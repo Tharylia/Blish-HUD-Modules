@@ -1,0 +1,27 @@
+{
+  "name": "Looking for Group",
+  "version": "3.4.0",
+  "namespace": "estreya.bh.lookingForGroup",
+  "package": "Estreya.BlishHUD.LookingForGroup.dll",
+  "manifest_version": 1,
+  "description": "",
+  "dependencies": {
+    "bh.blishhud": ">=1.0.0"
+  },
+  "url": "https://github.com/Tharylia/Blish-HUD-Modules",
+  "contributors": [
+    {
+      "name": "Estreya",
+      "username": "Estreya.8675"
+    }
+  ],
+  "directories": [],
+  "actions": [],
+  "enabled_without_gw2": false,
+  "api_permissions": {
+    "account": {
+      "optional": false,
+      "details": "Needed to register account in backend."
+    }
+  }
+}

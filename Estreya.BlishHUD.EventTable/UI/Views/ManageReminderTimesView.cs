@@ -2,29 +2,24 @@
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.EventTable.Controls;
-using Estreya.BlishHUD.EventTable.Models;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
 using Microsoft.Xna.Framework;
+using Models;
 using MonoGame.Extended.BitmapFonts;
-using Newtonsoft.Json.Linq;
+using Shared.Controls;
+using Shared.Services;
+using Shared.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Menu;
+using Dropdown = Controls.Dropdown;
 
 public class ManageReminderTimesView : BaseView
 {
-    private Models.Event _ev;
-    private List<TimeSpan> _reminderTimes = new List<TimeSpan>();
+    private Event _ev;
+    private readonly List<TimeSpan> _reminderTimes = new List<TimeSpan>();
 
-    public event EventHandler<(Models.Event Event, List<TimeSpan> ReminderTimes)> SaveClicked;
-    public event EventHandler CancelClicked;
-
-    public ManageReminderTimesView(Models.Event ev, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public ManageReminderTimesView(Event ev, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
         this._ev = ev;
 
@@ -34,24 +29,27 @@ public class ManageReminderTimesView : BaseView
         }
     }
 
+    public event EventHandler<(Event Event, List<TimeSpan> ReminderTimes)> SaveClicked;
+    public event EventHandler CancelClicked;
+
     protected override void InternalBuild(Panel parent)
     {
-        var listPanel = new FlowPanel()
+        FlowPanel listPanel = new FlowPanel
         {
             Parent = parent,
-            Location = new Microsoft.Xna.Framework.Point(20,20),
-            Width = parent.ContentRegion.Width - 20 * 2,
-            Height = parent.ContentRegion.Height - 20 * 3,
-            OuterControlPadding = new Vector2(20,20),
-            ControlPadding = new Vector2(0,5),
+            Location = new Point(20, 20),
+            Width = parent.ContentRegion.Width - (20 * 2),
+            Height = parent.ContentRegion.Height - (20 * 3),
+            OuterControlPadding = new Vector2(20, 20),
+            ControlPadding = new Vector2(0, 5),
             FlowDirection = ControlFlowDirection.SingleTopToBottom,
             CanScroll = true,
-            ShowBorder = true,
+            ShowBorder = true
         };
 
         this.RenderTimes(listPanel);
 
-        var buttonGroup = new FlowPanel()
+        FlowPanel buttonGroup = new FlowPanel
         {
             Parent = parent,
             Top = listPanel.Bottom + 5,
@@ -67,7 +65,7 @@ public class ManageReminderTimesView : BaseView
 
         this.RenderButton(buttonGroup, this.TranslationService.GetTranslation("manageReminderTimesView-btn-save", "Save"), () =>
         {
-            this.SaveClicked?.Invoke(this,(this._ev, this._reminderTimes));
+            this.SaveClicked?.Invoke(this, (this._ev, this._reminderTimes));
         });
     }
 
@@ -76,21 +74,21 @@ public class ManageReminderTimesView : BaseView
         parent.ClearChildren();
 
         Panel lastTimeSection = null;
-        foreach (var reminderTime in this._reminderTimes)
+        foreach (TimeSpan reminderTime in this._reminderTimes)
         {
             lastTimeSection = this.AddTimeSection(parent, reminderTime, this._reminderTimes.Count == 1);
         }
 
-        var x = lastTimeSection?.Children.LastOrDefault()?.Left ?? 0;
+        int x = lastTimeSection?.Children.LastOrDefault()?.Left ?? 0;
 
-        var addButtonPanel = new Panel()
+        Panel addButtonPanel = new Panel
         {
             Parent = parent,
             Width = x + 120,
             HeightSizingMode = SizingMode.AutoSize
         };
 
-        var addButton = this.RenderButton(addButtonPanel, this.TranslationService.GetTranslation("manageReminderTimesView-btn-add", "Add"), () =>
+        Button addButton = this.RenderButton(addButtonPanel, this.TranslationService.GetTranslation("manageReminderTimesView-btn-add", "Add"), () =>
         {
             this._reminderTimes.Add(TimeSpan.Zero);
             this.RenderTimes(parent);
@@ -103,14 +101,14 @@ public class ManageReminderTimesView : BaseView
 
     private Panel AddTimeSection(Panel parent, TimeSpan time, bool disableRemove)
     {
-        var timeSectionPanel = new Panel()
+        Panel timeSectionPanel = new Panel
         {
             Parent = parent,
             WidthSizingMode = SizingMode.AutoSize,
-            HeightSizingMode = SizingMode.AutoSize,
+            HeightSizingMode = SizingMode.AutoSize
         };
 
-        var hours = new Controls.Dropdown()
+        Dropdown hours = new Dropdown
         {
             Parent = timeSectionPanel,
             Location = new Point(0, 0),
@@ -119,7 +117,7 @@ public class ManageReminderTimesView : BaseView
             PanelHeight = 400
         };
 
-        foreach (var valueToAdd in Enumerable.Range(0, 24).Select(h => h.ToString()))
+        foreach (string valueToAdd in Enumerable.Range(0, 24).Select(h => h.ToString()))
         {
             hours.Items.Add(valueToAdd);
         }
@@ -129,8 +127,8 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                var newTime = new TimeSpan(int.Parse(e.CurrentValue), time.Minutes, time.Seconds);
-                var index = this._reminderTimes.IndexOf(time);
+                TimeSpan newTime = new TimeSpan(int.Parse(e.CurrentValue), time.Minutes, time.Seconds);
+                int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;
             }
@@ -140,7 +138,7 @@ public class ManageReminderTimesView : BaseView
             }
         };
 
-        var minutes = new Controls.Dropdown()
+        Dropdown minutes = new Dropdown
         {
             Parent = timeSectionPanel,
             Location = new Point(hours.Right + 5, 0),
@@ -149,7 +147,7 @@ public class ManageReminderTimesView : BaseView
             PanelHeight = 400
         };
 
-        foreach (var valueToAdd in Enumerable.Range(0, 60).Select(h => h.ToString()))
+        foreach (string valueToAdd in Enumerable.Range(0, 60).Select(h => h.ToString()))
         {
             minutes.Items.Add(valueToAdd);
         }
@@ -159,8 +157,8 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                var newTime = new TimeSpan(time.Hours, int.Parse(e.CurrentValue), time.Seconds);
-                var index = this._reminderTimes.IndexOf(time);
+                TimeSpan newTime = new TimeSpan(time.Hours, int.Parse(e.CurrentValue), time.Seconds);
+                int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;
             }
@@ -170,7 +168,7 @@ public class ManageReminderTimesView : BaseView
             }
         };
 
-        var seconds = new Controls.Dropdown()
+        Dropdown seconds = new Dropdown
         {
             Parent = timeSectionPanel,
             Location = new Point(minutes.Right + 5, 0),
@@ -179,7 +177,7 @@ public class ManageReminderTimesView : BaseView
             PanelHeight = 400
         };
 
-        foreach (var valueToAdd in Enumerable.Range(0, 60).Select(h => h.ToString()))
+        foreach (string valueToAdd in Enumerable.Range(0, 60).Select(h => h.ToString()))
         {
             seconds.Items.Add(valueToAdd);
         }
@@ -189,8 +187,8 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                var newTime = new TimeSpan(time.Hours, time.Minutes , int.Parse(e.CurrentValue));
-                var index = this._reminderTimes.IndexOf(time);
+                TimeSpan newTime = new TimeSpan(time.Hours, time.Minutes, int.Parse(e.CurrentValue));
+                int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;
             }
@@ -200,7 +198,7 @@ public class ManageReminderTimesView : BaseView
             }
         };
 
-        var removeButton = this.RenderButton(timeSectionPanel, this.TranslationService.GetTranslation("manageReminderTimesView-btn-remove", "Remove"), () =>
+        Button removeButton = this.RenderButton(timeSectionPanel, this.TranslationService.GetTranslation("manageReminderTimesView-btn-remove", "Remove"), () =>
         {
             this._reminderTimes.Remove(time);
             this.RenderTimes(parent);
@@ -214,7 +212,10 @@ public class ManageReminderTimesView : BaseView
         return timeSectionPanel;
     }
 
-    protected override Task<bool> InternalLoad(IProgress<string> progress) => Task.FromResult(true);
+    protected override Task<bool> InternalLoad(IProgress<string> progress)
+    {
+        return Task.FromResult(true);
+    }
 
     protected override void Unload()
     {

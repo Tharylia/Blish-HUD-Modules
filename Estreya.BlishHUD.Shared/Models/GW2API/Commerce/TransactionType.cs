@@ -1,11 +1,6 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
 
-using Estreya.BlishHUD.Shared.Attributes;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Attributes;
 
 public enum TransactionType
 {
@@ -13,5 +8,5 @@ public enum TransactionType
     Buy,
 
     [Translation("transactionType-sell", "Sell")]
-    Sell,
+    Sell
 }

@@ -1,37 +1,38 @@
-﻿namespace Estreya.BlishHUD.Shared.Json.Converter
+﻿namespace Estreya.BlishHUD.Shared.Json.Converter;
+
+using Gw2Sharp;
+using Gw2Sharp.WebApi;
+using Newtonsoft.Json;
+using System;
+using Utils;
+
+public class RenderUrlConverter : JsonConverter<RenderUrl>
 {
-    using Estreya.BlishHUD.Shared.Utils;
-    using Gw2Sharp;
-    using Gw2Sharp.WebApi;
-    using Newtonsoft.Json;
-    using System;
-    using System.Collections.Generic;
-    using System.Reflection;
-    using System.Text;
+    private readonly IConnection _connection;
 
-    public class RenderUrlConverter : JsonConverter<RenderUrl>
+    public RenderUrlConverter(IConnection connection)
     {
-        private readonly IConnection _connection;
+        this._connection = connection;
+    }
 
-        public RenderUrlConverter(IConnection connection)
+    public override RenderUrl ReadJson(JsonReader reader, Type objectType, RenderUrl existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        if (reader.TokenType == JsonToken.Null)
         {
-            this._connection = connection;
+            return default; // This ignores the constructor.
         }
 
-        public override RenderUrl ReadJson(JsonReader reader, Type objectType, RenderUrl existingValue, bool hasExistingValue, JsonSerializer serializer)
+        if (reader.TokenType is not JsonToken.String)
         {
-            if (reader.TokenType == JsonToken.Null) return default; // This ignores the constructor.
-
-            if (reader.TokenType is not JsonToken.String)
-                throw new JsonException("Expected a string value");
-
-            return Gw2SharpHelper.CreateRenderUrl(this._connection, reader.Value as string);
+            throw new JsonException("Expected a string value");
         }
 
-        public override void WriteJson(JsonWriter writer, RenderUrl value, JsonSerializer serializer)
-        {
-            // Save render url only as string. The rest is not needed.
-            writer.WriteValue(value.Url?.AbsoluteUri);
-        }
+        return Gw2SharpHelper.CreateRenderUrl(this._connection, reader.Value as string);
+    }
+
+    public override void WriteJson(JsonWriter writer, RenderUrl value, JsonSerializer serializer)
+    {
+        // Save render url only as string. The rest is not needed.
+        writer.WriteValue(value.Url?.AbsoluteUri);
     }
 }

@@ -1,25 +1,25 @@
-﻿namespace Estreya.BlishHUD.Shared.Json.Converter
+﻿namespace Estreya.BlishHUD.Shared.Json.Converter;
+
+using Newtonsoft.Json;
+using SemVer;
+using System;
+
+public class SemanticRangeConverter : JsonConverter<Range>
 {
-    using Newtonsoft.Json;
-    using System;
-
-    public class SemanticRangeConverter : Newtonsoft.Json.JsonConverter<SemVer.Range>
+    public override Range ReadJson(JsonReader reader, Type objectType, Range existingValue, bool hasExistingValue, JsonSerializer serializer)
     {
-        public override SemVer.Range ReadJson(JsonReader reader, Type objectType, SemVer.Range existingValue, bool hasExistingValue, JsonSerializer serializer)
+        if (objectType != typeof(Range))
         {
-            if (objectType != typeof(SemVer.Range))
-            {
-                return null;
-            }
-
-            string value = (string)reader.Value;
-
-            return new SemVer.Range(value);
+            return null;
         }
 
-        public override void WriteJson(JsonWriter writer, SemVer.Range value, JsonSerializer serializer)
-        {
-            writer.WriteValue(value.ToString());
-        }
+        string value = (string)reader.Value;
+
+        return new Range(value);
+    }
+
+    public override void WriteJson(JsonWriter writer, Range value, JsonSerializer serializer)
+    {
+        writer.WriteValue(value.ToString());
     }
 }

@@ -4,10 +4,10 @@ using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
+using Shared.Services;
+using Shared.UI.Views;
+using Shared.Utils;
 using System.Linq;
 
 internal class PriceTooltipView : TooltipView
@@ -39,7 +39,7 @@ internal class PriceTooltipView : TooltipView
         int coinImageTop = lastAddedControl.Bottom + 5;
         int coinLabelTop = coinImageTop + 5;
 
-        Label goldLabel = new Label()
+        Label goldLabel = new Label
         {
             Parent = parent,
             Text = splitCoins.Gold.ToString(),
@@ -48,7 +48,7 @@ internal class PriceTooltipView : TooltipView
 
         goldLabel.Width = (int)goldLabel.Font.MeasureString(goldLabel.Text).Width;
 
-        Image goldImage = new Image()
+        Image goldImage = new Image
         {
             Parent = parent,
             Texture = this.IconService?.GetIcon("156904.png"),
@@ -56,7 +56,7 @@ internal class PriceTooltipView : TooltipView
             Size = new Point(32, 32)
         };
 
-        Label silverLabel = new Label()
+        Label silverLabel = new Label
         {
             Parent = parent,
             Text = splitCoins.Silver.ToString(),
@@ -65,7 +65,7 @@ internal class PriceTooltipView : TooltipView
 
         silverLabel.Width = (int)silverLabel.Font.MeasureString(silverLabel.Text).Width;
 
-        Image silverImage = new Image()
+        Image silverImage = new Image
         {
             Parent = parent,
             Texture = this.IconService?.GetIcon("156907.png"),
@@ -73,7 +73,7 @@ internal class PriceTooltipView : TooltipView
             Size = new Point(32, 32)
         };
 
-        Label copperLabel = new Label()
+        Label copperLabel = new Label
         {
             Parent = parent,
             Text = splitCoins.Copper.ToString(),
@@ -82,7 +82,7 @@ internal class PriceTooltipView : TooltipView
 
         copperLabel.Width = (int)copperLabel.Font.MeasureString(copperLabel.Text).Width;
 
-        Image copperImage = new Image()
+        Image copperImage = new Image
         {
             Parent = parent,
             Texture = this.IconService?.GetIcon("156902.png"),
@@ -92,13 +92,13 @@ internal class PriceTooltipView : TooltipView
 
         if (!string.IsNullOrWhiteSpace(this._priceComment))
         {
-            Label priceComment = new Label()
+            Label priceComment = new Label
             {
                 Parent = parent,
                 Text = this._priceComment,
                 WrapText = true,
                 Location = new Point(copperImage.Right + 5, coinLabelTop),
-                TextColor = Control.StandardColors.DisabledText,
+                TextColor = Control.StandardColors.DisabledText
             };
 
             int priceCommentWidth = (int)priceComment.Font.MeasureString(priceComment.Text).Width + 20;

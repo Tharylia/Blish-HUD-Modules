@@ -2,7 +2,8 @@
 
 using Blish_HUD;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.Shared.Extensions;
+using Blish_HUD.Input;
+using Extensions;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -10,21 +11,25 @@ using System.Linq;
 
 public class TextBoxSuggestions : FlowPanel
 {
-    private TextBox _textBox;
+    public enum CaseMatchingMode
+    {
+        IgnoreCase
+    }
+
+    public enum SuggestionMode
+    {
+        StartsWith,
+        Contains
+    }
+
     private Container _attachToParent;
+    private TextBox _textBox;
 
-    private bool UpdateFromCode = false;
-
-    public int MaxHeight { get; set; } = 400;
-
-    public string[] Suggestions { get; set; }
-    public SuggestionMode Mode { get; set; } = SuggestionMode.StartsWith;
-
-    public StringComparison StringComparison { get; set; } = StringComparison.InvariantCulture;
+    private bool UpdateFromCode;
 
     /// <summary>
-    /// Creates a TextBox with suggestions attached to it.
-    /// <para>The ZIndex of this control needs to be higher than other control for the suggestions to work properly.</para>
+    ///     Creates a TextBox with suggestions attached to it.
+    ///     <para>The ZIndex of this control needs to be higher than other control for the suggestions to work properly.</para>
     /// </summary>
     public TextBoxSuggestions(TextBox textBox, Container attachToParent)
     {
@@ -42,6 +47,13 @@ public class TextBoxSuggestions : FlowPanel
 
         GameService.Input.Mouse.LeftMouseButtonPressed += this.Mouse_LeftMouseButtonPressed;
     }
+
+    public int MaxHeight { get; set; } = 400;
+
+    public string[] Suggestions { get; set; }
+    public SuggestionMode Mode { get; set; } = SuggestionMode.StartsWith;
+
+    public StringComparison StringComparison { get; set; } = StringComparison.InvariantCulture;
 
     private void _textBox_InputFocusChanged(object sender, ValueEventArgs<bool> e)
     {
@@ -61,7 +73,7 @@ public class TextBoxSuggestions : FlowPanel
         this.UpdateSizeAndLocation();
     }
 
-    private void Mouse_LeftMouseButtonPressed(object sender, Blish_HUD.Input.MouseEventArgs e)
+    private void Mouse_LeftMouseButtonPressed(object sender, MouseEventArgs e)
     {
         if (!this.MouseOver)
         {
@@ -90,7 +102,7 @@ public class TextBoxSuggestions : FlowPanel
                 {
                     SuggestionMode.StartsWith => completionItem.StartsWith(currentText, this.StringComparison),
                     SuggestionMode.Contains => completionItem.Contains(currentText, this.StringComparison),
-                    _ => false,
+                    _ => false
                 };
             }).Take(50).ToList();
         }
@@ -112,7 +124,7 @@ public class TextBoxSuggestions : FlowPanel
 
         foreach (string suggestion in suggestions)
         {
-            Label label = new Label()
+            Label label = new Label
             {
                 Parent = this,
                 Text = suggestion,
@@ -133,7 +145,7 @@ public class TextBoxSuggestions : FlowPanel
         this.Parent = null;
     }
 
-    private void Label_Click(object sender, Blish_HUD.Input.MouseEventArgs e)
+    private void Label_Click(object sender, MouseEventArgs e)
     {
         Label label = sender as Label;
 
@@ -174,16 +186,5 @@ public class TextBoxSuggestions : FlowPanel
         this.Width = this._textBox.Width;
 
         this.Children.ToList().ForEach(child => child.Width = this.Width);
-    }
-
-    public enum SuggestionMode
-    {
-        StartsWith,
-        Contains
-    }
-
-    public enum CaseMatchingMode
-    {
-        IgnoreCase
     }
 }

@@ -2,40 +2,37 @@
 
 using Blish_HUD;
 using Blish_HUD.Controls;
-using Blish_HUD.Input;
-using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
+using Shared.Services;
+using Shared.UI.Views;
+using Shared.Utils;
 using System;
-using System.Collections.Generic;
-using System.Windows.Media.TextFormatting;
+using System.Globalization;
+using ColorUtil = Shared.Utils.ColorUtil;
 
 public class Event : IDisposable
 {
-    public event EventHandler HideRequested;
-    public event EventHandler DisableRequested;
-    public event EventHandler FinishRequested;
+    private static Logger logger = Logger.GetLogger<Event>();
 
-    public Models.Event Model { get; private set; }
-    private IconService _iconService;
-    private TranslationService _translationService;
-    private readonly Func<DateTime> _getNowAction;
-    private readonly DateTime _startTime;
     private readonly DateTime _endTime;
-    private readonly Func<BitmapFont> _getFontAction;
+    private readonly Func<Color[]> _getColorAction;
     private readonly Func<bool> _getDrawBorders;
     private readonly Func<bool> _getDrawCrossout;
-    private readonly Func<Color> _getTextColor;
-    private readonly Func<Color[]> _getColorAction;
     private readonly Func<bool> _getDrawShadowAction;
+    private readonly Func<BitmapFont> _getFontAction;
+    private readonly Func<DateTime> _getNowAction;
     private readonly Func<Color> _getShadowColor;
+    private readonly Func<string> _getAbsoluteTimeFormatStrings;
+    private readonly Func<(string DaysFormat, string HoursFormat, string MinutesFormat)> _getTimespanFormatStrings;
+    private readonly Func<Color> _getTextColor;
+    private readonly DateTime _startTime;
 
     private Texture2D _backgroundColorTexture;
+    private IconService _iconService;
+    private TranslationService _translationService;
 
     public Event(Models.Event ev, IconService iconService, TranslationService translationService,
         Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
@@ -45,7 +42,9 @@ public class Event : IDisposable
         Func<Color> getTextColor,
         Func<Color[]> getColorAction,
         Func<bool> getDrawShadowAction,
-        Func<Color> getShadowColor)
+        Func<Color> getShadowColor,
+        Func<string> getDateTimeFormatString,
+        Func<(string DaysFormat, string HoursFormat, string MinutesFormat)> getTimespanFormatStrings)
     {
         this.Model = ev;
         this._iconService = iconService;
@@ -60,13 +59,21 @@ public class Event : IDisposable
         this._getColorAction = getColorAction;
         this._getDrawShadowAction = getDrawShadowAction;
         this._getShadowColor = getShadowColor;
+        this._getAbsoluteTimeFormatStrings = getDateTimeFormatString;
+        this._getTimespanFormatStrings = getTimespanFormatStrings;
     }
+
+    public Models.Event Model { get; private set; }
+
+    public event EventHandler HideRequested;
+    public event EventHandler DisableRequested;
+    public event EventHandler ToggleFinishRequested;
 
     public ContextMenuStrip BuildContextMenu()
     {
-        var menu = new ContextMenuStrip();
+        ContextMenuStrip menu = new ContextMenuStrip();
 
-        var disableAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-disable-title", "Disable"))
+        ContextMenuStripItem disableAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-disable-title", "Disable"))
         {
             Parent = menu,
             BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-disable-tooltip", "Disables the event entirely.")
@@ -76,7 +83,7 @@ public class Event : IDisposable
             this.DisableRequested?.Invoke(this, EventArgs.Empty);
         };
 
-        var hideAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-hide-title", "Hide"))
+        ContextMenuStripItem hideAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-hide-title", "Hide"))
         {
             Parent = menu,
             BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-hide-tooltip", "Hides the event until the next reset.")
@@ -86,14 +93,14 @@ public class Event : IDisposable
             this.HideRequested?.Invoke(this, EventArgs.Empty);
         };
 
-        var finishAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-finish-title", "Finish"))
+        ContextMenuStripItem toggleFinishAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-toggleFinish-title", "Toggle Finish"))
         {
             Parent = menu,
-            BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-finish-tooltip", "Completes the event until the next reset.")
+            BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-toggleFinish-tooltip", "Toggles the completed state of the event.")
         };
-        finishAction.Click += (s, e) =>
+        toggleFinishAction.Click += (s, e) =>
         {
-            this.FinishRequested?.Invoke(this, EventArgs.Empty);
+            this.ToggleFinishRequested?.Invoke(this, EventArgs.Empty);
         };
 
         return menu;
@@ -113,21 +120,21 @@ public class Event : IDisposable
         if (isPrev)
         {
             TimeSpan finishedSince = now - this._startTime.AddMinutes(this.Model.Duration);
-            description += $"{this._translationService.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatTime(finishedSince)}";
+            description += $"{this._translationService.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatTimespan(finishedSince)}";
         }
         else if (isNext)
         {
             TimeSpan startsIn = this._startTime - now;
-            description += $"{this._translationService.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatTime(startsIn)}";
+            description += $"{this._translationService.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatTimespan(startsIn)}";
         }
         else if (isCurrent)
         {
             TimeSpan remaining = this.GetTimeRemaining(now);
-            description += $"{this._translationService.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatTime(remaining)}";
+            description += $"{this._translationService.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatTimespan(remaining)}";
         }
 
         // Absolute
-        description += $" ({this._translationService.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatTime(this._startTime.ToLocalTime())})";
+        description += $" ({this._translationService.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatAbsoluteTime(this._startTime)})";
 
         return new Tooltip(new TooltipView(this.Model.Name, description, this._iconService.GetIcon(this.Model.Icon), this._translationService));
     }
@@ -144,20 +151,20 @@ public class Event : IDisposable
 
     private void DrawBackground(SpriteBatch spriteBatch, RectangleF bounds)
     {
-        var colors = this._getColorAction();
+        Color[] colors = this._getColorAction();
         if (colors.Length == 1)
         {
             spriteBatch.DrawRectangle(ContentService.Textures.Pixel, bounds, colors[0], this._getDrawBorders() ? 1 : 0, Color.Black);
         }
         else
         {
-            var width = (int)Math.Ceiling(bounds.Width);
-            var height = (int)Math.Ceiling(bounds.Height);
+            int width = (int)Math.Ceiling(bounds.Width);
+            int height = (int)Math.Ceiling(bounds.Height);
 
             if (this._backgroundColorTexture == null || this._backgroundColorTexture.Height != height || this._backgroundColorTexture.Width != width)
             {
                 this._backgroundColorTexture?.Dispose();
-                this._backgroundColorTexture = Shared.Utils.ColorUtil.CreateColorGradientsTexture(colors, width, height);
+                this._backgroundColorTexture = ColorUtil.CreateColorGradientsTexture(colors, width, height);
             }
 
             spriteBatch.DrawRectangle(this._backgroundColorTexture, bounds, Color.White, this._getDrawBorders() ? 1 : 0, Color.Black);
@@ -167,7 +174,7 @@ public class Event : IDisposable
     private float DrawName(SpriteBatch spriteBatch, RectangleF bounds, BitmapFont font)
     {
         float xOffset = 5;
-        float maxWidth = bounds.Width - xOffset * 2;
+        float maxWidth = bounds.Width - (xOffset * 2);
         float nameWidth = 0;
         string text = this.Model.Name;
         do
@@ -191,6 +198,7 @@ public class Event : IDisposable
 
         return nameRect.Width;
     }
+
     private void DrawRemainingTime(SpriteBatch spriteBatch, RectangleF bounds, BitmapFont font, float nameWidth)
     {
         if (nameWidth > bounds.Width)
@@ -204,7 +212,7 @@ public class Event : IDisposable
             return;
         }
 
-        string remainingTimeString = this.FormatTimeRemaining(remainingTime);
+        string remainingTimeString = this.FormatTimespan(remainingTime);
         float timeWidth = (float)Math.Ceiling(font.MeasureString(remainingTimeString).Width);
         float maxWidth = bounds.Width - nameWidth;
         float centerX = (maxWidth / 2) - (timeWidth / 2);
@@ -227,7 +235,7 @@ public class Event : IDisposable
 
     private TimeSpan GetTimeRemaining(DateTime now)
     {
-        return now <= _startTime || now >= _endTime ? TimeSpan.Zero : _startTime.AddMinutes(this.Model.Duration) - now;
+        return now <= this._startTime || now >= this._endTime ? TimeSpan.Zero : this._startTime.AddMinutes(this.Model.Duration) - now;
     }
 
     private void DrawCrossout(SpriteBatch spriteBatch, RectangleF bounds)
@@ -240,36 +248,41 @@ public class Event : IDisposable
         spriteBatch.DrawCrossOut(ContentService.Textures.Pixel, bounds, Color.Red);
     }
 
-    private string FormatTimeRemaining(TimeSpan ts)
+    private string FormatTimespan(TimeSpan ts)
     {
-        if (ts.Days > 0)
+        var formatStrings = this._getTimespanFormatStrings();
+
+        try
         {
-            return ts.ToString("dd\\.hh\\:mm\\:ss");
+            if (ts.Days > 0)
+            {
+                return ts.ToString(formatStrings.DaysFormat, CultureInfo.InvariantCulture);
+            }
+
+            if (ts.Hours > 0)
+            {
+                return ts.ToString(formatStrings.HoursFormat, CultureInfo.InvariantCulture);
+            }
+
+            return ts.ToString(formatStrings.MinutesFormat, CultureInfo.InvariantCulture);
         }
-        else if (ts.Hours > 0)
+        catch (Exception ex)
         {
-            return ts.ToString("hh\\:mm\\:ss");
-        }
-        else
-        {
-            return ts.ToString("mm\\:ss");
+            logger.Warn(ex, $"Failed to format timespan {ts}:");
+            return string.Empty;
         }
     }
 
-    private string FormatTime(DateTime dt)
+    private string FormatAbsoluteTime(DateTime dt)
     {
-        return this.FormatTime(dt.TimeOfDay);
-    }
-
-    private string FormatTime(TimeSpan ts)
-    {
-        if (ts.Days > 0)
+        try
         {
-            return ts.ToString("dd\\.hh\\:mm\\:ss");
+            return dt.ToLocalTime().ToString(this._getAbsoluteTimeFormatStrings(), CultureInfo.InvariantCulture);
         }
-        else
+        catch (Exception ex)
         {
-            return ts.ToString("hh\\:mm\\:ss");
+            logger.Warn(ex, $"Failed to format datetime {dt}:");
+            return string.Empty;
         }
     }
 

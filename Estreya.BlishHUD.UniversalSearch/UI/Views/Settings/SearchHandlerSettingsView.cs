@@ -3,19 +3,23 @@
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.UniversalSearch.Models;
-using Estreya.BlishHUD.UniversalSearch.Services.SearchHandlers;
 using Microsoft.Xna.Framework;
+using Models;
 using MonoGame.Extended.BitmapFonts;
+using Shared.Controls;
+using Shared.Services;
+using Shared.UI.Views;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
+using Control = Blish_HUD.Controls.Control;
+using HorizontalAlignment = Blish_HUD.Controls.HorizontalAlignment;
+using Label = Blish_HUD.Controls.Label;
 using Menu = Shared.Controls.Menu;
+using MenuItem = Blish_HUD.Controls.MenuItem;
+using Panel = Blish_HUD.Controls.Panel;
 
 public class SearchHandlerSettingsView : BaseSettingsView
 {
@@ -25,10 +29,10 @@ public class SearchHandlerSettingsView : BaseSettingsView
     private readonly Func<IEnumerable<SearchHandlerConfiguration>> _areaConfigurationFunc;
     private readonly ModuleSettings _moduleSettings;
     private IEnumerable<SearchHandlerConfiguration> _areaConfigurations;
-    private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private Panel _areaPanel;
+    private readonly Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
 
-    public SearchHandlerSettingsView(Func<IEnumerable<SearchHandlerConfiguration>> areaConfiguration,  ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public SearchHandlerSettingsView(Func<IEnumerable<SearchHandlerConfiguration>> areaConfiguration, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._moduleSettings = moduleSettings;
@@ -49,7 +53,7 @@ public class SearchHandlerSettingsView : BaseSettingsView
         newParent.HeightSizingMode = parent.HeightSizingMode;
         newParent.WidthSizingMode = parent.WidthSizingMode;
 
-        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, newParent.ContentRegion.Width - PADDING_X, newParent.ContentRegion.Height - PADDING_Y );
+        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, newParent.ContentRegion.Width - PADDING_X, newParent.ContentRegion.Height - PADDING_Y);
 
         Panel areaOverviewPanel = this.GetPanel(newParent);
         areaOverviewPanel.ShowBorder = true;
@@ -59,7 +63,7 @@ public class SearchHandlerSettingsView : BaseSettingsView
         areaOverviewPanel.Location = new Point(bounds.X, bounds.Y);
         areaOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X - 75, bounds.Height);
 
-        Shared.Controls.Menu areaOverviewMenu = new Shared.Controls.Menu
+        Menu areaOverviewMenu = new Menu
         {
             Parent = areaOverviewPanel,
             WidthSizingMode = SizingMode.Fill
@@ -99,11 +103,12 @@ public class SearchHandlerSettingsView : BaseSettingsView
 
         if (this._menuItems.Count > 0)
         {
-            var menuItem = this._menuItems.First();
+            KeyValuePair<string, MenuItem> menuItem = this._menuItems.First();
             SearchHandlerConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
             this.BuildEditPanel(newParent, areaPanelBounds, menuItem.Value, areaConfiguration);
         }
     }
+
     private void CreateAreaPanel(Panel parent, Rectangle bounds)
     {
         this.ClearAreaPanel();
@@ -128,17 +133,17 @@ public class SearchHandlerSettingsView : BaseSettingsView
 
         Rectangle panelBounds = new Rectangle(this._areaPanel.ContentRegion.Location, new Point(this._areaPanel.ContentRegion.Size.X - 50, this._areaPanel.ContentRegion.Size.Y));
 
-        Label areaName = new Label()
+        Label areaName = new Label
         {
             Location = new Point(20, 20),
             Parent = this._areaPanel,
             Font = GameService.Content.DefaultFont18,
             AutoSizeHeight = true,
             Text = areaConfiguration.Name,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
         };
 
-        FlowPanel settingsPanel = new FlowPanel()
+        FlowPanel settingsPanel = new FlowPanel
         {
             Left = areaName.Left,
             Top = areaName.Bottom + 50,
@@ -159,7 +164,7 @@ public class SearchHandlerSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
-        var lastAdded = settingsPanel.Children.Last();
+        Control lastAdded = settingsPanel.Children.Last();
 
         areaName.Left = 0;
         areaName.Width = this._areaPanel.ContentRegion.Width;
@@ -167,7 +172,7 @@ public class SearchHandlerSettingsView : BaseSettingsView
 
     private void RenderEnabledSettings(FlowPanel settingsPanel, SearchHandlerConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -186,7 +191,7 @@ public class SearchHandlerSettingsView : BaseSettingsView
 
     private void RenderBehaviourSettings(FlowPanel settingsPanel, SearchHandlerConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -207,18 +212,21 @@ public class SearchHandlerSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel);
 
-        this.RenderBoolSetting(groupPanel, areaConfiguration.IncludeBrokenItem, async (oldVal,newVal) =>
+        this.RenderBoolSetting(groupPanel, areaConfiguration.IncludeBrokenItem, async (oldVal, newVal) =>
         {
-            if (!newVal) return true;
+            if (!newVal)
+            {
+                return true;
+            }
 
-            var confirmDialog = new ConfirmDialog($"Activate \"{areaConfiguration.IncludeBrokenItem.DisplayName}\"?",
+            ConfirmDialog confirmDialog = new ConfirmDialog($"Activate \"{areaConfiguration.IncludeBrokenItem.DisplayName}\"?",
                 $"You are in the process of activating \"{areaConfiguration.IncludeBrokenItem.DisplayName}\".\n" +
                 $"This will in some way mess with your shown results.\n\n" +
                 $"Do you really want to enable it?",
                 this.IconService);
 
-            var result = await confirmDialog.ShowDialog();
-            return result == System.Windows.Forms.DialogResult.OK;
+            DialogResult result = await confirmDialog.ShowDialog();
+            return result == DialogResult.OK;
         });
 
         this.RenderEmptyLine(groupPanel);
@@ -229,7 +237,7 @@ public class SearchHandlerSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
-    
+
     private void ClearAreaPanel()
     {
         if (this._areaPanel != null)

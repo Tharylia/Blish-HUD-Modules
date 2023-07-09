@@ -2,44 +2,40 @@
 
 using Blish_HUD;
 using Blish_HUD.Controls;
-using Blish_HUD.Graphics.UI;
-using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.Threading.Events;
+using Controls;
+using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
+using Services;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Media.Animation;
+using Threading.Events;
 
 public class GitHubCreateIssueView : BaseView
 {
+    private readonly string _message;
     private readonly string _moduleName;
     private readonly string _title;
-    private readonly string _message;
 
-    public event AsyncEventHandler<(string Title, string Message, string DiscordName, bool IncludeSystemInformation)> CreateClicked;
-    public event EventHandler CancelClicked;
-
-    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(null,iconService, translationService, font)
+    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(null, iconService, translationService, font)
     {
         this._moduleName = moduleName;
     }
 
-    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, BitmapFont font = null, string title = null, string message = null) : this(moduleName, iconService,translationService, font)
+    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, BitmapFont font = null, string title = null, string message = null) : this(moduleName, iconService, translationService, font)
     {
         this._title = title;
         this._message = message;
     }
 
+    public event AsyncEventHandler<(string Title, string Message, string DiscordName, bool IncludeSystemInformation)> CreateClicked;
+    public event EventHandler CancelClicked;
+
     protected override void InternalBuild(Panel parent)
     {
-        var contentRegion = parent.ContentRegion;
+        Rectangle contentRegion = parent.ContentRegion;
         parent.CanScroll = true;
 
-        var titleLabel = new Label()
+        Label titleLabel = new Label
         {
             Parent = parent,
             Text = $"New Issue for Module {this._moduleName}",
@@ -49,23 +45,23 @@ public class GitHubCreateIssueView : BaseView
             Font = GameService.Content.DefaultFont32
         };
 
-        var issueTitleLabel = this.RenderLabel(parent, "Title").TitleLabel;
+        Label issueTitleLabel = this.RenderLabel(parent, "Title").TitleLabel;
         issueTitleLabel.Top = titleLabel.Bottom + 50;
 
-        var issueTitleTextBox = this.RenderTextbox(parent, 
-            new Microsoft.Xna.Framework.Point(this.LABEL_WIDTH, issueTitleLabel.Top), 
-            parent.Width - this.LABEL_WIDTH, 
-            !string.IsNullOrWhiteSpace(this._title) ? this._title : $"[BUG/FEATURE] {this._moduleName} ....", 
+        TextBox issueTitleTextBox = this.RenderTextbox(parent,
+            new Point(this.LABEL_WIDTH, issueTitleLabel.Top),
+            parent.Width - this.LABEL_WIDTH,
+            !string.IsNullOrWhiteSpace(this._title) ? this._title : $"[BUG/FEATURE] {this._moduleName} ....",
             "Issue Title");
 
         issueTitleTextBox.BasicTooltipText = "Should contain a clear title describing the feature or bug.";
 
-        var issueMessageLabel = this.RenderLabel(parent, "Issue").TitleLabel;
+        Label issueMessageLabel = this.RenderLabel(parent, "Issue").TitleLabel;
         issueMessageLabel.Top = issueTitleLabel.Bottom + 20;
 
         // TODO: Replace with TextArea
-        var issueMessageTextBox = this.RenderTextbox(parent,
-            new Microsoft.Xna.Framework.Point(this.LABEL_WIDTH, issueMessageLabel.Top),
+        TextBox issueMessageTextBox = this.RenderTextbox(parent,
+            new Point(this.LABEL_WIDTH, issueMessageLabel.Top),
             parent.Width - this.LABEL_WIDTH,
             !string.IsNullOrWhiteSpace(this._message) ? this._message : string.Empty,
             "Issue Message");
@@ -74,31 +70,31 @@ public class GitHubCreateIssueView : BaseView
 
         //issueMessageTextBox.Height = 400;
 
-        var discordNameLabel = this.RenderLabel(parent, "Discord Username (optional)").TitleLabel;
+        Label discordNameLabel = this.RenderLabel(parent, "Discord Username (optional)").TitleLabel;
         discordNameLabel.Top = issueMessageLabel.Bottom + 20;
 
-        var discordNameTextBox = this.RenderTextbox(parent,
-            new Microsoft.Xna.Framework.Point(this.LABEL_WIDTH, discordNameLabel.Top),
+        TextBox discordNameTextBox = this.RenderTextbox(parent,
+            new Point(this.LABEL_WIDTH, discordNameLabel.Top),
             parent.Width - this.LABEL_WIDTH,
             "",
             "Discord#0001");
 
         discordNameTextBox.BasicTooltipText = "If provided, its used to ask additional questions or notify you about the status.";
 
-        var includeSystemInformationLabel = this.RenderLabel(parent, "Include System Info").TitleLabel;
+        Label includeSystemInformationLabel = this.RenderLabel(parent, "Include System Info").TitleLabel;
         includeSystemInformationLabel.Top = discordNameLabel.Bottom + 20;
 
-        var includeSystemInformationCheckbox = this.RenderCheckbox(parent,
-            new Microsoft.Xna.Framework.Point(this.LABEL_WIDTH, includeSystemInformationLabel.Top),
+        Checkbox includeSystemInformationCheckbox = this.RenderCheckbox(parent,
+            new Point(this.LABEL_WIDTH, includeSystemInformationLabel.Top),
             false);
 
         includeSystemInformationCheckbox.BasicTooltipText = "If checked, additional system information will be included to assist looking into your issue.";
 
-        var cancelButton = this.RenderButton(parent, "Cancel", () => this.CancelClicked?.Invoke(this, EventArgs.Empty));
+        Button cancelButton = this.RenderButton(parent, "Cancel", () => this.CancelClicked?.Invoke(this, EventArgs.Empty));
         cancelButton.Bottom = contentRegion.Bottom;
         cancelButton.Right = contentRegion.Right;
 
-        var createButton = this.RenderButtonAsync(parent, "Create", async () => await this.CreateClicked?.Invoke(this, (issueTitleTextBox.Text, issueMessageTextBox.Text, discordNameTextBox.Text, includeSystemInformationCheckbox.Checked)));
+        Button createButton = this.RenderButtonAsync(parent, "Create", async () => await this.CreateClicked?.Invoke(this, (issueTitleTextBox.Text, issueMessageTextBox.Text, discordNameTextBox.Text, includeSystemInformationCheckbox.Checked)));
         createButton.Top = cancelButton.Top;
         createButton.Right = cancelButton.Left + 10;
     }

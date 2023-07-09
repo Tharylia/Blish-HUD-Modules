@@ -1,15 +1,12 @@
 ﻿namespace Estreya.BlishHUD.ScrollingCombatText.Models;
 
-using Estreya.BlishHUD.Shared.Models.ArcDPS;
 using Gw2Sharp.WebApi.V2.Models;
 using HandlebarsDotNet;
 using Humanizer;
-using System;
+using Shared.Models.ArcDPS;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Reflection;
 using static Blish_HUD.ContentService;
 
 public class CombatEventFormatRule
@@ -54,17 +51,17 @@ public class CombatEventFormatRule
 
         if (string.IsNullOrWhiteSpace(this.Format))
         {
-            return $"--Empty Format--";
+            return "--Empty Format--";
         }
 
         string category = combatEvent.Category.Humanize();
         string type = combatEvent.Type.Humanize();
 
-        var template = Handlebars.Compile(this.Format);
+        HandlebarsTemplate<object, object> template = Handlebars.Compile(this.Format);
 
-        var combatEventFields = new Dictionary<string, object>();
-        var fieldInfos = combatEvent.GetType().GetProperties(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly | System.Reflection.BindingFlags.Public);
-        foreach (var fieldInfo in fieldInfos)
+        Dictionary<string, object> combatEventFields = new Dictionary<string, object>();
+        PropertyInfo[] fieldInfos = combatEvent.GetType().GetProperties(BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Public);
+        foreach (PropertyInfo fieldInfo in fieldInfos)
         {
             combatEventFields.Add(fieldInfo.Name, fieldInfo.GetValue(combatEvent));
         }
@@ -82,13 +79,13 @@ public class CombatEventFormatRule
             },
             combatEvent = combatEventFields
         });
-            //.Replace("{category}", category)
-            //.Replace("{type}", type)
-            //.Replace("{skillId}", skillId)
-            //.Replace("{skillName}", skillName)
-            //.Replace("{sourceName}", sourceName)
-            //.Replace("{destinationName}", destinationName)
-            //.Replace("{value}", value.ToString());
+        //.Replace("{category}", category)
+        //.Replace("{type}", type)
+        //.Replace("{skillId}", skillId)
+        //.Replace("{skillName}", skillName)
+        //.Replace("{sourceName}", sourceName)
+        //.Replace("{destinationName}", destinationName)
+        //.Replace("{value}", value.ToString());
     }
 
     public bool Validate()

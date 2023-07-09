@@ -1,40 +1,41 @@
 ﻿namespace Estreya.BlishHUD.Shared.Helpers;
 
 using Blish_HUD;
-using Blish_HUD.Controls;
-using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.Security;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.Settings;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.Shared.Utils;
+using Controls;
 using Humanizer;
 using Microsoft.Xna.Framework;
 using Octokit;
+using Security;
+using Services;
+using Settings;
 using System;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using UI.Views;
+using Utils;
 
 public class GitHubHelper : IDisposable
 {
-    private static Logger Logger = Logger.GetLogger<GitHubHelper>();
+    private static readonly Logger Logger = Logger.GetLogger<GitHubHelper>();
+    private readonly BaseModuleSettings _baseModuleSettings;
+    private readonly string _clientId;
+    private readonly GitHubClient _github;
+    private readonly IconService _iconService;
+    private readonly string _moduleName;
 
     private readonly string _owner;
-    private readonly string _repository;
-    private readonly string _clientId;
-    private readonly string _moduleName;
     private readonly PasswordManager _passwordManager;
-    private readonly IconService _iconService;
+    private readonly string _repository;
     private readonly TranslationService _translationService;
-    private readonly BaseModuleSettings _baseModuleSettings;
-    private Controls.StandardWindow _window;
-    private readonly GitHubClient _github;
 
     #region Views
+
     private GitHubCreateIssueView _issueView;
+
     #endregion
+
+    private StandardWindow _window;
 
     public GitHubHelper(string owner, string repository, string clientId, string moduleName, PasswordManager passwordManager, IconService iconService, TranslationService translationService, BaseModuleSettings baseModuleSettings)
     {
@@ -50,6 +51,15 @@ public class GitHubHelper : IDisposable
         this.CreateWindow();
     }
 
+    public void Dispose()
+    {
+        this._window?.Hide();
+
+        this.UnloadIssueView();
+
+        this._window?.Dispose();
+    }
+
     private async Task Login()
     {
         bool needNewToken = this._github.Credentials?.AuthenticationType != AuthenticationType.Oauth || string.IsNullOrWhiteSpace(this._github.Credentials?.Password);
@@ -58,11 +68,11 @@ public class GitHubHelper : IDisposable
         {
             if (this._passwordManager != null)
             {
-                var githubTokenData = await this._passwordManager.Retrive("github", true);
+                byte[] githubTokenData = await this._passwordManager.Retrive("github", true);
 
                 if (githubTokenData != null)
                 {
-                    var githubToken = Encoding.UTF8.GetString(githubTokenData);
+                    string githubToken = Encoding.UTF8.GetString(githubTokenData);
                     this._github.Credentials = new Credentials(githubToken);
 
                     needNewToken = false;
@@ -86,7 +96,7 @@ public class GitHubHelper : IDisposable
         {
             OauthDeviceFlowRequest request = new OauthDeviceFlowRequest(this._clientId);
             OauthDeviceFlowResponse deviceFlowResponse = await this._github.Oauth.InitiateDeviceFlow(request);
-            Controls.ScreenNotification notification = new Controls.ScreenNotification($"GITHUB: Enter the code {deviceFlowResponse.UserCode}", Controls.ScreenNotification.NotificationType.Info, duration: TimeSpan.FromMinutes(15).Seconds)
+            ScreenNotification notification = new ScreenNotification($"GITHUB: Enter the code {deviceFlowResponse.UserCode}", duration: TimeSpan.FromMinutes(15).Seconds)
             {
                 Parent = GameService.Graphics.SpriteScreen,
                 Opacity = 1f,
@@ -117,7 +127,7 @@ public class GitHubHelper : IDisposable
     {
         this._window?.Dispose();
 
-        this._window = new Controls.StandardWindow(this._baseModuleSettings, this._iconService.GetIcon("155985.png"), new Rectangle(40, 26, 913, 691), new Rectangle(70, 71, 839, 605))
+        this._window = new StandardWindow(this._baseModuleSettings, this._iconService.GetIcon("155985.png"), new Rectangle(40, 26, 913, 691), new Rectangle(70, 71, 839, 605))
         {
             Parent = GameService.Graphics.SpriteScreen,
             Title = "Create Issue",
@@ -176,14 +186,11 @@ public class GitHubHelper : IDisposable
             throw new ArgumentException($"The username \"{discordName}\" is not valid.");
         }
 
-        var issueMessage = $"**Message**:\n{message}\n\n**Discord**: {discordName ?? string.Empty}\n\n**This Issue was created automatically by the module {this._moduleName}**";
+        string issueMessage = $"**Message**:\n{message}\n\n**Discord**: {discordName ?? string.Empty}\n\n**This Issue was created automatically by the module {this._moduleName}**";
 
         await this.Login();
 
-        var newIssue = new NewIssue(title)
-        {
-            Body = issueMessage,
-        };
+        NewIssue newIssue = new NewIssue(title) { Body = issueMessage };
 
         newIssue.Labels.Add($"Module: {this._moduleName}");
 
@@ -191,7 +198,7 @@ public class GitHubHelper : IDisposable
 
         if (includeSystemInformation)
         {
-            var dxDiagInformation = await WindowsUtil.GetDxDiagInformation();
+            string dxDiagInformation = await WindowsUtil.GetDxDiagInformation();
 
             if (string.IsNullOrWhiteSpace(dxDiagInformation))
             {
@@ -199,19 +206,10 @@ public class GitHubHelper : IDisposable
             }
             else
             {
-                await _github.Issue.Comment.Create(this._owner, this._repository, issue.Number, dxDiagInformation);
+                await this._github.Issue.Comment.Create(this._owner, this._repository, issue.Number, dxDiagInformation);
             }
         }
 
         Process.Start(issue.HtmlUrl);
-    }
-
-    public void Dispose()
-    {
-        this._window?.Hide();
-
-        this.UnloadIssueView();
-
-        this._window?.Dispose();
     }
 }

@@ -1,6 +1,5 @@
 ﻿namespace Estreya.BlishHUD.Shared.Services;
 
-using Estreya.BlishHUD.Shared.Extensions;
 using Flurl.Http;
 using Microsoft.Xna.Framework;
 using System;
@@ -8,24 +7,22 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media.TextFormatting;
 
 public class TranslationService : ManagedService
 {
-    ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _translations;
-    private IFlurlClient _flurlClient;
-    private readonly string _rootUrl;
-    private static List<string> _locales = new List<string>()
+    private static readonly List<string> _locales = new List<string>
     {
         "en",
         "de",
         "es",
         "fr"
     };
+
+    private readonly string _rootUrl;
+    private IFlurlClient _flurlClient;
+    private ConcurrentDictionary<string, ConcurrentDictionary<string, string>> _translations;
 
     public TranslationService(ServiceConfiguration configuration, IFlurlClient flurlClient, string rootUrl) : base(configuration)
     {
@@ -48,17 +45,17 @@ public class TranslationService : ManagedService
 
     protected override void InternalUnload()
     {
-        _translations?.Clear();
-        _translations = null;
+        this._translations?.Clear();
+        this._translations = null;
 
-        _flurlClient = null;
+        this._flurlClient = null;
     }
 
     protected override void InternalUpdate(GameTime gameTime) { }
 
     protected override async Task Load()
     {
-        foreach (var locale in _locales)
+        foreach (string locale in _locales)
         {
             await this.LoadLocale(locale);
         }
@@ -68,15 +65,18 @@ public class TranslationService : ManagedService
     {
         try
         {
-            var translations = await this._flurlClient.Request(this._rootUrl, $"translation.{locale}.properties").GetStringAsync();
+            string translations = await this._flurlClient.Request(this._rootUrl, $"translation.{locale}.properties").GetStringAsync();
 
             ConcurrentDictionary<string, string> localeTranslations = new ConcurrentDictionary<string, string>();
 
-            var lines = translations.Split(new char[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
-
-            foreach (var line in lines)
+            string[] lines = translations.Split(new[]
             {
-                var lineParts = line.Trim('\n', '\r').Split('=');
+                '\n'
+            }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string line in lines)
+            {
+                string[] lineParts = line.Trim('\n', '\r').Split('=');
                 if (lineParts.Length < 2)
                 {
                     // Incomplete
@@ -86,10 +86,10 @@ public class TranslationService : ManagedService
                 string key = lineParts[0];
                 string value = string.Join("=", lineParts.Skip(1));
 
-                var added = localeTranslations.TryAdd(key, value);
+                bool added = localeTranslations.TryAdd(key, value);
                 if (!added)
                 {
-                    Logger.Warn($"{key} for locale {locale} already added.");
+                    this.Logger.Warn($"{key} for locale {locale} already added.");
                 }
             }
 
@@ -97,25 +97,28 @@ public class TranslationService : ManagedService
         }
         catch (Exception ex)
         {
-            Logger.Debug(ex, $"Failed to load translations for locale {locale}:");
+            this.Logger.Debug(ex, $"Failed to load translations for locale {locale}:");
         }
     }
 
     public string GetTranslation(string key, string defaultValue = null)
     {
-        if (string.IsNullOrEmpty(key)) return defaultValue;
+        if (string.IsNullOrEmpty(key))
+        {
+            return defaultValue;
+        }
 
-        var translations = this.GetTranslationsForLocale(Thread.CurrentThread.CurrentUICulture);
+        ConcurrentDictionary<string, string> translations = this.GetTranslationsForLocale(Thread.CurrentThread.CurrentUICulture);
 
-        return translations?.TryGetValue(key, out var result) ?? false ? result : defaultValue;
+        return translations?.TryGetValue(key, out string result) ?? false ? result : defaultValue;
     }
 
-    private ConcurrentDictionary<string,string> GetTranslationsForLocale(CultureInfo locale)
+    private ConcurrentDictionary<string, string> GetTranslationsForLocale(CultureInfo locale)
     {
-        var tempLocale = locale;
+        CultureInfo tempLocale = locale;
         while (tempLocale != null && tempLocale.LCID != 127)
         {
-            if (_translations.TryGetValue(tempLocale.Name, out var translations))
+            if (this._translations.TryGetValue(tempLocale.Name, out ConcurrentDictionary<string, string> translations))
             {
                 return translations;
             }

@@ -1,124 +1,122 @@
-﻿namespace Estreya.BlishHUD.Shared.Extensions
+﻿namespace Estreya.BlishHUD.Shared.Extensions;
+
+using Blish_HUD.Settings;
+using System.Collections.Generic;
+using System.Linq;
+
+public static class SettingEntryExtensions
 {
-    using Blish_HUD.Settings;
-    using System.Collections.Generic;
-    using System.Linq;
-
-    public static class SettingEntryExtensions
+    public static float GetValue(this SettingEntry<float> settingEntry)
     {
-
-        public static float GetValue(this SettingEntry<float> settingEntry)
+        if (settingEntry == null)
         {
-            if (settingEntry == null)
-            {
-                return 0;
-            }
+            return 0;
+        }
 
-            (float Min, float Max)? range = GetRange(settingEntry);
+        (float Min, float Max)? range = GetRange(settingEntry);
 
-            if (!range.HasValue)
-            {
-                return settingEntry.Value;
-            }
-
-            if (settingEntry.Value > range.Value.Max)
-            {
-                return range.Value.Max;
-            }
-
-            if (settingEntry.Value < range.Value.Min)
-            {
-                return range.Value.Min;
-            }
-
+        if (!range.HasValue)
+        {
             return settingEntry.Value;
         }
 
-        public static int GetValue(this SettingEntry<int> settingEntry)
+        if (settingEntry.Value > range.Value.Max)
         {
-            if (settingEntry == null)
-            {
-                return 0;
-            }
+            return range.Value.Max;
+        }
 
-            (float Min, float Max)? range = GetRange(settingEntry);
+        if (settingEntry.Value < range.Value.Min)
+        {
+            return range.Value.Min;
+        }
 
-            if (!range.HasValue)
-            {
-                return settingEntry.Value;
-            }
+        return settingEntry.Value;
+    }
 
-            if (settingEntry.Value > range.Value.Max)
-            {
-                return (int)range.Value.Max;
-            }
+    public static int GetValue(this SettingEntry<int> settingEntry)
+    {
+        if (settingEntry == null)
+        {
+            return 0;
+        }
 
-            if (settingEntry.Value < range.Value.Min)
-            {
-                return (int)range.Value.Min;
-            }
+        (float Min, float Max)? range = GetRange(settingEntry);
 
+        if (!range.HasValue)
+        {
             return settingEntry.Value;
         }
 
-        public static (float Min, float Max)? GetRange<T>(this SettingEntry<T> settingEntry)
+        if (settingEntry.Value > range.Value.Max)
         {
-            if (settingEntry == null)
-            {
-                return null;
-            }
+            return (int)range.Value.Max;
+        }
 
-            List<IComplianceRequisite> intRangeList = settingEntry.GetComplianceRequisite().Where(cr => cr is IntRangeRangeComplianceRequisite).ToList();
+        if (settingEntry.Value < range.Value.Min)
+        {
+            return (int)range.Value.Min;
+        }
 
-            if (intRangeList.Count > 0)
-            {
-                IntRangeRangeComplianceRequisite intRangeCr = (IntRangeRangeComplianceRequisite)intRangeList[0];
-                return (intRangeCr.MinValue, intRangeCr.MaxValue);
-            }
+        return settingEntry.Value;
+    }
 
-            List<IComplianceRequisite> floatList = settingEntry.GetComplianceRequisite().Where(cr => cr is FloatRangeRangeComplianceRequisite).ToList();
-
-            if (floatList.Count > 0)
-            {
-                FloatRangeRangeComplianceRequisite floatRangeCr = (FloatRangeRangeComplianceRequisite)floatList[0];
-                return (floatRangeCr.MinValue, floatRangeCr.MaxValue);
-            }
-
+    public static (float Min, float Max)? GetRange<T>(this SettingEntry<T> settingEntry)
+    {
+        if (settingEntry == null)
+        {
             return null;
         }
 
-        public static bool IsDisabled(this SettingEntry settingEntry)
+        List<IComplianceRequisite> intRangeList = settingEntry.GetComplianceRequisite().Where(cr => cr is IntRangeRangeComplianceRequisite).ToList();
+
+        if (intRangeList.Count > 0)
         {
-            return settingEntry.GetComplianceRequisite()?.Any(cr => cr is SettingDisabledComplianceRequisite) ?? false;
+            IntRangeRangeComplianceRequisite intRangeCr = (IntRangeRangeComplianceRequisite)intRangeList[0];
+            return (intRangeCr.MinValue, intRangeCr.MaxValue);
         }
 
-        public static bool HasValidation<T>(this SettingEntry<T> settingEntry)
+        List<IComplianceRequisite> floatList = settingEntry.GetComplianceRequisite().Where(cr => cr is FloatRangeRangeComplianceRequisite).ToList();
+
+        if (floatList.Count > 0)
         {
-            return settingEntry.GetComplianceRequisite()?.Any(cr => cr is SettingValidationComplianceRequisite<T>) ?? false;
+            FloatRangeRangeComplianceRequisite floatRangeCr = (FloatRangeRangeComplianceRequisite)floatList[0];
+            return (floatRangeCr.MinValue, floatRangeCr.MaxValue);
         }
 
-        public static SettingValidationComplianceRequisite<T> GetValidation<T>(this SettingEntry<T> settingEntry)
+        return null;
+    }
+
+    public static bool IsDisabled(this SettingEntry settingEntry)
+    {
+        return settingEntry.GetComplianceRequisite()?.Any(cr => cr is SettingDisabledComplianceRequisite) ?? false;
+    }
+
+    public static bool HasValidation<T>(this SettingEntry<T> settingEntry)
+    {
+        return settingEntry.GetComplianceRequisite()?.Any(cr => cr is SettingValidationComplianceRequisite<T>) ?? false;
+    }
+
+    public static SettingValidationComplianceRequisite<T> GetValidation<T>(this SettingEntry<T> settingEntry)
+    {
+        return (SettingValidationComplianceRequisite<T>)settingEntry.GetComplianceRequisite()?.First(cr => cr is SettingValidationComplianceRequisite<T>);
+    }
+
+    public static SettingValidationResult CheckValidation<T>(this SettingEntry<T> settingEntry, T value)
+    {
+        if (settingEntry == null)
         {
-            return (SettingValidationComplianceRequisite<T>)settingEntry.GetComplianceRequisite()?.First(cr => cr is SettingValidationComplianceRequisite<T>);
+            return new SettingValidationResult(true);
         }
 
-        public static SettingValidationResult CheckValidation<T>(this SettingEntry<T> settingEntry, T value)
+        if (!settingEntry.HasValidation())
         {
-            if (settingEntry == null)
-            {
-                return new SettingValidationResult(true);
-            }
-
-            if (!settingEntry.HasValidation())
-            {
-                return new SettingValidationResult(true);
-            }
-
-            SettingValidationComplianceRequisite<T> validation = settingEntry.GetValidation();
-
-            SettingValidationResult result = validation.ValidationFunc?.Invoke(value) ?? new SettingValidationResult(false);
-
-            return result;
+            return new SettingValidationResult(true);
         }
+
+        SettingValidationComplianceRequisite<T> validation = settingEntry.GetValidation();
+
+        SettingValidationResult result = validation.ValidationFunc?.Invoke(value) ?? new SettingValidationResult(false);
+
+        return result;
     }
 }

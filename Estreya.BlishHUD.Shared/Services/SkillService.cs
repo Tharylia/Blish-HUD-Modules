@@ -1,64 +1,36 @@
 ﻿namespace Estreya.BlishHUD.Shared.Services;
 
-using Blish_HUD;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.IO;
-using Estreya.BlishHUD.Shared.Json.Converter;
-using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
-using Estreya.BlishHUD.Shared.Modules;
-using Estreya.BlishHUD.Shared.Settings;
-using Estreya.BlishHUD.Shared.Threading;
-using Estreya.BlishHUD.Shared.Utils;
+using Extensions;
 using Flurl.Http;
+using Gw2Sharp.WebApi.V2;
+using Gw2Sharp.WebApi.V2.Models;
+using IO;
 using Microsoft.Xna.Framework;
+using Models.GW2API.Skills;
 using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media.Animation;
+using Threading;
+using Utils;
+using File = System.IO.File;
+using Skill = Models.GW2API.Skills.Skill;
 
 public class SkillService : FilesystemAPIService<Skill>
 {
-    protected override string BASE_FOLDER_STRUCTURE => "skills";
-    protected override string FILE_NAME => "skills.json";
-
     private const string MISSING_SKILLS_FILE_NAME = "missing_skills.json";
     private const string REMAPPED_SKILLS_FILE_NAME = "remapped_skills.json";
 
     private const string LOCAL_MISSING_SKILL_FILE_NAME = "missingSkills.json";
+    private readonly AsyncRef<double> _lastSaveMissingSkill = new AsyncRef<double>(0);
+    private readonly string _webRootUrl;
+    private IFlurlClient _flurlClient;
 
     private IconService _iconService;
-    private IFlurlClient _flurlClient;
-    private readonly string _webRootUrl;
-    private AsyncRef<double> _lastSaveMissingSkill = new AsyncRef<double>(0);
-
-    public List<Skill> Skills => this.APIObjectList;
-
-    public static Skill UnknownSkill { get; } = new Skill()
-    {
-        Id = int.MaxValue,
-        Name = "Unknown",
-        Icon = "62248.png",
-        Category = SkillCategory.Skill,
-    };
-
-    private struct MissingArcDPSSkill
-    {
-        public int ID { get; set; }
-        public string Name { get; set; }
-        public int HintID { get; set; }
-    }
 
     private SynchronizedCollection<MissingArcDPSSkill> _missingSkillsFromAPIReportedByArcDPS;
 
@@ -66,8 +38,23 @@ public class SkillService : FilesystemAPIService<Skill>
     {
         this._iconService = iconService;
         this._flurlClient = flurlClient;
-        this._webRootUrl = new Uri(new Uri( webRootUrl), "/gw2/api/v2/skills").ToString();
+        this._webRootUrl = new Uri(new Uri(webRootUrl), "/gw2/api/v2/skills").ToString();
     }
+
+    protected override string BASE_FOLDER_STRUCTURE => "skills";
+    protected override string FILE_NAME => "skills.json";
+
+    public List<Skill> Skills => this.APIObjectList;
+
+    public static Skill UnknownSkill { get; } = new Skill
+    {
+        Id = int.MaxValue,
+        Name = "Unknown",
+        Icon = "62248.png",
+        Category = SkillCategory.Skill
+    };
+
+    protected override bool ForceAPI => true;
 
     protected override Task DoInitialize()
     {
@@ -82,8 +69,6 @@ public class SkillService : FilesystemAPIService<Skill>
         this._iconService = null;
         this._flurlClient = null;
     }
-
-    protected override bool ForceAPI => true;
 
     protected override async Task Load()
     {
@@ -120,28 +105,28 @@ public class SkillService : FilesystemAPIService<Skill>
     protected override async Task<List<Skill>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
     {
         progress.Report("Loading normal skills..");
-        Logger.Debug("Loading normal skills..");
+        this.Logger.Debug("Loading normal skills..");
 
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync(cancellationToken);
+        IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Skill> skillResponse = await apiManager.Gw2ApiClient.V2.Skills.AllAsync(cancellationToken);
         List<Skill> skills = skillResponse.Select(skill => Skill.FromAPISkill(skill)).ToList();
 
-        Logger.Debug("Loaded normal skills..");
+        this.Logger.Debug("Loaded normal skills..");
 
         progress.Report("Loading traits..");
-        Logger.Debug("Loading traits..");
+        this.Logger.Debug("Loading traits..");
 
-        Gw2Sharp.WebApi.V2.IApiV2ObjectList<Gw2Sharp.WebApi.V2.Models.Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync(cancellationToken);
+        IApiV2ObjectList<Trait> traitResponse = await apiManager.Gw2ApiClient.V2.Traits.AllAsync(cancellationToken);
         skills = skills.Concat(traitResponse.Select(trait => Skill.FromAPITrait(trait))).ToList();
 
-        Logger.Debug("Loaded traits..");
+        this.Logger.Debug("Loaded traits..");
 
         progress.Report("Loading trait skills..");
-        Logger.Debug("Loading trait skills..");
+        this.Logger.Debug("Loading trait skills..");
 
-        IEnumerable<Gw2Sharp.WebApi.V2.Models.TraitSkill> traitSkills = traitResponse.Where(trait => trait.Skills != null).SelectMany(trait => trait.Skills);
+        IEnumerable<TraitSkill> traitSkills = traitResponse.Where(trait => trait.Skills != null).SelectMany(trait => trait.Skills);
         skills = skills.Concat(traitSkills.Select(traitSkill => Skill.FromAPITraitSkill(traitSkill))).ToList();
 
-        Logger.Debug("Loaded trait skills..");
+        this.Logger.Debug("Loaded trait skills..");
 
         /*
         Logger.Debug("Loading item ids..");
@@ -196,15 +181,15 @@ public class SkillService : FilesystemAPIService<Skill>
 
     private async Task RemapSkillIds(List<Skill> skills)
     {
-        using var remappedSkillsStream = await this._flurlClient.Request(_webRootUrl, REMAPPED_SKILLS_FILE_NAME).GetStreamAsync();
-        using var progressStream = new ReadProgressStream(remappedSkillsStream);
+        using Stream remappedSkillsStream = await this._flurlClient.Request(this._webRootUrl, REMAPPED_SKILLS_FILE_NAME).GetStreamAsync();
+        using ReadProgressStream progressStream = new ReadProgressStream(remappedSkillsStream);
         progressStream.ProgressChanged += (s, e) => this.ReportProgress($"Reading remapped skills... {Math.Round(e.Progress, 0)}%");
         JsonSerializer serializer = JsonSerializer.CreateDefault(this._serializerSettings);
         using StreamReader sr = new StreamReader(progressStream);
         using JsonReader reader = new JsonTextReader(sr);
-        var remappedSkills = serializer.Deserialize<List<RemappedSkillID>>(reader);
+        List<RemappedSkillID> remappedSkills = serializer.Deserialize<List<RemappedSkillID>>(reader);
 
-        foreach (var remappedSkill in remappedSkills)
+        foreach (RemappedSkillID remappedSkill in remappedSkills)
         {
             this.ReportProgress($"Remapping skill from {remappedSkill.OriginalID} to {remappedSkill.DestinationID} ({remappedSkill.Comment})");
             List<Skill> skillsToRemap = skills.Where(skill => skill.Id == remappedSkill.OriginalID).ToList();
@@ -224,45 +209,45 @@ public class SkillService : FilesystemAPIService<Skill>
 
             skills.Add(skillToInsert);
 
-            Logger.Debug($"Remapped skill from {remappedSkill.OriginalID} to {remappedSkill.DestinationID} ({remappedSkill.Comment})");
+            this.Logger.Debug($"Remapped skill from {remappedSkill.OriginalID} to {remappedSkill.DestinationID} ({remappedSkill.Comment})");
         }
     }
 
     private async Task AddMissingSkills(List<Skill> skills)
     {
-        var missingSkillsStream = await this._flurlClient.Request(this._webRootUrl, MISSING_SKILLS_FILE_NAME).GetStreamAsync();
-        using var progressStream = new ReadProgressStream(missingSkillsStream);
+        Stream missingSkillsStream = await this._flurlClient.Request(this._webRootUrl, MISSING_SKILLS_FILE_NAME).GetStreamAsync();
+        using ReadProgressStream progressStream = new ReadProgressStream(missingSkillsStream);
         progressStream.ProgressChanged += (s, e) => this.ReportProgress($"Reading missing skills... {Math.Round(e.Progress, 0)}%");
         JsonSerializer serializer = JsonSerializer.CreateDefault(this._serializerSettings);
         using StreamReader sr = new StreamReader(progressStream);
         using JsonReader reader = new JsonTextReader(sr);
-        var missingSkills = serializer.Deserialize<List<MissingSkill>>(reader);
+        List<MissingSkill> missingSkills = serializer.Deserialize<List<MissingSkill>>(reader);
 
-        foreach (var missingSkill in missingSkills)
+        foreach (MissingSkill missingSkill in missingSkills)
         {
             this.ReportProgress($"Adding missing skill {missingSkill.ID} ({missingSkill.Name}) with {missingSkill.NameAliases?.Length ?? 0} aliases.");
 
-            skills.Add(new Skill()
+            skills.Add(new Skill
             {
                 Id = missingSkill.ID,
                 Name = missingSkill.Name,
                 Icon = missingSkill.Icon
             });
 
-            Logger.Debug($"Added missing skill {missingSkill.ID} ({missingSkill.Name})");
+            this.Logger.Debug($"Added missing skill {missingSkill.ID} ({missingSkill.Name})");
 
             if (missingSkill.NameAliases != null)
             {
-                foreach (var alias in missingSkill.NameAliases)
+                foreach (string alias in missingSkill.NameAliases)
                 {
-                    skills.Add(new Skill()
+                    skills.Add(new Skill
                     {
                         Id = missingSkill.ID,
                         Name = alias,
                         Icon = missingSkill.Icon
                     });
 
-                    Logger.Debug($"Added missing skill alias {missingSkill.ID} ({alias})");
+                    this.Logger.Debug($"Added missing skill alias {missingSkill.ID} ({alias})");
                 }
             }
         }
@@ -367,7 +352,10 @@ public class SkillService : FilesystemAPIService<Skill>
 
     public bool AddMissingSkill(int id, string name)
     {
-        if (this._missingSkillsFromAPIReportedByArcDPS.Any(m => m.ID == id)) return false;
+        if (this._missingSkillsFromAPIReportedByArcDPS.Any(m => m.ID == id))
+        {
+            return false;
+        }
 
         int hintId = -1;
         using (this._apiObjectListLock.Lock())
@@ -382,7 +370,7 @@ public class SkillService : FilesystemAPIService<Skill>
             }
         }
 
-        this._missingSkillsFromAPIReportedByArcDPS?.Add(new MissingArcDPSSkill()
+        this._missingSkillsFromAPIReportedByArcDPS?.Add(new MissingArcDPSSkill
         {
             ID = id,
             Name = name,
@@ -394,12 +382,22 @@ public class SkillService : FilesystemAPIService<Skill>
 
     public void RemoveMissingSkill(int id)
     {
-        var items = this._missingSkillsFromAPIReportedByArcDPS.Where(m => m.ID == id).ToList();
-        if (!items.Any()) return;
+        List<MissingArcDPSSkill> items = this._missingSkillsFromAPIReportedByArcDPS.Where(m => m.ID == id).ToList();
+        if (!items.Any())
+        {
+            return;
+        }
 
-        foreach (var item in items)
+        foreach (MissingArcDPSSkill item in items)
         {
             _ = this._missingSkillsFromAPIReportedByArcDPS?.Remove(item);
         }
+    }
+
+    private struct MissingArcDPSSkill
+    {
+        public int ID { get; set; }
+        public string Name { get; set; }
+        public int HintID { get; set; }
     }
 }

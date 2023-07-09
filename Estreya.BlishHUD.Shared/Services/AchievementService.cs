@@ -1,67 +1,57 @@
-﻿namespace Estreya.BlishHUD.Shared.Services
+﻿namespace Estreya.BlishHUD.Shared.Services;
+
+using Blish_HUD.Modules.Managers;
+using Extensions;
+using Gw2Sharp.WebApi.V2;
+using Gw2Sharp.WebApi.V2.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
+public class AchievementService : FilesystemAPIService<Achievement>
 {
-    using Blish_HUD;
-    using Blish_HUD.Modules.Managers;
-    using Estreya.BlishHUD.Shared.Extensions;
-    using Estreya.BlishHUD.Shared.IO;
-    using Estreya.BlishHUD.Shared.Json.Converter;
-    using Estreya.BlishHUD.Shared.Utils;
-    using Gw2Sharp.WebApi.V2.Models;
-    using Newtonsoft.Json;
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.IO;
-    using System.Linq;
-    using System.Runtime.Serialization;
-    using System.Text;
-    using System.Threading;
-    using System.Threading.Tasks;
+    public AchievementService(Gw2ApiManager apiManager, APIServiceConfiguration configuration, string baseFolderPath) : base(apiManager, configuration, baseFolderPath) { }
+    protected override string BASE_FOLDER_STRUCTURE => "achievements";
 
-    public class AchievementService : FilesystemAPIService<Achievement>
+    protected override string FILE_NAME => "achievements.json";
+
+    public List<Achievement> Achievements => this.APIObjectList;
+
+    protected override async Task<List<Achievement>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
     {
-        protected override string BASE_FOLDER_STRUCTURE => "achievements";
+        progress.Report("Loading achievement ids...");
+        IApiV2ObjectList<int> ids = await apiManager.Gw2ApiClient.V2.Achievements.IdsAsync(cancellationToken);
 
-        protected override string FILE_NAME => "achievements.json";
+        progress.Report($"Loading {ids.Count} achievements...");
 
-        public List<Achievement> Achievements => this.APIObjectList;
+        IEnumerable<IEnumerable<int>> idChunks = ids.ChunkBy(200);
+        int loadedCount = 0;
+        List<Task<IReadOnlyList<Achievement>>> tasks = new List<Task<IReadOnlyList<Achievement>>>();
 
-        public AchievementService(Gw2ApiManager apiManager, APIServiceConfiguration configuration, string baseFolderPath) : base(apiManager, configuration, baseFolderPath) { }
-
-        protected override async Task<List<Achievement>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
+        foreach (IEnumerable<int> chunk in idChunks)
         {
-            progress.Report("Loading achievement ids...");
-            var ids = await apiManager.Gw2ApiClient.V2.Achievements.IdsAsync(cancellationToken);
-
-            progress.Report($"Loading {ids.Count} achievements...");
-
-            var idChunks = ids.ChunkBy(200);
-            var loadedCount = 0;
-            var tasks = new List<Task<IReadOnlyList<Achievement>>>();
-
-            foreach (var chunk in idChunks)
+            tasks.Add(apiManager.Gw2ApiClient.V2.Achievements.ManyAsync(chunk, cancellationToken).ContinueWith(t =>
             {
-                tasks.Add(apiManager.Gw2ApiClient.V2.Achievements.ManyAsync(chunk, cancellationToken).ContinueWith(t =>
+                int newCount = Interlocked.Add(ref loadedCount, chunk.Count());
+
+                progress.Report($"Loading achievements... {newCount}/{ids.Count}");
+                if (t.IsFaulted)
                 {
-                    var newCount = Interlocked.Add(ref loadedCount, chunk.Count());
+                    this.Logger.Warn(t.Exception, $"Failed to load achievement chunk {chunk.First()} - {chunk.Last()}");
+                    return new List<Achievement>();
+                }
 
-                    progress.Report($"Loading achievements... {newCount}/{ids.Count}");
-                    if (t.IsFaulted)
-                    {
-                        this.Logger.Warn(t.Exception, $"Failed to load achievement chunk {chunk.First()} - {chunk.Last()}");
-                        return new List<Achievement>();
-                    }
-
-                    return t.Result;
-                }));
-            }
-
-            var achievementLists = await Task.WhenAll(tasks);
-            var achievements = achievementLists.SelectMany(a => a);
-
-            progress.Report($"Finished");
-
-            return achievements.ToList();
+                return t.Result;
+            }));
         }
+
+        IReadOnlyList<Achievement>[] achievementLists = await Task.WhenAll(tasks);
+        IEnumerable<Achievement> achievements = achievementLists.SelectMany(a => a);
+
+        progress.Report("Finished");
+
+        return achievements.ToList();
     }
 }

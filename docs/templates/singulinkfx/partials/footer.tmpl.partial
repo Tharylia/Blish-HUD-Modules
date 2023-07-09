@@ -1,0 +1,4 @@
+<div class="footer">
+  {{{_appFooter}}}
+  {{^_appFooter}}<strong><a href='https://github.com/Tharylia/Blish-HUD-Modules'>Estreya BlishHUD Modules</a></strong>{{/_appFooter}}
+</div>

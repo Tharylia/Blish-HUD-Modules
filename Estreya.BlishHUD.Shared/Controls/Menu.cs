@@ -1,11 +1,8 @@
 ﻿namespace Estreya.BlishHUD.Shared.Controls;
 
+using Blish_HUD.Controls;
 using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class Menu : Blish_HUD.Controls.Menu
 {
@@ -15,7 +12,7 @@ public class Menu : Blish_HUD.Controls.Menu
 
         int lastBottom = 0;
 
-        foreach (var child in _children.Where(c => c.Visible))
+        foreach (Control child in this._children.Where(c => c.Visible))
         {
             child.Location = new Point(0, lastBottom);
             child.Width = this.Width;

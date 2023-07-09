@@ -1,220 +1,177 @@
-﻿namespace Estreya.BlishHUD.Shared.Services
+﻿namespace Estreya.BlishHUD.Shared.Services;
+
+using Blish_HUD.Settings;
+using Flurl.Http;
+using Jose;
+using Microsoft.Xna.Framework;
+using Models.BlishHudAPI;
+using Newtonsoft.Json;
+using Security;
+using System;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
+using Threading;
+using Utils;
+
+public class BlishHudApiService : ManagedService
 {
-    using Blish_HUD.Settings;
-    using Estreya.BlishHUD.Shared.Models.BlishHudAPI;
-    using Estreya.BlishHUD.Shared.Security;
-    using Estreya.BlishHUD.Shared.Threading;
-    using Estreya.BlishHUD.Shared.Utils;
-    using Flurl.Http;
-    using Humanizer;
-    using Microsoft.Xna.Framework;
-    using Newtonsoft.Json;
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-    using System.Threading.Tasks;
+    private const string API_PASSWORD_KEY = "estreyaBlishHudAPI";
 
-    public class BlishHudApiService : ManagedService
+    private static TimeSpan _checkAPITokenInterval = TimeSpan.FromMinutes(5);
+    private readonly string _apiRootUrl;
+    private readonly string _apiVersion;
+    private readonly AsyncRef<double> _lastAPITokenCheck = new AsyncRef<double>(0);
+    private IFlurlClient _flurlClient;
+    private PasswordManager _passwordManager;
+    private SettingEntry<string> _usernameSetting;
+
+    public BlishHudApiService(ServiceConfiguration configuration, SettingEntry<string> usernameSetting, PasswordManager passwordManager, IFlurlClient flurlClient, string apiRootUrl, string apiVersion) : base(configuration)
     {
-        private const string API_PASSWORD_KEY = "estreyaBlishHudAPI";
-        private SettingEntry<string> _usernameSetting;
-        private PasswordManager _passwordManager;
-        private IFlurlClient _flurlClient;
-        private readonly string _apiRootUrl;
-        private readonly string _apiVersion;
+        this._usernameSetting = usernameSetting;
+        this._passwordManager = passwordManager;
+        this._flurlClient = flurlClient;
+        this._apiRootUrl = apiRootUrl;
+        this._apiVersion = apiVersion;
+    }
 
-        private static TimeSpan _checkAPITokenInterval = TimeSpan.FromMinutes(5);
-        private AsyncRef<double> _lastAPITokenCheck = new AsyncRef<double>(0);
+    private APITokens? APITokens { get; set; }
 
-        private APITokens? APITokens { get; set; }
+    public string AccessToken => this.APITokens?.AccessToken;
 
-        public string AccessToken => this.APITokens?.AccessToken;
+    public event EventHandler RefreshedLogin;
+    public event EventHandler NewLogin;
+    public event EventHandler LoggedOut;
 
-        public event EventHandler RefreshedLogin;
-        public event EventHandler NewLogin;
-        public event EventHandler LoggedOut;
+    protected override Task Initialize()
+    {
+        return Task.CompletedTask;
+    }
 
-        public BlishHudApiService(ServiceConfiguration configuration, SettingEntry<string> usernameSetting, PasswordManager passwordManager, IFlurlClient flurlClient, string apiRootUrl, string apiVersion) : base(configuration)
+    protected override void InternalUnload()
+    {
+        this._usernameSetting = null;
+        this._passwordManager = null;
+        this._flurlClient = null;
+    }
+
+    protected override void InternalUpdate(GameTime gameTime)
+    {
+        _ = UpdateUtil.UpdateAsync(this.CheckAPITokenExpiration, gameTime, _checkAPITokenInterval.TotalMilliseconds, this._lastAPITokenCheck);
+    }
+
+    protected override async Task Load()
+    {
+        await this.APILogin(throwException: false);
+    }
+
+    public string GetAPIUsername()
+    {
+        return this._usernameSetting.Value;
+    }
+
+    public string SetAPIUsername(string username)
+    {
+        return this._usernameSetting.Value = username;
+    }
+
+    public async Task<string> GetAPIPassword()
+    {
+        if (this._passwordManager == null)
         {
-            this._usernameSetting = usernameSetting;
-            this._passwordManager = passwordManager;
-            this._flurlClient = flurlClient;
-            this._apiRootUrl = apiRootUrl;
-            this._apiVersion = apiVersion;
+            throw new ArgumentNullException(nameof(this._passwordManager));
         }
 
-        protected override Task Initialize() => Task.CompletedTask;
+        byte[] passwordData = await this._passwordManager.Retrive(API_PASSWORD_KEY, true);
 
-        protected override void InternalUnload()
+        string password = passwordData == null ? null : Encoding.UTF8.GetString(passwordData);
+
+        return password;
+    }
+
+    public async Task SetAPIPassword(string password)
+    {
+        if (this._passwordManager == null)
         {
-            this._usernameSetting = null;
-            this._passwordManager = null;
-            this._flurlClient = null;
+            throw new ArgumentNullException(nameof(this._passwordManager));
         }
 
-        protected override void InternalUpdate(GameTime gameTime)
+        if (password == null)
         {
-            _ = UpdateUtil.UpdateAsync(this.CheckAPITokenExpiration, gameTime, _checkAPITokenInterval.TotalMilliseconds, this._lastAPITokenCheck);
+            this._passwordManager.Delete(API_PASSWORD_KEY);
+        }
+        else
+        {
+            await this._passwordManager.Save(API_PASSWORD_KEY, Encoding.UTF8.GetBytes(password));
+        }
+    }
+
+    private ApiJwtPayload? GetTokenPayload(string token = null)
+    {
+        token ??= this.APITokens?.AccessToken;
+
+        if (!string.IsNullOrWhiteSpace(token))
+        {
+            return JWT.Payload<ApiJwtPayload>(token);
         }
 
-        protected override async Task Load()
-        {
-            await this.APILogin(throwException: false);
-        }
+        return null;
+    }
 
-        public string GetAPIUsername() => this._usernameSetting.Value;
-        public string SetAPIUsername(string username) => this._usernameSetting.Value = username;
+    public async Task TestLogin(string username = null, string password = null)
+    {
+        await this.APILogin(username, password, true, true);
+    }
 
-        public async Task<string> GetAPIPassword()
+    public async Task Login()
+    {
+        await this.APILogin(throwException: true);
+    }
+
+    public void Logout()
+    {
+        this.APITokens = null;
+        this.LoggedOut?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task APILogin(string username = null, string password = null, bool dryRun = false, bool throwException = false)
+    {
+        try
         {
-            if (this._passwordManager == null)
+            username ??= this._usernameSetting.Value;
+            password ??= await this.GetAPIPassword();
+
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
             {
-                throw new ArgumentNullException(nameof(this._passwordManager));
-            }
-
-            var passwordData = await this._passwordManager.Retrive(API_PASSWORD_KEY, true);
-
-            var password = passwordData == null ? null : Encoding.UTF8.GetString(passwordData);
-
-            return password;
-        }
-
-        public async Task SetAPIPassword(string password)
-        {
-            if (this._passwordManager == null)
-            {
-                throw new ArgumentNullException(nameof(this._passwordManager));
-            }
-
-            if (password == null)
-            {
-                this._passwordManager.Delete(API_PASSWORD_KEY);
-            }
-            else
-            {
-                await this._passwordManager.Save(API_PASSWORD_KEY, Encoding.UTF8.GetBytes(password));
-            }
-        }
-
-        private ApiJwtPayload? GetTokenPayload(string token = null)
-        {
-            token ??= this.APITokens?.AccessToken;
-
-            if (!string.IsNullOrWhiteSpace(token))
-            {
-                return Jose.JWT.Payload<ApiJwtPayload>(token);
-            }
-
-            return null;
-        }
-
-        public async Task TestLogin(string username = null, string password = null)
-        {
-            await this.APILogin(username, password, true, true);
-        }
-
-        public async Task Login()
-        {
-            await this.APILogin(throwException: true);
-        }
-
-        public void Logout()
-        {
-            this.APITokens = null;
-            this.LoggedOut?.Invoke(this, EventArgs.Empty);
-        }
-
-        private async Task APILogin(string username = null, string password = null, bool dryRun = false, bool throwException = false)
-        {
-            try
-            {
-                username ??= this._usernameSetting.Value;
-                password ??= await this.GetAPIPassword();
-
-                if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-                {
-                    this.Logger.Info("Credentials not available.");
-                    if (throwException)
-                    {
-                        throw new ArgumentNullException("Credentials");
-                    }
-
-                    return;
-                }
-
-                var response = await this._flurlClient.Request(this._apiRootUrl, $"v{this._apiVersion}", "auth", "login").PostJsonAsync(new
-                {
-                    username = username,
-                    password = password
-                });
-
-                var content = await response.Content.ReadAsStringAsync();
-                var tokens = JsonConvert.DeserializeObject<APITokens>(content);
-
-                if (!dryRun)
-                {
-                    ApiJwtPayload? priorPayload = this.GetTokenPayload();
-
-                    this.APITokens = new APITokens()
-                    {
-                        AccessToken = tokens.AccessToken,
-                        RefreshToken = tokens.RefreshToken
-                    };
-
-                    var currentPayload = this.GetTokenPayload();
-
-                    if (!priorPayload.HasValue || (currentPayload.HasValue && priorPayload.Value.Id != currentPayload.Value.Id))
-                    {
-                        this.NewLogin?.Invoke(this, EventArgs.Empty);
-                    }
-                    else
-                    {
-                        this.RefreshedLogin?.Invoke(this, EventArgs.Empty);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                this.Logger.Debug(ex, "API Login failed:");
-
-                if (!dryRun)
-                {
-                    this.APITokens = null;
-                }
-
+                this.Logger.Info("Credentials not available.");
                 if (throwException)
                 {
-                    throw;
+                    throw new ArgumentNullException("Credentials");
                 }
+
+                return;
             }
-        }
 
-        private async Task RefreshAPILogin()
-        {
-            try
+            HttpResponseMessage response = await this._flurlClient.Request(this._apiRootUrl, $"v{this._apiVersion}", "auth", "login").PostJsonAsync(new
             {
-                if (!this.APITokens.HasValue || string.IsNullOrWhiteSpace(this.APITokens.Value.RefreshToken))
-                {
-                    throw new ArgumentNullException("Refresh API Token");
-                }
+                username,
+                password
+            });
 
-                var response = await this._flurlClient.Request(this._apiRootUrl, $"v{this._apiVersion}", "auth", "refresh").PostJsonAsync(new
-                {
-                    refreshToken = this.APITokens.Value.RefreshToken
-                });
+            string content = await response.Content.ReadAsStringAsync();
+            APITokens tokens = JsonConvert.DeserializeObject<APITokens>(content);
 
-                var content = await response.Content.ReadAsStringAsync();
-                var tokens = JsonConvert.DeserializeObject<APITokens>(content);
-
+            if (!dryRun)
+            {
                 ApiJwtPayload? priorPayload = this.GetTokenPayload();
 
-                this.APITokens = new APITokens()
+                this.APITokens = new APITokens
                 {
                     AccessToken = tokens.AccessToken,
                     RefreshToken = tokens.RefreshToken
                 };
 
-                var currentPayload = this.GetTokenPayload();
+                ApiJwtPayload? currentPayload = this.GetTokenPayload();
 
                 if (!priorPayload.HasValue || (currentPayload.HasValue && priorPayload.Value.Id != currentPayload.Value.Id))
                 {
@@ -225,43 +182,101 @@
                     this.RefreshedLogin?.Invoke(this, EventArgs.Empty);
                 }
             }
-            catch (Exception ex)
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Debug(ex, "API Login failed:");
+
+            if (!dryRun)
             {
-                this.Logger.Debug(ex, "Refresh API Login failed:");
                 this.APITokens = null;
             }
-        }
 
-        private bool IsTokenExpired(string token)
-        {
-            var payload = this.GetTokenPayload(token);
-
-            if (!payload.HasValue) return true;
-
-            var expiresAt = DateTimeOffset.FromUnixTimeSeconds(payload.Value.Expiration);
-
-            return DateTime.UtcNow > expiresAt;
-        }
-
-        private async Task CheckAPITokenExpiration()
-        {
-            if (!this.APITokens.HasValue) return;
-
-            var accessTokenExpired = this.IsTokenExpired(this.APITokens.Value.AccessToken);
-            if (!accessTokenExpired) return;
-
-            var refreshTokenExpired = this.IsTokenExpired(this.APITokens.Value.RefreshToken);
-
-            if (refreshTokenExpired)
+            if (throwException)
             {
-                // Trigger complete new login
-                await this.APILogin(throwException: false);
+                throw;
+            }
+        }
+    }
+
+    private async Task RefreshAPILogin()
+    {
+        try
+        {
+            if (!this.APITokens.HasValue || string.IsNullOrWhiteSpace(this.APITokens.Value.RefreshToken))
+            {
+                throw new ArgumentNullException("Refresh API Token");
+            }
+
+            HttpResponseMessage response = await this._flurlClient.Request(this._apiRootUrl, $"v{this._apiVersion}", "auth", "refresh").PostJsonAsync(new { refreshToken = this.APITokens.Value.RefreshToken });
+
+            string content = await response.Content.ReadAsStringAsync();
+            APITokens tokens = JsonConvert.DeserializeObject<APITokens>(content);
+
+            ApiJwtPayload? priorPayload = this.GetTokenPayload();
+
+            this.APITokens = new APITokens
+            {
+                AccessToken = tokens.AccessToken,
+                RefreshToken = tokens.RefreshToken
+            };
+
+            ApiJwtPayload? currentPayload = this.GetTokenPayload();
+
+            if (!priorPayload.HasValue || (currentPayload.HasValue && priorPayload.Value.Id != currentPayload.Value.Id))
+            {
+                this.NewLogin?.Invoke(this, EventArgs.Empty);
             }
             else
             {
-                await this.RefreshAPILogin();
-                // Trigger login refresh 
+                this.RefreshedLogin?.Invoke(this, EventArgs.Empty);
             }
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Debug(ex, "Refresh API Login failed:");
+            this.APITokens = null;
+        }
+    }
+
+    private bool IsTokenExpired(string token)
+    {
+        ApiJwtPayload? payload = this.GetTokenPayload(token);
+
+        if (!payload.HasValue)
+        {
+            return true;
+        }
+
+        DateTimeOffset expiresAt = DateTimeOffset.FromUnixTimeSeconds(payload.Value.Expiration);
+
+        return DateTime.UtcNow > expiresAt;
+    }
+
+    private async Task CheckAPITokenExpiration()
+    {
+        if (!this.APITokens.HasValue)
+        {
+            return;
+        }
+
+        bool accessTokenExpired = this.IsTokenExpired(this.APITokens.Value.AccessToken);
+        if (!accessTokenExpired)
+        {
+            return;
+        }
+
+        bool refreshTokenExpired = this.IsTokenExpired(this.APITokens.Value.RefreshToken);
+
+        if (refreshTokenExpired)
+        {
+            // Trigger complete new login
+            await this.APILogin(throwException: false);
+        }
+        else
+        {
+            await this.RefreshAPILogin();
+            // Trigger login refresh 
         }
     }
 }

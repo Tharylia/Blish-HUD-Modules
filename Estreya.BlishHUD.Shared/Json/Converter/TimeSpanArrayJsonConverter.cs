@@ -1,87 +1,88 @@
-﻿namespace Estreya.BlishHUD.Shared.Json.Converter
+﻿namespace Estreya.BlishHUD.Shared.Json.Converter;
+
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+
+public class TimeSpanArrayJsonConverter : JsonConverter<TimeSpan[]>
 {
-    using Newtonsoft.Json;
-    using Newtonsoft.Json.Linq;
-    using SharpDX.Direct3D9;
-    using System;
-    using System.Collections.Generic;
-    using System.Globalization;
-    using System.Linq;
-
-    public class TimeSpanArrayJsonConverter : JsonConverter<TimeSpan[]>
+    public TimeSpanArrayJsonConverter()
     {
-        private IEnumerable<string> Formats { get; set; } = new[] { "dd\\.hh\\:mm", "hh\\:mm" };
-        private string ToStringFormat { get; set; }
-        private bool KeepExistingIfEmpty { get; }
+    }
 
-        public TimeSpanArrayJsonConverter()
+    public TimeSpanArrayJsonConverter(string toStringFormat, IEnumerable<string> parseFormats) : this()
+    {
+        this.ToStringFormat = toStringFormat;
+        this.Formats = parseFormats;
+    }
+
+    public TimeSpanArrayJsonConverter(string toStringFormat, IEnumerable<string> parseFormats, bool keepExistingIfEmpty) : this(toStringFormat, parseFormats)
+    {
+        this.KeepExistingIfEmpty = keepExistingIfEmpty;
+    }
+
+    private IEnumerable<string> Formats { get; } = new[]
+    {
+        "dd\\.hh\\:mm",
+        "hh\\:mm"
+    };
+
+    private string ToStringFormat { get; set; }
+    private bool KeepExistingIfEmpty { get; }
+
+    public override void WriteJson(JsonWriter writer, TimeSpan[] value, JsonSerializer serializer)
+    {
+        if (string.IsNullOrWhiteSpace(this.ToStringFormat))
         {
-
+            throw new ArgumentNullException(nameof(this.ToStringFormat), "Format has not been specified.");
         }
-        public TimeSpanArrayJsonConverter(string toStringFormat, IEnumerable<string> parseFormats) : this()
+
+        string[] stringValues = value.Select(v => v.ToString(this.ToStringFormat)).ToArray();
+        serializer.Serialize(writer, stringValues);
+    }
+
+    public override TimeSpan[] ReadJson(JsonReader reader, Type objectType, TimeSpan[] existingValue, bool hasExistingValue, JsonSerializer serializer)
+    {
+        if (objectType != typeof(TimeSpan[]))
         {
-            this.ToStringFormat = toStringFormat;
-            this.Formats = parseFormats;
+            return new TimeSpan[0];
         }
 
-        public TimeSpanArrayJsonConverter(string toStringFormat, IEnumerable<string> parseFormats, bool keepExistingIfEmpty) : this(toStringFormat, parseFormats)
-        {
-            this.KeepExistingIfEmpty = keepExistingIfEmpty;
-        }
+        List<TimeSpan> timespans = new List<TimeSpan>();
 
-        public override void WriteJson(JsonWriter writer, TimeSpan[] value, JsonSerializer serializer)
+        // deserialze the array
+        if (reader.TokenType != JsonToken.Null)
         {
-            if (string.IsNullOrWhiteSpace(this.ToStringFormat))
+            if (reader.TokenType == JsonToken.StartArray)
             {
-                throw new ArgumentNullException(nameof(this.ToStringFormat), "Format has not been specified.");
-            }
+                // this one respects other registered converters (e.g. the TrimmedStringConverter)
+                // but causes server crashes when used globally due to endless loops
+                string[] tempValues = serializer.Deserialize<string[]>(reader);
 
-            var stringValues = value.Select(v => v.ToString(this.ToStringFormat)).ToArray();
-            serializer.Serialize(writer, stringValues);
-        }
-
-        public override TimeSpan[] ReadJson(JsonReader reader, Type objectType, TimeSpan[] existingValue, bool hasExistingValue, JsonSerializer serializer)
-        {
-            if (objectType != typeof(TimeSpan[]))
-            {
-                return new TimeSpan[0];
-            }
-
-            var timespans = new List<TimeSpan>();
-
-            // deserialze the array
-            if (reader.TokenType != JsonToken.Null)
-            {
-                if (reader.TokenType == JsonToken.StartArray)
+                timespans.AddRange(tempValues.Select(tv =>
                 {
-                    // this one respects other registered converters (e.g. the TrimmedStringConverter)
-                    // but causes server crashes when used globally due to endless loops
-                    var tempValues = serializer.Deserialize<string[]>(reader);
-
-                    timespans.AddRange(tempValues.Select(tv =>
+                    TimeSpan? ts = null;
+                    foreach (string format in this.Formats)
                     {
-                        TimeSpan? ts = null;
-                        foreach (string format in this.Formats)
+                        if (TimeSpan.TryParseExact(tv, format, CultureInfo.InvariantCulture, out TimeSpan result))
                         {
-                            if (TimeSpan.TryParseExact(tv, format, CultureInfo.InvariantCulture, out TimeSpan result))
-                            {
-                                ts = result;
-                                break;
-                            }
+                            ts = result;
+                            break;
                         }
+                    }
 
-                        return ts;
-                    }).Where(ts => ts.HasValue).Select(ts => ts.Value).ToList());
-
-                }
+                    return ts;
+                }).Where(ts => ts.HasValue).Select(ts => ts.Value).ToList());
             }
-
-            if (timespans.Count == 0 && this.KeepExistingIfEmpty && hasExistingValue)
-            {
-                timespans.AddRange(existingValue);
-            }
-
-            return timespans.ToArray();
         }
+
+        if (timespans.Count == 0 && this.KeepExistingIfEmpty && hasExistingValue)
+        {
+            timespans.AddRange(existingValue);
+        }
+
+        return timespans.ToArray();
     }
 }

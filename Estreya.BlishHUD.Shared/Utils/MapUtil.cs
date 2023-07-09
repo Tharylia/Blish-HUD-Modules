@@ -5,25 +5,32 @@ using Blish_HUD.Controls.Extern;
 using Blish_HUD.Controls.Intern;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.Controls.Map;
-using Estreya.BlishHUD.Shared.Extensions;
-using Flurl.Util;
+using Controls;
+using Controls.Map;
+using Extensions;
+using Gw2Sharp.Models;
 using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
-using SharpDX.MediaFoundation;
+using Microsoft.Xna.Framework.Input;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Color = Microsoft.Xna.Framework.Color;
+using Keyboard = Blish_HUD.Controls.Intern.Keyboard;
+using Mouse = Blish_HUD.Controls.Intern.Mouse;
+using Point = System.Drawing.Point;
 
 public class MapUtil : IDisposable
 {
-    private static readonly Logger Logger = Logger.GetLogger(typeof(MapUtil));
-    private readonly KeyBinding _mapKeybinding;
-    private readonly Gw2ApiManager _apiManager;
+    public enum ChangeMapLayerDirection
+    {
+        Up,
+        Down
+    }
 
-    public static int MouseMoveAndClickDelay { get; set; } = 50;
-    public static int KeyboardPressDelay { get; set; } = 20;
+    private static readonly Logger Logger = Logger.GetLogger(typeof(MapUtil));
+    private readonly Gw2ApiManager _apiManager;
+    private readonly KeyBinding _mapKeybinding;
 
     private FlatMap _flatMap;
 
@@ -32,10 +39,16 @@ public class MapUtil : IDisposable
         this._mapKeybinding = mapKeybinding;
         this._apiManager = apiManager;
 
-        this._flatMap = new FlatMap()
-        {
-            Parent = GameService.Graphics.SpriteScreen
-        };
+        this._flatMap = new FlatMap { Parent = GameService.Graphics.SpriteScreen };
+    }
+
+    public static int MouseMoveAndClickDelay { get; set; } = 50;
+    public static int KeyboardPressDelay { get; set; } = 20;
+
+    public void Dispose()
+    {
+        this._flatMap?.Dispose();
+        this._flatMap = null;
     }
 
     private double GetDistance(double x1, double y1, double x2, double y2)
@@ -79,17 +92,17 @@ public class MapUtil : IDisposable
         }
 
         // Consider pressing the open map icon in the UI.
-        if (this._mapKeybinding.ModifierKeys != Microsoft.Xna.Framework.Input.ModifierKeys.None)
+        if (this._mapKeybinding.ModifierKeys != ModifierKeys.None)
         {
-            var modifier = this._mapKeybinding.ModifierKeys.GetFlags().Select(flag => (VirtualKeyShort)flag).Aggregate((a, b) => a | b);
+            VirtualKeyShort modifier = this._mapKeybinding.ModifierKeys.GetFlags().Select(flag => (VirtualKeyShort)flag).Aggregate((a, b) => a | b);
             Keyboard.Press(modifier);
         }
 
         Keyboard.Stroke((VirtualKeyShort)this._mapKeybinding.PrimaryKey);
 
-        if (this._mapKeybinding.ModifierKeys != Microsoft.Xna.Framework.Input.ModifierKeys.None)
+        if (this._mapKeybinding.ModifierKeys != ModifierKeys.None)
         {
-            var modifier = this._mapKeybinding.ModifierKeys.GetFlags().Select(flag => (VirtualKeyShort)flag).Aggregate((a, b) => a | b);
+            VirtualKeyShort modifier = this._mapKeybinding.ModifierKeys.GetFlags().Select(flag => (VirtualKeyShort)flag).Aggregate((a, b) => a | b);
             Keyboard.Release(modifier);
         }
 
@@ -111,7 +124,7 @@ public class MapUtil : IDisposable
             return true;
         }
 
-        Keyboard.Press(Blish_HUD.Controls.Extern.VirtualKeyShort.ESCAPE);
+        Keyboard.Press(VirtualKeyShort.ESCAPE);
 
         await Task.Delay(500);
 
@@ -192,7 +205,7 @@ public class MapUtil : IDisposable
     }
 
     /// <summary>
-    /// Moves the map to the specified continent coordinates.
+    ///     Moves the map to the specified continent coordinates.
     /// </summary>
     /// <param name="x"></param>
     /// <param name="y"></param>
@@ -215,11 +228,10 @@ public class MapUtil : IDisposable
                 return false;
             }
 
-            Gw2Sharp.Models.Coordinates2 mapPos = GameService.Gw2Mumble.UI.MapCenter;
+            Coordinates2 mapPos = GameService.Gw2Mumble.UI.MapCenter;
 
             double offsetX = mapPos.X - x;
             double offsetY = mapPos.Y - y;
-
 
             Logger.Debug($"Distance remaining: {this.GetDistance(mapPos.X, mapPos.Y, x, y)}");
             Logger.Debug($"Map Position: {GameService.Gw2Mumble.UI.MapPosition.X}, {GameService.Gw2Mumble.UI.MapPosition.Y}");
@@ -233,15 +245,15 @@ public class MapUtil : IDisposable
 
             Mouse.SetPosition(GameService.Graphics.WindowWidth / 2, GameService.Graphics.WindowHeight / 2);
 
-            System.Drawing.Point startPos = Mouse.GetPosition();
+            Point startPos = Mouse.GetPosition();
             Mouse.Press(MouseButton.RIGHT);
             Mouse.SetPosition(startPos.X + (int)MathHelper.Clamp((float)offsetX / (float)(this.GetMapScale() * 0.9d), -100000, 100000),
-                              startPos.Y + (int)MathHelper.Clamp((float)offsetY / (float)(this.GetMapScale() * 0.9d), -100000, 100000));
+                startPos.Y + (int)MathHelper.Clamp((float)offsetY / (float)(this.GetMapScale() * 0.9d), -100000, 100000));
 
             await this.WaitForTick();
             startPos = Mouse.GetPosition();
             Mouse.SetPosition(startPos.X + (int)MathHelper.Clamp((float)offsetX / (float)(this.GetMapScale() * 0.9d), -100000, 100000),
-                              startPos.Y + (int)MathHelper.Clamp((float)offsetY / (float)(this.GetMapScale() * 0.9d), -100000, 100000));
+                startPos.Y + (int)MathHelper.Clamp((float)offsetY / (float)(this.GetMapScale() * 0.9d), -100000, 100000));
 
             Mouse.Release(MouseButton.RIGHT);
 
@@ -259,11 +271,11 @@ public class MapUtil : IDisposable
             return false;
         }
 
-        Keyboard.Press(Blish_HUD.Controls.Extern.VirtualKeyShort.SHIFT);
+        Keyboard.Press(VirtualKeyShort.SHIFT);
         await Task.Delay(KeyboardPressDelay);
         Mouse.RotateWheel(int.MaxValue * (direction == ChangeMapLayerDirection.Up ? 1 : -1));
         await Task.Delay(KeyboardPressDelay);
-        Keyboard.Release(Blish_HUD.Controls.Extern.VirtualKeyShort.SHIFT);
+        Keyboard.Release(VirtualKeyShort.SHIFT);
 
         return true;
     }
@@ -280,7 +292,6 @@ public class MapUtil : IDisposable
 
     public Task<NavigationResult> NavigateToPosition(double x, double y)
     {
-
         return this.NavigateToPosition(x, y, false, false);
     }
 
@@ -294,18 +305,21 @@ public class MapUtil : IDisposable
                 return new NavigationResult(false, "Not in game.");
             }
 
-
             if (!await this.OpenFullscreenMap())
             {
                 Logger.Debug("Could not open map.");
                 return new NavigationResult(false, "Could not open map.");
             }
 
-            Controls.ScreenNotification.ShowNotification(new string[] { "DO NOT MOVE THE CURSOR!", "Close map to cancel." }, Controls.ScreenNotification.NotificationType.Warning, duration: 7);
+            ScreenNotification.ShowNotification(new[]
+            {
+                "DO NOT MOVE THE CURSOR!",
+                "Close map to cancel."
+            }, ScreenNotification.NotificationType.Warning, duration: 7);
 
             await this.WaitForTick();
 
-            Gw2Sharp.Models.Coordinates2 mapPos = GameService.Gw2Mumble.UI.MapCenter;
+            Coordinates2 mapPos = GameService.Gw2Mumble.UI.MapCenter;
 
             Mouse.SetPosition(GameService.Graphics.WindowWidth / 2, GameService.Graphics.WindowHeight / 2);
 
@@ -320,7 +334,7 @@ public class MapUtil : IDisposable
 
             if (!await this.ZoomOut(6))
             {
-                Logger.Debug($"Zooming out did not work.");
+                Logger.Debug("Zooming out did not work.");
                 return new NavigationResult(false, "Zooming out did not work.");
             }
 
@@ -330,7 +344,7 @@ public class MapUtil : IDisposable
 
             if (!await this.MoveMap(x, y, 50))
             {
-                Logger.Debug($"Moving the map did not work.");
+                Logger.Debug("Moving the map did not work.");
                 return new NavigationResult(false, "Moving the map did not work.");
             }
 
@@ -345,13 +359,13 @@ public class MapUtil : IDisposable
 
             if (!await this.ZoomIn(2))
             {
-                Logger.Debug($"Zooming in did not work.");
+                Logger.Debug("Zooming in did not work.");
                 return new NavigationResult(false, "Zooming in did not work.");
             }
 
             if (!await this.MoveMap(x, y, 5))
             {
-                Logger.Debug($"Moving the map did not work.");
+                Logger.Debug("Moving the map did not work.");
                 return new NavigationResult(false, "Moving the map did not work.");
             }
 
@@ -388,7 +402,7 @@ public class MapUtil : IDisposable
         }
     }
 
-    public MapEntity AddCircle(double x, double y, double radius, Microsoft.Xna.Framework.Color color, float thickness = 1)
+    public MapEntity AddCircle(double x, double y, double radius, Color color, float thickness = 1)
     {
         MapCircle circle = new MapCircle((float)x, (float)y, (float)radius, color, thickness);
         this._flatMap.AddEntity(circle);
@@ -396,7 +410,7 @@ public class MapUtil : IDisposable
         return circle;
     }
 
-    public MapEntity AddBorder(double x, double y, float[][] points, Microsoft.Xna.Framework.Color color, float thickness = 1)
+    public MapEntity AddBorder(double x, double y, float[][] points, Color color, float thickness = 1)
     {
         MapBorder border = new MapBorder((float)x, (float)y, points, color, thickness);
         this._flatMap.AddEntity(border);
@@ -416,7 +430,7 @@ public class MapUtil : IDisposable
 
     private async Task<NavigationResult> MoveMouse(int x, int y, bool sendToSystem = false)
     {
-        System.Drawing.Point startPos = Mouse.GetPosition();
+        Point startPos = Mouse.GetPosition();
         Mouse.SetPosition(x, y, sendToSystem);
 
         await this.WaitForTick();
@@ -424,27 +438,15 @@ public class MapUtil : IDisposable
         return new NavigationResult(true, null);
     }
 
-    public void Dispose()
-    {
-        this._flatMap?.Dispose();
-        this._flatMap = null;
-    }
-
-    public enum ChangeMapLayerDirection
-    {
-        Up,
-        Down
-    }
-
     public class NavigationResult
     {
-        public bool Success { get; set; }
-        public string Message { get; set; }
-
         public NavigationResult(bool success, string message)
         {
             this.Success = success;
             this.Message = message;
         }
+
+        public bool Success { get; set; }
+        public string Message { get; set; }
     }
 }

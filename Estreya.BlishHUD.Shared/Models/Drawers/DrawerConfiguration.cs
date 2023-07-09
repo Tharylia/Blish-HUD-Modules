@@ -2,12 +2,7 @@
 
 using Blish_HUD.Input;
 using Blish_HUD.Settings;
-using Microsoft.Xna.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Gw2Sharp.WebApi.V2.Models;
 using static Blish_HUD.ContentService;
 
 public class DrawerConfiguration
@@ -26,9 +21,9 @@ public class DrawerConfiguration
 
     public SettingEntry<float> Opacity { get; set; }
 
-    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> BackgroundColor { get; set; }
+    public SettingEntry<Color> BackgroundColor { get; set; }
 
-    public SettingEntry<Gw2Sharp.WebApi.V2.Models.Color> TextColor { get; set; }
+    public SettingEntry<Color> TextColor { get; set; }
 
     public SettingEntry<FontSize> FontSize { get; set; }
 }

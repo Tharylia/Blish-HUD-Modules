@@ -1,48 +1,42 @@
-﻿namespace Estreya.BlishHUD.ArcDPSLogManager.UI.Views
+﻿namespace Estreya.BlishHUD.ArcDPSLogManager.UI.Views;
+
+using Blish_HUD.Controls;
+using Blish_HUD.Modules.Managers;
+using MonoGame.Extended.BitmapFonts;
+using Shared.UI.Views;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+public class LogManagerView : BaseView
 {
-    using Blish_HUD.Controls;
-    using Blish_HUD.Modules.Managers;
-    using Estreya.BlishHUD.Shared.Service;
-    using Estreya.BlishHUD.Shared.UI.Views;
-    using Microsoft.Xna.Framework;
-    using MonoGame.Extended.BitmapFonts;
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using System.Windows.Documents;
+    private readonly Func<List<string>> _getLogFiles;
+    private readonly ModuleSettings _moduleSettings;
 
-    public class LogManagerView : BaseView
+    public LogManagerView(ModuleSettings moduleSettings, Func<List<string>> getLogFiles, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
-        private readonly ModuleSettings _moduleSettings;
-        private readonly Func<List<string>> _getLogFiles;
+        this._moduleSettings = moduleSettings;
+        this._getLogFiles = getLogFiles;
+    }
 
-        public LogManagerView(ModuleSettings moduleSettings, Func<List<string>> getLogFiles, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    protected override void InternalBuild(Panel parent)
+    {
+        FlowPanel logList = new FlowPanel
         {
-            this._moduleSettings = moduleSettings;
-            this._getLogFiles = getLogFiles;
-        }
+            Parent = parent,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom
+        };
 
-        protected override void InternalBuild(Panel parent)
-        {
-            var logList = new FlowPanel()
-            {
-                Parent = parent,
-                FlowDirection = ControlFlowDirection.SingleTopToBottom
-            };
+        List<string> logFiles = this._getLogFiles();
+    }
 
-            var logFiles = _getLogFiles();
-        }
+    public void Rebuild()
+    {
+        this.InternalBuild(this.MainPanel);
+    }
 
-        public void Rebuild()
-        {
-            this.InternalBuild(this.MainPanel);
-        }
-
-        protected override Task<bool> InternalLoad(IProgress<string> progress)
-        {
-            return Task.FromResult(true);
-        }
+    protected override Task<bool> InternalLoad(IProgress<string> progress)
+    {
+        return Task.FromResult(true);
     }
 }

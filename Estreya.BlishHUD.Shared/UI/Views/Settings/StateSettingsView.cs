@@ -1,75 +1,70 @@
-﻿namespace Estreya.BlishHUD.Shared.UI.Views.Settings
+﻿namespace Estreya.BlishHUD.Shared.UI.Views.Settings;
+
+using Blish_HUD.Controls;
+using Blish_HUD.Modules.Managers;
+using Microsoft.Xna.Framework;
+using MonoGame.Extended.BitmapFonts;
+using Services;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
+public class ServiceSettingsView : BaseSettingsView
 {
-    using Blish_HUD.Controls;
-    using Blish_HUD.Modules.Managers;
-    using Estreya.BlishHUD.Shared.Modules;
-    using Estreya.BlishHUD.Shared.Settings;
-    using Estreya.BlishHUD.Shared.Services;
-    using Estreya.BlishHUD.Shared.UI.Views;
-    using Microsoft.Xna.Framework;
-    using MonoGame.Extended.BitmapFonts;
-    using System;
-    using System.Collections.ObjectModel;
-    using System.Threading.Tasks;
-    using System.CodeDom;
-    using System.Collections.Generic;
+    private readonly Func<Task> _reloadCalledAction;
+    private readonly IEnumerable<ManagedService> _stateList;
 
-    public class ServiceSettingsView : BaseSettingsView
+    public ServiceSettingsView(IEnumerable<ManagedService> stateList, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null, Func<Task> reloadCalledAction = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
-        private readonly IEnumerable<ManagedService> _stateList;
-        private readonly Func<Task> _reloadCalledAction;
+        this._stateList = stateList;
+        this._reloadCalledAction = reloadCalledAction;
+    }
 
-        public ServiceSettingsView(IEnumerable<ManagedService> stateList, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null, Func<Task> reloadCalledAction = null) : base(apiManager, iconService,translationService, settingEventService, font)
+    protected override void BuildView(FlowPanel parent)
+    {
+        foreach (ManagedService state in this._stateList)
         {
-            this._stateList = stateList;
-            this._reloadCalledAction = reloadCalledAction;
-        }
+            List<Type> baseTypes = new List<Type>();
 
-        protected override void BuildView(FlowPanel parent)
-        {
-            foreach (ManagedService state in _stateList)
+            Type baseType = state.GetType().BaseType;
+
+            while (baseType != null)
             {
-                List<Type> baseTypes = new List<Type>();
-
-                var baseType = state.GetType().BaseType;
-
-                while(baseType != null)
+                if (baseType.IsGenericType)
                 {
-                    if (baseType.IsGenericType)
-                    {
-                        baseTypes.Add(baseType.GetGenericTypeDefinition());
-                    }
-                    else
-                    {
-                        baseTypes.Add(baseType);
-                    }
-
-                    baseType = baseType.BaseType;
+                    baseTypes.Add(baseType.GetGenericTypeDefinition());
+                }
+                else
+                {
+                    baseTypes.Add(baseType);
                 }
 
-                if (state.GetType().BaseType.IsGenericType && baseTypes.Contains(typeof(APIService<>)))
-                {
-                    var loading = (bool)state.GetType().GetProperty(nameof(APIService<object>.Loading)).GetValue(state);
-                    var finished = state.Running && !loading;
-                    this.RenderLabel(parent, $"{state.GetType().Name} running & loaded:", finished.ToString(), textColorValue: finished ? Color.Green : Color.Red);
-                } else
-                {
+                baseType = baseType.BaseType;
+            }
+
+            if (state.GetType().BaseType.IsGenericType && baseTypes.Contains(typeof(APIService<>)))
+            {
+                bool loading = (bool)state.GetType().GetProperty(nameof(APIService<object>.Loading)).GetValue(state);
+                bool finished = state.Running && !loading;
+                this.RenderLabel(parent, $"{state.GetType().Name} running & loaded:", finished.ToString(), textColorValue: finished ? Color.Green : Color.Red);
+            }
+            else
+            {
                 this.RenderLabel(parent, $"{state.GetType().Name} running:", state.Running.ToString(), textColorValue: state.Running ? Color.Green : Color.Red);
-                }
-            }
-
-            if (_reloadCalledAction != null)
-            {
-                this.RenderEmptyLine(parent);
-                this.RenderEmptyLine(parent);
-
-                this.RenderButtonAsync(parent, "Reload", _reloadCalledAction);
             }
         }
 
-        protected override Task<bool> InternalLoad(IProgress<string> progress)
+        if (this._reloadCalledAction != null)
         {
-            return Task.FromResult(true);
+            this.RenderEmptyLine(parent);
+            this.RenderEmptyLine(parent);
+
+            this.RenderButtonAsync(parent, "Reload", this._reloadCalledAction);
         }
+    }
+
+    protected override Task<bool> InternalLoad(IProgress<string> progress)
+    {
+        return Task.FromResult(true);
     }
 }

@@ -10,9 +10,8 @@ using System.Threading.Tasks;
 
 public class AccountService : APIService<Account>
 {
-    public Account Account => this.APIObjectList.Any() ? this.APIObjectList.First() : null;
-
     public AccountService(APIServiceConfiguration configuration, Gw2ApiManager apiManager) : base(apiManager, configuration) { }
+    public Account Account => this.APIObjectList.Any() ? this.APIObjectList.First() : null;
 
     protected override void DoUnload() { }
 
@@ -20,6 +19,6 @@ public class AccountService : APIService<Account>
     {
         Account account = await apiManager.Gw2ApiClient.V2.Account.GetAsync(cancellationToken);
 
-        return new List<Account>() { account };
+        return new List<Account> { account };
     }
 }

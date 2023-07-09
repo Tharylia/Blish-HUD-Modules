@@ -3,33 +3,29 @@
 using Blish_HUD;
 using Blish_HUD._Extensions;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.FoodReminder.Models;
-using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
+using Models;
 using MonoGame.Extended.BitmapFonts;
+using Shared.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
 using static Blish_HUD.ContentService;
+using Color = Gw2Sharp.WebApi.V2.Models.Color;
 
 public class OverviewTable : FlowPanel
 {
-    public OverviewDrawerConfiguration Configuration;
+    private static TimeSpan _sortingInterval = TimeSpan.FromSeconds(2);
     private readonly Func<List<Models.Player>> _getPlayers;
 
-    private static TimeSpan _sortingInterval = TimeSpan.FromSeconds(2);
-    private double _lastSorted = 0;
-
-    private List<Controls.Player> _playerControls = new List<Player>();
+    private readonly ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
 
     private Header _header;
+    private double _lastSorted;
 
-    private ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
+    private readonly List<Player> _playerControls = new List<Player>();
+    public OverviewDrawerConfiguration Configuration;
 
     public OverviewTable(OverviewDrawerConfiguration configuration, Func<List<Models.Player>> getPlayers)
     {
@@ -49,15 +45,13 @@ public class OverviewTable : FlowPanel
         this.Size_SettingChanged(this, null);
         this.BackgroundColor_SettingChanged(this, null);
 
-        
-
         this.AddHeader();
     }
 
-    private void BackgroundColor_SettingChanged(object sender, ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color> e)
+    private void BackgroundColor_SettingChanged(object sender, ValueChangedEventArgs<Color> e)
     {
         this.BackgroundColor = this.Configuration.BackgroundColor.Value.Id == 1
-            ? Color.Transparent
+            ? Microsoft.Xna.Framework.Color.Transparent
             : this.Configuration.BackgroundColor.Value.Cloth.ToXnaColor();
     }
 
@@ -77,10 +71,7 @@ public class OverviewTable : FlowPanel
             this.Configuration.ColumnSizes,
             this.GetFont,
             () => this.Configuration.HeaderHeight.Value,
-            this.GetTextColor)
-        {
-            Parent = this
-        };
+            this.GetTextColor) { Parent = this };
     }
 
     private BitmapFont GetFont()
@@ -88,37 +79,34 @@ public class OverviewTable : FlowPanel
         return this._fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular));
     }
 
-    private Color GetTextColor()
+    private Microsoft.Xna.Framework.Color GetTextColor()
     {
         return this.Configuration.TextColor.Value.Id == 1
-        ? Color.Black
-        : this.Configuration.TextColor.Value.Cloth.ToXnaColor();
+            ? Microsoft.Xna.Framework.Color.Black
+            : this.Configuration.TextColor.Value.Cloth.ToXnaColor();
     }
 
     public override void UpdateContainer(GameTime gameTime)
     {
         this.WidthSizingMode = SizingMode.AutoSize;
 
-        var allPlayers = _getPlayers().Where(p => p.Tracked).ToList();
+        List<Models.Player> allPlayers = this._getPlayers().Where(p => p.Tracked).ToList();
 
-        var missing = allPlayers.Where(mp => !this._playerControls.Any(cp => cp.Model.Name == mp.Name)).ToList();
+        List<Models.Player> missing = allPlayers.Where(mp => !this._playerControls.Any(cp => cp.Model.Name == mp.Name)).ToList();
 
-        var leftover = this._playerControls.Where(cp => !allPlayers.Any(mp => mp.Name == cp.Model.Name)).ToList();
+        List<Player> leftover = this._playerControls.Where(cp => !allPlayers.Any(mp => mp.Name == cp.Model.Name)).ToList();
 
-        foreach (var player in missing)
+        foreach (Models.Player player in missing)
         {
             this._playerControls.Add(new Player(
                 player,
                 this.Configuration.ColumnSizes,
                 this.GetFont,
                 () => this.Configuration.PlayerHeight.Value,
-                this.GetTextColor)
-            {
-                Parent = this
-            });
+                this.GetTextColor) { Parent = this });
         }
 
-        foreach (var player in leftover)
+        foreach (Player player in leftover)
         {
             player?.Dispose();
             this._playerControls?.Remove(player);
@@ -129,7 +117,7 @@ public class OverviewTable : FlowPanel
 
     private void SortTable(List<Models.Player> allPlayers)
     {
-        var sortType = SortingType.Alphabetical;
+        SortingType sortType = SortingType.Alphabetical;
 
         List<Models.Player> sortedPlayers = null;
 
@@ -148,11 +136,18 @@ public class OverviewTable : FlowPanel
 
         this.SortChildren(new Comparison<Player>((a, b) =>
         {
-            var aIndex = sortedPlayers?.IndexOf(a.Model) ?? 0;
-            var bIndex = sortedPlayers?.IndexOf(b.Model) ?? 0;
+            int aIndex = sortedPlayers?.IndexOf(a.Model) ?? 0;
+            int bIndex = sortedPlayers?.IndexOf(b.Model) ?? 0;
 
-            if (aIndex < bIndex) return -1;
-            if (aIndex > bIndex) return 1;
+            if (aIndex < bIndex)
+            {
+                return -1;
+            }
+
+            if (aIndex > bIndex)
+            {
+                return 1;
+            }
 
             return 0;
         }));
@@ -167,13 +162,13 @@ public class OverviewTable : FlowPanel
     //
     // Typparameter:
     //   TControl:
-    public new void SortChildren<TControl>(Comparison<TControl> comparison) where TControl : Blish_HUD.Controls.Control
+    public new void SortChildren<TControl>(Comparison<TControl> comparison) where TControl : Control
     {
-        List<TControl> list = _children.Where(c => c is TControl).Cast<TControl>().ToList();
+        List<TControl> list = this._children.Where(c => c is TControl).Cast<TControl>().ToList();
         list.Sort(comparison);
-        var children = new ControlCollection<Blish_HUD.Controls.Control>(list);
-        children.Insert(0, _children[0]); // Insert header
-        _children = children;
+        ControlCollection<Control> children = new ControlCollection<Control>(list);
+        children.Insert(0, this._children[0]); // Insert header
+        this._children = children;
         this.Invalidate();
     }
 }

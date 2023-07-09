@@ -1,28 +1,25 @@
-﻿namespace Estreya.BlishHUD.Shared.Utils
+﻿namespace Estreya.BlishHUD.Shared.Utils;
+
+using System;
+using System.Diagnostics;
+using System.Linq;
+
+public static class StreamerUtils
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Diagnostics;
-    using System.Linq;
-    using System.Text;
-
-    public static class StreamerUtils
+    public static bool IsStreaming()
     {
-        public static bool IsStreaming()
-        {
-            return IsOBSOpen();
-        }
+        return IsOBSOpen();
+    }
 
-        public static bool IsOBSOpen()
+    public static bool IsOBSOpen()
+    {
+        try
         {
-            try
-            {
-                return Process.GetProcessesByName("obs64").Any();
-            }
-            catch (Exception)
-            {
-                return false;
-            }
+            return Process.GetProcessesByName("obs64").Any();
+        }
+        catch (Exception)
+        {
+            return false;
         }
     }
 }

@@ -3,36 +3,29 @@
 using Blish_HUD;
 using Blish_HUD._Extensions;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.ScrollingCombatText.Models;
-using Estreya.BlishHUD.Shared.Extensions;
-using Humanizer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Models;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
+using Shared.Extensions;
+using Shared.Models.ArcDPS;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Net.WebSockets;
-using System.Threading;
-using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
+using Color = Gw2Sharp.WebApi.V2.Models.Color;
+using Rectangle = Microsoft.Xna.Framework.Rectangle;
 
 public class ScrollingTextArea : Control
 {
+    private const int MAX_CONCURRENT_EVENTS = 1000;
     private static readonly Logger Logger = Logger.GetLogger<ScrollingTextArea>();
 
     private static readonly ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
 
-    private const int MAX_CONCURRENT_EVENTS = 1000;
-
     private readonly SynchronizedCollection<ScrollingTextAreaEvent> _activeEvents = new SynchronizedCollection<ScrollingTextAreaEvent>();
-
-    public new bool Enabled => this.Configuration?.Enabled.Value ?? false;
-
-    public ScrollingTextAreaConfiguration Configuration { get; private set; }
 
     public ScrollingTextArea(ScrollingTextAreaConfiguration configuration)
     {
@@ -48,12 +41,16 @@ public class ScrollingTextArea : Control
         this.Location_SettingChanged(this, null);
         this.Size_SettingChanged(this, null);
         this.Opacity_SettingChanged(this, new ValueChangedEventArgs<float>(0f, this.Configuration.Opacity.Value));
-        this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color>(null, this.Configuration.BackgroundColor.Value));
+        this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Color>(null, this.Configuration.BackgroundColor.Value));
     }
 
-    private void BackgroundColor_SettingChanged(object sender, ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color> e)
+    public new bool Enabled => this.Configuration?.Enabled.Value ?? false;
+
+    public ScrollingTextAreaConfiguration Configuration { get; private set; }
+
+    private void BackgroundColor_SettingChanged(object sender, ValueChangedEventArgs<Color> e)
     {
-        Color backgroundColor = Color.Transparent;
+        Microsoft.Xna.Framework.Color backgroundColor = Microsoft.Xna.Framework.Color.Transparent;
 
         if (e.NewValue != null && e.NewValue.Id != 1)
         {
@@ -65,7 +62,7 @@ public class ScrollingTextArea : Control
 
     private void Opacity_SettingChanged(object sender, ValueChangedEventArgs<float> e)
     {
-        this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Gw2Sharp.WebApi.V2.Models.Color>(null, this.Configuration.BackgroundColor.Value));
+        this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Color>(null, this.Configuration.BackgroundColor.Value));
     }
 
     private void Location_SettingChanged(object sender, ValueChangedEventArgs<int> e)
@@ -78,7 +75,7 @@ public class ScrollingTextArea : Control
         this.Size = new Point(this.Configuration.Size.X.Value, this.Configuration.Size.Y.Value);
     }
 
-    public void AddCombatEvent(Shared.Models.ArcDPS.CombatEvent combatEvent)
+    public void AddCombatEvent(CombatEvent combatEvent)
     {
         if (!this.Enabled || !this.CheckConfiguration(combatEvent))
         {
@@ -94,19 +91,16 @@ public class ScrollingTextArea : Control
                 Logger.Warn($"Rule '{rule.Name}' of area '{this.Configuration.Name}' is invalid. Expect possible errors.");
             }
 
-            BitmapFont font = _fonts.GetOrAdd(rule?.FontSize ?? FontSize.Size16, (fontSize) => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular));
+            BitmapFont font = _fonts.GetOrAdd(rule?.FontSize ?? FontSize.Size16, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular));
 
-            Color textColor = Color.White;
+            Microsoft.Xna.Framework.Color textColor = Microsoft.Xna.Framework.Color.White;
             if (rule?.TextColor != null && rule.TextColor.Id != 1)
             {
                 textColor = rule.TextColor.Cloth.ToXnaColor();
             }
 
             // Width is currently not respected 
-            ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, font, this.Width, this.Configuration.EventHeight.Value)
-            {
-                BaseTextColor = textColor,
-            };
+            ScrollingTextAreaEvent scrollingTextAreaEvent = new ScrollingTextAreaEvent(combatEvent, rule, font, this.Width, this.Configuration.EventHeight.Value) { BaseTextColor = textColor };
 
             scrollingTextAreaEvent.Disposed += this.ScrollingTextAreaEvent_Disposed;
 
@@ -135,11 +129,11 @@ public class ScrollingTextArea : Control
 
     private float DistanceToTime(float timeNow, float actualScrollspeed, float distance)
     {
-        float x = timeNow - (distance - (timeNow * actualScrollspeed)) / -actualScrollspeed;
+        float x = timeNow - ((distance - (timeNow * actualScrollspeed)) / -actualScrollspeed);
         return x;
     }
 
-    private bool CheckConfiguration(Shared.Models.ArcDPS.CombatEvent combatEvent)
+    private bool CheckConfiguration(CombatEvent combatEvent)
     {
         if (this.Configuration.Categories != null && !this.Configuration.Categories.Value.Contains(combatEvent.Category))
         {
@@ -247,7 +241,7 @@ public class ScrollingTextArea : Control
                 float alpha = 1f;
                 if (percentage > 1f - fadeLength)
                 {
-                    alpha = 1 - (percentage - 1f + fadeLength) / fadeLength;
+                    alpha = 1 - ((percentage - 1f + fadeLength) / fadeLength);
                 }
                 //activeEvent.Opacity = alpha;
 
@@ -258,24 +252,20 @@ public class ScrollingTextArea : Control
                     case ScrollingTextAreaCurve.Left:
                         if (activeEvent.Width < this.Width)
                         {
-                            x += (this.Width - activeEvent.Width) * (2 * percentage - 1) * (2 * percentage - 1);
+                            x += (this.Width - activeEvent.Width) * ((2 * percentage) - 1) * ((2 * percentage) - 1);
                         }
 
                         break;
                     case ScrollingTextAreaCurve.Right:
                         if (activeEvent.Width < this.Width)
                         {
-                            x += (this.Width - activeEvent.Width) * (1 - (2 * percentage - 1) * (2 * percentage - 1));
+                            x += (this.Width - activeEvent.Width) * (1 - (((2 * percentage) - 1) * ((2 * percentage) - 1)));
                         }
 
                         break;
                     case ScrollingTextAreaCurve.Straight:
                         break;
-                    default:
-                        break;
                 }
-
-
 
                 RectangleF childBounds = new RectangleF(x, animatedHeight, activeEvent.Width, activeEvent.Height);
                 activeEvent.Render(spriteBatch, childBounds.ToBounds(this.AbsoluteBounds), alpha);
@@ -283,7 +273,7 @@ public class ScrollingTextArea : Control
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex, $"{nameof(Paint)} failed:");
+            Logger.Warn(ex, $"{nameof(this.Paint)} failed:");
         }
     }
 }

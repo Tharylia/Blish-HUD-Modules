@@ -1,145 +1,153 @@
-﻿namespace Estreya.BlishHUD.Shared.Services
+﻿namespace Estreya.BlishHUD.Shared.Services;
+
+using Blish_HUD;
+using Microsoft.Xna.Framework;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+using Threading;
+using Utils;
+
+public abstract class ManagedService : IDisposable
 {
-    using Blish_HUD;
-    using Estreya.BlishHUD.Shared.Threading;
-    using Estreya.BlishHUD.Shared.Utils;
-    using Microsoft.Xna.Framework;
-    using System;
-    using System.Threading;
-    using System.Threading.Tasks;
+    private readonly AsyncRef<double> _lastSaved = new AsyncRef<double>(0);
 
-    public abstract class ManagedService : IDisposable
+    private CancellationTokenSource _cancellationTokenSource;
+    protected Logger Logger;
+
+    protected ManagedService(ServiceConfiguration configuration)
     {
-        protected Logger Logger;
+        this.Logger = Logger.GetLogger(this.GetType());
+        this.Configuration = configuration;
+    }
 
-        private readonly AsyncRef<double> _lastSaved = 0;
+    protected ServiceConfiguration Configuration { get; }
 
-        protected ServiceConfiguration Configuration { get; }
+    protected CancellationToken CancellationToken => this._cancellationTokenSource.Token;
 
-        private CancellationTokenSource _cancellationTokenSource;
+    public bool Running { get; private set; }
+    public bool AwaitLoading => this.Configuration.AwaitLoading;
 
-        protected CancellationToken CancellationToken => this._cancellationTokenSource.Token;
+    public void Dispose()
+    {
+        this.Stop();
+        this.Unload();
+    }
 
-        public bool Running { get; private set; } = false;
-        public bool AwaitLoading => this.Configuration.AwaitLoading;
-
-        protected ManagedService(ServiceConfiguration configuration)
+    public async Task Start()
+    {
+        if (this.Running)
         {
-            this.Logger = Logger.GetLogger(this.GetType());
-            this.Configuration = configuration;
+            this.Logger.Warn("Trying to start, but already running.");
+            return;
         }
 
-        public async Task Start()
+        this.Logger.Debug("Starting state.");
+
+        this._cancellationTokenSource = new CancellationTokenSource();
+
+        await this.Initialize();
+
+        this.Running = true;
+
+        await this.Load();
+    }
+
+    private void Stop()
+    {
+        if (!this.Running)
         {
-            if (this.Running)
-            {
-                Logger.Warn("Trying to start, but already running.");
-                return;
-            }
-
-            Logger.Debug("Starting state.");
-
-            this._cancellationTokenSource = new CancellationTokenSource();
-
-            await this.Initialize();
-
-            this.Running = true;
-
-            await this.Load();
+            this.Logger.Warn("Trying to stop, but not running.");
+            return;
         }
 
-        private void Stop()
+        this.Logger.Debug("Stopping state.");
+
+        this.Running = false;
+    }
+
+    public void Update(GameTime gameTime)
+    {
+        if (!this.Running)
         {
-            if (!this.Running)
-            {
-                Logger.Warn("Trying to stop, but not running.");
-                return;
-            }
-
-            Logger.Debug("Stopping state.");
-
-            this.Running = false;
+            return;
         }
 
-        public void Update(GameTime gameTime)
+        if (this.Configuration.SaveInterval != Timeout.InfiniteTimeSpan)
         {
-            if (!this.Running)
-            {
-                return;
-            }
-
-            if (this.Configuration.SaveInterval != Timeout.InfiniteTimeSpan)
-            {
-                _ = UpdateUtil.UpdateAsync(this.Save, gameTime, this.Configuration.SaveInterval.TotalMilliseconds, this._lastSaved);
-            }
-
-            try
-            {
-                this.InternalUpdate(gameTime);
-            }catch(Exception ex)
-            {
-                Logger.Error(ex,"Failed to update:");
-            }
+            _ = UpdateUtil.UpdateAsync(this.Save, gameTime, this.Configuration.SaveInterval.TotalMilliseconds, this._lastSaved);
         }
 
-        /// <summary>
-        /// Clears and reloads the state
-        /// </summary>
-        /// <returns></returns>
-        public async Task Reload()
+        try
         {
-            if (!this.Running)
-            {
-                Logger.Warn("Trying to reload, but not running.");
-                return;
-            }
-
-            Logger.Debug("Reloading state.");
-
-            this._cancellationTokenSource.Cancel();
-            this._cancellationTokenSource = new CancellationTokenSource();
-
-            await this.Clear();
-            await this.Load();
-
-            await this.InternalReload();
+            this.InternalUpdate(gameTime);
         }
-
-        /// <summary>
-        /// Clears the state and requests further unload from subclasses.
-        /// </summary>
-        private void Unload()
+        catch (Exception ex)
         {
-            if (this._cancellationTokenSource.IsCancellationRequested)
-            {
-                Logger.Warn("Already unloaded.");
-                return;
-            }
-
-            Logger.Debug("Unloading state.");
-
-            this._cancellationTokenSource.Cancel();
-
-            this.InternalUnload();
-        }
-
-        protected abstract Task Initialize();
-        protected abstract Task Load();
-
-        protected virtual Task Save()=> Task.CompletedTask;
-
-        protected abstract void InternalUpdate(GameTime gameTime);
-
-        protected virtual Task InternalReload() => Task.CompletedTask;
-
-        protected virtual Task Clear() => Task.CompletedTask;
-
-        protected abstract void InternalUnload();
-
-        public void Dispose()
-        {
-            this.Stop();
-            this.Unload();
+            this.Logger.Error(ex, "Failed to update:");
         }
     }
+
+    /// <summary>
+    ///     Clears and reloads the state
+    /// </summary>
+    /// <returns></returns>
+    public async Task Reload()
+    {
+        if (!this.Running)
+        {
+            this.Logger.Warn("Trying to reload, but not running.");
+            return;
+        }
+
+        this.Logger.Debug("Reloading state.");
+
+        this._cancellationTokenSource.Cancel();
+        this._cancellationTokenSource = new CancellationTokenSource();
+
+        await this.Clear();
+        await this.Load();
+
+        await this.InternalReload();
+    }
+
+    /// <summary>
+    ///     Clears the state and requests further unload from subclasses.
+    /// </summary>
+    private void Unload()
+    {
+        if (this._cancellationTokenSource.IsCancellationRequested)
+        {
+            this.Logger.Warn("Already unloaded.");
+            return;
+        }
+
+        this.Logger.Debug("Unloading state.");
+
+        this._cancellationTokenSource.Cancel();
+
+        this.InternalUnload();
+    }
+
+    protected abstract Task Initialize();
+    protected abstract Task Load();
+
+    protected virtual Task Save()
+    {
+        return Task.CompletedTask;
+    }
+
+    protected abstract void InternalUpdate(GameTime gameTime);
+
+    protected virtual Task InternalReload()
+    {
+        return Task.CompletedTask;
+    }
+
+    protected virtual Task Clear()
+    {
+        return Task.CompletedTask;
+    }
+
+    protected abstract void InternalUnload();
 }

@@ -2,58 +2,57 @@
 
 using Blish_HUD;
 using Blish_HUD.Controls;
-using Blish_HUD.Controls.Intern;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.EventTable.Models;
-using Estreya.BlishHUD.EventTable.Services;
-using Estreya.BlishHUD.Shared.Controls;
-using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.Shared.Utils;
-using Humanizer;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+using Models;
 using MonoGame.Extended.BitmapFonts;
+using Services;
+using Shared.Controls;
+using Shared.Services;
+using Shared.UI.Views;
+using Shared.Utils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using static Blish_HUD.ContentService;
+using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TextBox;
+using Button = Shared.Controls.Button;
+using Control = Blish_HUD.Controls.Control;
+using HorizontalAlignment = Blish_HUD.Controls.HorizontalAlignment;
+using Label = Blish_HUD.Controls.Label;
 using Menu = Shared.Controls.Menu;
+using MenuItem = Blish_HUD.Controls.MenuItem;
+using Panel = Blish_HUD.Controls.Panel;
+using StandardWindow = Shared.Controls.StandardWindow;
+using TextBox = Blish_HUD.Controls.TextBox;
 
 public class AreaSettingsView : BaseSettingsView
 {
     private const int PADDING_X = 20;
     private const int PADDING_Y = 20;
+    private readonly Func<List<EventCategory>> _allEvents;
 
     private readonly Func<IEnumerable<EventAreaConfiguration>> _areaConfigurationFunc;
-    private readonly Func<List<EventCategory>> _allEvents;
-    private readonly ModuleSettings _moduleSettings;
     private readonly EventStateService _eventStateService;
+    private readonly ModuleSettings _moduleSettings;
     private IEnumerable<EventAreaConfiguration> _areaConfigurations;
-    private Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private Panel _areaPanel;
 
-    private Shared.Controls.StandardWindow _manageEventsWindow;
-    private Shared.Controls.StandardWindow _reorderEventsWindow;
+    private StandardWindow _manageEventsWindow;
+    private Dictionary<string, MenuItem> _menuItems;
+    private StandardWindow _reorderEventsWindow;
 
-    public class AddAreaEventArgs
-    {
-        public string Name { get; set; }
-        public EventAreaConfiguration AreaConfiguration { get; set; }
-    }
-
-    public event EventHandler<AddAreaEventArgs> AddArea;
-    public event EventHandler<EventAreaConfiguration> RemoveArea;
-
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService, BitmapFont font = null) : base(apiManager, iconService , translationService, settingEventService, font)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
         this._moduleSettings = moduleSettings;
         this._eventStateService = eventStateService;
     }
+
+    public event EventHandler<AddAreaEventArgs> AddArea;
+    public event EventHandler<EventAreaConfiguration> RemoveArea;
 
     private void LoadConfigurations()
     {
@@ -62,6 +61,8 @@ public class AreaSettingsView : BaseSettingsView
 
     protected override void BuildView(FlowPanel parent)
     {
+        this._menuItems = new Dictionary<string, MenuItem>();
+
         this.LoadConfigurations();
 
         Panel newParent = this.GetPanel(parent.Parent);
@@ -70,7 +71,7 @@ public class AreaSettingsView : BaseSettingsView
         newParent.HeightSizingMode = parent.HeightSizingMode;
         newParent.WidthSizingMode = parent.WidthSizingMode;
 
-        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, newParent.ContentRegion.Width - PADDING_X, newParent.ContentRegion.Height - PADDING_Y * 2);
+        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, newParent.ContentRegion.Width - PADDING_X, newParent.ContentRegion.Height - (PADDING_Y * 2));
 
         Panel areaOverviewPanel = this.GetPanel(newParent);
         areaOverviewPanel.ShowBorder = true;
@@ -80,7 +81,7 @@ public class AreaSettingsView : BaseSettingsView
         areaOverviewPanel.Location = new Point(bounds.X, bounds.Y);
         areaOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X - 75, bounds.Height - StandardButton.STANDARD_CONTROL_HEIGHT);
 
-        Shared.Controls.Menu areaOverviewMenu = new Shared.Controls.Menu
+        Menu areaOverviewMenu = new Menu
         {
             Parent = areaOverviewPanel,
             WidthSizingMode = SizingMode.Fill
@@ -128,11 +129,12 @@ public class AreaSettingsView : BaseSettingsView
 
         if (this._menuItems.Count > 0)
         {
-            var menuItem = this._menuItems.First();
+            KeyValuePair<string, MenuItem> menuItem = this._menuItems.First();
             EventAreaConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
             this.BuildEditPanel(newParent, areaPanelBounds, menuItem.Value, areaConfiguration);
         }
     }
+
     private void CreateAreaPanel(Panel parent, Rectangle bounds)
     {
         this.ClearAreaPanel();
@@ -152,7 +154,7 @@ public class AreaSettingsView : BaseSettingsView
 
         Rectangle panelBounds = this._areaPanel.ContentRegion;
 
-        TextBox areaName = new TextBox()
+        TextBox areaName = new TextBox
         {
             Parent = this._areaPanel,
             Location = new Point(20, 20),
@@ -171,10 +173,7 @@ public class AreaSettingsView : BaseSettingsView
                     return;
                 }
 
-                AddAreaEventArgs addAreaEventArgs = new AddAreaEventArgs()
-                {
-                    Name = name
-                };
+                AddAreaEventArgs addAreaEventArgs = new AddAreaEventArgs { Name = name };
 
                 this.AddArea?.Invoke(this, addAreaEventArgs);
 
@@ -199,7 +198,7 @@ public class AreaSettingsView : BaseSettingsView
 
         areaName.TextChanged += (s, e) =>
         {
-            var textBox = s as TextBox;
+            TextBox textBox = s as TextBox;
             saveButton.Enabled = !string.IsNullOrWhiteSpace(textBox.Text);
         };
 
@@ -210,7 +209,7 @@ public class AreaSettingsView : BaseSettingsView
         cancelButton.Right = saveButton.Left - 10;
         cancelButton.Bottom = panelBounds.Bottom - 20;
 
-        areaName.Width = (panelBounds.Right - 20) - areaName.Left;
+        areaName.Width = panelBounds.Right - 20 - areaName.Left;
     }
 
     private void BuildEditPanel(Panel parent, Rectangle bounds, MenuItem menuItem, EventAreaConfiguration areaConfiguration)
@@ -224,17 +223,17 @@ public class AreaSettingsView : BaseSettingsView
 
         Rectangle panelBounds = new Rectangle(this._areaPanel.ContentRegion.Location, new Point(this._areaPanel.ContentRegion.Size.X - 50, this._areaPanel.ContentRegion.Size.Y));
 
-        Label areaName = new Label()
+        Label areaName = new Label
         {
             Location = new Point(20, 20),
             Parent = this._areaPanel,
             Font = GameService.Content.DefaultFont18,
             AutoSizeHeight = true,
             Text = areaConfiguration.Name,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
         };
 
-        FlowPanel settingsPanel = new FlowPanel()
+        FlowPanel settingsPanel = new FlowPanel
         {
             Left = areaName.Left,
             Top = areaName.Bottom + 50,
@@ -275,9 +274,9 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
-        var lastAdded = settingsPanel.Children.Last();
+        Control lastAdded = settingsPanel.Children.Last();
 
-        var manageEventsButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-manageEvents-btn", "Manage Events"), () =>
+        Button manageEventsButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-manageEvents-btn", "Manage Events"), () =>
         {
             this.ManageEvents(areaConfiguration);
         });
@@ -285,7 +284,7 @@ public class AreaSettingsView : BaseSettingsView
         manageEventsButton.Top = areaName.Top;
         manageEventsButton.Left = settingsPanel.Left;
 
-        var reorderEventsButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-reorderEvents-btn", "Reorder Events"), () =>
+        Button reorderEventsButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-reorderEvents-btn", "Reorder Events"), () =>
         {
             this.ReorderEvents(areaConfiguration);
         });
@@ -295,22 +294,22 @@ public class AreaSettingsView : BaseSettingsView
 
         Button removeButton = this.RenderButtonAsync(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-remove-btn", "Remove"), async () =>
         {
-            var dialog = new ConfirmDialog(
-                    $"Delete Event Area \"{areaConfiguration.Name}\"", $"Your are in the process of deleting the event area \"{areaConfiguration.Name}\".\nThis action will delete all settings.\n\nContinue?",
-                    this.IconService,
-                    new[]
-                    {
-                        new ButtonDefinition("Yes", System.Windows.Forms.DialogResult.Yes),
-                        new ButtonDefinition("No", System.Windows.Forms.DialogResult.No)
-                    })
-            {
-                SelectedButtonIndex = 1
-            };
+            ConfirmDialog dialog = new ConfirmDialog(
+                $"Delete Event Area \"{areaConfiguration.Name}\"", $"Your are in the process of deleting the event area \"{areaConfiguration.Name}\".\nThis action will delete all settings.\n\nContinue?",
+                this.IconService,
+                new[]
+                {
+                    new ButtonDefinition("Yes", DialogResult.Yes),
+                    new ButtonDefinition("No", DialogResult.No)
+                }) { SelectedButtonIndex = 1 };
 
-            var result = await dialog.ShowDialog();
+            DialogResult result = await dialog.ShowDialog();
             dialog.Dispose();
 
-            if (result != System.Windows.Forms.DialogResult.Yes) return;
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
 
             this.RemoveArea?.Invoke(this, areaConfiguration);
             Menu menu = menuItem.Parent as Menu;
@@ -329,7 +328,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void RenderGeneralSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -350,7 +349,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void RenderLocationAndSizeSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -375,7 +374,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void RenderLayoutSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -401,7 +400,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void RenderVisibilitySettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -426,7 +425,7 @@ public class AreaSettingsView : BaseSettingsView
 
     private void RenderTextAndColorSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -469,9 +468,10 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
+
     private void RenderBehaviourSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -486,7 +486,38 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.LeftClickAction);
         this.RenderBoolSetting(groupPanel, areaConfiguration.AcceptWaypointPrompt);
-        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTooltips);
+
+        this.RenderEmptyLine(groupPanel);
+
+        FlowPanel tooltipOptionGroup = new FlowPanel
+        {
+            Parent = groupPanel,
+            Width = groupPanel.ContentRegion.Width,
+            HeightSizingMode = SizingMode.AutoSize,
+            OuterControlPadding = new Vector2(10, 20),
+            ShowBorder = true,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom
+        };
+
+        this.RenderBoolSetting(tooltipOptionGroup, areaConfiguration.ShowTooltips);
+
+        this.RenderEmptyLine(tooltipOptionGroup);
+
+        this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventAbsoluteTimeFormatString);
+        FormattedLabel lbl = new FormattedLabelBuilder().SetWidth(tooltipOptionGroup.ContentRegion.Width - 20).AutoSizeHeight().Wrap()
+                                                        .CreatePart(this.TranslationService.GetTranslation("areaSettingsView-tooltipOptionGroup-absoluteTimeFormatExamples", "Examples:\n24-Hour: HH\\:mm\n12-Hour: hh\\:mm tt"), builder =>
+                                                        {
+                                                            builder.MakeBold().SetFontSize(ContentService.FontSize.Size16);
+                                                        }).Build();
+        lbl.Parent = tooltipOptionGroup;
+
+        this.RenderEmptyLine(tooltipOptionGroup);
+
+        this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanDaysFormatString);
+        this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanHoursFormatString);
+        this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanMinutesFormatString);
+
+        this.RenderEmptyLine(tooltipOptionGroup, 20);
 
         this.RenderEmptyLine(groupPanel);
 
@@ -511,9 +542,10 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
+
     private void RenderFillerSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
-        FlowPanel groupPanel = new FlowPanel()
+        FlowPanel groupPanel = new FlowPanel
         {
             Parent = settingsPanel,
             HeightSizingMode = SizingMode.AutoSize,
@@ -542,16 +574,16 @@ public class AreaSettingsView : BaseSettingsView
     {
         this._reorderEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Reorder Events", this.GetType(), Guid.Parse("b5cbbd99-f02d-4229-8dda-869b42ac242e"), this.IconService);
 
-        if (_reorderEventsWindow.CurrentView != null)
+        if (this._reorderEventsWindow.CurrentView != null)
         {
-            var reorderEventView = _reorderEventsWindow.CurrentView as ReorderEventsView;
+            ReorderEventsView reorderEventView = this._reorderEventsWindow.CurrentView as ReorderEventsView;
             reorderEventView.SaveClicked -= this.ReorderView_SaveClicked;
         }
 
-        var view = new ReorderEventsView(this._allEvents(), configuration.EventOrder.Value, configuration, this.APIManager, this.IconService, this.TranslationService);
+        ReorderEventsView view = new ReorderEventsView(this._allEvents(), configuration.EventOrder.Value, configuration, this.APIManager, this.IconService, this.TranslationService);
         view.SaveClicked += this.ReorderView_SaveClicked;
 
-        _reorderEventsWindow.Show(view);
+        this._reorderEventsWindow.Show(view);
     }
 
     private void ReorderView_SaveClicked(object sender, (EventAreaConfiguration AreaConfiguration, string[] CategoryKeys) e)
@@ -563,24 +595,25 @@ public class AreaSettingsView : BaseSettingsView
     {
         this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
 
-        if (_manageEventsWindow.CurrentView != null)
+        if (this._manageEventsWindow.CurrentView != null)
         {
-            var manageEventView = _manageEventsWindow.CurrentView as ManageEventsView;
+            ManageEventsView manageEventView = this._manageEventsWindow.CurrentView as ManageEventsView;
             manageEventView.EventChanged -= this.ManageView_EventChanged;
         }
 
-        var view = new ManageEventsView(this._allEvents(), new Dictionary<string, object>() {
+        ManageEventsView view = new ManageEventsView(this._allEvents(), new Dictionary<string, object>
+        {
             { "configuration", configuration },
-            { "hiddenEventKeys",  this._eventStateService.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventStateService.EventStates.Hidden).Select(x => x.EventKey).ToList() }
+            { "hiddenEventKeys", this._eventStateService.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventStateService.EventStates.Hidden).Select(x => x.EventKey).ToList() }
         }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this.APIManager, this.IconService, this.TranslationService);
         view.EventChanged += this.ManageView_EventChanged;
 
-        _manageEventsWindow.Show(view);
+        this._manageEventsWindow.Show(view);
     }
 
     private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
-        var configuration = e.AdditionalData["configuration"] as EventAreaConfiguration;
+        EventAreaConfiguration configuration = e.AdditionalData["configuration"] as EventAreaConfiguration;
         configuration.DisabledEventKeys.Value = e.NewService
             ? new List<string>(configuration.DisabledEventKeys.Value.Where(aek => aek != e.EventSettingKey))
             : new List<string>(configuration.DisabledEventKeys.Value) { e.EventSettingKey };
@@ -615,6 +648,11 @@ public class AreaSettingsView : BaseSettingsView
 
         this._reorderEventsWindow?.Dispose();
         this._reorderEventsWindow = null;
+    }
 
+    public class AddAreaEventArgs
+    {
+        public string Name { get; set; }
+        public EventAreaConfiguration AreaConfiguration { get; set; }
     }
 }

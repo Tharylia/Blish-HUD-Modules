@@ -1,16 +1,10 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.GW2API.Commerce;
 
 using Blish_HUD;
-using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Shared.Models.GW2API.Items;
 using Humanizer;
-using Microsoft.Xna.Framework.Media;
+using Items;
 using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 public class Transaction
 {
@@ -26,8 +20,7 @@ public class Transaction
 
     public TransactionType Type { get; set; }
 
-    [JsonIgnore]
-    public Item Item { get; set; }
+    [JsonIgnore] public Item Item { get; set; }
 
     public override string ToString()
     {
@@ -44,11 +37,11 @@ public class Transaction
         unchecked // Overflow is fine, just wrap
         {
             int hash = 17;
-            hash = hash * 23 + this.ItemId.GetHashCode();
-            hash = hash * 23 + this.Price.GetHashCode();
-            hash = hash * 23 + this.Quantity.GetHashCode();
-            hash = hash * 23 + this.Created.GetHashCode();
-            hash = hash * 23 + this.Type.GetHashCode();
+            hash = (hash * 23) + this.ItemId.GetHashCode();
+            hash = (hash * 23) + this.Price.GetHashCode();
+            hash = (hash * 23) + this.Quantity.GetHashCode();
+            hash = (hash * 23) + this.Created.GetHashCode();
+            hash = (hash * 23) + this.Type.GetHashCode();
             return hash;
         }
     }

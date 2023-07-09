@@ -1,16 +1,12 @@
 ﻿namespace Estreya.BlishHUD.Shared.Utils;
 
 using Blish_HUD;
-using Estreya.BlishHUD.Shared.Extensions;
+using Extensions;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using System.Xml;
 
 public static class WindowsUtil
@@ -19,28 +15,28 @@ public static class WindowsUtil
 
     public static async Task<string> GetDxDiagInformation()
     {
-        var psi = new ProcessStartInfo();
+        ProcessStartInfo psi = new ProcessStartInfo();
         if (IntPtr.Size == 4 && Environment.Is64BitOperatingSystem)
         {
             // Need to run the 64-bit version
-            psi.FileName = System.IO.Path.Combine(
+            psi.FileName = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.Windows),
                 "sysnative\\dxdiag.exe");
         }
         else
         {
             // Okay with the native version
-            psi.FileName = System.IO.Path.Combine(
+            psi.FileName = Path.Combine(
                 Environment.SystemDirectory,
                 "dxdiag.exe");
         }
 
-        string path = System.IO.Path.GetTempFileName();
+        string path = Path.GetTempFileName();
 
         try
         {
             psi.Arguments = "/x " + path;
-            using (var prc = Process.Start(psi))
+            using (Process prc = Process.Start(psi))
             {
                 await prc.WaitForExitAsync();
 
@@ -53,7 +49,7 @@ public static class WindowsUtil
 
             StringBuilder stringBuilder = new StringBuilder();
 
-            var dxDiagContent = System.IO.File.ReadAllText(path);
+            string dxDiagContent = File.ReadAllText(path);
 
             XmlDocument doc = new XmlDocument();
             doc.LoadXml(dxDiagContent);
@@ -61,7 +57,7 @@ public static class WindowsUtil
             stringBuilder.AppendLine("**---System Information---**");
             stringBuilder.AppendLine();
 
-            var systemInformationNode = doc.DocumentElement.SelectSingleNode("/DxDiag/SystemInformation");
+            XmlNode systemInformationNode = doc.DocumentElement.SelectSingleNode("/DxDiag/SystemInformation");
             foreach (XmlNode systemInformationChildNode in systemInformationNode.ChildNodes)
             {
                 stringBuilder.AppendLine($"**{systemInformationChildNode.Name}**: {systemInformationChildNode.InnerText}");
@@ -71,10 +67,10 @@ public static class WindowsUtil
             stringBuilder.AppendLine("**---Display Devices---**");
             stringBuilder.AppendLine();
 
-            var displayDeviceNodes = doc.DocumentElement.SelectNodes("/DxDiag/DisplayDevices/DisplayDevice");
+            XmlNodeList displayDeviceNodes = doc.DocumentElement.SelectNodes("/DxDiag/DisplayDevices/DisplayDevice");
             for (int i = 0; i < displayDeviceNodes.Count; i++)
             {
-                var displayDeviceNode = displayDeviceNodes.Item(i);
+                XmlNode displayDeviceNode = displayDeviceNodes.Item(i);
 
                 foreach (XmlNode displayDeviceChildNode in displayDeviceNode.ChildNodes)
                 {
@@ -93,7 +89,7 @@ public static class WindowsUtil
         }
         finally
         {
-            System.IO.File.Delete(path);
+            File.Delete(path);
         }
     }
 }

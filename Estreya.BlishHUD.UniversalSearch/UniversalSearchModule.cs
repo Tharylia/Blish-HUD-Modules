@@ -5,41 +5,45 @@ using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules;
 using Blish_HUD.Settings;
-using Estreya.BlishHUD.Shared.Extensions;
-using Estreya.BlishHUD.Shared.Json.Converter;
-using Estreya.BlishHUD.Shared.Modules;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.Settings;
-using Estreya.BlishHUD.Shared.Utils;
-using Estreya.BlishHUD.UniversalSearch.Controls;
-using Estreya.BlishHUD.UniversalSearch.Services.SearchHandlers;
-using Estreya.BlishHUD.UniversalSearch.UI.Views;
+using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Newtonsoft.Json;
+using Services.SearchHandlers;
+using Shared.Models.GW2API.PointOfInterest;
+using Shared.Models.GW2API.Skills;
+using Shared.Modules;
+using Shared.Services;
+using Shared.Settings;
+using Shared.Utils;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using UI.Views;
+using UI.Views.Settings;
+using Skill = Shared.Models.GW2API.Skills.Skill;
+using StandardWindow = Shared.Controls.StandardWindow;
+using TabbedWindow = Shared.Controls.TabbedWindow;
 
-[Export(typeof(Blish_HUD.Modules.Module))]
+[Export(typeof(Module))]
 public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSettings>
 {
+    private AchievementSearchHandler _achievementSearchHandler;
+
+    private LandmarkSearchHandler _landmarkSearchHandler;
+
+    private StandardWindow _searchWindow;
+    private SkillSearchHandler _skillSearchHandler;
+    private TraitSearchHandler _traitSearchHandler;
+
     [ImportingConstructor]
     public UniversalSearchModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
     public override string UrlModuleName => "universal-search";
 
     protected override string API_VERSION_NO => "1";
-
-    private LandmarkSearchHandler _landmarkSearchHandler;
-    private SkillSearchHandler _skillSearchHandler;
-    private TraitSearchHandler _traitSearchHandler;
-    private AchievementSearchHandler _achievementSearchHandler;
-
-    private Shared.Controls.StandardWindow _searchWindow;
 
     protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
     {
@@ -51,7 +55,10 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
         return this.IconService.GetIcon("358373.png");
     }
 
-    protected override string GetDirectoryName() => "universal_search";
+    protected override string GetDirectoryName()
+    {
+        return "universal_search";
+    }
 
     protected override AsyncTexture2D GetEmblem()
     {
@@ -67,13 +74,13 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
 
     private void InitializeSearchHandlers()
     {
-        this._landmarkSearchHandler = new LandmarkSearchHandler(new List<Shared.Models.GW2API.PointOfInterest.PointOfInterest>(), this.ModuleSettings.AddSearchHandler("landmarks", "Landmarks"), this.IconService);
+        this._landmarkSearchHandler = new LandmarkSearchHandler(new List<PointOfInterest>(), this.ModuleSettings.AddSearchHandler("landmarks", "Landmarks"), this.IconService);
 
-        this._skillSearchHandler = new SkillSearchHandler(new List<Shared.Models.GW2API.Skills.Skill>(), this.ModuleSettings.AddSearchHandler("skills", "Skills"), this.IconService);
+        this._skillSearchHandler = new SkillSearchHandler(new List<Skill>(), this.ModuleSettings.AddSearchHandler("skills", "Skills"), this.IconService);
 
-        this._traitSearchHandler = new TraitSearchHandler(new List<Gw2Sharp.WebApi.V2.Models.Trait>(), this.ModuleSettings.AddSearchHandler("traits", "Traits"), this.IconService);
+        this._traitSearchHandler = new TraitSearchHandler(new List<Trait>(), this.ModuleSettings.AddSearchHandler("traits", "Traits"), this.IconService);
 
-        this._achievementSearchHandler = new AchievementSearchHandler(new List<Gw2Sharp.WebApi.V2.Models.Achievement>(), this.ModuleSettings.AddSearchHandler("achievements", "Achievements"), this.IconService);
+        this._achievementSearchHandler = new AchievementSearchHandler(new List<Achievement>(), this.ModuleSettings.AddSearchHandler("achievements", "Achievements"), this.IconService);
     }
 
     private async Task LoadSearchHandlers()
@@ -86,7 +93,10 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
             {
                 this.ReportLoading("traits", null);
 
-                if (t.IsFaulted) throw t.Exception;
+                if (t.IsFaulted)
+                {
+                    throw t.Exception;
+                }
 
                 this._traitSearchHandler.UpdateSearchItems(t.Result);
             });
@@ -110,7 +120,7 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
             this._searchWindow = WindowUtil.CreateStandardWindow(this.ModuleSettings, "Universal Search", this.GetType(), Guid.Parse("090afc97-559c-4f1d-8196-0b77f5d0a9c9"), this.IconService, this.IconService.GetIcon("358373.png"));
 
             this._searchWindow.Parent = GameService.Graphics.SpriteScreen;
-            this._searchWindow.Location = GameService.Graphics.SpriteScreen.Size / new Point(2) - new Point(256, 178) / new Point(2);
+            this._searchWindow.Location = (GameService.Graphics.SpriteScreen.Size / new Point(2)) - (new Point(256, 178) / new Point(2));
             this._searchWindow.SavesPosition = true;
             this._searchWindow.SavesSize = true;
             this._searchWindow.CanResize = true;
@@ -127,22 +137,25 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
 
     private void SearchWindow_Hidden(object sender, EventArgs e)
     {
-        if (!this.ShowUI) return; // Window was not closed by user
+        if (!this.ShowUI)
+        {
+            return; // Window was not closed by user
+        }
 
         this.ModuleSettings.GlobalDrawerVisible.Value = false;
     }
 
     private void UpdateSearchWindowView()
     {
-        if (_searchWindow != null && _searchWindow.CurrentView is SearchWindowView swv)
+        if (this._searchWindow != null && this._searchWindow.CurrentView is SearchWindowView swv)
         {
             swv.RequestClose -= this.View_RequestClose;
         }
 
-        var view = new SearchWindowView(this.GetSearchHandlers(), this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        SearchWindowView view = new SearchWindowView(this.GetSearchHandlers(), this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         view.RequestClose += this.View_RequestClose;
 
-        _searchWindow.SetView(view);
+        this._searchWindow.SetView(view);
     }
 
     private void SearchWindowEmblem_TextureSwapped(object sender, ValueChangedEventArgs<Texture2D> e)
@@ -164,14 +177,14 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
         this._achievementSearchHandler.UpdateSearchItems(this.AchievementService.Achievements);
     }
 
-    private void PointOfInterestState_Updated(object sender, System.EventArgs e)
+    private void PointOfInterestState_Updated(object sender, EventArgs e)
     {
         this._landmarkSearchHandler.UpdateSearchItems(this.PointOfInterestService.PointOfInterests.ToArray().ToList());
     }
 
-    private void SkillState_Updated(object sender, System.EventArgs e)
+    private void SkillState_Updated(object sender, EventArgs e)
     {
-        this._skillSearchHandler.UpdateSearchItems(this.SkillService.Skills.Where(s => s.Category == Shared.Models.GW2API.Skills.SkillCategory.Skill).ToList());
+        this._skillSearchHandler.UpdateSearchItems(this.SkillService.Skills.Where(s => s.Category == SkillCategory.Skill).ToList());
     }
 
     protected override void ConfigureServices(ServiceConfigurations configurations)
@@ -202,13 +215,13 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
         };
     }
 
-    protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
+    protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
     {
-        var generalSettingsView = new UI.Views.Settings.GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        GeneralSettingsView generalSettingsView = new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         generalSettingsView.ReloadServicesRequested += this.GeneralSettingsView_ReloadServicesRequested;
 
         settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => generalSettingsView, "General"));
-        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => new UI.Views.Settings.SearchHandlerSettingsView(() => this.GetSearchHandlers().Select(s => s.Configuration), this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Search Handler"));
+        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => new SearchHandlerSettingsView(() => this.GetSearchHandlers().Select(s => s.Configuration), this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Search Handler"));
     }
 
     private async Task GeneralSettingsView_ReloadServicesRequested(object sender)
@@ -218,7 +231,10 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
 
     private void ToggleWindow(bool show)
     {
-        if (this._searchWindow == null) return;
+        if (this._searchWindow == null)
+        {
+            return;
+        }
 
         if (!this.ModuleSettings.GlobalDrawerVisible.Value)
         {
@@ -255,7 +271,6 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
 
     protected override void Unload()
     {
-
         //this.SkillState.Updated -= this.SkillState_Updated;
         if (this.PointOfInterestService != null)
         {
@@ -267,24 +282,26 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
             this.AchievementService.Updated -= this.AchievementService_Updated;
         }
 
-        if (_searchWindow != null)
+        if (this._searchWindow != null)
         {
             this._searchWindow.Hidden -= this.SearchWindow_Hidden;
 
-            if (_searchWindow.CurrentView is SearchWindowView swv)
+            if (this._searchWindow.CurrentView is SearchWindowView swv)
             {
                 swv.RequestClose -= this.View_RequestClose;
             }
         }
 
-        _searchWindow?.Dispose();
-        _searchWindow = null;
+        this._searchWindow?.Dispose();
+        this._searchWindow = null;
 
-        foreach (var searchHandler in this.GetSearchHandlers())
+        foreach (SearchHandler searchHandler in this.GetSearchHandlers())
         {
             searchHandler?.Dispose();
         }
 
         base.Unload();
     }
+
+    protected override int CornerIconPriority => 1_289_351_274;
 }

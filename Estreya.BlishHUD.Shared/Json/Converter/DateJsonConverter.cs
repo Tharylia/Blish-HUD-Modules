@@ -1,12 +1,11 @@
-﻿namespace Estreya.BlishHUD.Shared.Json.Converter
-{
-    using Newtonsoft.Json.Converters;
+﻿namespace Estreya.BlishHUD.Shared.Json.Converter;
 
-    public class DateJsonConverter : IsoDateTimeConverter
+using Newtonsoft.Json.Converters;
+
+public class DateJsonConverter : IsoDateTimeConverter
+{
+    public DateJsonConverter()
     {
-        public DateJsonConverter()
-        {
-            this.DateTimeFormat = "yyyy-MM-dd";
-        }
+        this.DateTimeFormat = "yyyy-MM-dd";
     }
 }

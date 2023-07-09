@@ -1,32 +1,35 @@
 ﻿namespace Estreya.BlishHUD.Shared.Controls;
-using System.Collections.Generic;
-using System.Linq;
+
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
-using Estreya.BlishHUD.Shared.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Models;
+using System.Collections.Generic;
+using System.Linq;
 
 public class ControlMover : Control, IWindow
 {
-
     // This is all very kludgy.  I wouldn't use it as a reference for anything.
 
     private const int HANDLE_SIZE = 40;
 
     private readonly SpriteBatchParameters _clearDrawParameters;
+    private readonly string _description;
+
+    private readonly Texture2D _handleTexture;
 
     private readonly ScreenRegion[] _screenRegions;
 
-    private ScreenRegion _activeScreenRegion = null;
+    private ScreenRegion _activeScreenRegion;
 
     private Point _grabPosition = Point.Zero;
 
-    private readonly Texture2D _handleTexture;
-    private readonly string _description;
-
-    public ControlMover(string description, Texture2D handleTexture, params ScreenRegion[] screenPositions) : this(description, screenPositions.ToList(), handleTexture) { /* NOOP */ }
+    public ControlMover(string description, Texture2D handleTexture, params ScreenRegion[] screenPositions) : this(description, screenPositions.ToList(), handleTexture)
+    {
+        /* NOOP */
+    }
 
     public ControlMover(string description, IEnumerable<ScreenRegion> screenPositions, Texture2D handleTexture)
     {
@@ -34,51 +37,67 @@ public class ControlMover : Control, IWindow
 
         this.ZIndex = int.MaxValue - 10;
 
-        _clearDrawParameters = new SpriteBatchParameters(SpriteSortMode.Deferred, BlendState.Opaque);
-        _screenRegions = screenPositions.ToArray();
+        this._clearDrawParameters = new SpriteBatchParameters(SpriteSortMode.Deferred, BlendState.Opaque);
+        this._screenRegions = screenPositions.ToArray();
 
-        _handleTexture = handleTexture;
+        this._handleTexture = handleTexture;
         this._description = description;
     }
 
+    public override void Hide()
+    {
+        this.Dispose();
+    }
+
+    public void BringWindowToFront()
+    {
+        /* NOOP */
+    }
+
+    public bool TopMost => true;
+    public double LastInteraction { get; }
+    public bool CanClose => true;
+
+    public bool CanCloseWithEscape => true;
+
     protected override void OnLeftMouseButtonPressed(MouseEventArgs e)
     {
-        if (_activeScreenRegion == null)
+        if (this._activeScreenRegion == null)
         {
             // Only start drag if we were moused over one.
             return;
         }
 
-        _grabPosition = this.RelativeMousePosition;
+        this._grabPosition = this.RelativeMousePosition;
     }
 
     protected override void OnLeftMouseButtonReleased(MouseEventArgs e)
     {
-        _grabPosition = Point.Zero;
+        this._grabPosition = Point.Zero;
     }
 
     protected override void OnMouseMoved(MouseEventArgs e)
     {
-        if (_grabPosition != Point.Zero && _activeScreenRegion != null)
+        if (this._grabPosition != Point.Zero && this._activeScreenRegion != null)
         {
-            var lastPos = _grabPosition;
-            _grabPosition = this.RelativeMousePosition;
+            Point lastPos = this._grabPosition;
+            this._grabPosition = this.RelativeMousePosition;
 
-            _activeScreenRegion.Location += (_grabPosition - lastPos);
+            this._activeScreenRegion.Location += this._grabPosition - lastPos;
         }
         else
         {
             // Update which screen region the mouse is over.
-            foreach (var region in _screenRegions)
+            foreach (ScreenRegion region in this._screenRegions)
             {
                 if (region.Bounds.Contains(this.RelativeMousePosition))
                 {
-                    _activeScreenRegion = region;
+                    this._activeScreenRegion = region;
                     return;
                 }
             }
 
-            _activeScreenRegion = null;
+            this._activeScreenRegion = null;
         }
     }
 
@@ -86,9 +105,9 @@ public class ControlMover : Control, IWindow
     {
         spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, bounds, Color.Black * 0.8f);
         spriteBatch.End();
-        spriteBatch.Begin(_clearDrawParameters);
+        spriteBatch.Begin(this._clearDrawParameters);
 
-        foreach (var region in _screenRegions)
+        foreach (ScreenRegion region in this._screenRegions)
         {
             spriteBatch.DrawOnCtrl(this, ContentService.Textures.TransparentPixel, region.Bounds, Color.Transparent);
         }
@@ -96,17 +115,17 @@ public class ControlMover : Control, IWindow
         spriteBatch.End();
         spriteBatch.Begin(this.SpriteBatchParameters);
 
-        foreach (var region in _screenRegions)
+        foreach (ScreenRegion region in this._screenRegions)
         {
-            if (region == _activeScreenRegion)
+            if (region == this._activeScreenRegion)
             {
                 spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(region.Location, region.Size), Color.White * 0.5f);
             }
 
-            spriteBatch.DrawOnCtrl(this, _handleTexture, new Rectangle(region.Bounds.Left, region.Bounds.Top, HANDLE_SIZE, HANDLE_SIZE), _handleTexture.Bounds, Color.White * 0.6f);
-            spriteBatch.DrawOnCtrl(this, _handleTexture, new Rectangle(region.Bounds.Right - HANDLE_SIZE / 2, region.Bounds.Top + HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE), _handleTexture.Bounds, Color.White * 0.6f, MathHelper.PiOver2, new Vector2(HANDLE_SIZE / 2f, HANDLE_SIZE / 2f));
-            spriteBatch.DrawOnCtrl(this, _handleTexture, new Rectangle(region.Bounds.Left + HANDLE_SIZE / 2, region.Bounds.Bottom - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE), _handleTexture.Bounds, Color.White * 0.6f, MathHelper.PiOver2 * 3, new Vector2(HANDLE_SIZE / 2f, HANDLE_SIZE / 2f));
-            spriteBatch.DrawOnCtrl(this, _handleTexture, new Rectangle(region.Bounds.Right - HANDLE_SIZE / 2, region.Bounds.Bottom - HANDLE_SIZE / 2, HANDLE_SIZE, HANDLE_SIZE), _handleTexture.Bounds, Color.White * 0.6f, MathHelper.Pi, new Vector2(HANDLE_SIZE / 2f, HANDLE_SIZE / 2f));
+            spriteBatch.DrawOnCtrl(this, this._handleTexture, new Rectangle(region.Bounds.Left, region.Bounds.Top, HANDLE_SIZE, HANDLE_SIZE), this._handleTexture.Bounds, Color.White * 0.6f);
+            spriteBatch.DrawOnCtrl(this, this._handleTexture, new Rectangle(region.Bounds.Right - (HANDLE_SIZE / 2), region.Bounds.Top + (HANDLE_SIZE / 2), HANDLE_SIZE, HANDLE_SIZE), this._handleTexture.Bounds, Color.White * 0.6f, MathHelper.PiOver2, new Vector2(HANDLE_SIZE / 2f, HANDLE_SIZE / 2f));
+            spriteBatch.DrawOnCtrl(this, this._handleTexture, new Rectangle(region.Bounds.Left + (HANDLE_SIZE / 2), region.Bounds.Bottom - (HANDLE_SIZE / 2), HANDLE_SIZE, HANDLE_SIZE), this._handleTexture.Bounds, Color.White * 0.6f, MathHelper.PiOver2 * 3, new Vector2(HANDLE_SIZE / 2f, HANDLE_SIZE / 2f));
+            spriteBatch.DrawOnCtrl(this, this._handleTexture, new Rectangle(region.Bounds.Right - (HANDLE_SIZE / 2), region.Bounds.Bottom - (HANDLE_SIZE / 2), HANDLE_SIZE, HANDLE_SIZE), this._handleTexture.Bounds, Color.White * 0.6f, MathHelper.Pi, new Vector2(HANDLE_SIZE / 2f, HANDLE_SIZE / 2f));
 
             //spriteBatch.DrawStringOnCtrl(this,
             //                             region.RegionName,
@@ -119,18 +138,4 @@ public class ControlMover : Control, IWindow
 
         spriteBatch.DrawStringOnCtrl(this, $"{(!string.IsNullOrWhiteSpace(this._description) ? this._description + "\n" : "Press ESC to close.")}", GameService.Content.DefaultFont32, bounds, Color.White, false, HorizontalAlignment.Center);
     }
-
-    public override void Hide()
-    {
-        this.Dispose();
-    }
-
-    public void BringWindowToFront() { /* NOOP */ }
-
-    public bool TopMost => true;
-    public double LastInteraction { get; }
-    public bool CanClose => true;
-
-    public bool CanCloseWithEscape => true;
-
 }

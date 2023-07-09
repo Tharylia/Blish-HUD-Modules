@@ -1,50 +1,50 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-<PropertyGroup>
-		<TargetFramework>net48</TargetFramework>
-		<AssemblyVersion>1.0.0.0</AssemblyVersion>
-		<FileVersion>1.0.0.0</FileVersion>
-		<LangVersion>latest</LangVersion>
-		<NeutralLanguage>en</NeutralLanguage>
-		<PlatformTarget>x64</PlatformTarget>
-		<SignAssembly>False</SignAssembly>
-		<AssemblyOriginatorKeyFile>C:\Workspaces\Visual Studio\Signing Key\key.snk</AssemblyOriginatorKeyFile>
-	</PropertyGroup>
-	
-	<ItemGroup>
-		<PackageReference Include="BlishHUD" Version="1.0.0">
-			<ExcludeAssets>runtime;contentFiles</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="Flurl.Http" Version="2.4.2" />
-		<PackageReference Include="Octokit" Version="3.0.0" />
-		<PackageReference Include="jose-jwt" Version="4.1.0" />
-		<PackageReference Include="SemanticVersioning" Version="1.2.2">
-			<ExcludeAssets>runtime</ExcludeAssets>
-		</PackageReference>
-		<PackageReference Include="Handlebars.Net" Version="2.1.2" />
-		<PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all" />
-		<PackageReference Include="Humanizer.Core.es" Version="2.6.2" PrivateAssets="all" />
-		<PackageReference Include="Humanizer.Core.fr" Version="2.6.2" PrivateAssets="all" />
-		<PackageReference Include="SocketIOClient" Version="3.0.6" />
-	</ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+        <LangVersion>latest</LangVersion>
+        <NeutralLanguage>en</NeutralLanguage>
+        <PlatformTarget>x64</PlatformTarget>
+        <SignAssembly>False</SignAssembly>
+        <AssemblyOriginatorKeyFile>C:\Workspaces\Visual Studio\Signing Key\key.snk</AssemblyOriginatorKeyFile>
+    </PropertyGroup>
 
-	<ItemGroup>
-		<Reference Include="PresentationCore" />
-		<Reference Include="PresentationFramework" />
-		<Reference Include="System.ComponentModel.Composition" />
-		<Reference Include="System.Security" />
-		<Reference Include="System.ServiceModel" />
-		<Reference Include="System.Windows.Forms" />
-		<Reference Include="WindowsBase" />
-	</ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="BlishHUD" Version="1.0.0">
+            <ExcludeAssets>runtime;contentFiles</ExcludeAssets>
+        </PackageReference>
+        <PackageReference Include="Flurl.Http" Version="2.4.2"/>
+        <PackageReference Include="Octokit" Version="3.0.0"/>
+        <PackageReference Include="jose-jwt" Version="4.1.0"/>
+        <PackageReference Include="SemanticVersioning" Version="1.2.2">
+            <ExcludeAssets>runtime</ExcludeAssets>
+        </PackageReference>
+        <PackageReference Include="Handlebars.Net" Version="2.1.2"/>
+        <PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all"/>
+        <PackageReference Include="Humanizer.Core.es" Version="2.6.2" PrivateAssets="all"/>
+        <PackageReference Include="Humanizer.Core.fr" Version="2.6.2" PrivateAssets="all"/>
+        <PackageReference Include="SocketIOClient" Version="3.0.6"/>
+    </ItemGroup>
 
-
-	<ItemGroup>
-		<None Update="manifest.json">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
+    <ItemGroup>
+        <Reference Include="PresentationCore"/>
+        <Reference Include="PresentationFramework"/>
+        <Reference Include="System.ComponentModel.Composition"/>
+        <Reference Include="System.Security"/>
+        <Reference Include="System.ServiceModel"/>
+        <Reference Include="System.Windows.Forms"/>
+        <Reference Include="WindowsBase"/>
+    </ItemGroup>
 
 
-	<Import Project="..\Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems" Label="Shared" />
+    <ItemGroup>
+        <None Update="manifest.json">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+
+    <Import Project="..\Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems" Label="Shared"/>
 
 </Project>

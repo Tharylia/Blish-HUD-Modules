@@ -4,41 +4,70 @@ using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Blish_HUD.Graphics.UI;
+using Blish_HUD.Input;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
-using Estreya.BlishHUD.Shared.Helpers;
-using Estreya.BlishHUD.Shared.Security;
-using Estreya.BlishHUD.Shared.Settings;
-using Estreya.BlishHUD.Shared.Services;
-using Estreya.BlishHUD.Shared.UI.Views;
-using Estreya.BlishHUD.Shared.Utils;
+using Exceptions;
+using Extensions;
 using Flurl.Http;
 using Gw2Sharp.Models;
+using Helpers;
 using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+using Models;
 using MonoGame.Extended.BitmapFonts;
+using MumbleInfo.Map;
+using Security;
+using Services;
+using Settings;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
-using Estreya.BlishHUD.Shared.Extensions;
-using System.Windows.Forms;
-using System.Drawing.Text;
+using UI.Views;
+using UI.Views.Settings;
+using Utils;
+using ScreenNotification = Controls.ScreenNotification;
+using TabbedWindow = Controls.TabbedWindow;
 
-public abstract class BaseModule<TModule, TSettings> : Module where TSettings : Settings.BaseModuleSettings where TModule : class
+public abstract class BaseModule<TModule, TSettings> : Module where TSettings : BaseModuleSettings where TModule : class
 {
+    /// <summary>
+    ///     The logger instance for implementing module classes.
+    /// </summary>
     protected Logger Logger { get; }
 
+    /// <summary>
+    ///     The file root url for the Estreya file service.
+    /// </summary>
     protected const string FILE_ROOT_URL = "https://files.estreya.de";
+
+    /// <summary>
+    ///     The blish hud sub route from the <see cref="FILE_ROOT_URL" />.
+    /// </summary>
     protected const string FILE_BLISH_ROOT_URL = $"{FILE_ROOT_URL}/blish-hud";
+
+    /// <summary>
+    ///     The module sub route from the <see cref="FILE_BLISH_ROOT_URL" />.
+    /// </summary>
+    protected string MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
+
+    /// <summary>
+    ///     The api root url for the Estreya BlishHUD api.
+    /// </summary>
     protected const string API_ROOT_URL = "https://blish-hud.api.estreya.de";
+
+    /// <summary>
+    ///     The module sub route from the <see cref="API_ROOT_URL" /> including the specified api version from
+    ///     <see cref="API_VERSION_NO" />.
+    /// </summary>
+    protected string MODULE_API_URL => $"{API_ROOT_URL}/v{this.API_VERSION_NO}/{this.UrlModuleName}";
 
     protected const string GITHUB_OWNER = "Tharylia";
     protected const string GITHUB_REPOSITORY = "Blish-HUD-Modules";
@@ -48,12 +77,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected PasswordManager PasswordManager { get; private set; }
 
-    public string MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
-    public string MODULE_API_URL => $"{API_ROOT_URL}/v{this.API_VERSION_NO}/{this.UrlModuleName}";
+    /// <summary>
+    ///     Specifies the url friendly name for the module.
+    /// </summary>
     public abstract string UrlModuleName { get; }
 
     /// <summary>
-    /// Specifies the api version to use with <see cref="API_ROOT_URL"/>
+    ///     Specifies the api version to use with <see cref="API_ROOT_URL" />
     /// </summary>
     protected abstract string API_VERSION_NO { get; }
 
@@ -63,8 +93,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     private FlurlClient _flurlClient;
 
-    private ConcurrentDictionary<string, string> _loadingTexts = new ConcurrentDictionary<string, string>();
+    private readonly ConcurrentDictionary<string, string> _loadingTexts = new ConcurrentDictionary<string, string>();
 
+    /// <summary>
+    ///     Gets a <see cref="IFlurlClient" /> with the module informations added.
+    /// </summary>
+    /// <returns>The prepared <see cref="IFlurlClient" />.</returns>
     protected IFlurlClient GetFlurlClient()
     {
         if (this._flurlClient == null)
@@ -77,10 +111,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     }
 
     #region Service Managers
+
     protected SettingsManager SettingsManager => this.ModuleParameters.SettingsManager;
     protected ContentsManager ContentsManager => this.ModuleParameters.ContentsManager;
     protected DirectoriesManager DirectoriesManager => this.ModuleParameters.DirectoriesManager;
     protected Gw2ApiManager Gw2ApiManager => this.ModuleParameters.Gw2ApiManager;
+
     #endregion
 
 #if DEBUG
@@ -97,13 +133,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     private LoadingSpinner _loadingSpinner;
 
-    protected TabbedWindow2 SettingsWindow { get; private set; }
+    protected TabbedWindow SettingsWindow { get; private set; }
 
     public virtual BitmapFont Font => GameService.Content.DefaultFont16;
 
     #region Services
+
     private readonly AsyncLock _servicesLock = new AsyncLock();
-    private SynchronizedCollection<ManagedService> _services = new SynchronizedCollection<ManagedService>();
+    private readonly SynchronizedCollection<ManagedService> _services = new SynchronizedCollection<ManagedService>();
 
     public IconService IconService { get; private set; }
     public TranslationService TranslationService { get; private set; }
@@ -121,9 +158,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     public AchievementService AchievementService { get; private set; }
     public AccountAchievementService AccountAchievementService { get; private set; }
+
     #endregion
 
-    public BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
+    /// <summary>
+    ///     Creates a new instance of the module class.
+    /// </summary>
+    /// <param name="moduleParameters">The default module parameters passed from blish hud core.</param>
+    protected BaseModule(ModuleParameters moduleParameters) : base(moduleParameters)
     {
         this.Logger = Logger.GetLogger(this.GetType());
     }
@@ -133,22 +175,35 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.ModuleSettings = this.DefineModuleSettings(settings) as TSettings;
     }
 
+    /// <summary>
+    ///     Defines the module settings used in the module.
+    /// </summary>
+    /// <param name="settings">The default module settings.</param>
+    /// <returns>The created settings for the module.</returns>
     protected abstract BaseModuleSettings DefineModuleSettings(SettingCollection settings);
 
+    /// <summary>
+    ///     Initializes all variables for a fresh start.
+    /// </summary>
     protected override void Initialize()
     {
         string directoryName = this.GetDirectoryName();
 
         if (!string.IsNullOrWhiteSpace(directoryName))
         {
-            var directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
+            string directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
             this.PasswordManager = new PasswordManager(directoryPath);
             this.PasswordManager.InitializeEntropy(Encoding.UTF8.GetBytes(this.Namespace));
         }
     }
 
+    /// <summary>
+    ///     Loads all default services and resources. 
+    /// </summary>
     protected override async Task LoadAsync()
     {
+        await this.ThrowIfModuleInvalid(true);
+
         this.Logger.Debug("Initialize states");
         await Task.Factory.StartNew(this.InitializeServices, TaskCreationOptions.LongRunning).Unwrap();
 
@@ -156,21 +211,63 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.ModuleSettings.UpdateLocalization(this.TranslationService);
 
-        this.ModuleSettings.ModuleSettingsChanged += this.ModuleSettings_ModuleSettingsChanged;
+        this.ModuleSettings.RegisterCornerIcon.SettingChanged += this.RegisterCornerIcon_SettingChanged;
     }
 
-    private void ModuleSettings_ModuleSettingsChanged(object sender, BaseModuleSettings.ModuleSettingsChangedEventArgs e)
+    /// <summary>
+    ///     Checks if the current module satisfies all api backend criteria.
+    /// </summary>
+    /// <param name="showScreenNotification">Whether a failure to satisfy all criteria should be shown via <see cref="Blish_HUD.Controls.ScreenNotification"/>.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    private async Task ThrowIfModuleInvalid(bool showScreenNotification)
     {
-        switch (e.Name)
+        // This function will fail if the backend is down. No catch needed as the module is useless anyway in that case.
+
+        IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "validate");
+        request.AllowAnyHttpStatus();
+
+        ModuleValidationRequest data = new ModuleValidationRequest { Version = this.Version };
+
+        HttpResponseMessage response = await request.PostJsonAsync(data);
+
+        if (response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound)
         {
-            case nameof(this.ModuleSettings.RegisterCornerIcon):
-                this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
-                break;
+            return;
         }
+
+        ModuleValidationResponse validationResponse = await response.GetJsonAsync<ModuleValidationResponse>();
+
+        if (showScreenNotification)
+        {
+            List<string> messages = new List<string>
+            {
+                $"[{this.Name}]",
+                "The current module version is invalid!",
+                validationResponse.Message ?? response.ReasonPhrase ?? "Unknown"
+            };
+
+            ScreenNotification.ShowNotification(messages.ToArray(), ScreenNotification.NotificationType.Error, duration: 10);
+        }
+
+        throw new ModuleInvalidException(validationResponse.Message);
+    }
+
+    /// <summary>
+    ///     Handles the changed event for the setting <see cref="BaseModuleSettings.RegisterCornerIcon"/>.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The value changed event args.</param>
+    private void RegisterCornerIcon_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+    {
+        this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
     }
 
     protected abstract string GetDirectoryName();
 
+    /// <summary>
+    ///     Initializes all services and starts them.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Gets thrown if the directory path could not be loaded for depending services.</exception>
     private async Task InitializeServices()
     {
         string directoryName = this.GetDirectoryName();
@@ -203,21 +300,21 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 this._services.Add(this.AccountService);
             }
 
-            this.IconService = new IconService(new APIServiceConfiguration()
+            this.IconService = new IconService(new APIServiceConfiguration
             {
                 Enabled = true,
                 AwaitLoading = false
             }, this.ContentsManager);
             this._services.Add(this.IconService);
 
-            this.TranslationService = new TranslationService(new ServiceConfiguration()
+            this.TranslationService = new TranslationService(new ServiceConfiguration
             {
                 Enabled = true,
-                AwaitLoading = true,
+                AwaitLoading = true
             }, this.GetFlurlClient(), this.MODULE_FILE_URL);
             this._services.Add(this.TranslationService);
 
-            this.SettingEventService = new SettingEventService(new ServiceConfiguration()
+            this.SettingEventService = new SettingEventService(new ServiceConfiguration
             {
                 Enabled = true,
                 AwaitLoading = false,
@@ -225,7 +322,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             });
             this._services.Add(this.SettingEventService);
 
-            this.NewsService = new NewsService(new ServiceConfiguration()
+            this.NewsService = new NewsService(new ServiceConfiguration
             {
                 AwaitLoading = true,
                 Enabled = true
@@ -361,14 +458,25 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
     }
 
+    /// <summary>
+    ///     Used to configure the nessecary services for the module.
+    /// </summary>
+    /// <param name="configurations">The base configuration which can be adapted for the module.</param>
     protected virtual void ConfigureServices(ServiceConfigurations configurations) { }
 
+    /// <summary>
+    ///     Gets called before all services are started.
+    ///     <para/>
+    ///     Can be used to attach event handlers.
+    /// </summary>
     protected virtual void OnBeforeServicesStarted() { }
 
-    protected virtual Collection<ManagedService> GetAdditionalServices(string directoryPath)
-    {
-        return null;
-    }
+    /// <summary>
+    ///     Gets additional services which should be started.
+    /// </summary>
+    /// <param name="directoryPath">The directory root path for the module.</param>
+    /// <returns>A collection of additional services.</returns>
+    protected virtual Collection<ManagedService> GetAdditionalServices(string directoryPath) => null;
 
     private void HandleCornerIcon(bool show)
     {
@@ -376,11 +484,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             if (this.CornerIcon == null)
             {
-                this.CornerIcon = new CornerIcon()
+                this.CornerIcon = new CornerIcon
                 {
                     IconName = this.Name,
                     Icon = this.GetCornerIcon(),
-                    Priority = 1_289_351_278
+                    Priority = this.CornerIconPriority
                 };
 
                 this.OnCornerIconBuild();
@@ -397,6 +505,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
     }
 
+    /// <summary>
+    ///     Gets the corner icon priority.
+    /// </summary>
+    /// <returns></returns>
+    protected abstract int CornerIconPriority { get; }
+
     protected virtual void OnCornerIconBuild()
     {
         this.CornerIcon.Click += this.CornerIcon_Click;
@@ -409,27 +523,27 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.CornerIcon.RightMouseButtonPressed -= this.CornerIcon_RightMouseButtonPressed;
     }
 
-    private void CornerIcon_Click(object sender, Blish_HUD.Input.MouseEventArgs e)
+    private void CornerIcon_Click(object sender, MouseEventArgs e)
     {
         switch (this.ModuleSettings.CornerIconLeftClickAction.Value)
         {
-            case Models.CornerIconClickAction.Settings:
+            case CornerIconClickAction.Settings:
                 this.SettingsWindow.ToggleWindow();
                 break;
-            case Models.CornerIconClickAction.Visibility:
+            case CornerIconClickAction.Visibility:
                 this.ModuleSettings.GlobalDrawerVisible.Value = !this.ModuleSettings.GlobalDrawerVisible.Value;
                 break;
         }
     }
 
-    private void CornerIcon_RightMouseButtonPressed(object sender, Blish_HUD.Input.MouseEventArgs e)
+    private void CornerIcon_RightMouseButtonPressed(object sender, MouseEventArgs e)
     {
         switch (this.ModuleSettings.CornerIconRightClickAction.Value)
         {
-            case Models.CornerIconClickAction.Settings:
+            case CornerIconClickAction.Settings:
                 this.SettingsWindow.ToggleWindow();
                 break;
-            case Models.CornerIconClickAction.Visibility:
+            case CornerIconClickAction.Visibility:
                 this.ModuleSettings.GlobalDrawerVisible.Value = !this.ModuleSettings.GlobalDrawerVisible.Value;
                 break;
         }
@@ -464,23 +578,20 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Start building settings window.");
 
-        this.SettingsWindow ??= WindowUtil.CreateTabbedWindow(this.Name, this.GetType(), Guid.Parse("6bd04be4-dc19-4914-a2c3-8160ce76818b"), this.IconService, this.GetEmblem());
+        this.SettingsWindow ??= WindowUtil.CreateTabbedWindow(this.ModuleSettings, this.Name, this.GetType(), Guid.Parse("6bd04be4-dc19-4914-a2c3-8160ce76818b"), this.IconService, this.GetEmblem());
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("482926.png"), () => new UI.Views.NewsView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.NewsService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("482926.png"), () => new NewsView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.NewsService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
 
         this.OnSettingWindowBuild(this.SettingsWindow);
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156331.png"), () => new UI.Views.DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donations"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156331.png"), () => new DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donations"));
 
         if (this.Debug)
         {
             this.SettingsWindow.Tabs.Add(
                 new Tab(
                     this.IconService.GetIcon("155052.png"),
-                    () => new UI.Views.Settings.ServiceSettingsView(this._services, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.Font)
-                    {
-                        DefaultColor = this.ModuleSettings.DefaultGW2Color
-                    },
+                    () => new ServiceSettingsView(this._services, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
                     "Debug"));
         }
 
@@ -490,24 +601,24 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     }
 
     /// <summary>
-    /// Gets the emblem for the settings window.
+    ///     Gets the emblem for the settings window.
     /// </summary>
-    /// <returns>The emblem as <see cref="AsyncTexture2D"/>.</returns>
+    /// <returns>The emblem as <see cref="AsyncTexture2D" />.</returns>
     protected abstract AsyncTexture2D GetEmblem();
 
     /// <summary>
-    /// Gets the icon used for corner icons.
+    ///     Gets the icon used for corner icons.
     /// </summary>
-    /// <returns>The corner icon as <see cref="AsyncTexture2D"/>.</returns>
+    /// <returns>The corner icon as <see cref="AsyncTexture2D" />.</returns>
     protected abstract AsyncTexture2D GetCornerIcon();
 
     /// <summary>
-    /// Gets called after the base settings window has been constructed. Used to add custom tabs.
+    ///     Gets called after the base settings window has been constructed. Used to add custom tabs.
     /// </summary>
     /// <param name="settingWindow">The settings window.</param>
-    protected virtual void OnSettingWindowBuild(TabbedWindow2 settingWindow) { }
+    protected virtual void OnSettingWindowBuild(TabbedWindow settingWindow) { }
 
-    /// <inheritdoc/>
+    /// <inheritdoc />
     protected override void Update(GameTime gameTime)
     {
         this.ShowUI = this.CalculateUIVisibility();
@@ -521,13 +632,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
                 if (state is APIService apiService)
                 {
-                    var loading = apiService.Loading;
+                    bool loading = apiService.Loading;
 
                     if (loading)
                     {
                         if (!string.IsNullOrWhiteSpace(apiService.ProgressText))
                         {
-                            stateLoadingTexts.Add($"{state.GetType().Name}: {apiService.ProgressText?.ToString()}");
+                            stateLoadingTexts.Add($"{state.GetType().Name}: {apiService.ProgressText}");
                         }
                         else
                         {
@@ -537,14 +648,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 }
             }
 
-            var stateTexts = stateLoadingTexts.Count == 0 ? null : $"Services:\n{new string(' ', 4)}" + string.Join($"\n{new string(' ', 4)}", stateLoadingTexts);
+            string stateTexts = stateLoadingTexts.Count == 0 ? null : $"Services:\n{new string(' ', 4)}" + string.Join($"\n{new string(' ', 4)}", stateLoadingTexts);
             this.ReportLoading("states", stateTexts);
         }
 
-        var loadingTexts = new StringBuilder();
-        foreach (var loadingText in this._loadingTexts)
+        StringBuilder loadingTexts = new StringBuilder();
+        foreach (KeyValuePair<string, string> loadingText in this._loadingTexts)
         {
-            if (loadingText.Value == null) continue;
+            if (loadingText.Value == null)
+            {
+                continue;
+            }
 
             loadingTexts.AppendLine(loadingText.Value);
         }
@@ -553,7 +667,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     }
 
     /// <summary>
-    /// Report a new loading text to display. Report <see cref="null"/> to finish.
+    ///     Report a new loading text to display. Report <see cref="null" /> to finish.
     /// </summary>
     /// <param name="loadingText"></param>
     protected void ReportLoading(string group, string loadingText)
@@ -562,9 +676,9 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     }
 
     /// <summary>
-    /// Calculates the ui visibility based on settings or mumble parameters.
+    ///     Calculates the ui visibility based on settings or mumble parameters.
     /// </summary>
-    /// <returns>The newly calculated ui visibility or the last value of <see cref="ShowUI"/>.</returns>
+    /// <returns>The newly calculated ui visibility or the last value of <see cref="ShowUI" />.</returns>
     protected virtual bool CalculateUIVisibility()
     {
         if (!this.ModuleSettings.GlobalDrawerVisible.Value)
@@ -591,28 +705,48 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         // All maps not specified as competetive will be treated as open world
         if (this.ModuleSettings.HideInPvE_OpenWorld.Value)
         {
-            MapType[] pveOpenWorldMapTypes = new[] { MapType.Public, MapType.Instance, MapType.Tutorial, MapType.PublicMini };
+            MapType[] pveOpenWorldMapTypes =
+            {
+                MapType.Public,
+                MapType.Instance,
+                MapType.Tutorial,
+                MapType.PublicMini
+            };
 
-            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
         }
 
         if (this.ModuleSettings.HideInPvE_Competetive.Value)
         {
-            MapType[] pveCompetetiveMapTypes = new[] { MapType.Instance };
+            MapType[] pveCompetetiveMapTypes =
+            {
+                MapType.Instance
+            };
 
-            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && MumbleInfo.Map.MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
         }
 
         if (this.ModuleSettings.HideInWvW.Value)
         {
-            MapType[] wvwMapTypes = new[] { MapType.EternalBattlegrounds, MapType.GreenBorderlands, MapType.RedBorderlands, MapType.BlueBorderlands, MapType.EdgeOfTheMists };
+            MapType[] wvwMapTypes =
+            {
+                MapType.EternalBattlegrounds,
+                MapType.GreenBorderlands,
+                MapType.RedBorderlands,
+                MapType.BlueBorderlands,
+                MapType.EdgeOfTheMists
+            };
 
             show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && wvwMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
         }
 
         if (this.ModuleSettings.HideInPvP.Value)
         {
-            MapType[] pvpMapTypes = new[] { MapType.Pvp, MapType.Tournament };
+            MapType[] pvpMapTypes =
+            {
+                MapType.Pvp,
+                MapType.Tournament
+            };
 
             show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pvpMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
         }
@@ -624,7 +758,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         show &= this.CornerIcon != null;
 
-        this._loadingSpinner ??= new LoadingSpinner()
+        this._loadingSpinner ??= new LoadingSpinner
         {
             Parent = GameService.Graphics.SpriteScreen,
             Size = this.CornerIcon?.Size ?? new Point(0, 0),
@@ -642,7 +776,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected async Task ReloadServices()
     {
-        var tasks = new List<Task>();
+        List<Task> tasks = new List<Task>();
 
         using (await this._servicesLock.LockAsync())
         {
@@ -658,7 +792,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         if (this.ModuleSettings != null)
         {
-            this.ModuleSettings.ModuleSettingsChanged -= this.ModuleSettings_ModuleSettingsChanged;
+            this.ModuleSettings.RegisterCornerIcon.SettingChanged -= this.RegisterCornerIcon_SettingChanged;
             this.ModuleSettings.Unload();
             this.ModuleSettings = null;
         }

@@ -2,56 +2,59 @@
 
 using Blish_HUD;
 using Blish_HUD.ArcDps;
-using Estreya.BlishHUD.Shared.Models.ArcDPS;
-using Estreya.BlishHUD.Shared.Models.ArcDPS.Buff;
-using Estreya.BlishHUD.Shared.Models.ArcDPS.Damage;
-using Estreya.BlishHUD.Shared.Models.ArcDPS.Heal;
-using Estreya.BlishHUD.Shared.Models.ArcDPS.Shield;
-using Estreya.BlishHUD.Shared.Models.ArcDPS.StateChange;
-using Estreya.BlishHUD.Shared.Models.GW2API.Skills;
+using Blish_HUD.ArcDps.Models;
 using Microsoft.Xna.Framework;
+using Models.ArcDPS;
+using Models.ArcDPS.Buff;
+using Models.ArcDPS.Damage;
+using Models.ArcDPS.Heal;
+using Models.ArcDPS.Shield;
+using Models.ArcDPS.StateChange;
+using Models.GW2API.Skills;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 using System.Threading.Tasks;
+using CombatEvent = Models.ArcDPS.CombatEvent;
 
 public class ArcDPSService : ManagedService
 {
     private const int MAX_PARSE_PER_LOOP = 50;
-    private SkillService _skillState;
 
-    private ConcurrentQueue<RawCombatEventArgs> _rawCombatEventQueue;
+    private bool _checkedFirstFrame;
+    private bool _lastState = true;
     private ConcurrentQueue<(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)> _parsedCombatEventQueue;
 
-    private bool _checkedFirstFrame = false;
-    private bool _lastState = true;
+    private ConcurrentQueue<RawCombatEventArgs> _rawCombatEventQueue;
 
     // Persitent Combat Data
     public ushort _selfInstId;
-
-    /// <summary>
-    /// Gets fired if the <see cref="ArcDpsService"/> has started running. State is compared against the state from last update frame.
-    /// </summary>
-    public event EventHandler Started;
-
-    /// <summary>
-    /// Gets fired if the <see cref="ArcDpsService"/> has stopped running. State is compared against the state from last update frame.
-    /// </summary>
-    public event EventHandler Stopped;
-
-    /// <summary>
-    /// Gets fired if ArcDPS is not available in the first update loop of BlishHUD.
-    /// </summary>
-    public event EventHandler Unavailable;
-
-    public event EventHandler<CombatEvent> AreaCombatEvent;
-    public event EventHandler<CombatEvent> LocalCombatEvent;
+    private SkillService _skillState;
 
     public ArcDPSService(ServiceConfiguration configuration, SkillService skillState) : base(configuration)
     {
         this._skillState = skillState;
     }
+
+    /// <summary>
+    ///     Gets fired if the <see cref="ArcDpsService" /> has started running. State is compared against the state from last
+    ///     update frame.
+    /// </summary>
+    public event EventHandler Started;
+
+    /// <summary>
+    ///     Gets fired if the <see cref="ArcDpsService" /> has stopped running. State is compared against the state from last
+    ///     update frame.
+    /// </summary>
+    public event EventHandler Stopped;
+
+    /// <summary>
+    ///     Gets fired if ArcDPS is not available in the first update loop of BlishHUD.
+    /// </summary>
+    public event EventHandler Unavailable;
+
+    public event EventHandler<CombatEvent> AreaCombatEvent;
+    public event EventHandler<CombatEvent> LocalCombatEvent;
 
     protected override Task Clear()
     {
@@ -86,7 +89,7 @@ public class ArcDPSService : ManagedService
 
     protected override void InternalUpdate(GameTime gameTime)
     {
-        if (!_checkedFirstFrame && !GameService.ArcDps.Running)
+        if (!this._checkedFirstFrame && !GameService.ArcDps.Running)
         {
             this.Logger.Debug("ArcDPS Service not available.");
 
@@ -122,7 +125,7 @@ public class ArcDPSService : ManagedService
 
         while (parseCounter < MAX_PARSE_PER_LOOP && this._rawCombatEventQueue.TryDequeue(out RawCombatEventArgs eventData))
         {
-            foreach (var parsedCombatEvent in this.ParseCombatEvent(eventData))
+            foreach (CombatEvent parsedCombatEvent in this.ParseCombatEvent(eventData))
             {
                 this.AddSkill(parsedCombatEvent, eventData.CombatEvent.SkillName);
                 this.EmitEvent(parsedCombatEvent, eventData.EventType);
@@ -168,7 +171,7 @@ public class ArcDPSService : ManagedService
 
     private List<CombatEvent> ParseCombatEvent(RawCombatEventArgs rawCombatEventArgs)
     {
-        var combatEvents = new List<CombatEvent>();
+        List<CombatEvent> combatEvents = new List<CombatEvent>();
 
         if (!this.Running)
         {
@@ -178,9 +181,9 @@ public class ArcDPSService : ManagedService
         try
         {
             Blish_HUD.ArcDps.Models.CombatEvent rawCombatEvent = rawCombatEventArgs.CombatEvent;
-            Blish_HUD.ArcDps.Models.Ev ev = rawCombatEvent.Ev;
-            Blish_HUD.ArcDps.Models.Ag src = rawCombatEvent.Src;
-            Blish_HUD.ArcDps.Models.Ag dst = rawCombatEvent.Dst;
+            Ev ev = rawCombatEvent.Ev;
+            Ag src = rawCombatEvent.Src;
+            Ag dst = rawCombatEvent.Dst;
             ulong targetAgentId = 0;
 
             /* combat event. skillname may be null. non-null skillname will remain static until module is unloaded. refer to evtc notes for complete detail */
@@ -191,12 +194,12 @@ public class ArcDPSService : ManagedService
                 /* default names */
                 if (string.IsNullOrWhiteSpace(src.Name))
                 {
-                    src = new Blish_HUD.ArcDps.Models.Ag("Unknown Source", src.Id, src.Profession, src.Elite, src.Self, src.Team);
+                    src = new Ag("Unknown Source", src.Id, src.Profession, src.Elite, src.Self, src.Team);
                 }
 
                 if (string.IsNullOrWhiteSpace(dst.Name))
                 {
-                    dst = new Blish_HUD.ArcDps.Models.Ag("Unknown Target", dst.Id, dst.Profession, dst.Elite, dst.Self, dst.Team);
+                    dst = new Ag("Unknown Target", dst.Id, dst.Profession, dst.Elite, dst.Self, dst.Team);
                 }
 
                 if (string.IsNullOrWhiteSpace(skillName))
@@ -239,25 +242,25 @@ public class ArcDPSService : ManagedService
 
     private List<CombatEvent> HandleStatechangeEvents(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
-        var combatEvents = new List<CombatEvent>();
+        List<CombatEvent> combatEvents = new List<CombatEvent>();
 
         return combatEvents;
     }
 
     private List<CombatEvent> HandleActivationEvents(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
-        var combatEvents = new List<CombatEvent>();
+        List<CombatEvent> combatEvents = new List<CombatEvent>();
 
         return combatEvents;
     }
 
     private List<CombatEvent> HandleBuffEvents(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, uint selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
-        var combatEvents = new List<CombatEvent>();
-        var ev = combatEvent.Ev;
+        List<CombatEvent> combatEvents = new List<CombatEvent>();
+        Ev ev = combatEvent.Ev;
 
         CombatEvent parsedCombatEvent = null;
-        var state = CombatEvent.GetState(combatEvent.Ev);
+        CombatEventState state = CombatEvent.GetState(combatEvent.Ev);
 
         if (state == CombatEventState.BUFFAPPLY)
         {
@@ -280,25 +283,25 @@ public class ArcDPSService : ManagedService
 
     private List<CombatEvent> HandleNormalCombatEvents(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, ulong selfInstId, ulong targetAgentId, RawCombatEventArgs.CombatEventType scope)
     {
-        var combatEvents = new List<CombatEvent>();
+        List<CombatEvent> combatEvents = new List<CombatEvent>();
         List<CombatEventType> types = new List<CombatEventType>();
 
-        var ev = combatEvent.Ev;
+        Ev ev = combatEvent.Ev;
 
         /* statechange */
         if (ev.IsStateChange != ArcDpsEnums.StateChange.None)
         {
             return combatEvents;
         }
-
         /* activation */
-        else if (ev.IsActivation != ArcDpsEnums.Activation.None)
+
+        if (ev.IsActivation != ArcDpsEnums.Activation.None)
         {
             return combatEvents;
         }
-
         /* buff remove */
-        else if (ev.IsBuffRemove != ArcDpsEnums.BuffRemove.None)
+
+        if (ev.IsBuffRemove != ArcDpsEnums.BuffRemove.None)
         {
             return combatEvents;
         }
@@ -313,8 +316,8 @@ public class ArcDPSService : ManagedService
                 {
                     // Subtract shield value from heal value
                     int buffDmg = ev.BuffDmg - (int)ev.OverStackValue;
-                    ev = new Blish_HUD.ArcDps.Models.Ev(ev.Time, ev.SrcAgent, ev.DstAgent, ev.Value, buffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
-                         ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
+                    ev = new Ev(ev.Time, ev.SrcAgent, ev.DstAgent, ev.Value, buffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
+                        ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
 
                     types.Add(CombatEventType.SHIELD_RECEIVE);
                 }
@@ -329,8 +332,8 @@ public class ArcDPSService : ManagedService
                 if (ev.OverStackValue > 0)
                 {
                     int buffDmg = ev.BuffDmg + (int)ev.OverStackValue;
-                    ev = new Blish_HUD.ArcDps.Models.Ev(ev.Time, ev.SrcAgent, ev.DstAgent, ev.Value, buffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
-                         ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
+                    ev = new Ev(ev.Time, ev.SrcAgent, ev.DstAgent, ev.Value, buffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
+                        ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
 
                     types.Add(CombatEventType.SHIELD_REMOVE);
                 }
@@ -339,13 +342,27 @@ public class ArcDPSService : ManagedService
                 {
                     switch (ev.SkillId)
                     {
-                        case 723: types.Add(CombatEventType.POISON); break;
-                        case 736: types.Add(CombatEventType.BLEEDING); break;
-                        case 737: types.Add(CombatEventType.BURNING); break;
-                        case 861: types.Add(CombatEventType.CONFUSION); break;
-                        case 873: types.Add(CombatEventType.RETALIATION); break;
-                        case 19426: types.Add(CombatEventType.TORMENT); break;
-                        default: types.Add(CombatEventType.DOT); break;
+                        case 723:
+                            types.Add(CombatEventType.POISON);
+                            break;
+                        case 736:
+                            types.Add(CombatEventType.BLEEDING);
+                            break;
+                        case 737:
+                            types.Add(CombatEventType.BURNING);
+                            break;
+                        case 861:
+                            types.Add(CombatEventType.CONFUSION);
+                            break;
+                        case 873:
+                            types.Add(CombatEventType.RETALIATION);
+                            break;
+                        case 19426:
+                            types.Add(CombatEventType.TORMENT);
+                            break;
+                        default:
+                            types.Add(CombatEventType.DOT);
+                            break;
                     }
                 }
             }
@@ -357,8 +374,8 @@ public class ArcDPSService : ManagedService
                 if (ev.OverStackValue != 0)
                 {
                     int value = ev.Value + (int)ev.OverStackValue;
-                    ev = new Blish_HUD.ArcDps.Models.Ev(ev.Time, ev.SrcAgent, ev.DstAgent, value, ev.BuffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
-                         ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
+                    ev = new Ev(ev.Time, ev.SrcAgent, ev.DstAgent, value, ev.BuffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
+                        ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
 
                     types.Add(CombatEventType.SHIELD_RECEIVE);
                 }
@@ -373,8 +390,8 @@ public class ArcDPSService : ManagedService
                 if (ev.OverStackValue > 0)
                 {
                     int value = ev.Value + (int)ev.OverStackValue;
-                    ev = new Blish_HUD.ArcDps.Models.Ev(ev.Time, ev.SrcAgent, ev.DstAgent, value, ev.BuffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
-                         ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
+                    ev = new Ev(ev.Time, ev.SrcAgent, ev.DstAgent, value, ev.BuffDmg, ev.OverStackValue, ev.SkillId, ev.SrcInstId, ev.DstInstId, ev.SrcMasterInstId, ev.DstMasterInstId, ev.Iff, ev.Buff,
+                        ev.Result, ev.IsActivation, ev.IsBuffRemove, ev.IsNinety, ev.IsFifty, ev.IsMoving, ev.IsStateChange, ev.IsFlanking, ev.IsShields, ev.IsOffCycle, ev.Pad61, ev.Pad62, ev.Pad63, ev.Pad64);
 
                     types.Add(CombatEventType.SHIELD_REMOVE);
                 }
@@ -403,8 +420,6 @@ public class ArcDPSService : ManagedService
                         case (byte)CombatEventResult.BLIND:
                             types.Add(CombatEventType.MISS);
                             break;
-                        default:
-                            break;
                     }
                 }
             }
@@ -415,19 +430,19 @@ public class ArcDPSService : ManagedService
         //    types.Add(CombatEventType.NONE);
         //}
 
-        combatEvent = new Blish_HUD.ArcDps.Models.CombatEvent(ev, combatEvent.Src,combatEvent.Dst, combatEvent.SkillName, combatEvent.Id, combatEvent.Revision);
+        combatEvent = new Blish_HUD.ArcDps.Models.CombatEvent(ev, combatEvent.Src, combatEvent.Dst, combatEvent.SkillName, combatEvent.Id, combatEvent.Revision);
 
         foreach (CombatEventType type in types)
         {
             List<CombatEventCategory> categories = new List<CombatEventCategory>();
-            if (combatEvent.Src.Self == 1/* && (!Options::get()->outgoingOnlyToTarget || dst.Id == targetAgentId)*/)
+            if (combatEvent.Src.Self == 1 /* && (!Options::get()->outgoingOnlyToTarget || dst.Id == targetAgentId)*/)
             {
-                if (/*!Options::get()->selfMessageOnlyIncoming || */combatEvent.Dst.Self != 1)
+                if ( /*!Options::get()->selfMessageOnlyIncoming || */combatEvent.Dst.Self != 1)
                 {
                     categories.Add(CombatEventCategory.PLAYER_OUT);
                 }
             }
-            else if (ev.SrcMasterInstId == selfInstId)// && (/*!Options::get()->outgoingOnlyToTarget || */dst.Id == targetAgentId))
+            else if (ev.SrcMasterInstId == selfInstId) // && (/*!Options::get()->outgoingOnlyToTarget || */dst.Id == targetAgentId))
             {
                 categories.Add(CombatEventCategory.PET_OUT);
             }
@@ -457,7 +472,7 @@ public class ArcDPSService : ManagedService
 
     private CombatEvent GetCombatEvent(Blish_HUD.ArcDps.Models.CombatEvent combatEvent, CombatEventCategory category, CombatEventType type)
     {
-        var state = CombatEvent.GetState(combatEvent.Ev);
+        CombatEventState state = CombatEvent.GetState(combatEvent.Ev);
 
         switch (state)
         {
@@ -591,14 +606,14 @@ public class ArcDPSService : ManagedService
         return null;
     }
 
-    private void AddSkill(Models.ArcDPS.CombatEvent combatEvent, string skillNameByArcDPS)
+    private void AddSkill(CombatEvent combatEvent, string skillNameByArcDPS)
     {
         //Skill skill = this._skillState.GetById((int)combatEvent.SkillId);
         Skill skill = this._skillState.GetBy(skill => skill.Id == (int)combatEvent.SkillId && skill.Name == skillNameByArcDPS);
 
         if (skill == null)
         {
-            var added = this._skillState.AddMissingSkill((int)combatEvent.SkillId, skillNameByArcDPS);
+            bool added = this._skillState.AddMissingSkill((int)combatEvent.SkillId, skillNameByArcDPS);
             if (added)
             {
                 this.Logger.Debug($"Failed to fetch skill \"{combatEvent.SkillId}\". ArcDPS reports: {skillNameByArcDPS}");
@@ -614,7 +629,7 @@ public class ArcDPSService : ManagedService
         combatEvent.Skill = skill;
     }
 
-    private void EmitEvent(Models.ArcDPS.CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)
+    private void EmitEvent(CombatEvent combatEvent, RawCombatEventArgs.CombatEventType scope)
     {
         try
         {
@@ -632,7 +647,7 @@ public class ArcDPSService : ManagedService
         }
         catch (Exception ex)
         {
-            this.Logger.Error(ex, $"Failed emit event:");
+            this.Logger.Error(ex, "Failed emit event:");
         }
     }
 }

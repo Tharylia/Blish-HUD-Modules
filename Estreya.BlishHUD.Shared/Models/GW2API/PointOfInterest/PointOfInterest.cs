@@ -1,6 +1,6 @@
 ﻿namespace Estreya.BlishHUD.Shared.Models.GW2API.PointOfInterest;
 
-using Estreya.BlishHUD.Shared.Models.GW2API.Converter;
+using Converter;
 using Gw2Sharp.Models;
 using Gw2Sharp.WebApi;
 using Gw2Sharp.WebApi.V2.Models;
@@ -8,49 +8,6 @@ using Newtonsoft.Json;
 
 public class PointOfInterest
 {
-
-    /// <summary>
-    /// The point of interest id.
-    /// </summary>
-    public int Id { get; set; }
-
-    /// <summary>
-    /// The point of interest name.
-    /// If it has no name, this value is <see langword="null"/>.
-    /// </summary>
-    public string? Name { get; set; }
-
-    /// <summary>
-    /// The point of interest coordinates.
-    /// </summary>
-    [JsonConverter(typeof(CoordinatesConverter))]
-    public Coordinates2 Coordinates { get; set; }
-
-    /// <summary>
-    /// The point of interest type.
-    /// </summary>
-    public PoiType Type { get; set; }
-
-    /// <summary>
-    /// The point of interest chat link.
-    /// </summary>
-    public string ChatLink { get; set; } = string.Empty;
-
-    /// <summary>
-    /// The point of interest icon.
-    /// If the point of interest has no icon, this value is <see langword="null"/>.
-    /// </summary>
-    public RenderUrl? Icon { get; set; }
-
-    public ContinentDetails Continent { get; set; }
-
-    /// <summary>
-    /// The floor this point of interest is on.
-    /// </summary>
-    public ContinentFloorDetails Floor { get; set; }
-    public ContinentFloorRegionDetails Region { get; set; }
-    public ContinentFloorRegionMapDetails Map { get; set; }
-
     public PointOfInterest() { }
 
     public PointOfInterest(ContinentFloorRegionMapPoi poi)
@@ -63,6 +20,49 @@ public class PointOfInterest
         this.Icon = poi.Icon;
         this.Type = poi.Type.Value;
     }
+
+    /// <summary>
+    ///     The point of interest id.
+    /// </summary>
+    public int Id { get; set; }
+
+    /// <summary>
+    ///     The point of interest name.
+    ///     If it has no name, this value is <see langword="null" />.
+    /// </summary>
+    public string? Name { get; set; }
+
+    /// <summary>
+    ///     The point of interest coordinates.
+    /// </summary>
+    [JsonConverter(typeof(CoordinatesConverter))]
+    public Coordinates2 Coordinates { get; set; }
+
+    /// <summary>
+    ///     The point of interest type.
+    /// </summary>
+    public PoiType Type { get; set; }
+
+    /// <summary>
+    ///     The point of interest chat link.
+    /// </summary>
+    public string ChatLink { get; set; } = string.Empty;
+
+    /// <summary>
+    ///     The point of interest icon.
+    ///     If the point of interest has no icon, this value is <see langword="null" />.
+    /// </summary>
+    public RenderUrl? Icon { get; set; }
+
+    public ContinentDetails Continent { get; set; }
+
+    /// <summary>
+    ///     The floor this point of interest is on.
+    /// </summary>
+    public ContinentFloorDetails Floor { get; set; }
+
+    public ContinentFloorRegionDetails Region { get; set; }
+    public ContinentFloorRegionMapDetails Map { get; set; }
 
     public static implicit operator ContinentFloorRegionMapPoi(PointOfInterest poi)
     {

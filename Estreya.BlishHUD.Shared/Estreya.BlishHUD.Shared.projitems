@@ -23,8 +23,9 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ListView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapEntity.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Menu.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Controls\RenderTargetControl.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\RenderTarget2DControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ScreenNotification.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\TabbedWindow.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextArea.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\TextBoxSuggestions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Window.cs" />
@@ -32,6 +33,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldEntity.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldPolygone.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldSphere.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Exceptions\ModuleInvalidException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ArrayExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\EnumExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\GW2APIExtensions.cs" />
@@ -100,6 +102,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\News.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ScreenRegion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ModuleValidationRequest.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ModuleValidationResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MumbleInfo\Map\MapInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Net\WebClient.cs">
       <SubType>Component</SubType>

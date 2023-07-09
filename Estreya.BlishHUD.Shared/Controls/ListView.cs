@@ -2,11 +2,13 @@
 
 using Blish_HUD;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.Shared.Utils;
+using Blish_HUD.Input;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
+using System.Collections.Generic;
 using System.Linq;
+using Utils;
 
 public class ListView<T> : FlowPanel
 {
@@ -20,7 +22,7 @@ public class ListView<T> : FlowPanel
         GameService.Input.Mouse.LeftMouseButtonReleased += this.Mouse_LeftMouseButtonReleased;
     }
 
-    private void Mouse_LeftMouseButtonReleased(object sender, Blish_HUD.Input.MouseEventArgs e)
+    private void Mouse_LeftMouseButtonReleased(object sender, MouseEventArgs e)
     {
         /*Task.Run(async () =>
         {
@@ -63,9 +65,9 @@ public class ListView<T> : FlowPanel
         base.OnChildRemoved(e);
     }
 
-    private void ChangedChild_LeftMouseButtonReleased(object sender, Blish_HUD.Input.MouseEventArgs e)
+    private void ChangedChild_LeftMouseButtonReleased(object sender, MouseEventArgs e)
     {
-        System.Collections.Generic.List<Control> draggingEntries = this.Children.Where(child =>
+        List<Control> draggingEntries = this.Children.Where(child =>
         {
             return child is ListEntry<T> entry && entry.Dragging;
         }).ToList();
@@ -104,7 +106,7 @@ public class ListView<T> : FlowPanel
         });
     }
 
-    private void ChangedChild_LeftMouseButtonPressed(object sender, Blish_HUD.Input.MouseEventArgs e)
+    private void ChangedChild_LeftMouseButtonPressed(object sender, MouseEventArgs e)
     {
         if (sender is not ListEntry<T> entry)
         {
@@ -138,7 +140,7 @@ public class ListView<T> : FlowPanel
 
     private int GetCurrentDragOverIndex()
     {
-        System.Collections.Generic.List<Control> currentHoveredEntries = this.Children.Where(child =>
+        List<Control> currentHoveredEntries = this.Children.Where(child =>
         {
             bool hovered = true;
 
@@ -163,7 +165,7 @@ public class ListView<T> : FlowPanel
 
     public override void PaintAfterChildren(SpriteBatch spriteBatch, Rectangle bounds)
     {
-        System.Collections.Generic.List<Control> draggingEntries = this.Children.Where(child =>
+        List<Control> draggingEntries = this.Children.Where(child =>
         {
             return child is ListEntry<T> entry && entry.Dragging;
         }).ToList();
@@ -189,7 +191,7 @@ public class ListView<T> : FlowPanel
 
         bool addedLast = draggedOnIndex == this.Children.Count;
 
-        ListEntry<T> draggedOnEntry = this.Children[addedLast ?  draggedOnIndex - 1 : draggedOnIndex] as ListEntry<T>;
+        ListEntry<T> draggedOnEntry = this.Children[addedLast ? draggedOnIndex - 1 : draggedOnIndex] as ListEntry<T>;
 
         RectangleF lineRectangle = new RectangleF(draggedOnEntry.Left, (addedLast ? draggedOnEntry.Bottom : draggedOnEntry.Top) - this.VerticalScrollOffset, draggedOnEntry.Width, 2);
 

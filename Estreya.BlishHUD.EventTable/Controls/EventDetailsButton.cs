@@ -1,14 +1,10 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls
-{
-    using Blish_HUD.Controls;
-    using Estreya.BlishHUD.EventTable.Models;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
-    public class EventDetailsButton : DataDetailsButton<Models.Event>
+public class EventDetailsButton : DataDetailsButton<Models.Event>
+{
+    public Models.Event Event
     {
-        public Models.Event Event
-        {
-            get => base.Data;
-            set => base.Data = value;
-        }
+        get => this.Data;
+        set => this.Data = value;
     }
 }

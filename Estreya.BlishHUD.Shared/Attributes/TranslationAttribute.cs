@@ -1,19 +1,16 @@
-﻿namespace Estreya.BlishHUD.Shared.Attributes
+﻿namespace Estreya.BlishHUD.Shared.Attributes;
+
+using System;
+
+[AttributeUsage(AttributeTargets.Field)]
+public class TranslationAttribute : Attribute
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Text;
-
-    [AttributeUsage(AttributeTargets.Field, AllowMultiple = false)]
-    public class TranslationAttribute : Attribute
+    public TranslationAttribute(string translationKey, string defaultValue)
     {
-        public string TranslationKey { get; }
-        public string DefaultValue { get; }
-
-        public TranslationAttribute(string translationKey, string defaultValue)
-        {
-            this.TranslationKey = translationKey;
-            this.DefaultValue = defaultValue;
-        }
+        this.TranslationKey = translationKey;
+        this.DefaultValue = defaultValue;
     }
+
+    public string TranslationKey { get; }
+    public string DefaultValue { get; }
 }

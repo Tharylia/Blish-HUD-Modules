@@ -1,21 +1,12 @@
 ﻿namespace Estreya.BlishHUD.LiveMap;
 
+using Blish_HUD.Input;
 using Blish_HUD.Settings;
-using Estreya.BlishHUD.LiveMap.Models;
-using Estreya.BlishHUD.Shared.Settings;
+using Shared.Settings;
 
-public class ModuleSettings: BaseModuleSettings
+public class ModuleSettings : BaseModuleSettings
 {
-
-    public SettingEntry<bool> HideCommander { get; private set; }
-
-    public SettingEntry<bool> StreamerModeEnabled { get; private set; }
-
-    public SettingEntry<bool> FollowOnMap { get; private set; }
-
-    public SettingEntry<bool> SendGroupInformation { get; private set; }
-
-    public ModuleSettings(SettingCollection settings) : base(settings, new Blish_HUD.Input.KeyBinding())
+    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding())
     {
         this.RegisterCornerIcon.Value = false;
 
@@ -25,4 +16,12 @@ public class ModuleSettings: BaseModuleSettings
         this.FollowOnMap = settings.DefineSetting(nameof(this.FollowOnMap), true, () => "Follow on Map", () => "Whether the map should follow the player if opened via the module.");
         this.SendGroupInformation = settings.DefineSetting(nameof(this.SendGroupInformation), true, () => "Send Group Information", () => "Whether the module should publish your current group informations.");
     }
+
+    public SettingEntry<bool> HideCommander { get; private set; }
+
+    public SettingEntry<bool> StreamerModeEnabled { get; private set; }
+
+    public SettingEntry<bool> FollowOnMap { get; private set; }
+
+    public SettingEntry<bool> SendGroupInformation { get; private set; }
 }
