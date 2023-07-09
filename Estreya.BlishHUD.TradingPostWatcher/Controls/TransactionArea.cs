@@ -52,6 +52,7 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
         this.BackgroundColor_SettingChanged(this, new ValueChangedEventArgs<Color>(null, this.Configuration.BackgroundColor.Value));
         this.Opacity_SettingChanged(this, new ValueChangedEventArgs<float>(0f, this.Configuration.Opacity.Value));
 
+        this.Configuration.EnabledKeybinding.Value.Activated += this.EnabledKeybinding_Activated;
         this.Configuration.BackgroundColor.SettingChanged += this.BackgroundColor_SettingChanged;
         this.Configuration.Opacity.SettingChanged += this.Opacity_SettingChanged;
         this.Configuration.Location.X.SettingChanged += this.Location_X_SettingChanged;
@@ -60,10 +61,16 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
         //this.Configuration.Size.Y.SettingChanged += this.Size_Y_SettingChanged;
         this.Configuration.ShowBuyTransactions.SettingChanged += this.ShowBuyTransactions_SettingChanged;
         this.Configuration.ShowSellTransactions.SettingChanged += this.ShowSellTransactions_SettingChanged;
+        this.Configuration.ShowHighestTransactions.SettingChanged += this.ShowHighestTransactions_SettingChanged;
 
         this._noDataControl = new NoData(GameService.Content.DefaultFont18);
 
         this.Height = 1;
+    }
+
+    private void EnabledKeybinding_Activated(object sender, EventArgs e)
+    {
+        this.Configuration.Enabled.Value = !this.Configuration.Enabled.Value;
     }
 
     public TransactionAreaConfiguration Configuration { get; }
@@ -86,6 +93,11 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
     }
 
     private void ShowBuyTransactions_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+    {
+        this.RequestNewData();
+    }
+
+    private void ShowHighestTransactions_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
     {
         this.RequestNewData();
     }
@@ -143,6 +155,8 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
         {
             return;
         }
+
+        if (!this.Configuration.ShowHighestTransactions.Value && transaction.IsHighest) return;
 
         using (this._transactionLock.Lock())
         {
@@ -260,16 +274,20 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
         {
             this.Tooltip?.Dispose();
             this.Tooltip = null;
-            _ = this._hoveredTransaction?.BuildTooltip().ContinueWith(t =>
-            {
-                if (t.IsFaulted)
-                {
-                    Logger.Warn(t.Exception, $"Could not build tooltip for transaction \"{transactions}\":");
-                    return;
-                }
 
-                this.Tooltip = t.Result;
-            }).ConfigureAwait(false);
+            if (this.Configuration.ShowTooltips.Value)
+            {
+                _ = this._hoveredTransaction?.BuildTooltip().ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        Logger.Warn(t.Exception, $"Could not build tooltip for transaction \"{transactions}\":");
+                        return;
+                    }
+
+                    this.Tooltip = t.Result;
+                }).ConfigureAwait(false);
+            }
         }
 
         this._heightFromLastDraw = (int)Math.Ceiling(y);
@@ -279,6 +297,7 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
     {
         this.ClearTransactions();
 
+        this.Configuration.EnabledKeybinding.Value.Activated -= this.EnabledKeybinding_Activated;
         this.Configuration.BackgroundColor.SettingChanged -= this.BackgroundColor_SettingChanged;
         this.Configuration.Opacity.SettingChanged -= this.Opacity_SettingChanged;
         this.Configuration.Location.X.SettingChanged -= this.Location_X_SettingChanged;
@@ -286,6 +305,7 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
         this.Configuration.Size.X.SettingChanged -= this.Size_X_SettingChanged;
         this.Configuration.ShowBuyTransactions.SettingChanged -= this.ShowBuyTransactions_SettingChanged;
         this.Configuration.ShowSellTransactions.SettingChanged -= this.ShowSellTransactions_SettingChanged;
+        this.Configuration.ShowHighestTransactions.SettingChanged -= this.ShowHighestTransactions_SettingChanged;
 
         this._noDataControl?.Dispose();
         this._noDataControl = null;
