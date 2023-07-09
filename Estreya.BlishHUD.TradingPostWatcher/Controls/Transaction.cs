@@ -50,7 +50,7 @@ public class Transaction : IRenderable
         this._showCreatedDate = showCreatedDate;
         this._getItemPrice = getItemPrice;
 
-        this._texture = this._iconService.GetIcon(this.Model.Item.Icon);
+        this._texture = this.Model.Item is null ? null : this._iconService.GetIcon(this.Model.Item.Icon);
     }
 
     /// <summary>
