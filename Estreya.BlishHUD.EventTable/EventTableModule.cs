@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -36,6 +37,9 @@ using Event = Models.Event;
 using ScreenNotification = Shared.Controls.ScreenNotification;
 using TabbedWindow = Shared.Controls.TabbedWindow;
 
+/// <summary>
+/// The event table module class.
+/// </summary>
 [Export(typeof(Module))]
 public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 {
@@ -44,7 +48,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     private static TimeSpan _checkDrawerSettingInterval = TimeSpan.FromSeconds(30);
 
     private ConcurrentDictionary<string, EventArea> _areas;
-    private List<EventCategory> _eventCategories = new List<EventCategory>();
+    private List<EventCategory> _eventCategories;
 
     private readonly AsyncLock _eventCategoryLock = new AsyncLock();
     private double _lastCheckDrawerSettings;
@@ -57,10 +61,19 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     public override string UrlModuleName => "event-table";
 
+    /// <summary>
+    ///     Gets the current time in utc.
+    /// </summary>
     private DateTime NowUTC => DateTime.UtcNow;
 
+    /// <summary>
+    ///     Gets or sets the map util used to interact with the in-game (mini-)map.
+    /// </summary>
     private MapUtil MapUtil { get; set; }
 
+    /// <summary>
+    ///     Gets or sets a handler for dynamic events.
+    /// </summary>
     private DynamicEventHandler DynamicEventHandler { get; set; }
 
     protected override string API_VERSION_NO => "1";
@@ -70,6 +83,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         base.Initialize();
 
         this._areas = new ConcurrentDictionary<string, EventArea>();
+        this._eventCategories = new List<EventCategory>();
+
         this._lastEventUpdate = new AsyncRef<double>(0);
         this._lastCheckDrawerSettings = 0;
     }
@@ -95,14 +110,15 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SetAreaEvents();
 
-#if DEBUG
-        GameService.Input.Keyboard.KeyPressed += this.Keyboard_KeyPressed;
-#endif
-
         sw.Stop();
-        this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds}ms");
+        this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
     }
 
+    /// <summary>
+    ///     Handles the event of lost entities of the <see cref="DynamicEventHandler"/>.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The event arguments.</param>
     private void DynamicEventHandler_FoundLostEntities(object sender, EventArgs e)
     {
         string[] messages = new[]
@@ -116,23 +132,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             ScreenNotification.NotificationType.Warning);
     }
 
-    private void Keyboard_KeyPressed(object sender, KeyboardEventArgs e)
-    {
-        if (e.EventType != KeyboardEventType.KeyDown)
-        {
-            return;
-        }
-
-        if (GameService.Input.Keyboard.TextFieldIsActive())
-        {
-            return;
-        }
-
-        if (e.Key == Keys.U)
-        {
-        }
-    }
-
+    /// <summary>
+    ///     Updates the events in all registered areas.
+    /// </summary>
     private void SetAreaEvents()
     {
         foreach (EventArea area in this._areas.Values)
@@ -141,6 +143,10 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
     }
 
+    /// <summary>
+    ///     Updates the events for a given area.
+    /// </summary>
+    /// <param name="area">The area which should receive the current loaded events.</param>
     private void SetAreaEvents(EventArea area)
     {
         area.UpdateAllEvents(this._eventCategories);
@@ -149,7 +155,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <summary>
     ///     Reloads all events.
     /// </summary>
-    /// <returns></returns>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task LoadEvents()
     {
         this.Logger.Info("Load events...");
@@ -210,15 +216,16 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
     }
 
+    /// <summary>
+    ///     Assigns all saved time overrides the to corresponding events.
+    /// </summary>
+    /// <param name="categories"></param>
     private void AssignEventReminderTimes(List<EventCategory> categories)
     {
         IEnumerable<Event> events = categories.SelectMany(ec => ec.Events).Where(ev => !ev.Filler);
         foreach (Event ev in events)
         {
-            if (!this.ModuleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey))
-            {
-                continue;
-            }
+            if (!this.ModuleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey)) continue;
 
             List<TimeSpan> times = this.ModuleSettings.ReminderTimesOverride.Value[ev.SettingKey];
             ev.UpdateReminderTimes(times.ToArray());
@@ -240,25 +247,14 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
     }
 
-    protected override void OnModuleLoaded(EventArgs e)
+    /// <summary>
+    ///     Toggles all areas based on ui visibility calculations.
+    /// </summary>
+    private void ToggleContainers()
     {
-        // Base handler must be called
-        base.OnModuleLoaded(e);
+        bool show = this.ShowUI && this.ModuleSettings.GlobalDrawerVisible.Value;
 
-        if (this.ModuleSettings.GlobalDrawerVisible.Value)
-        {
-            this.ToggleContainers(true);
-        }
-    }
-
-    private void ToggleContainers(bool show)
-    {
-        if (!this.ModuleSettings.GlobalDrawerVisible.Value)
-        {
-            show = false;
-        }
-
-        this._areas.Values.ToList().ForEach(area =>
+        foreach (var area in this._areas.Values)
         {
             // Don't show if disabled.
             bool showArea = show && area.Enabled && area.CalculateUIVisibility();
@@ -277,14 +273,14 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     area.Hide();
                 }
             }
-        });
+        }
     }
 
     protected override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
 
-        this.ToggleContainers(this.ShowUI);
+        this.ToggleContainers();
 
         this.ModuleSettings.CheckGlobalSizeAndPosition();
 
@@ -293,7 +289,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.ModuleSettings.CheckDrawerSizeAndPosition(area.Configuration);
         }
 
-        // Dont block update when we need to wait
+        // Dont block update when we need to wait, can cause slight delays when skipping update
         if (this._eventCategoryLock.IsFree())
         {
             using (this._eventCategoryLock.Lock())
@@ -314,7 +310,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <summary>
     ///     Calculates the ui visibility of reminders based on settings or mumble parameters.
     /// </summary>
-    /// <returns>The newly calculated ui visibility or the last value of <see cref="ShowUI" />.</returns>
+    /// <returns>The newly calculated ui visibility.</returns>
     private bool CalculateReminderUIVisibility()
     {
         bool show = true;
@@ -385,16 +381,29 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         return show;
     }
 
+    /// <summary>
+    ///     Adds all event hooks to the specified event.
+    /// </summary>
+    /// <param name="ev">The event to which the event hooks should be added.</param>
     private void AddEventHooks(Event ev)
     {
         ev.Reminder += this.Ev_Reminder;
     }
 
+    /// <summary>
+    ///     Removes all event hooks from the specified event.
+    /// </summary>
+    /// <param name="ev">The event from which the event hooks should be removed.</param>
     private void RemoveEventHooks(Event ev)
     {
         ev.Reminder -= this.Ev_Reminder;
     }
 
+    /// <summary>
+    ///     Handles the event of an event reminder.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The timespan until the event start.</param>
     private void Ev_Reminder(object sender, TimeSpan e)
     {
         Event ev = sender as Event;
@@ -415,6 +424,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
     }
 
+    /// <summary>
+    ///     Adds all saved areas.
+    /// </summary>
     private void AddAllAreas()
     {
         if (this.ModuleSettings.EventAreaNames.Value.Count == 0)
@@ -428,6 +440,11 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
     }
 
+    /// <summary>
+    ///     Adds a new area
+    /// </summary>
+    /// <param name="name">The name of the new area</param>
+    /// <returns>The created area configuration.</returns>
     private EventAreaConfiguration AddArea(string name)
     {
         EventAreaConfiguration config = this.ModuleSettings.AddDrawer(name, this._eventCategories);
@@ -436,6 +453,10 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         return config;
     }
 
+    /// <summary>
+    ///     Adds a new area.
+    /// </summary>
+    /// <param name="configuration">The configuration of the new area.</param>
     private void AddArea(EventAreaConfiguration configuration)
     {
         if (!this.ModuleSettings.EventAreaNames.Value.Contains(configuration.Name))
@@ -463,6 +484,10 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
     }
 
+    /// <summary>
+    ///     Removes the specified area.
+    /// </summary>
+    /// <param name="configuration">The configuration of the area which should be removed.</param>
     private void RemoveArea(EventAreaConfiguration configuration)
     {
         this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value.Where(areaName => areaName != configuration.Name));
@@ -473,12 +498,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         this.ModuleSettings.RemoveDrawer(configuration.Name);
     }
 
-    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
-    {
-        ModuleSettings moduleSettings = new ModuleSettings(settings);
-
-        return moduleSettings;
-    }
+    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings);
 
     protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
     {
@@ -548,10 +568,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.TranslationService.GetTranslation("helpView-title", "Help")));
     }
 
-    protected override string GetDirectoryName()
-    {
-        return "events";
-    }
+    protected override string GetDirectoryName() => "events";
 
     protected override void ConfigureServices(ServiceConfigurations configurations)
     {
@@ -563,11 +580,21 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         configurations.PointOfInterests.Enabled = true;
     }
 
+    /// <summary>
+    ///     Handles the event of a login on the api backend.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The empty event arguments.</param>
     private void BlishHUDAPIService_NewLogin(object sender, EventArgs e)
     {
         this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
     }
 
+    /// <summary>
+    ///     Handles the event of a logout from the api backend.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The empty event arguments.</param>
     private void BlishHUDAPIService_LoggedOut(object sender, EventArgs e)
     {
         this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
@@ -607,7 +634,6 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         return this.IconService.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
     }
 
-    /// <inheritdoc />
     protected override void Unload()
     {
         this.Logger.Debug("Unload module.");
@@ -663,10 +689,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         this.Logger.Debug("Unloaded base.");
     }
 
-    protected override int GetCornerIconPriority()
-    {
-        return 1_289_351_278;
-    }
+    protected override int CornerIconPriority => 1_289_351_278;
 
     #region Services
 
