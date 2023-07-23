@@ -1,0 +1,21 @@
+{
+  "name": "Browser",
+  "version": "0.1.0",
+  "namespace": "estreya.bh.browser",
+  "package": "Estreya.BlishHUD.Browser.dll",
+  "manifest_version": 1,
+  "description": "Creates an in-game browser window.",
+  "dependencies": {
+    "bh.blishhud": ">=1.0.0"
+  },
+  "url": "https://github.com/Tharylia/Blish-HUD-Modules",
+  "contributors": [
+    {
+      "name": "Estreya",
+      "username": "Estreya.8675"
+    }
+  ],
+  "directories": ["browser"],
+  "actions": [],
+  "enabled_without_gw2": false
+}

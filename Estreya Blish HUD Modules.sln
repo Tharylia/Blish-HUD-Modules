@@ -23,6 +23,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.UniversalS
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.LookingForGroup", "Estreya.BlishHUD.LookingForGroup\Estreya.BlishHUD.LookingForGroup.csproj", "{776AE5F6-0902-4BB3-B177-A554D312F4B5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Estreya.BlishHUD.Browser", "Estreya.BlishHUD.Browser\Estreya.BlishHUD.Browser.csproj", "{94DACFCA-B59A-42BD-9166-9975662B70BE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,6 +105,14 @@ Global
 		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Release|Any CPU.Build.0 = Release|Any CPU
 		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Release|x64.ActiveCfg = Release|Any CPU
 		{776AE5F6-0902-4BB3-B177-A554D312F4B5}.Release|x64.Build.0 = Release|Any CPU
+		{94DACFCA-B59A-42BD-9166-9975662B70BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94DACFCA-B59A-42BD-9166-9975662B70BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94DACFCA-B59A-42BD-9166-9975662B70BE}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{94DACFCA-B59A-42BD-9166-9975662B70BE}.Debug|x64.Build.0 = Debug|Any CPU
+		{94DACFCA-B59A-42BD-9166-9975662B70BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94DACFCA-B59A-42BD-9166-9975662B70BE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94DACFCA-B59A-42BD-9166-9975662B70BE}.Release|x64.ActiveCfg = Release|Any CPU
+		{94DACFCA-B59A-42BD-9166-9975662B70BE}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -118,6 +128,7 @@ Global
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{59fb4d68-f75f-49d1-8231-ba56266bcbe4}*SharedItemsImports = 13
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{761c8939-3381-42c9-b80e-f96fa68ddb96}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{776ae5f6-0902-4bb3-b177-a554d312f4b5}*SharedItemsImports = 5
+		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{94dacfca-b59a-42bd-9166-9975662b70be}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{a2961446-bc00-43b4-8935-aa93918d6f36}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{a4536ef3-88bb-4dae-930e-ab37db2c37f9}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{cc021313-361f-40a6-9931-cbfe9f013348}*SharedItemsImports = 5
