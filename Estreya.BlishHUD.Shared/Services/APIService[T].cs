@@ -115,7 +115,10 @@ public abstract class APIService<T> : APIService
 
                     if (!apiObjects.Any(apiObject => apiObject.GetHashCode() == oldApiObject.GetHashCode()))
                     {
-                        this.Logger.Debug($"API Object disappeared from the api: {oldApiObject}");
+                        if (apiObjects.Count <= 25)
+                        {
+                            this.Logger.Debug($"API Object disappeared from the api: {oldApiObject}");
+                        }
 
                         _ = oldAPIObjectList.Remove(oldApiObject);
 
