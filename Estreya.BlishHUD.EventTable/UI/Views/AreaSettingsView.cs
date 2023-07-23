@@ -614,7 +614,7 @@ public class AreaSettingsView : BaseSettingsView
     private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
         EventAreaConfiguration configuration = e.AdditionalData["configuration"] as EventAreaConfiguration;
-        configuration.DisabledEventKeys.Value = e.NewService
+        configuration.DisabledEventKeys.Value = e.NewState
             ? new List<string>(configuration.DisabledEventKeys.Value.Where(aek => aek != e.EventSettingKey))
             : new List<string>(configuration.DisabledEventKeys.Value) { e.EventSettingKey };
     }

@@ -343,8 +343,8 @@ public class ManageEventsView : BaseView
                 {
                     this.EventChanged?.Invoke(this, new EventChangedArgs
                     {
-                        OldService = !eventArgs.Checked,
-                        NewService = eventArgs.Checked,
+                        OldState = !eventArgs.Checked,
+                        NewState = eventArgs.Checked,
                         EventSettingKey = button.Event.SettingKey,
                         AdditionalData = this._additionalData
                     });
@@ -369,8 +369,8 @@ public class ManageEventsView : BaseView
 
     public class EventChangedArgs
     {
-        public bool OldService { get; set; }
-        public bool NewService { get; set; }
+        public bool OldState { get; set; }
+        public bool NewState { get; set; }
 
         public Dictionary<string, object> AdditionalData { get; set; }
 

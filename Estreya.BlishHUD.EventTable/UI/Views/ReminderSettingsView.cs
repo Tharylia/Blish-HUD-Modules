@@ -108,7 +108,7 @@ public class ReminderSettingsView : BaseSettingsView
 
     private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
-        this._moduleSettings.ReminderDisabledForEvents.Value = e.NewService
+        this._moduleSettings.ReminderDisabledForEvents.Value = e.NewState
             ? new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value.Where(s => s != e.EventSettingKey))
             : new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value) { e.EventSettingKey };
     }
