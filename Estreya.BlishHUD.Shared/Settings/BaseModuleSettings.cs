@@ -7,6 +7,7 @@ using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework.Input;
 using Models;
 using Models.Drawers;
+using MonoGame.Extended;
 using Newtonsoft.Json;
 using Services;
 using System;
@@ -322,6 +323,11 @@ public abstract class BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-textColor");
     }
 
+    public bool IsMaxResolutionValid(int width, int height)
+    {
+        return width >= 100 && height >= 100;
+    }
+
     /// <summary>
     ///     Checks drawer size and position settings.
     /// </summary>
@@ -331,6 +337,12 @@ public abstract class BaseModuleSettings
         bool buildFromBottom = configuration.BuildDirection.Value == BuildDirection.Bottom;
         int maxResX = (int)(GameService.Graphics.Resolution.X / GameService.Graphics.UIScaleMultiplier);
         int maxResY = (int)(GameService.Graphics.Resolution.Y / GameService.Graphics.UIScaleMultiplier);
+
+        if (!this.IsMaxResolutionValid(maxResX, maxResY))
+        {
+            this.Logger.Warn($"Max drawer size and position resolution is invalid. X: {maxResX} - Y: {maxResY}");
+            return;
+        }
 
         int minLocationX = 0;
         int maxLocationX = maxResX - configuration.Size.X.Value;

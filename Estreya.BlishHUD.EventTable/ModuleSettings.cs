@@ -156,6 +156,12 @@ public class ModuleSettings : BaseModuleSettings
         int maxResX = (int)(GameService.Graphics.Resolution.X / GameService.Graphics.UIScaleMultiplier);
         int maxResY = (int)(GameService.Graphics.Resolution.Y / GameService.Graphics.UIScaleMultiplier);
 
+        if (!this.IsMaxResolutionValid(maxResX, maxResY))
+        {
+            this.Logger.Warn($"Max Global size and position resolution is invalid. X: {maxResX} - Y: {maxResY}");
+            return;
+        }
+
         int minLocationX = 0;
         int maxLocationX = maxResX - EventNotification.NOTIFICATION_WIDTH;
         int minLocationY = 0;
