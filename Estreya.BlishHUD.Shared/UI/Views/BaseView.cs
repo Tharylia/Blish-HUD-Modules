@@ -163,8 +163,6 @@ public abstract class BaseView : View
 
                     changing = false;
                 });
-
-                onChangeAction?.Invoke(scopeTextBox.Text);
             };
         }
 
