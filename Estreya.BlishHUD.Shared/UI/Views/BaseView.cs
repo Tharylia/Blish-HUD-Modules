@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.UI.Views;
+namespace Estreya.BlishHUD.Shared.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -25,12 +25,14 @@ using Thickness = Blish_HUD.Controls.Thickness;
 
 public abstract class BaseView : View
 {
-    private static readonly Logger Logger = Logger.GetLogger<BaseView>();
+    protected readonly Logger _logger;
 
     private CancellationTokenSource _messageCancellationTokenSource;
 
     public BaseView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null)
     {
+        this._logger = Logger.GetLogger(this.GetType());
+
         this.APIManager = apiManager;
         this.IconService = iconService;
         this.TranslationService = translationService;
@@ -66,10 +68,10 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
-                Logger.Warn($"Could not load gw2 colors: {ex.Message}");
+                _logger.Warn($"Could not load gw2 colors: {ex.Message}");
                 if (this.DefaultColor != null)
                 {
-                    Logger.Debug($"Adding default color: {this.DefaultColor.Name}");
+                    _logger.Debug($"Adding default color: {this.DefaultColor.Name}");
                     Colors = new List<Color> { this.DefaultColor };
                 }
             }
@@ -103,7 +105,7 @@ public abstract class BaseView : View
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex, $"Failed building view {this.GetType().FullName}");
+            _logger.Warn(ex, $"Failed building view {this.GetType().FullName}");
         }
     }
 
@@ -427,7 +429,7 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
-                Logger.Warn(ex, "Failed executing action:");
+                _logger.Warn(ex, "Failed executing action:");
                 this.ShowError(ex.Message);
             }
         };
@@ -448,7 +450,7 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
-                Logger.Warn(ex, "Failed executing action:");
+                _logger.Warn(ex, "Failed executing action:");
                 this.ShowError(ex.Message);
             }
             finally
@@ -545,7 +547,7 @@ public abstract class BaseView : View
             }
             catch (Exception ex)
             {
-                Logger.Warn(ex, "Hacky colorpicker resize failed.. Nothing to prevent this..");
+                _logger.Warn(ex, "Hacky colorpicker resize failed.. Nothing to prevent this..");
             }
         };
 
