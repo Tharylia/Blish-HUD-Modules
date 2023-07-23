@@ -603,7 +603,12 @@ public abstract class BaseView : View
 
     protected void ShowError(string message)
     {
-        this.ShowMessage(message, Microsoft.Xna.Framework.Color.Red, 5000, GameService.Content.DefaultFont18);
+        this.ShowError(message, 5000);
+    }
+
+    protected void ShowError(string message, int durationMS)
+    {
+        this.ShowMessage(message, Microsoft.Xna.Framework.Color.Red, durationMS, GameService.Content.DefaultFont18);
     }
 
     protected void ShowInfo(string message)
