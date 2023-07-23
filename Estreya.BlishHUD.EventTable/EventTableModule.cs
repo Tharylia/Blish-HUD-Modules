@@ -616,7 +616,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             AwaitLoading = false,
             Enabled = true,
             SaveInterval = Timeout.InfiniteTimeSpan
-        }, this.Gw2ApiManager, this.GetFlurlClient(), API_ROOT_URL);
+        }, this.Gw2ApiManager, this.GetFlurlClient(), API_ROOT_URL, directoryPath);
 
         additionalServices.Add(this.EventStateService);
         additionalServices.Add(this.DynamicEventService);

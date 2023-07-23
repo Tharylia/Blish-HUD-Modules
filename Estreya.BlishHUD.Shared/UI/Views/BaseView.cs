@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.Shared.UI.Views;
+﻿namespace Estreya.BlishHUD.Shared.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;

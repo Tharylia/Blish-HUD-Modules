@@ -4,6 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Graphics;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.EventTable.Models;
 using Flurl.Http;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
@@ -31,6 +32,7 @@ public class DynamicEventsSettingsView : BaseSettingsView
 
     private Texture2D _dynamicEventsInWorldImage;
     private StandardWindow _manageEventsWindow;
+    private StandardWindow _editEventWindow; 
 
     public DynamicEventsSettingsView(DynamicEventService dynamicEventService, ModuleSettings moduleSettings, IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
     {
@@ -72,10 +74,28 @@ public class DynamicEventsSettingsView : BaseSettingsView
                 manageEventView.EventChanged -= this.ManageView_EventChanged;
             }
 
-            ManageDynamicEventsSettingsView view = new ManageDynamicEventsSettingsView(this._dynamicEventService, () => this._moduleSettings.DisabledDynamicEventIds.Value, this.APIManager, this.IconService, this.TranslationService);
+            ManageDynamicEventsSettingsView view = new ManageDynamicEventsSettingsView(this._dynamicEventService, () => this._moduleSettings.DisabledDynamicEventIds.Value, this._moduleSettings, this.APIManager, this.IconService, this.TranslationService);
             view.EventChanged += this.ManageView_EventChanged;
 
             this._manageEventsWindow.Show(view);
+        });
+
+        this.RenderButton(parent, this.TranslationService.GetTranslation("dynamicEventsSettingsView-btn-addEvent", "Add Event"), () =>
+        {
+            this._editEventWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Add Dynamic Event", this.GetType(), Guid.Parse("d174b7f7-adf6-4e90-8928-4e581ffa1d71"), this.IconService);
+
+            if (this._editEventWindow.CurrentView != null)
+            {
+                EditDynamicEventView editEventView = this._editEventWindow.CurrentView as EditDynamicEventView;
+                editEventView.SaveClicked -= this.EditEventView_SaveClicked;
+                editEventView.CloseRequested -= this.EditEventView_CloseRequested;
+            }
+
+            EditDynamicEventView view = new EditDynamicEventView( null, this.APIManager, this.IconService, this.TranslationService);
+            view.SaveClicked += this.EditEventView_SaveClicked;
+            view.CloseRequested += this.EditEventView_CloseRequested;
+
+            this._editEventWindow.Show(view);
         });
 
         if (this._dynamicEventsInWorldImage != null)
@@ -86,9 +106,21 @@ public class DynamicEventsSettingsView : BaseSettingsView
         }
     }
 
+    private void EditEventView_CloseRequested(object sender, EventArgs e)
+    {
+        this._editEventWindow.Hide();
+    }
+
+    private async Task EditEventView_SaveClicked(object sender, DynamicEvent e)
+    {
+        await this._dynamicEventService.AddCustomEvent(dynamicEvent: e);
+
+        await this._dynamicEventService.NotifyCustomEventsUpdated();
+    }
+
     private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
-        this._moduleSettings.DisabledDynamicEventIds.Value = e.NewService
+        this._moduleSettings.DisabledDynamicEventIds.Value = e.NewState
             ? new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value.Where(s => s != e.EventSettingKey))
             : new List<string>(this._moduleSettings.DisabledDynamicEventIds.Value) { e.EventSettingKey };
     }
@@ -103,8 +135,8 @@ public class DynamicEventsSettingsView : BaseSettingsView
     {
         try
         {
-            Stream stream = await this._flurlClient.Request("https://files.estreya.de/blish-hud/event-table/images/dynamic-events-in-world.png").GetStreamAsync();
-            Bitmap bitmap = ImageUtil.ResizeImage(System.Drawing.Image.FromStream(stream), 500, 400);
+            using Stream stream = await this._flurlClient.Request("https://files.estreya.de/blish-hud/event-table/images/dynamic-events-in-world.png").GetStreamAsync();
+            using Bitmap bitmap = ImageUtil.ResizeImage(System.Drawing.Image.FromStream(stream), 500, 400);
             using MemoryStream memoryStream = new MemoryStream();
             bitmap.Save(memoryStream, ImageFormat.Png);
             await Task.Run(() =>
@@ -129,6 +161,9 @@ public class DynamicEventsSettingsView : BaseSettingsView
 
         this._manageEventsWindow?.Dispose();
         this._manageEventsWindow = null;
+
+        this._editEventWindow?.Dispose();
+        this._editEventWindow = null;
 
         this._dynamicEventsInWorldImage?.Dispose();
         this._dynamicEventsInWorldImage = null;

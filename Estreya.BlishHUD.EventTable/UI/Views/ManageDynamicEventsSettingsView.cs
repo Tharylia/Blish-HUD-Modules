@@ -4,6 +4,9 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Controls;
+using Estreya.BlishHUD.EventTable.Models;
+using Estreya.BlishHUD.Shared.Extensions;
+using Estreya.BlishHUD.Shared.Utils;
 using Gw2Sharp.WebApi.V2;
 using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
@@ -24,12 +27,24 @@ public class ManageDynamicEventsSettingsView : BaseView
     private static readonly Point MAIN_PADDING = new Point(20, 20);
     private readonly DynamicEventService _dynamicEventService;
     private readonly Func<List<string>> _getDisabledEventGuids;
+    private readonly ModuleSettings _moduleSettings;
     private readonly List<Map> _maps = new List<Map>();
+    private Shared.Controls.StandardWindow _editEventWindow;
 
-    public ManageDynamicEventsSettingsView(DynamicEventService dynamicEventService, Func<List<string>> getDisabledEventGuids, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public ManageDynamicEventsSettingsView(DynamicEventService dynamicEventService, Func<List<string>> getDisabledEventGuids, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
         this._dynamicEventService = dynamicEventService;
         this._getDisabledEventGuids = getDisabledEventGuids;
+        this._moduleSettings = moduleSettings;
+
+        this._dynamicEventService.CustomEventsUpdated += this.DynamicEventService_CustomEventsUpdated;
+    }
+
+    private Task DynamicEventService_CustomEventsUpdated(object sender)
+    {
+        this.MainPanel.ClearChildren();
+        this.InternalBuild(this.MainPanel);
+        return Task.CompletedTask;
     }
 
     public Panel Panel { get; private set; }
@@ -100,7 +115,7 @@ public class ManageDynamicEventsSettingsView : BaseView
 
         searchBox.TextChanged += (s, e) =>
         {
-            eventPanel.FilterChildren<DataDetailsButton<DynamicEventService.DynamicEvent>>(detailsButton =>
+            eventPanel.FilterChildren<DataDetailsButton<DynamicEvent>>(detailsButton =>
             {
                 return detailsButton.Text.ToLowerInvariant().Contains(searchBox.Text.ToLowerInvariant());
             });
@@ -125,7 +140,7 @@ public class ManageDynamicEventsSettingsView : BaseView
             {
                 Map map = maps.Where(map => map.Name == menuItem.Text).FirstOrDefault();
 
-                eventPanel.FilterChildren<DataDetailsButton<DynamicEventService.DynamicEvent>>(detailsButton =>
+                eventPanel.FilterChildren<DataDetailsButton<DynamicEvent>>(detailsButton =>
                 {
                     if (menuItem == menus[nameof(allEvents)])
                     {
@@ -162,7 +177,7 @@ public class ManageDynamicEventsSettingsView : BaseView
                     // Check Yes - No
                 }
 
-                if (control is DataDetailsButton<DynamicEventService.DynamicEvent> detailsButton && detailsButton.Visible)
+                if (control is DataDetailsButton<DynamicEvent> detailsButton && detailsButton.Visible)
                 {
                     if (detailsButton.Children.Last() is GlowButton glowButton)
                     {
@@ -188,7 +203,7 @@ public class ManageDynamicEventsSettingsView : BaseView
                     // Check Yes - No
                 }
 
-                if (control is DataDetailsButton<DynamicEventService.DynamicEvent> detailsButton && detailsButton.Visible)
+                if (control is DataDetailsButton<DynamicEvent> detailsButton && detailsButton.Visible)
                 {
                     if (detailsButton.Children.Last() is GlowButton glowButton)
                     {
@@ -198,15 +213,15 @@ public class ManageDynamicEventsSettingsView : BaseView
             });
         };
 
-        List<DynamicEventService.DynamicEvent> eventList = this._dynamicEventService.Events /*.Where(e => !string.IsNullOrWhiteSpace(e.Name))*/.ToList();
+        List<DynamicEvent> eventList = this._dynamicEventService.Events /*.Where(e => !string.IsNullOrWhiteSpace(e.Name))*/.ToList();
         foreach (Map map in maps.Where(m => m.Id == GameService.Gw2Mumble.CurrentMap.Id)) // Limit to current map at the moment. Due to performance limits.
         {
-            IEnumerable<DynamicEventService.DynamicEvent> events = eventList.Where(e => e.MapId == map.Id);
-            foreach (DynamicEventService.DynamicEvent e in events)
+            IEnumerable<DynamicEvent> events = eventList.Where(e => e.MapId == map.Id).OrderByDescending(e => e.IsCustom);
+            foreach (DynamicEvent e in events)
             {
                 bool enabled = !this._getDisabledEventGuids().Contains(e.ID);
 
-                DataDetailsButton<DynamicEventService.DynamicEvent> button = new DataDetailsButton<DynamicEventService.DynamicEvent>
+                DataDetailsButton<DynamicEvent> button = new DataDetailsButton<DynamicEvent>
                 {
                     Data = e,
                     Parent = eventPanel,
@@ -224,6 +239,44 @@ public class ManageDynamicEventsSettingsView : BaseView
                     });
                 }
 
+                GlowButton editButton = new GlowButton()
+                {
+                    Parent = button,
+                    ToggleGlow = false,
+                    Icon = this.IconService.GetIcon("156706.png")
+                };
+
+                editButton.Click += (s, eArgs) =>
+                {
+                    this._editEventWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Edit Dynamic Event", this.GetType(), Guid.Parse("5e20b5b0-d0a8-4e36-b65b-3bfc9c971d3d"), this.IconService);
+
+                    if (this._editEventWindow.CurrentView != null)
+                    {
+                        EditDynamicEventView editEventView = this._editEventWindow.CurrentView as EditDynamicEventView;
+                        editEventView.SaveClicked -= this.EditEventView_SaveClicked;
+                        editEventView.RemoveClicked -= this.EditEventView_RemoveClicked;
+                        editEventView.CloseRequested -= this.EditEventView_CloseRequested;
+                    }
+
+                    EditDynamicEventView view = new EditDynamicEventView(e.CopyWithJson(new Newtonsoft.Json.JsonSerializerSettings()), this.APIManager, this.IconService, this.TranslationService);
+                    view.SaveClicked += this.EditEventView_SaveClicked;
+                    view.RemoveClicked += this.EditEventView_RemoveClicked;
+                    view.CloseRequested += this.EditEventView_CloseRequested;
+
+                    this._editEventWindow.Show(view);
+                };
+
+                if (e.IsCustom)
+                {
+                    GlowButton isCustomInfo = new GlowButton()
+                    {
+                        Parent = button,
+                        ToggleGlow = false,
+                        Icon = this.IconService.GetIcon("440023.png"),
+                        BasicTooltipText = "This event is customized!"
+                    };
+                }
+
                 GlowButton toggleButton = new GlowButton
                 {
                     Parent = button,
@@ -237,8 +290,8 @@ public class ManageDynamicEventsSettingsView : BaseView
                 {
                     this.EventChanged?.Invoke(this, new ManageEventsView.EventChangedArgs
                     {
-                        OldService = !eventArgs.Checked,
-                        NewService = eventArgs.Checked,
+                        OldState = !eventArgs.Checked,
+                        NewState = eventArgs.Checked,
                         EventSettingKey = button.Data.ID
                     });
 
@@ -255,6 +308,25 @@ public class ManageDynamicEventsSettingsView : BaseView
         }
     }
 
+    private void EditEventView_CloseRequested(object sender, EventArgs e)
+    {
+        this._editEventWindow.Hide();
+    }
+
+    private async Task EditEventView_RemoveClicked(object sender, DynamicEvent e)
+    {
+        await this._dynamicEventService.RemoveCustomEvent(e.ID);
+
+        await this._dynamicEventService.NotifyCustomEventsUpdated();
+    }
+
+    private async Task EditEventView_SaveClicked(object sender, DynamicEvent e)
+    {
+        await this._dynamicEventService.AddCustomEvent(e);
+
+        await this._dynamicEventService.NotifyCustomEventsUpdated();
+    }
+
     protected override async Task<bool> InternalLoad(IProgress<string> progress)
     {
         try
@@ -265,8 +337,18 @@ public class ManageDynamicEventsSettingsView : BaseView
         }
         catch (Exception ex)
         {
-            Logger.Debug(ex, "Failed to add maps:");
+            Logger.Warn(ex, "Failed to add maps:");
             return false;
         }
+    }
+
+    protected override void Unload()
+    {
+        base.Unload();
+
+        this._dynamicEventService.CustomEventsUpdated -= this.DynamicEventService_CustomEventsUpdated;
+
+        this._editEventWindow?.Dispose();
+        this._editEventWindow = null;
     }
 }

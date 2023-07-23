@@ -3,6 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Entities;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.EventTable.Models;
 using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
 using Services;
@@ -47,6 +48,8 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         this._moduleSettings.ShowDynamicEventsOnMap.SettingChanged += this.ShowDynamicEventsOnMap_SettingChanged;
         this._moduleSettings.ShowDynamicEventInWorld.SettingChanged += this.ShowDynamicEventsInWorldSetting_SettingChanged;
         this._moduleSettings.DisabledDynamicEventIds.SettingChanged += this.DisabledDynamicEventIds_SettingChanged;
+
+        this._dynamicEventService.CustomEventsUpdated += this.DynamicEventService_CustomEventsUpdated;
     }
 
     public void Dispose()
@@ -61,6 +64,8 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         this._moduleSettings.ShowDynamicEventsOnMap.SettingChanged -= this.ShowDynamicEventsOnMap_SettingChanged;
         this._moduleSettings.ShowDynamicEventInWorld.SettingChanged -= this.ShowDynamicEventsInWorldSetting_SettingChanged;
         this._moduleSettings.DisabledDynamicEventIds.SettingChanged -= this.DisabledDynamicEventIds_SettingChanged;
+
+        this._dynamicEventService.CustomEventsUpdated -= this.DynamicEventService_CustomEventsUpdated;
     }
 
     public void Update(GameTime gameTime)
@@ -122,6 +127,12 @@ public class DynamicEventHandler : IDisposable, IUpdatable
     }
 
     private async void CurrentMap_MapChanged(object sender, ValueEventArgs<int> e)
+    {
+        await this.AddDynamicEventsToMap();
+        await this.AddDynamicEventsToWorld();
+    }
+
+    private async Task DynamicEventService_CustomEventsUpdated(object sender)
     {
         await this.AddDynamicEventsToMap();
         await this.AddDynamicEventsToWorld();
@@ -428,7 +439,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         }
 
         IEnumerable<Vector3> allPoints = points.Concat(connectionPoints);
-        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
+        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), ev.GetColorAsXnaColor(), renderCondition);
     }
 
     private WorldEntity GetCylinder(DynamicEvent ev, Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
@@ -514,7 +525,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         IEnumerable<Vector3> allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
 
-        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
+        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), ev.GetColorAsXnaColor(), renderCondition);
     }
 
     private WorldEntity GetPolygone(DynamicEvent dynamicEvent, Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
@@ -522,9 +533,10 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         // Map all event points to world coordinates
         Vector3[] points = dynamicEvent.Location.Points.Select(p =>
         {
+            var z = p.Length >= 3 && p[2] != 0 ? Math.Abs(p[2].ToMeters()) : centerAsWorldMeters.Z;
             Vector2 mapCoords = new Vector2(p[0], p[1]);
-            Vector3 worldCoords = map.MapCoordsToWorldMeters(new Vector2(mapCoords.X, mapCoords.Y));
-            Vector3 vector = new Vector3(worldCoords.X, worldCoords.Y, centerAsWorldMeters.Z);
+            Vector3 worldCoords = map.MapCoordsToWorldMeters(mapCoords);
+            Vector3 vector = new Vector3(worldCoords.X, worldCoords.Y, z);
             return vector;
         }).ToArray();
 
@@ -553,9 +565,9 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             mappedPoints[i] = offset;
         }
 
-        Vector3[][] perZRangePoints = dynamicEvent.Location.ZRange.OrderBy(z => z).Select(z => centerAsWorldMeters.Z + z.ToMeters()).Select(z =>
+        Vector3[][] perZRangePoints = dynamicEvent.Location.ZRange.OrderBy(z => z).Select(z => z.ToMeters()).Select(z =>
         {
-            Vector3[] p = mappedPoints.Select(mp => new Vector3(mp.X, mp.Y, z)).ToArray();
+            Vector3[] p = mappedPoints.Select(mp => new Vector3(mp.X, mp.Y, mp.Z + z)).ToArray();
             return p;
         }).ToArray();
 
@@ -581,7 +593,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         IEnumerable<Vector3> allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
 
-        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), Color.White, renderCondition);
+        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), dynamicEvent.GetColorAsXnaColor(), renderCondition);
     }
 
     private void CheckLostEntityReferences()
