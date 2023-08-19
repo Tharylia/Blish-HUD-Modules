@@ -525,6 +525,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         IEnumerable<Vector3> allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
 
+        
         return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), ev.GetColorAsXnaColor(), renderCondition);
     }
 
@@ -540,7 +541,7 @@ public class DynamicEventHandler : IDisposable, IUpdatable
             return vector;
         }).ToArray();
 
-        // Polygone needs everything double
+        // Polygone needs everything double. A -> B, B -> C, C -> D
         bool first = true;
         points = points.SelectMany(t =>
         {
