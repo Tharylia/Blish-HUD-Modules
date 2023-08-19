@@ -3,6 +3,7 @@ namespace Estreya.BlishHUD.Shared.Modules;
 using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
+using Blish_HUD.GameIntegration;
 using Blish_HUD.Graphics.UI;
 using Blish_HUD.Input;
 using Blish_HUD.Modules;
@@ -187,6 +188,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected override void Initialize()
     {
+        this.TEMP_FIX_SetTacOAsActive();
+
         string directoryName = this.GetDirectoryName();
 
         if (!string.IsNullOrWhiteSpace(directoryName))
@@ -194,6 +197,20 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             string directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
             this.PasswordManager = new PasswordManager(directoryPath);
             this.PasswordManager.InitializeEntropy(Encoding.UTF8.GetBytes(this.Namespace));
+        }
+    }
+
+    private void TEMP_FIX_SetTacOAsActive()
+    {
+        // SOTO Fix
+        if (DateTime.UtcNow.Date >= new DateTime(2023, 8, 22, 0, 0, 0, DateTimeKind.Utc) && Program.OverlayVersion < new SemVer.Version(1, 1, 0))
+        {
+            try
+            {
+                var tacoActive = typeof(TacOIntegration).GetProperty(nameof(TacOIntegration.TacOIsRunning)).GetSetMethod(true);
+                tacoActive?.Invoke(GameService.GameIntegration.TacO, new object[] { true });
+            }
+            catch { /* NOOP */ }
         }
     }
 
