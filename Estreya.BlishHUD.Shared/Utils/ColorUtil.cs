@@ -10,6 +10,8 @@ using System.Linq;
 
 public static class ColorUtil
 {
+    private static Random random = new Random();
+
     private static Color[][] CreateColorGradientRows(Color start, Color end, int width, int height)
     {
         List<Color[]> bgc = new List<Color[]>();
@@ -114,5 +116,10 @@ public static class ColorUtil
 
         backgroundTex.SetData(gradients);
         return backgroundTex;
+    }
+
+    public static Color GetRandom()
+    {
+        return new Color(random.Next(256), random.Next(256), random.Next(256));
     }
 }
