@@ -156,10 +156,26 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
         Account account = this.AccountService.Account;
 
         List<Character> characters = new List<Character>();
-
-        if (this.Gw2ApiManager.HasPermission(TokenPermission.Characters))
+        try
         {
-            characters.AddRange(await this.Gw2ApiManager.Gw2ApiClient.V2.Characters.AllAsync());
+            if (this.Gw2ApiManager.HasPermission(TokenPermission.Characters))
+            {
+                characters.AddRange(await this.Gw2ApiManager.Gw2ApiClient.V2.Characters.AllAsync());
+            }
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, "Failed to load characters from api.");
+        }
+
+        Map map = null;
+        try
+        {
+            map = GameService.Gw2Mumble.IsAvailable ? await this.Gw2ApiManager.Gw2ApiClient.V2.Maps.GetAsync(GameService.Gw2Mumble.CurrentMap.Id) : null;
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, "Failed to load map from api.");
         }
 
         HandlebarsDataContext dataContext = new HandlebarsDataContext
@@ -169,7 +185,7 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
             {
                 Account = account,
                 Characters = characters.ToArray(),
-                Map = GameService.Gw2Mumble.IsAvailable ? await this.Gw2ApiManager.Gw2ApiClient.V2.Maps.GetAsync(GameService.Gw2Mumble.CurrentMap.Id) : null
+                Map = map
             }
         };
 
