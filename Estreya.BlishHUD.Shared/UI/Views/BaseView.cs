@@ -19,7 +19,6 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Color = Gw2Sharp.WebApi.V2.Models.Color;
-using Dropdown = Controls.Dropdown;
 using KeybindingAssigner = Controls.KeybindingAssigner;
 using Thickness = Blish_HUD.Controls.Thickness;
 
@@ -274,12 +273,12 @@ public abstract class BaseView : View
         return checkBox;
     }
 
-    protected Dropdown RenderDropdown<T>(Panel parent, Point location, int width, T? value, T[] values = null, Action<T> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null) where T : struct, Enum
+    protected Controls.Dropdown<string> RenderDropdown<T>(Panel parent, Point location, int width, T? value, T[] values = null, Action<T> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null) where T : struct, Enum
     {
         onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
         LetterCasing casing = LetterCasing.Title;
 
-        Dropdown dropdown = new Dropdown
+        Controls.Dropdown<string> dropdown = new Controls.Dropdown<string>
         {
             Parent = parent,
             Width = width,
@@ -307,7 +306,7 @@ public abstract class BaseView : View
         {
             dropdown.ValueChanged += (s, e) =>
             {
-                Dropdown scopeDropdown = s as Dropdown;
+                Dropdown<string> scopeDropdown = s as Dropdown<string>;
                 onChangeAction?.Invoke(values[formattedValues.ToList().IndexOf(scopeDropdown.SelectedItem)]);
             };
         }
@@ -315,11 +314,11 @@ public abstract class BaseView : View
         return dropdown;
     }
 
-    protected Dropdown RenderDropdown(Panel parent, Point location, int width, string[] values, string value, Action<string> onChangeAction = null, Func<string, string, Task<bool>> onBeforeChangeAction = null)
+    protected Controls.Dropdown<T> RenderDropdown<T>(Panel parent, Point location, int width, T[] values, T value, Action<T> onChangeAction = null, Func<T, T, Task<bool>> onBeforeChangeAction = null)
     {
         onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
 
-        Dropdown dropdown = new Dropdown
+        Controls.Dropdown<T> dropdown = new Controls.Dropdown<T>
         {
             Parent = parent,
             Width = width,
@@ -328,7 +327,7 @@ public abstract class BaseView : View
 
         if (values != null)
         {
-            foreach (string valueToAdd in values)
+            foreach (T valueToAdd in values)
             {
                 dropdown.Items.Add(valueToAdd);
             }
@@ -340,7 +339,7 @@ public abstract class BaseView : View
         {
             dropdown.ValueChanged += (s, e) =>
             {
-                Dropdown scopeDropdown = s as Dropdown;
+                Controls.Dropdown<T> scopeDropdown = s as Controls.Dropdown<T>;
                 onChangeAction?.Invoke(scopeDropdown.SelectedItem);
             };
         }

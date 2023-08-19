@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Color = Gw2Sharp.WebApi.V2.Models.Color;
-using Dropdown = Controls.Dropdown;
 using KeybindingAssigner = Controls.KeybindingAssigner;
 
 public abstract class BaseSettingsView : BaseView
@@ -244,7 +243,7 @@ public abstract class BaseSettingsView : BaseView
         return (panel, label.TitleLabel, keybindingAssigner);
     }
 
-    protected (Panel Panel, Label label, Dropdown dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T : struct, Enum
+    protected (Panel Panel, Label label, Controls.Dropdown<string> dropdown) RenderEnumSetting<T>(Panel parent, SettingEntry<T> settingEntry) where T : struct, Enum
     {
         Panel panel = this.GetPanel(parent);
 
@@ -262,7 +261,7 @@ public abstract class BaseSettingsView : BaseView
             values.AddRange((T[])Enum.GetValues(settingEntry.SettingType));
         }
 
-        Dropdown dropdown = this.RenderDropdown(panel, this.CONTROL_LOCATION, this.CONTROL_WIDTH, settingEntry.Value, values.ToArray(), newValue =>
+        Controls.Dropdown<string> dropdown = this.RenderDropdown(panel, this.CONTROL_LOCATION, this.CONTROL_WIDTH, settingEntry.Value, values.ToArray(), newValue =>
         {
             try
             {

@@ -19,7 +19,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Media.Animation;
-using Dropdown = Shared.Controls.Dropdown;
 
 public class EditDynamicEventView : BaseView
 {
@@ -85,6 +84,7 @@ public class EditDynamicEventView : BaseView
             {
                 this._dynamicEvent.Name = val;
             });
+        nameTextBox.BasicTooltipText = "Defines the name of the dynamic event. It is shown in the tooltip on the (mini)map.";
 
         Panel mapSelectionGroup = new Panel()
         {
@@ -96,7 +96,7 @@ public class EditDynamicEventView : BaseView
         Label mapSelectionLabel = this.RenderLabel(mapSelectionGroup, "Map").TitleLabel;
         mapSelectionLabel.Width = this.LABEL_WIDTH;
 
-        Dropdown mapSelectionDropdown = this.RenderDropdown(
+        Shared.Controls.Dropdown<string> mapSelectionDropdown = this.RenderDropdown(
             mapSelectionGroup,
             new Point(this.LABEL_WIDTH, 0),
             mapSelectionGroup.ContentRegion.Width - this.LABEL_WIDTH,
@@ -112,6 +112,7 @@ public class EditDynamicEventView : BaseView
 
                 this.InternalBuild(parent);
             });
+        mapSelectionDropdown.Enabled = false;
         mapSelectionDropdown.PanelHeight = 200;
 
         Panel typeSelectionGroup = new Panel()
@@ -123,7 +124,7 @@ public class EditDynamicEventView : BaseView
         Label typeSelectionLabel = this.RenderLabel(typeSelectionGroup, "Type").TitleLabel;
         typeSelectionLabel.Width = this.LABEL_WIDTH;
 
-        Dropdown typeSelectionDropdown = this.RenderDropdown(
+        Shared.Controls.Dropdown<string> typeSelectionDropdown = this.RenderDropdown(
             typeSelectionGroup,
             new Point(this.LABEL_WIDTH, 0),
             typeSelectionGroup.ContentRegion.Width - this.LABEL_WIDTH,
@@ -131,6 +132,7 @@ public class EditDynamicEventView : BaseView
             this._dynamicEvent.Location.Type,
             newType => this._dynamicEvent.Location.Type = newType);
         typeSelectionDropdown.PanelHeight = 200;
+        typeSelectionDropdown.BasicTooltipText = "Defines the type of the type of the dynamic event.";
 
         this.RenderLevelGroup(flowPanel, this._dynamicEvent);
         this.RenderColorGroup(flowPanel, this._dynamicEvent);
@@ -191,7 +193,7 @@ public class EditDynamicEventView : BaseView
         Label levelLabel = this.RenderLabel(levelGroup, "Level").TitleLabel;
         levelLabel.Width = this.LABEL_WIDTH;
 
-        this.RenderTextbox(levelGroup,
+        var levelTextbox = this.RenderTextbox(levelGroup,
             new Point(this.LABEL_WIDTH, 0),
             levelGroup.ContentRegion.Width - this.LABEL_WIDTH,
             dynamicEvent.Level.ToString(), "Level",
@@ -225,6 +227,8 @@ public class EditDynamicEventView : BaseView
 
                 return Task.FromResult(true);
             });
+
+        levelTextbox.BasicTooltipText = "Defines the recommended level of the dynamic event.";
     }
 
     private void RenderColorGroup(FlowPanel parent, DynamicEvent dynamicEvent)
@@ -238,7 +242,7 @@ public class EditDynamicEventView : BaseView
         Label colorLabel = this.RenderLabel(group, "Color").TitleLabel;
         colorLabel.Width = this.LABEL_WIDTH;
 
-        this.RenderTextbox(group,
+       var colorTextbox = this.RenderTextbox(group,
             new Point(this.LABEL_WIDTH, 0),
             group.ContentRegion.Width - this.LABEL_WIDTH,
             dynamicEvent.ColorCode, "Color",
@@ -246,6 +250,8 @@ public class EditDynamicEventView : BaseView
             {
                 dynamicEvent.ColorCode = val;
             });
+
+        colorTextbox.BasicTooltipText = "Defines the color of the dynamic event. Empty = Default color";
     }
 
     private void RenderTypeProperties(FlowPanel parent, DynamicEvent dynamicEvent)
@@ -310,6 +316,7 @@ public class EditDynamicEventView : BaseView
                 this.ShowError(ex.Message);
             }
         });
+        xPos.BasicTooltipText = "Defines the center position on the x-axis.";
 
         TextBox yPos = this.RenderTextbox(centerSectionPanel, Point.Zero, 150, dynamicEvent.Location.Center[1].ToString(CultureInfo.CurrentCulture), "Y Position", val =>
         {
@@ -323,6 +330,7 @@ public class EditDynamicEventView : BaseView
                 this.ShowError(ex.Message);
             }
         });
+        yPos.BasicTooltipText = "Defines the center position on the y-axis.";
 
         TextBox zPos = this.RenderTextbox(centerSectionPanel, Point.Zero, 150, dynamicEvent.Location.Center[2].ToString(CultureInfo.CurrentCulture), "Z Position", val =>
         {
@@ -336,6 +344,7 @@ public class EditDynamicEventView : BaseView
                 this.ShowError(ex.Message);
             }
         });
+        zPos.BasicTooltipText = "Defines the center position on the z-axis.";
 
         Button currentPositionButton = this.RenderButton(centerSectionPanel, "Set current Position", () =>
         {
@@ -345,6 +354,7 @@ public class EditDynamicEventView : BaseView
             yPos.Text = currPos.Y.ToString(CultureInfo.CurrentCulture);
             zPos.Text = currPos.Z.ToString(CultureInfo.CurrentCulture);
         });
+        currentPositionButton.BasicTooltipText = "Sets the position values to the current position reported by mumblelink.";
     }
 
     private void RenderCylinderProperties(FlowPanel parent, DynamicEvent dynamicEvent)
@@ -387,7 +397,7 @@ public class EditDynamicEventView : BaseView
         Label heightLabel = this.RenderLabel(group, "Height").TitleLabel;
         heightLabel.Width = this.LABEL_WIDTH;
 
-        this.RenderTextbox(group,
+        var heightTextbox = this.RenderTextbox(group,
             new Point(this.LABEL_WIDTH, 0),
             group.ContentRegion.Width - this.LABEL_WIDTH,
             dynamicEvent.Location.Height.ToString(CultureInfo.CurrentCulture),
@@ -405,11 +415,13 @@ public class EditDynamicEventView : BaseView
                 }
             });
 
+        heightTextbox.BasicTooltipText = "Defines the height of the dynamic event in inches.";
+
         this.RenderEmptyLine(heightPanelWrapper, (int)heightPanelWrapper.OuterControlPadding.X);
     }
     private void RenderRadiusSection(FlowPanel parent, DynamicEvent dynamicEvent)
     {
-        FlowPanel radiusPanelWrapper = new FlowPanel()
+        FlowPanel panelWrapper = new FlowPanel()
         {
             Parent = parent,
             HeightSizingMode = SizingMode.AutoSize,
@@ -422,15 +434,15 @@ public class EditDynamicEventView : BaseView
         };
         Panel group = new Panel()
         {
-            Parent = radiusPanelWrapper,
+            Parent = panelWrapper,
             HeightSizingMode = SizingMode.AutoSize,
-            Width = radiusPanelWrapper.ContentRegion.Width - ((int)radiusPanelWrapper.OuterControlPadding.X * 2),
+            Width = panelWrapper.ContentRegion.Width - ((int)panelWrapper.OuterControlPadding.X * 2),
         };
 
-        Label heightLabel = this.RenderLabel(group, "Radius").TitleLabel;
-        heightLabel.Width = this.LABEL_WIDTH;
+        Label label = this.RenderLabel(group, "Radius").TitleLabel;
+        label.Width = this.LABEL_WIDTH;
 
-        this.RenderTextbox(group,
+        var radiusTextbox = this.RenderTextbox(group,
             new Point(this.LABEL_WIDTH, 0),
             group.ContentRegion.Width - this.LABEL_WIDTH,
             dynamicEvent.Location.Radius.ToString(CultureInfo.CurrentCulture),
@@ -447,7 +459,10 @@ public class EditDynamicEventView : BaseView
                     this.ShowError(ex.Message);
                 }
             });
-        this.RenderEmptyLine(radiusPanelWrapper, (int)radiusPanelWrapper.OuterControlPadding.X);
+
+        radiusTextbox.BasicTooltipText = "Defines the radius of the dynamic event in inches.";
+
+        this.RenderEmptyLine(panelWrapper, (int)panelWrapper.OuterControlPadding.X);
     }
 
     private void RenderPolygoneProperties(FlowPanel parent, DynamicEvent dynamicEvent)
@@ -584,6 +599,7 @@ public class EditDynamicEventView : BaseView
                     this.RenderPolygonePoints(parent, dynamicEvent);
                 }, () => index == 0);
                 upButton.Width = 30;
+                upButton.BasicTooltipText = "Moves this point entry up in the list.";
                 //upButton.Icon = this.IconService.GetIcon("155033.png");
                 //upButton.ResizeIcon = true;
                 //upButton.DrawBackground = false;
@@ -596,6 +612,7 @@ public class EditDynamicEventView : BaseView
                     this.RenderPolygonePoints(parent, dynamicEvent);
                 }, () => index == dynamicEvent.Location.Points.Length - 1);
                 downButton.Width = 30;
+                downButton.BasicTooltipText = "Moves this point entry down in the list.";
                 //downButton.Icon = this.IconService.GetIcon("155034.png");
                 //downButton.ResizeIcon = true;
                 //downButton.DrawBackground = false;
@@ -614,6 +631,7 @@ public class EditDynamicEventView : BaseView
                 removeButton.Width = 120;
                 removeButton.Icon = this.IconService.GetIcon("1444524.png");
                 removeButton.ResizeIcon = false;
+                removeButton.BasicTooltipText = "Removes the entry from the list.";
             }
         }
 
@@ -638,6 +656,7 @@ public class EditDynamicEventView : BaseView
         addButton.Width = 120;
         addButton.Icon = this.IconService.GetIcon("1444520.png");
         addButton.ResizeIcon = false;
+        addButton.BasicTooltipText = "Adds a new entry to the list.";
     }
 
     private FlowPanel AddPolygonePointSection(FlowPanel parent, float[] point)
@@ -663,6 +682,7 @@ public class EditDynamicEventView : BaseView
                 this.ShowError(ex.Message);
             }
         });
+        xPos.BasicTooltipText = "Defines the position on the x-axis.";
 
 
         TextBox yPos = this.RenderTextbox(positionSectionPanel, new Point(xPos.Right + 5, 0), 150, point[1].ToString(CultureInfo.CurrentCulture), "Y Position", val =>
@@ -677,6 +697,7 @@ public class EditDynamicEventView : BaseView
                 this.ShowError(ex.Message);
             }
         });
+        yPos.BasicTooltipText = "Defines the position on the y-axis.";
 
         TextBox zPos = this.RenderTextbox(positionSectionPanel, new Point(yPos.Right + 5, 0), 150, point[2].ToString(CultureInfo.CurrentCulture), "Z Position", val =>
         {
@@ -690,9 +711,9 @@ public class EditDynamicEventView : BaseView
                 this.ShowError(ex.Message);
             }
         });
-        zPos.BasicTooltipText = "Defines the value on the Z-axis of the point. A value of 0 uses the same value as the center.";
+        zPos.BasicTooltipText = "Defines the position on the y-axis. A value of 0 uses the same value as the center.";
 
-        this.RenderButton(positionSectionPanel, "Set current Position", () =>
+        var setCurrPosButton = this.RenderButton(positionSectionPanel, "Set current Position", () =>
         {
             Vector3 currPos = this.GetCurrentPosition();
 
@@ -700,6 +721,7 @@ public class EditDynamicEventView : BaseView
             yPos.Text = currPos.Y.ToString(CultureInfo.CurrentCulture);
             zPos.Text = currPos.Z.ToString(CultureInfo.CurrentCulture);
         });
+        setCurrPosButton.BasicTooltipText = "Sets the position values to the current position reported by mumblelink.";
 
         return positionSectionPanel;
     }
