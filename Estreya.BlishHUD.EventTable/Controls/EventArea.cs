@@ -57,6 +57,7 @@ public class EventArea : RenderTarget2DControl
     private readonly AsyncLock _controlLock = new AsyncLock();
 
     private int _drawXOffset;
+    private int _drawYOffset;
 
     private List<string> _eventCategoryOrdering;
 
@@ -145,10 +146,22 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
+    /// <summary>
+    ///     Defines the x offset at which the event bars should be drawn.
+    /// </summary>
     private int DrawXOffset
     {
         get => this.Configuration.ShowCategoryNames.Value ? this._drawXOffset : 0;
         set => this._drawXOffset = value;
+    }
+
+    /// <summary>
+    ///     Defines the y offset at which the event bars should be drawn.
+    /// </summary>
+    private int DrawYOffset
+    {
+        get => this.Configuration.ShowTopTimeline.Value ? this._drawYOffset : 0;
+        set => this._drawYOffset = value;
     }
 
     private List<string> EventCategoryOrdering
@@ -640,7 +653,7 @@ public class EventArea : RenderTarget2DControl
         // Update and delete existing
         this._activeEvent = null;
 
-        int y = 0;
+        int y = this.DrawYOffset;
         this._drawXOffset = 0;
         List<List<(DateTime Occurence, Event Event)>> orderedControlEvents = this.OrderedControlEvents;
 
@@ -1050,14 +1063,48 @@ public class EventArea : RenderTarget2DControl
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
         this.UpdateEventsOnScreen(spriteBatch);
+        this.DrawTopTimeLine(spriteBatch);
         this.DrawTimeLine(spriteBatch);
+    }
+
+    private void DrawTopTimeLine(SpriteBatch spriteBatch)
+    {
+        this._drawYOffset = 0;
+
+        if (!this.Configuration.ShowTopTimeline.Value) return;
+
+        float width = this.GetWidth();
+        var times = this.GetTimes();
+
+        var rect = new RectangleF(this.DrawXOffset, 0, width, 30);
+
+        spriteBatch.DrawRectangle(Textures.Pixel, rect, Microsoft.Xna.Framework.Color.LightGray);
+
+        var timeInterval = 15;
+
+        var timeSteps = (int)Math.Floor((times.Max - times.Min).TotalMinutes) / timeInterval;
+
+        var timeStepLineHeight = rect.Height;// this.Height;
+
+        for (int i = 0; i < timeSteps; i++)
+        {
+            var x = ((float)this.PixelPerMinute * timeInterval * i) + this.DrawXOffset;
+            var timeStepRect = new RectangleF(x, 0, 2, timeStepLineHeight);
+            var time = times.Min.AddMinutes(timeInterval * i);
+
+            spriteBatch.DrawLine(Textures.Pixel, timeStepRect, Microsoft.Xna.Framework.Color.DarkGreen);
+
+            spriteBatch.DrawString(time.ToString(this.Configuration.TopTimelineTimeFormatString.Value), this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), Microsoft.Xna.Framework.Color.Red );
+        }
+
+        this._drawYOffset = (int)rect.Height;
     }
 
     private void DrawTimeLine(SpriteBatch spriteBatch)
     {
         float middleLineX = (this.GetWidth() * this.GetTimeSpanRatio()) + this.DrawXOffset;
         float width = 2;
-        spriteBatch.DrawLine(Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Microsoft.Xna.Framework.Color.LightGray * this.Configuration.TimeLineOpacity.Value);
+        spriteBatch.DrawLine(Textures.Pixel, new RectangleF(middleLineX - (width / 2),0, width, this.Height), Microsoft.Xna.Framework.Color.LightGray * this.Configuration.TimeLineOpacity.Value);
     }
 
     private void ClearEventControls()

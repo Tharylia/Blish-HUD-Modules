@@ -67,4 +67,6 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<string> EventTimespanDaysFormatString { get; set; }
     public SettingEntry<string> EventTimespanHoursFormatString { get; set; }
     public SettingEntry<string> EventTimespanMinutesFormatString { get; set; }
+    public SettingEntry<bool> ShowTopTimeline { get; set; }
+    public SettingEntry<string> TopTimelineTimeFormatString { get; set; }
 }

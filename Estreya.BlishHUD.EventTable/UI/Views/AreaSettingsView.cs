@@ -395,6 +395,11 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel);
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.ShowCategoryNames);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTopTimeline);
+
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
 
@@ -518,6 +523,10 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanMinutesFormatString);
 
         this.RenderEmptyLine(tooltipOptionGroup, 20);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderTextSetting(groupPanel, areaConfiguration.TopTimelineTimeFormatString);
 
         this.RenderEmptyLine(groupPanel);
 
