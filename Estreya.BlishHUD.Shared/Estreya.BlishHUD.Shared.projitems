@@ -155,7 +155,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Utils\GW2Utils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\ImageUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\MapUtil.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Utils\SpriteBatchUtil - Copy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\SpriteBatchUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\StreamerUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\UpdateUtil.cs" />
