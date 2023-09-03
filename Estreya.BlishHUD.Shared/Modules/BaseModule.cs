@@ -62,7 +62,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// <summary>
     ///     The api root url for the Estreya BlishHUD api.
     /// </summary>
-    protected const string API_ROOT_URL = "https://blish-hud.api.estreya.de";
+    protected const string API_ROOT_URL = "https://api.estreya.de/blish-hud";
 
     /// <summary>
     ///     The module sub route from the <see cref="API_ROOT_URL" /> including the specified api version from
