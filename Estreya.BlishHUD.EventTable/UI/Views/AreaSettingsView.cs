@@ -161,6 +161,15 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
+        var copyFromTemplateLabel= this.RenderLabel(this._areaPanel, "Template").TitleLabel;
+        copyFromTemplateLabel.Location = new Point(areaName.Left, areaName.Bottom + 20);
+        copyFromTemplateLabel.Width = this.LABEL_WIDTH;
+        Dropdown<string> copyFromTemplate = this.RenderDropdown<string>(this._areaPanel,
+            new Point(copyFromTemplateLabel.Right + 20, copyFromTemplateLabel.Top),
+            350,
+            this._areaConfigurations.Select(x => x.Name).ToArray(),
+            null);
+
         Button saveButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
         {
             try
@@ -173,11 +182,24 @@ public class AreaSettingsView : BaseSettingsView
                     return;
                 }
 
+                var copyFromTemplateName = copyFromTemplate.SelectedItem;
+                if (copyFromTemplateName != null && !this._areaConfigurations.Any(x => x.Name == copyFromTemplateName))
+                {
+                    this.ShowError("Selected template does not exist.");
+                    return;
+                }
+
                 AddAreaEventArgs addAreaEventArgs = new AddAreaEventArgs { Name = name };
 
                 this.AddArea?.Invoke(this, addAreaEventArgs);
 
                 EventAreaConfiguration configuration = addAreaEventArgs.AreaConfiguration ?? throw new ArgumentNullException("Area configuration could not be created.");
+
+                if (copyFromTemplateName != null)
+                {
+                    var template = this._areaConfigurations.First(x => x.Name == copyFromTemplateName);
+                    template.CopyTo(configuration);
+                }
 
                 MenuItem menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
@@ -395,6 +417,11 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel);
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.ShowCategoryNames);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTopTimeline);
+
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
 
@@ -438,7 +465,27 @@ public class AreaSettingsView : BaseSettingsView
             Title = this.TranslationService.GetTranslation("areaSettingsView-group-textAndColor", "Text & Color")
         };
 
+        var fontFaceDropDown = this.RenderEnumSetting(groupPanel, areaConfiguration.FontFace).dropdown;
+        fontFaceDropDown.Width = 500;
         this.RenderEnumSetting(groupPanel, areaConfiguration.FontSize);
+
+        var customFontPathTextBox = this.RenderTextSetting(groupPanel, areaConfiguration.CustomFontPath).textBox;
+        customFontPathTextBox.Width = groupPanel.ContentRegion.Width - customFontPathTextBox.Left;
+        //customFontPathTextBox.Enabled = false;
+        //this.RenderButton(groupPanel, "Select Font File",  () =>
+        //{
+        //        OpenFileDialog dialog = new OpenFileDialog();
+        //        dialog.Filter = "TrueFont (*.ttf)|*.ttf|BM Font (*.fnt)|*.fnt";
+        //        dialog.CheckFileExists = true;
+
+        //        var result = dialog.ShowDialog();
+
+        //        if (result != DialogResult.OK) return;
+
+        //        areaConfiguration.CustomFontPath.Value = dialog.FileName;
+        //        customFontPathTextBox.Text = dialog.FileName;
+        //});
+
         this.RenderColorSetting(groupPanel, areaConfiguration.TextColor);
         this.RenderFloatSetting(groupPanel, areaConfiguration.EventTextOpacity);
 
@@ -518,6 +565,10 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanMinutesFormatString);
 
         this.RenderEmptyLine(tooltipOptionGroup, 20);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderTextSetting(groupPanel, areaConfiguration.TopTimelineTimeFormatString);
 
         this.RenderEmptyLine(groupPanel);
 
@@ -614,7 +665,7 @@ public class AreaSettingsView : BaseSettingsView
     private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
         EventAreaConfiguration configuration = e.AdditionalData["configuration"] as EventAreaConfiguration;
-        configuration.DisabledEventKeys.Value = e.NewService
+        configuration.DisabledEventKeys.Value = e.NewState
             ? new List<string>(configuration.DisabledEventKeys.Value.Where(aek => aek != e.EventSettingKey))
             : new List<string>(configuration.DisabledEventKeys.Value) { e.EventSettingKey };
     }

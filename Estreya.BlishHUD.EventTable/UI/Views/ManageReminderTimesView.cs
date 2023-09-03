@@ -12,24 +12,24 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Dropdown = Controls.Dropdown;
 
 public class ManageReminderTimesView : BaseView
 {
     private Event _ev;
+    private readonly bool _showKeepCustomizedQuestion;
     private readonly List<TimeSpan> _reminderTimes = new List<TimeSpan>();
 
-    public ManageReminderTimesView(Event ev, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public ManageReminderTimesView(Event ev, bool showKeepCustomizedQuestion, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
     {
         this._ev = ev;
-
+        this._showKeepCustomizedQuestion = showKeepCustomizedQuestion;
         if (this._ev.ReminderTimes != null)
         {
             this._reminderTimes.AddRange(this._ev.ReminderTimes);
         }
     }
 
-    public event EventHandler<(Event Event, List<TimeSpan> ReminderTimes)> SaveClicked;
+    public event EventHandler<(Event Event, List<TimeSpan> ReminderTimes, bool KeepCustomized)> SaveClicked;
     public event EventHandler CancelClicked;
 
     protected override void InternalBuild(Panel parent)
@@ -39,7 +39,7 @@ public class ManageReminderTimesView : BaseView
             Parent = parent,
             Location = new Point(20, 20),
             Width = parent.ContentRegion.Width - (20 * 2),
-            Height = parent.ContentRegion.Height - (20 * 3),
+            Height = parent.ContentRegion.Height - (20 * 4),
             OuterControlPadding = new Vector2(20, 20),
             ControlPadding = new Vector2(0, 5),
             FlowDirection = ControlFlowDirection.SingleTopToBottom,
@@ -49,10 +49,26 @@ public class ManageReminderTimesView : BaseView
 
         this.RenderTimes(listPanel);
 
+        Panel keepCustomizedGroup = null;
+        Checkbox keepCustomizedCheckBox = null;
+        if (this._showKeepCustomizedQuestion)
+        {
+            keepCustomizedGroup = new Panel()
+            {
+                Parent = parent,
+                Top = listPanel.Bottom + 5,
+                Left = listPanel.Left,
+                Width = listPanel.Width,
+            };
+            var keepCustomizedLabel = this.RenderLabel(keepCustomizedGroup, "Keep Customized:").TitleLabel;
+            keepCustomizedLabel.AutoSizeWidth = true;
+            keepCustomizedCheckBox = this.RenderCheckbox(keepCustomizedGroup, new Point(keepCustomizedLabel.Right + 5, keepCustomizedLabel.Top), false);
+        }
+
         FlowPanel buttonGroup = new FlowPanel
         {
             Parent = parent,
-            Top = listPanel.Bottom + 5,
+            Top = (keepCustomizedGroup ?? listPanel).Bottom + 5,
             Left = listPanel.Left,
             Width = listPanel.Width,
             FlowDirection = ControlFlowDirection.SingleRightToLeft
@@ -65,7 +81,7 @@ public class ManageReminderTimesView : BaseView
 
         this.RenderButton(buttonGroup, this.TranslationService.GetTranslation("manageReminderTimesView-btn-save", "Save"), () =>
         {
-            this.SaveClicked?.Invoke(this, (this._ev, this._reminderTimes));
+            this.SaveClicked?.Invoke(this, (this._ev, this._reminderTimes, keepCustomizedCheckBox?.Checked ?? false));
         });
     }
 
@@ -108,7 +124,7 @@ public class ManageReminderTimesView : BaseView
             HeightSizingMode = SizingMode.AutoSize
         };
 
-        Dropdown hours = new Dropdown
+        Dropdown<string> hours = new Dropdown<string>
         {
             Parent = timeSectionPanel,
             Location = new Point(0, 0),
@@ -127,7 +143,7 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                TimeSpan newTime = new TimeSpan(int.Parse(e.CurrentValue), time.Minutes, time.Seconds);
+                TimeSpan newTime = new TimeSpan(int.Parse(e.NewValue), time.Minutes, time.Seconds);
                 int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;
@@ -138,7 +154,7 @@ public class ManageReminderTimesView : BaseView
             }
         };
 
-        Dropdown minutes = new Dropdown
+        Dropdown<string> minutes = new Dropdown<string>
         {
             Parent = timeSectionPanel,
             Location = new Point(hours.Right + 5, 0),
@@ -157,7 +173,7 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                TimeSpan newTime = new TimeSpan(time.Hours, int.Parse(e.CurrentValue), time.Seconds);
+                TimeSpan newTime = new TimeSpan(time.Hours, int.Parse(e.NewValue), time.Seconds);
                 int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;
@@ -168,7 +184,7 @@ public class ManageReminderTimesView : BaseView
             }
         };
 
-        Dropdown seconds = new Dropdown
+        Dropdown<string> seconds = new Dropdown<string>
         {
             Parent = timeSectionPanel,
             Location = new Point(minutes.Right + 5, 0),
@@ -187,7 +203,7 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                TimeSpan newTime = new TimeSpan(time.Hours, time.Minutes, int.Parse(e.CurrentValue));
+                TimeSpan newTime = new TimeSpan(time.Hours, time.Minutes, int.Parse(e.NewValue));
                 int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;

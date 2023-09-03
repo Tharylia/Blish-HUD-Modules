@@ -10,6 +10,7 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
 using System.ComponentModel;
+using System.Runtime.CompilerServices;
 
 public class Button : LabelBase
 {
@@ -45,6 +46,8 @@ public class Button : LabelBase
 
     private bool _resizeIcon;
 
+    private bool _drawBackground = true;
+
     public Button()
     {
         this._textColor = Color.Black;
@@ -79,6 +82,12 @@ public class Button : LabelBase
     {
         get => this._resizeIcon;
         set => this.SetProperty(ref this._resizeIcon, value, true);
+    }
+
+    public bool DrawBackground
+    {
+        get => this._drawBackground;
+        set => this.SetProperty(ref this._drawBackground, value, true);
     }
 
     public BitmapFont Font
@@ -142,19 +151,23 @@ public class Button : LabelBase
 
     protected override void Paint(SpriteBatch spriteBatch, Rectangle bounds)
     {
-        if (this._enabled)
+        if (this.DrawBackground)
         {
-            spriteBatch.DrawOnCtrl(this, _textureButtonIdle, new Rectangle(3, 3, this._size.X - 6, this._size.Y - 5), new Rectangle(this.AnimationState * ATLAS_SPRITE_WIDTH, 0, ATLAS_SPRITE_WIDTH, ATLAS_SPRITE_HEIGHT));
-        }
-        else
-        {
-            spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(3, 3, this._size.X - 6, this._size.Y - 5), Color.FromNonPremultiplied(121, 121, 121, 255));
+            if (this._enabled)
+            {
+                spriteBatch.DrawOnCtrl(this, _textureButtonIdle, new Rectangle(3, 3, this._size.X - 6, this._size.Y - 5), new Rectangle(this.AnimationState * ATLAS_SPRITE_WIDTH, 0, ATLAS_SPRITE_WIDTH, ATLAS_SPRITE_HEIGHT));
+            }
+            else
+            {
+                spriteBatch.DrawOnCtrl(this, ContentService.Textures.Pixel, new Rectangle(3, 3, this._size.X - 6, this._size.Y - 5), Color.FromNonPremultiplied(121, 121, 121, 255));
+            }
+
+            spriteBatch.DrawOnCtrl(this, _textureButtonBorder, new Rectangle(2, 0, this.Width - 5, 4), new Rectangle(0, 0, 1, 4));
+            spriteBatch.DrawOnCtrl(this, _textureButtonBorder, new Rectangle(this.Width - 4, 2, 4, this.Height - 3), new Rectangle(0, 1, 4, 1));
+            spriteBatch.DrawOnCtrl(this, _textureButtonBorder, new Rectangle(3, this.Height - 4, this.Width - 6, 4), new Rectangle(1, 0, 1, 4));
+            spriteBatch.DrawOnCtrl(this, _textureButtonBorder, new Rectangle(0, 2, 4, this.Height - 3), new Rectangle(0, 3, 4, 1));
         }
 
-        spriteBatch.DrawOnCtrl(this, _textureButtonBorder, new Rectangle(2, 0, this.Width - 5, 4), new Rectangle(0, 0, 1, 4));
-        spriteBatch.DrawOnCtrl(this, _textureButtonBorder, new Rectangle(this.Width - 4, 2, 4, this.Height - 3), new Rectangle(0, 1, 4, 1));
-        spriteBatch.DrawOnCtrl(this, _textureButtonBorder, new Rectangle(3, this.Height - 4, this.Width - 6, 4), new Rectangle(1, 0, 1, 4));
-        spriteBatch.DrawOnCtrl(this, _textureButtonBorder, new Rectangle(0, 2, 4, this.Height - 3), new Rectangle(0, 3, 4, 1));
         if (this._icon != null)
         {
             spriteBatch.DrawOnCtrl(this, this._icon, this._layoutIconBounds);

@@ -2,6 +2,7 @@
 
 using Blish_HUD;
 using Blish_HUD.Settings;
+using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,9 @@ public class SettingEventService : ManagedService
     private List<(SettingEntry SettingEntry, IComplianceRequisite ComplianceRequisite)> _registeredForDisabledUpdates;
 
     private List<(SettingEntry SettingEntry, IComplianceRequisite ComplianceRequisite)> _registeredForRangeUpdates;
+
+    private AsyncLock _disabledStateLock = new AsyncLock();
+    private AsyncLock _rangeStateLock = new AsyncLock();
 
     public SettingEventService(ServiceConfiguration configuration) : base(configuration)
     {
@@ -33,11 +37,17 @@ public class SettingEventService : ManagedService
 
     protected override void InternalUnload()
     {
-        this._registeredForRangeUpdates?.Clear();
-        this._registeredForRangeUpdates = null;
+        using (this._rangeStateLock.Lock())
+        {
+            this._registeredForRangeUpdates?.Clear();
+            this._registeredForRangeUpdates = null;
+        }
 
-        this._registeredForDisabledUpdates?.Clear();
-        this._registeredForDisabledUpdates = null;
+        using (this._disabledStateLock.Lock())
+        {
+            this._registeredForDisabledUpdates?.Clear();
+            this._registeredForDisabledUpdates = null;
+        }
     }
 
     protected override void InternalUpdate(GameTime gameTime)
@@ -58,10 +68,13 @@ public class SettingEventService : ManagedService
             throw new ArgumentNullException(nameof(settingEntry));
         }
 
-        if (!this._registeredForRangeUpdates.Any(p => p.SettingEntry.EntryKey == settingEntry.EntryKey))
+        using (this._rangeStateLock.Lock())
         {
-            this._registeredForRangeUpdates.Add((settingEntry, defaultRange));
-            _logger.Debug($"Started tracking setting \"{settingEntry.EntryKey}\" for range updates.");
+            if (!this._registeredForRangeUpdates.Any(p => p.SettingEntry?.EntryKey == settingEntry.EntryKey))
+            {
+                this._registeredForRangeUpdates.Add((settingEntry, defaultRange));
+                _logger.Debug($"Started tracking setting \"{settingEntry.EntryKey}\" for range updates.");
+            }
         }
     }
 
@@ -72,7 +85,11 @@ public class SettingEventService : ManagedService
             throw new ArgumentNullException(nameof(settingEntry));
         }
 
-        this._registeredForRangeUpdates.RemoveAll(p => p.SettingEntry.EntryKey == settingEntry.EntryKey);
+        using (this._rangeStateLock.Lock())
+        {
+            this._registeredForRangeUpdates.RemoveAll(p => p.SettingEntry?.EntryKey == settingEntry.EntryKey);
+        }
+
         _logger.Debug($"Stopped tracking setting \"{settingEntry.EntryKey}\" for range updates.");
     }
 
@@ -83,10 +100,13 @@ public class SettingEventService : ManagedService
             throw new ArgumentNullException(nameof(settingEntry));
         }
 
-        if (!this._registeredForDisabledUpdates.Any(p => p.SettingEntry.EntryKey == settingEntry.EntryKey))
+        using (this._disabledStateLock.Lock())
         {
-            this._registeredForDisabledUpdates.Add((settingEntry, defaultRange));
-            _logger.Debug($"Started tracking setting \"{settingEntry.EntryKey}\" for disabled updates.");
+            if (!this._registeredForDisabledUpdates.Any(p => p.SettingEntry?.EntryKey == settingEntry.EntryKey))
+            {
+                this._registeredForDisabledUpdates.Add((settingEntry, defaultRange));
+                _logger.Debug($"Started tracking setting \"{settingEntry.EntryKey}\" for disabled updates.");
+            }
         }
     }
 
@@ -97,52 +117,61 @@ public class SettingEventService : ManagedService
             throw new ArgumentNullException(nameof(settingEntry));
         }
 
-        this._registeredForDisabledUpdates.RemoveAll(p => p.SettingEntry.EntryKey == settingEntry.EntryKey);
+        using (this._disabledStateLock.Lock())
+        {
+            this._registeredForDisabledUpdates.RemoveAll(p => p.SettingEntry?.EntryKey == settingEntry.EntryKey);
+        }
+
         _logger.Debug($"Stopped tracking setting \"{settingEntry.EntryKey}\" for disabled updates.");
     }
 
     private void CheckRangeUpdates()
     {
-        for (int i = 0; i < this._registeredForRangeUpdates.Count; i++)
+        if (!this._rangeStateLock.IsFree()) return; // Skip this loop
+
+        using (this._rangeStateLock.Lock())
         {
-            (SettingEntry SettingEntry, IComplianceRequisite ComplianceRequisite) settingPair = this._registeredForRangeUpdates[i];
-
-            bool changed = false;
-
-            SettingEntry setting = settingPair.SettingEntry;
-            IComplianceRequisite priorRange = settingPair.ComplianceRequisite;
-            IEnumerable<IComplianceRequisite> ranges = setting.GetComplianceRequisite();
-
-            if (setting is SettingEntry<int> or SettingEntry<float>)
+            for (int i = 0; i < this._registeredForRangeUpdates.Count; i++)
             {
-                IEnumerable<IComplianceRequisite> numberRanges = ranges.Where(r => r is IntRangeRangeComplianceRequisite or FloatRangeRangeComplianceRequisite);
-                if (!numberRanges.Any())
+                (SettingEntry SettingEntry, IComplianceRequisite ComplianceRequisite) settingPair = this._registeredForRangeUpdates[i];
+
+                bool changed = false;
+
+                SettingEntry setting = settingPair.SettingEntry;
+                IComplianceRequisite priorRange = settingPair.ComplianceRequisite;
+                IEnumerable<IComplianceRequisite> ranges = setting.GetComplianceRequisite();
+
+                if (setting is SettingEntry<int> or SettingEntry<float>)
                 {
-                    if (priorRange != null)
+                    IEnumerable<IComplianceRequisite> numberRanges = ranges.Where(r => r is IntRangeRangeComplianceRequisite or FloatRangeRangeComplianceRequisite);
+                    if (!numberRanges.Any())
                     {
-                        settingPair.ComplianceRequisite = null;
-                        changed = true;
+                        if (priorRange != null)
+                        {
+                            settingPair.ComplianceRequisite = null;
+                            changed = true;
+                        }
+                    }
+                    else
+                    {
+                        IComplianceRequisite numberRange = numberRanges.First();
+                        settingPair.ComplianceRequisite = numberRange;
+                        if (priorRange != numberRange)
+                        {
+                            changed = true;
+                        }
                     }
                 }
-                else
-                {
-                    IComplianceRequisite numberRange = numberRanges.First();
-                    settingPair.ComplianceRequisite = numberRange;
-                    if (priorRange != numberRange)
-                    {
-                        changed = true;
-                    }
-                }
-            }
 
-            if (changed)
-            {
-                try
+                if (changed)
                 {
-                    this.RangeUpdated?.Invoke(this, new ComplianceUpdated(setting, settingPair.ComplianceRequisite));
-                }
-                catch (Exception)
-                {
+                    try
+                    {
+                        this.RangeUpdated?.Invoke(this, new ComplianceUpdated(setting, settingPair.ComplianceRequisite));
+                    }
+                    catch (Exception)
+                    {
+                    }
                 }
             }
         }
@@ -150,43 +179,48 @@ public class SettingEventService : ManagedService
 
     private void CheckDisabledUpdates()
     {
-        for (int i = 0; i < this._registeredForDisabledUpdates.Count; i++)
+        if (!this._disabledStateLock.IsFree()) return; // Skip this loop
+
+        using (this._disabledStateLock.Lock())
         {
-            (SettingEntry SettingEntry, IComplianceRequisite ComplianceRequisite) settingPair = this._registeredForDisabledUpdates[i];
-
-            bool changed = false;
-
-            SettingEntry setting = settingPair.SettingEntry;
-            IComplianceRequisite priorRange = settingPair.ComplianceRequisite;
-            IEnumerable<IComplianceRequisite> ranges = setting.GetComplianceRequisite();
-
-            IEnumerable<IComplianceRequisite> disabledRanges = ranges.Where(r => r is SettingDisabledComplianceRequisite);
-            if (!disabledRanges.Any())
+            for (int i = 0; i < this._registeredForDisabledUpdates.Count; i++)
             {
-                if (priorRange != null)
-                {
-                    settingPair.ComplianceRequisite = new SettingDisabledComplianceRequisite(false);
-                    changed = true;
-                }
-            }
-            else
-            {
-                IComplianceRequisite disabledRange = disabledRanges.First();
-                settingPair.ComplianceRequisite = disabledRange;
-                if (priorRange != disabledRange)
-                {
-                    changed = true;
-                }
-            }
+                (SettingEntry SettingEntry, IComplianceRequisite ComplianceRequisite) settingPair = this._registeredForDisabledUpdates[i];
 
-            if (changed)
-            {
-                try
+                bool changed = false;
+
+                SettingEntry setting = settingPair.SettingEntry;
+                IComplianceRequisite priorRange = settingPair.ComplianceRequisite;
+                IEnumerable<IComplianceRequisite> ranges = setting.GetComplianceRequisite();
+
+                IEnumerable<IComplianceRequisite> disabledRanges = ranges.Where(r => r is SettingDisabledComplianceRequisite);
+                if (!disabledRanges.Any())
                 {
-                    this.DisabledUpdated?.Invoke(this, new ComplianceUpdated(setting, settingPair.ComplianceRequisite));
+                    if (priorRange != null)
+                    {
+                        settingPair.ComplianceRequisite = new SettingDisabledComplianceRequisite(false);
+                        changed = true;
+                    }
                 }
-                catch (Exception)
+                else
                 {
+                    IComplianceRequisite disabledRange = disabledRanges.First();
+                    settingPair.ComplianceRequisite = disabledRange;
+                    if (priorRange != disabledRange)
+                    {
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    try
+                    {
+                        this.DisabledUpdated?.Invoke(this, new ComplianceUpdated(setting, settingPair.ComplianceRequisite));
+                    }
+                    catch (Exception)
+                    {
+                    }
                 }
             }
         }

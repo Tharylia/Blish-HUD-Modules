@@ -156,6 +156,12 @@ public class ModuleSettings : BaseModuleSettings
         int maxResX = (int)(GameService.Graphics.Resolution.X / GameService.Graphics.UIScaleMultiplier);
         int maxResY = (int)(GameService.Graphics.Resolution.Y / GameService.Graphics.UIScaleMultiplier);
 
+        if (!this.IsMaxResolutionValid(maxResX, maxResY))
+        {
+            this.Logger.Warn($"Max Global size and position resolution is invalid. X: {maxResX} - Y: {maxResY}");
+            return;
+        }
+
         int minLocationX = 0;
         int maxLocationX = maxResX - EventNotification.NOTIFICATION_WIDTH;
         int minLocationY = 0;
@@ -269,6 +275,8 @@ public class ModuleSettings : BaseModuleSettings
 
         SettingEntry<string> eventAbsoluteTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-eventAbsoluteTimeFormatString", "HH\\:mm", () => "Absolute Time Format String", () => "Defines the format strings for absolute time.");
 
+        var showTopTimeline = this.DrawerSettings.DefineSetting($"{name}-showTopTimeline", false, () => "Show Top Timeline", () => "Defines whether the top timeline is visible.");
+        var topTimeLineTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-topTimeLineTimeFormatString", "HH\\:mm", () => "Top Timeline Time Format String", () => "Defines the format strings for absolute time.");
 
         return new EventAreaConfiguration
         {
@@ -278,6 +286,8 @@ public class ModuleSettings : BaseModuleSettings
             BuildDirection = drawer.BuildDirection,
             BackgroundColor = drawer.BackgroundColor,
             FontSize = drawer.FontSize,
+            FontFace = drawer.FontFace,
+            CustomFontPath = drawer.CustomFontPath,
             TextColor = drawer.TextColor,
             Location = drawer.Location,
             Opacity = drawer.Opacity,
@@ -326,6 +336,8 @@ public class ModuleSettings : BaseModuleSettings
             EventTimespanHoursFormatString = eventTimespanHoursFormatString,
             EventTimespanMinutesFormatString = eventTimespanMinutesFormatString,
             EventAbsoluteTimeFormatString = eventAbsoluteTimeFormatString,
+            ShowTopTimeline = showTopTimeline,
+            TopTimelineTimeFormatString = topTimeLineTimeFormatString
         };
     }
 
@@ -391,6 +403,8 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-eventTimespanHoursFormatString");
         this.DrawerSettings.UndefineSetting($"{name}-eventTimespanMinutesFormatString");
         this.DrawerSettings.UndefineSetting($"{name}-eventAbsoluteTimeFormatString");
+        this.DrawerSettings.UndefineSetting($"{name}-showTopTimeline");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimeLineTimeFormatString");
     }
 
     public override void UpdateLocalization(TranslationService translationService)

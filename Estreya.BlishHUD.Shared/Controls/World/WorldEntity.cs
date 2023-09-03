@@ -24,6 +24,7 @@ public abstract class WorldEntity : IEntity
     public void Render(GraphicsDevice graphicsDevice, IWorld world, ICamera camera)
     {
         this.RenderEffect ??= new BasicEffect(graphicsDevice);
+        this.RenderEffect.VertexColorEnabled = true;
 
         this.InternalRender(graphicsDevice, world, camera);
     }

@@ -8,6 +8,8 @@ using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
 using System.IO;
+using System.Linq;
+using System.Text;
 using MathHelper = Helpers.MathHelper;
 
 public static class SpriteBatchUtil
@@ -47,6 +49,21 @@ public static class SpriteBatchUtil
             DrawRectangleOnCtrl(spriteBatch, null, baseTexture, new RectangleF(coords.Left, coords.Bottom - borderSize, coords.Width, borderSize), borderColor);
             DrawRectangleOnCtrl(spriteBatch, null, baseTexture, new RectangleF(coords.Left, coords.Top, borderSize, coords.Height), borderColor);
         }
+    }
+
+    public static void DrawString(this SpriteBatch spriteBatch, string text, SpriteFont font, RectangleF destinationRectangle, Color color, bool wrap = false, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
+    {
+        DrawString(spriteBatch, text, font, destinationRectangle, color, wrap, false, 1, horizontalAlignment, verticalAlignment);
+    }
+
+    public static void DrawString(this SpriteBatch spriteBatch, string text, SpriteFont font, RectangleF destinationRectangle, Color color, bool wrap, bool stroke, int strokeDistance = 1, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
+    {
+        DrawStringOnCtrl(spriteBatch, null, text, font, destinationRectangle, color, wrap, stroke, strokeDistance, horizontalAlignment, verticalAlignment);
+    }
+
+    public static void DrawString(this SpriteBatch spriteBatch, string text, SpriteFont font, RectangleF destinationRectangle, Color color, bool wrap, bool stroke, int strokeDistance, Color strokeColor, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
+    {
+        DrawStringOnCtrl(spriteBatch, null, text, font, destinationRectangle, color, wrap, stroke, strokeDistance, strokeColor, horizontalAlignment, verticalAlignment);
     }
 
     public static void DrawString(this SpriteBatch spriteBatch, string text, BitmapFont font, RectangleF destinationRectangle, Color color, bool wrap = false, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
@@ -132,6 +149,118 @@ public static class SpriteBatchUtil
         }
     }
 
+    public static void DrawStringOnCtrl(this SpriteBatch spriteBatch, Control ctrl, string text, SpriteFont font, RectangleF destinationRectangle, Color color, bool wrap = false, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
+    {
+        DrawStringOnCtrl(spriteBatch, ctrl, text, font, destinationRectangle, color, wrap, false, 1, horizontalAlignment, verticalAlignment);
+    }
+
+    public static void DrawStringOnCtrl(this SpriteBatch spriteBatch, Control ctrl, string text, SpriteFont font, RectangleF destinationRectangle, Color color, bool wrap, bool stroke, int strokeDistance = 1, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
+    {
+        DrawStringOnCtrl(spriteBatch, ctrl, text, font, destinationRectangle, color, wrap, stroke, strokeDistance, Color.Black, horizontalAlignment, verticalAlignment);
+    }
+
+    private static string WrapTextSegment(SpriteFont spriteFont, string text, float maxLineWidth)
+    {
+        string[] array = text.Split(' ');
+        StringBuilder stringBuilder = new StringBuilder();
+        float num = 0f;
+        float width = spriteFont.MeasureString(" ").X;
+        string[] array2 = array;
+        foreach (string text2 in array2)
+        {
+            Vector2 vector = spriteFont.MeasureString(text2);
+            if (num + vector.X < maxLineWidth)
+            {
+                stringBuilder.Append(text2 + " ");
+                num += vector.X + width;
+            }
+            else
+            {
+                stringBuilder.Append("\n" + text2 + " ");
+                num = vector.X + width;
+            }
+        }
+
+        return stringBuilder.ToString();
+    }
+
+    private static string WrapText(SpriteFont spriteFont, string text, float maxLineWidth)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return "";
+        }
+
+        return string.Join("\n", from s in text.Split('\n')
+                                 select WrapTextSegment(spriteFont, s, maxLineWidth));
+    }
+
+    public static void DrawStringOnCtrl(this SpriteBatch spriteBatch, Control ctrl, string text, SpriteFont font, RectangleF destinationRectangle, Color color, bool wrap, bool stroke, int strokeDistance, Color strokeColor, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return;
+        }
+
+        text = wrap ? WrapText(font, text, destinationRectangle.Width) : text;
+        if (horizontalAlignment != 0 && (wrap || text.Contains("\n")))
+        {
+            using StringReader stringReader = new StringReader(text);
+            for (int i = 0; destinationRectangle.Height - i > 0; i += font.LineSpacing)
+            {
+                string text2;
+                if ((text2 = stringReader.ReadLine()) == null)
+                {
+                    break;
+                }
+
+                spriteBatch.DrawStringOnCtrl(ctrl, text2, font, destinationRectangle.Add(0, i, 0, 0), color, wrap, stroke, strokeDistance, horizontalAlignment, verticalAlignment);
+            }
+
+            return;
+        }
+
+        Vector2 vector = font.MeasureString(text);
+        destinationRectangle = ctrl != null ? destinationRectangle.ToBounds(ctrl.AbsoluteBounds) : destinationRectangle;
+        float num = destinationRectangle.X;
+        float num2 = destinationRectangle.Y;
+        switch (horizontalAlignment)
+        {
+            case HorizontalAlignment.Center:
+                num += (destinationRectangle.Width / 2) - (vector.X / 2);
+                break;
+            case HorizontalAlignment.Right:
+                num += destinationRectangle.Width - vector.X;
+                break;
+        }
+
+        switch (verticalAlignment)
+        {
+            case VerticalAlignment.Middle:
+                num2 += (destinationRectangle.Height / 2) - (vector.Y / 2);
+                break;
+            case VerticalAlignment.Bottom:
+                num2 += destinationRectangle.Height - vector.Y;
+                break;
+        }
+
+        Vector2 vector2 = new Vector2(num, num2);
+        float scale = ctrl != null ? ctrl.AbsoluteOpacity() : 1;
+        if (stroke)
+        {
+            spriteBatch.DrawString(font, text, vector2.OffsetBy(0f, -strokeDistance), strokeColor * scale);
+            spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, -strokeDistance), strokeColor * scale);
+            spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, 0f), strokeColor * scale);
+            spriteBatch.DrawString(font, text, vector2.OffsetBy(strokeDistance, strokeDistance), strokeColor * scale);
+            spriteBatch.DrawString(font, text, vector2.OffsetBy(0f, strokeDistance), strokeColor * scale);
+            spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, strokeDistance), strokeColor * scale);
+            spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, 0f), strokeColor * scale);
+            spriteBatch.DrawString(font, text, vector2.OffsetBy(-strokeDistance, -strokeDistance), strokeColor * scale);
+        }
+
+        spriteBatch.DrawString(font, text, vector2, color * scale);
+    }
+
     public static void DrawStringOnCtrl(this SpriteBatch spriteBatch, Control ctrl, string text, BitmapFont font, RectangleF destinationRectangle, Color color, bool wrap = false, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
     {
         DrawStringOnCtrl(spriteBatch, ctrl, text, font, destinationRectangle, color, wrap, false, 1, horizontalAlignment, verticalAlignment);
@@ -142,6 +271,42 @@ public static class SpriteBatchUtil
         DrawStringOnCtrl(spriteBatch, ctrl, text, font, destinationRectangle, color, wrap, stroke, strokeDistance, Color.Black, horizontalAlignment, verticalAlignment);
     }
 
+    private static string WrapTextSegment(BitmapFont spriteFont, string text, float maxLineWidth)
+    {
+        string[] array = text.Split(' ');
+        StringBuilder stringBuilder = new StringBuilder();
+        float num = 0f;
+        float width = spriteFont.MeasureString(" ").Width;
+        string[] array2 = array;
+        foreach (string text2 in array2)
+        {
+            Vector2 vector = spriteFont.MeasureString(text2);
+            if (num + vector.X < maxLineWidth)
+            {
+                stringBuilder.Append(text2 + " ");
+                num += vector.X + width;
+            }
+            else
+            {
+                stringBuilder.Append("\n" + text2 + " ");
+                num = vector.X + width;
+            }
+        }
+
+        return stringBuilder.ToString();
+    }
+
+    private static string WrapText(BitmapFont spriteFont, string text, float maxLineWidth)
+    {
+        if (string.IsNullOrEmpty(text))
+        {
+            return "";
+        }
+
+        return string.Join("\n", from s in text.Split('\n')
+                                 select WrapTextSegment(spriteFont, s, maxLineWidth));
+    }
+
     public static void DrawStringOnCtrl(this SpriteBatch spriteBatch, Control ctrl, string text, BitmapFont font, RectangleF destinationRectangle, Color color, bool wrap, bool stroke, int strokeDistance, Color strokeColor, HorizontalAlignment horizontalAlignment = HorizontalAlignment.Left, VerticalAlignment verticalAlignment = VerticalAlignment.Middle)
     {
         if (string.IsNullOrEmpty(text))
@@ -149,7 +314,7 @@ public static class SpriteBatchUtil
             return;
         }
 
-        text = wrap ? DrawUtil.WrapText(font, text, destinationRectangle.Width) : text;
+        text = wrap ? WrapText(font, text, destinationRectangle.Width) : text;
         if (horizontalAlignment != 0 && (wrap || text.Contains("\n")))
         {
             using StringReader stringReader = new StringReader(text);

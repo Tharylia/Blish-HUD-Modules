@@ -1,28 +1,44 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Services;
 
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Threading.Events;
+using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
 using Newtonsoft.Json;
 using Shared.Services;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Estreya.BlishHUD.EventTable.Models;
 
-public class DynamicEventService : APIService
+public partial class DynamicEventService : APIService<DynamicEvent>
 {
     private readonly string _apiBaseUrl;
+    private readonly string _directoryBasePath;
     private readonly IFlurlClient _flurlClient;
 
-    public DynamicEventService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, IFlurlClient flurlClient, string apiBaseUrl) : base(apiManager, configuration)
+    public event AsyncEventHandler CustomEventsUpdated;
+
+    public DynamicEventService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, IFlurlClient flurlClient, string apiBaseUrl, string directoryBasePath) : base(apiManager, configuration)
     {
         this._flurlClient = flurlClient;
         this._apiBaseUrl = apiBaseUrl;
+        this._directoryBasePath = directoryBasePath;
     }
 
     private string API_URL => $"{this._apiBaseUrl.TrimEnd('/')}/v1/gw2/dynamicEvents";
 
-    public DynamicEvent[] Events { get; private set; } = new DynamicEvent[0];
+    private List<DynamicEvent> _customEvents = new List<DynamicEvent>();
+    private bool _loadedFiles;
+
+    public List<DynamicEvent> Events => this.APIObjectList.Concat(this._customEvents).ToList();
+
+    private const string BASE_FOLDER_STRUCTURE = "dynamic_events";
+
+    private const string FILE_NAME = "custom.json";
 
     public DynamicEvent[] GetEventsByMap(int mapId)
     {
@@ -34,75 +50,87 @@ public class DynamicEventService : APIService
         return this.Events?.Where(e => e.ID == eventId).FirstOrDefault();
     }
 
-    private async Task<DynamicEvent[]> GetEvents()
+    private async Task<List<DynamicEvent>> GetEvents()
     {
         IFlurlRequest request = this._flurlClient.Request(this.API_URL).SetQueryParam("lang", "en"); // Language is ignored for now
 
         string eventJson = await request.GetStringAsync();
         List<DynamicEvent> events = JsonConvert.DeserializeObject<List<DynamicEvent>>(eventJson);
 
-        return events.ToArray();
+        return events;
     }
 
-    protected override async Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress)
+    public async Task AddCustomEvent(DynamicEvent dynamicEvent)
     {
-        try
-        {
-            progress.Report("Loading events..");
-            this.Events = await this.GetEvents();
-        }
-        catch (Exception ex)
-        {
-            this.Logger.Warn(ex, "Failed loading events:");
-        }
+        this._customEvents.RemoveAll(e => e.ID == dynamicEvent.ID);
+
+        dynamicEvent.IsCustom = true;
+
+        this._customEvents.Add(dynamicEvent);
+
+        await this.Save();
+        var oldList = new List<DynamicEvent>(this.APIObjectList);
+        this.APIObjectList.Clear();
+        this.APIObjectList.AddRange(this.FilterCustomizedEvents(oldList));
     }
 
-    public class DynamicEvent
+    public async Task RemoveCustomEvent(string id)
     {
-        [JsonProperty("id")] public string ID { get; set; }
+        var existingEvent = this.GetEventById(id);
+        if (existingEvent is null || !existingEvent.IsCustom) return;
 
-        [JsonProperty("name")] public string Name { get; set; }
+        this._customEvents.Remove(existingEvent);
+        await this.Save();
+        await this.Load();
+    }
 
-        [JsonProperty("level")] public int Level { get; set; }
+    private List<DynamicEvent> FilterCustomizedEvents(IEnumerable<DynamicEvent> events)
+    {
+        return events.Where(e => !this._customEvents.Any(ce => ce.ID == e.ID)).ToList();
+    }
 
-        [JsonProperty("map_id")] public int MapId { get; set; }
+    public async Task NotifyCustomEventsUpdated()
+    {
+        await (this.CustomEventsUpdated?.Invoke(this) ?? Task.CompletedTask);
+    }
 
-        [JsonProperty("flags")] public string[] Flags { get; set; }
+    protected override async Task<List<DynamicEvent>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        var events = await this.GetEvents();
 
-        [JsonProperty("location")] public DynamicEventLocation Location { get; set; }
+        events = this.FilterCustomizedEvents(events);
 
-        [JsonProperty("icon")] public DynamicEventIcon Icon { get; set; }
+        return events;
+    }
 
-        public class DynamicEventLocation
+    protected override async Task Save()
+    {
+        var directoryPath = Path.Combine(this._directoryBasePath, BASE_FOLDER_STRUCTURE);
+        if (!Directory.Exists(directoryPath)) Directory.CreateDirectory(directoryPath);
+
+        var filePath = Path.Combine(directoryPath, FILE_NAME);
+
+        var json = JsonConvert.SerializeObject(this._customEvents, Formatting.Indented);
+        await FileUtil.WriteStringAsync(filePath, json);
+    }
+
+    protected override async Task Load()
+    {
+        if (!this._loadedFiles)
         {
-            [JsonProperty("type")] public string Type { get; set; }
+            var filePath = Path.Combine(this._directoryBasePath, BASE_FOLDER_STRUCTURE, FILE_NAME);
+            if (File.Exists(filePath))
+            {
+                var json = await FileUtil.ReadStringAsync(filePath);
+                var customEvents = JsonConvert.DeserializeObject<List<DynamicEvent>>(json);
+                this._customEvents =customEvents;
 
-            [JsonProperty("center")] public float[] Center { get; set; }
+                this._customEvents.ForEach(ce => ce.IsCustom = true);
+            }
 
-            [JsonProperty("radius")] public float Radius { get; set; }
-
-            /// <summary>
-            ///     Height defines the total height
-            /// </summary>
-            [JsonProperty("height")]
-            public float Height { get; set; }
-
-            [JsonProperty("rotation")] public float Rotation { get; set; }
-
-            /// <summary>
-            ///     Z Ranges defines the top and bottom boundaries offset from the center z.
-            /// </summary>
-            [JsonProperty("z_range")]
-            public float[] ZRange { get; set; }
-
-            [JsonProperty("points")] public float[][] Points { get; set; }
+            this._loadedFiles = true;
         }
 
-        public class DynamicEventIcon
-        {
-            [JsonProperty("file_id")] public int FileID { get; set; }
-
-            [JsonProperty("signature")] public string Signature { get; set; }
-        }
+        await base.Load();
     }
 }

@@ -3,6 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Entities;
 using Blish_HUD.Graphics;
+using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
@@ -13,7 +14,7 @@ public class WorldPolygone : WorldEntity
 {
     private readonly Color _color;
     private readonly Func<WorldEntity, bool> _renderCondition;
-    private readonly VertexPositionColor[] _vert;
+    private readonly VertexPositionColor[] _vertexData;
 
     public WorldPolygone(Vector3 position, Vector3[] points, Color color, Func<WorldEntity, bool> renderCondition = null) : base(position, 1)
     {
@@ -25,7 +26,7 @@ public class WorldPolygone : WorldEntity
         this.Points = points;
         this._color = color;
         this._renderCondition = renderCondition;
-        this._vert = this.BuildVertices();
+        this._vertexData = this.BuildVertices();
     }
 
     public WorldPolygone(Vector3 position, Vector3[] points) : this(position, points, Color.White)
@@ -38,16 +39,9 @@ public class WorldPolygone : WorldEntity
     {
         VertexPositionColor[] verts = new VertexPositionColor[this.Points.Length];
 
-        Vector3 curPoint = this.Points[0];
-
-        for (int i = 0; i < this.Points.Length - 1; i++)
+        for (int i = 0; i < this.Points.Length; i++)
         {
-            Vector3 nextPoint = this.Points[i + 1];
-
-            verts[i] = new VertexPositionColor(curPoint, this._color);
-            verts[i + 1] = new VertexPositionColor(nextPoint, this._color);
-
-            curPoint = nextPoint;
+            verts[i] = new VertexPositionColor(this.Points[i], this._color);
         }
 
         using GraphicsDeviceContext ctx = GameService.Graphics.LendGraphicsDeviceContext();
@@ -79,7 +73,7 @@ public class WorldPolygone : WorldEntity
         {
             pass.Apply();
 
-            graphicsDevice.DrawUserPrimitives(PrimitiveType.LineList, this._vert, 0, this._vert.Length / 2);
+            graphicsDevice.DrawUserPrimitives(PrimitiveType.LineList, this._vertexData, 0, this._vertexData.Length / 2);
         }
     }
 

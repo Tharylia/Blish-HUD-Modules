@@ -17,7 +17,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Dropdown = Shared.Controls.Dropdown;
 using Item = Shared.Models.GW2API.Items.Item;
 using Menu = Shared.Controls.Menu;
 using Rectangle = Microsoft.Xna.Framework.Rectangle;
@@ -178,7 +177,7 @@ public class TrackedTransactionView : BaseView
         };
 
         TrackedTransactionType trackedTransactionType = TrackedTransactionType.BuyGT;
-        Dropdown transactionTypeDropDown = this.RenderDropdown<TrackedTransactionType>(this._transactionPanel, Point.Zero, 1, trackedTransactionType, onChangeAction: val =>
+        Dropdown<string> transactionTypeDropDown = this.RenderDropdown<TrackedTransactionType>(this._transactionPanel, Point.Zero, 1, trackedTransactionType, onChangeAction: val =>
         {
             trackedTransactionType = val;
         });
@@ -346,7 +345,7 @@ public class TrackedTransactionView : BaseView
         TextBox silverInput = new TextBox
         {
             Parent = coinInputPanel,
-            PlaceholderText = "Copper",
+            PlaceholderText = "Silver",
             Location = new Point(goldImage.Right + 30, 0),
             Width = 150,
             Text = splitCoins.Silver.ToString()
@@ -378,7 +377,7 @@ public class TrackedTransactionView : BaseView
         coinInputPanel.Size = new Point(panelBounds.Width - (copperInput.Left * 2), panelBounds.Height - copperInput.Top);
 
         TrackedTransactionType trackedTransactionType = trackedTransaction.Type;
-        Dropdown transactionTypeDropDown = this.RenderDropdown<TrackedTransactionType>(this._transactionPanel, new Point(coinInputPanel.Left, coinInputPanel.Bottom + 80), removeButton.Right - coinInputPanel.Left, trackedTransactionType, onChangeAction: val =>
+        Dropdown<string> transactionTypeDropDown = this.RenderDropdown<TrackedTransactionType>(this._transactionPanel, new Point(coinInputPanel.Left, coinInputPanel.Bottom + 80), removeButton.Right - coinInputPanel.Left, trackedTransactionType, onChangeAction: val =>
         {
             trackedTransactionType = val;
         });

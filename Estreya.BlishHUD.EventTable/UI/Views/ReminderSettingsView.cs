@@ -95,6 +95,14 @@ public class ReminderSettingsView : BaseSettingsView
             this.ManageReminderTimes(_globalChangeTempEvent);
         });
 
+        this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-resetAllTimes", "Reset all Reminder Times"), () =>
+        {
+            this.ManageReminderTimesView_SaveClicked(this, (_globalChangeTempEvent, new List<TimeSpan>()
+            {
+                TimeSpan.FromMinutes(10)
+            }, false));
+        });
+
         this.RenderEmptyLine(parent);
 
         this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersOnMissingMumbleTicks);
@@ -108,7 +116,7 @@ public class ReminderSettingsView : BaseSettingsView
 
     private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)
     {
-        this._moduleSettings.ReminderDisabledForEvents.Value = e.NewService
+        this._moduleSettings.ReminderDisabledForEvents.Value = e.NewState
             ? new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value.Where(s => s != e.EventSettingKey))
             : new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value) { e.EventSettingKey };
     }
@@ -125,7 +133,7 @@ public class ReminderSettingsView : BaseSettingsView
             mrtv.SaveClicked -= this.ManageReminderTimesView_SaveClicked;
         }
 
-        ManageReminderTimesView view = new ManageReminderTimesView(ev, this.APIManager, this.IconService, this.TranslationService);
+        ManageReminderTimesView view = new ManageReminderTimesView(ev, ev == _globalChangeTempEvent, this.APIManager, this.IconService, this.TranslationService);
         view.CancelClicked += this.ManageReminderTimesView_CancelClicked;
         view.SaveClicked += this.ManageReminderTimesView_SaveClicked;
 
@@ -133,13 +141,15 @@ public class ReminderSettingsView : BaseSettingsView
         this._manageReminderTimesWindow.Show(view);
     }
 
-    private void ManageReminderTimesView_SaveClicked(object sender, (Event Event, List<TimeSpan> ReminderTimes) e)
+    private void ManageReminderTimesView_SaveClicked(object sender, (Event Event, List<TimeSpan> ReminderTimes, bool KeepCustomized) e)
     {
         if (e.Event == _globalChangeTempEvent)
         {
             IEnumerable<Event> allEvents = this._getEvents().SelectMany(ec => ec.Events).Where(ev => !ev.Filler);
             foreach (Event ev in allEvents)
             {
+                if (this._moduleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey) && e.KeepCustomized) continue;
+
                 this._moduleSettings.ReminderTimesOverride.Value[ev.SettingKey] = e.ReminderTimes;
                 ev.UpdateReminderTimes(e.ReminderTimes.ToArray());
             }
