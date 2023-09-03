@@ -97,10 +97,9 @@ public class Dropdown<T> : Control
 
         if (this._lastPanel == null && !this._hadPanel)
         {
-            this._lastPanel = DropdownPanel<T>.ShowPanel(this);
+            this._lastPanel = DropdownPanel<T>.ShowPanel(this, Math.Min(this.PanelHeight, this.Items.Sum(x => this.Height)));
             if (this.PanelHeight != -1)
             {
-                this._lastPanel.Height = Math.Min(this.PanelHeight, this.Items.Sum(x => this.Height));
                 this._lastPanel.CanScroll = true;
             }
         }
@@ -156,10 +155,10 @@ public class Dropdown<T> : Control
 
         private Dropdown<T> _assocDropdown;
 
-        private DropdownPanel(Dropdown<T> assocDropdown)
+        private DropdownPanel(Dropdown<T> assocDropdown, int panelHeight = -1)
         {
             this._assocDropdown = assocDropdown;
-            this._size = new Point(this._assocDropdown.Width, this._assocDropdown.Height * this._assocDropdown.Items.Count);
+            this._size = new Point(this._assocDropdown.Width, panelHeight != -1 ? panelHeight:  this._assocDropdown.Height * this._assocDropdown.Items.Count);
             this._location = this.GetPanelLocation();
             this._zIndex = Screen.TOOLTIP_BASEZINDEX;
             this.BackgroundColor = Color.Black; // Needed as some items have white lines between them otherwise.
@@ -214,9 +213,9 @@ public class Dropdown<T> : Control
                 : dropdownLocation - new Point(0, this._size.Y + 1);
         }
 
-        public static DropdownPanel<T> ShowPanel(Dropdown<T> assocDropdown)
+        public static DropdownPanel<T> ShowPanel(Dropdown<T> assocDropdown, int panelHeight = -1)
         {
-            return new DropdownPanel<T>(assocDropdown);
+            return new DropdownPanel<T>(assocDropdown, panelHeight);
         }
 
         private void InputOnMousedOffDropdownPanel(object sender, MouseEventArgs e)
@@ -235,7 +234,7 @@ public class Dropdown<T> : Control
             }
         }
 
-        private void UpdateDropdownLocation()
+        public void UpdateDropdownLocation()
         {
             this._location = this.GetPanelLocation();
 
