@@ -277,6 +277,9 @@ public abstract class BaseModuleSettings
         opacity.SetRange(0f, 1f);
         SettingEntry<Color> backgroundColor = this.DrawerSettings.DefineSetting($"{name}-backgroundColor", this.DefaultGW2Color, () => "Background Color", () => "The background color of the drawer.");
         SettingEntry<FontSize> fontSize = this.DrawerSettings.DefineSetting($"{name}-fontSize", FontSize.Size16, () => "Font Size", () => "The font size of the drawer.");
+        SettingEntry<Models.FontFace> fontFace = this.DrawerSettings.DefineSetting($"{name}-fontFace", Models.FontFace.Menomonia, () => "Font Face", () => "The font face of the drawer.");
+        SettingEntry<string> customFontPath = this.DrawerSettings.DefineSetting($"{name}-customFontPath", (string)null, () => "Custom Font Path", () => "The path to a custom font file.");
+
         SettingEntry<Color> textColor = this.DrawerSettings.DefineSetting($"{name}-textColor", this.DefaultGW2Color, () => "Text Color", () => "The text color of the drawer.");
 
         DrawerConfiguration configuration = new DrawerConfiguration
@@ -298,6 +301,8 @@ public abstract class BaseModuleSettings
             Opacity = opacity,
             BackgroundColor = backgroundColor,
             FontSize = fontSize,
+            FontFace=fontFace,
+            CustomFontPath = customFontPath,
             TextColor = textColor
         };
 
@@ -320,6 +325,8 @@ public abstract class BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-opacity");
         this.DrawerSettings.UndefineSetting($"{name}-backgroundColor");
         this.DrawerSettings.UndefineSetting($"{name}-fontSize");
+        this.DrawerSettings.UndefineSetting($"{name}-fontFace");
+        this.DrawerSettings.UndefineSetting($"{name}-customFontPath");
         this.DrawerSettings.UndefineSetting($"{name}-textColor");
     }
 

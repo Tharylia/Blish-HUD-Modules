@@ -465,7 +465,27 @@ public class AreaSettingsView : BaseSettingsView
             Title = this.TranslationService.GetTranslation("areaSettingsView-group-textAndColor", "Text & Color")
         };
 
+        var fontFaceDropDown = this.RenderEnumSetting(groupPanel, areaConfiguration.FontFace).dropdown;
+        fontFaceDropDown.Width = 500;
         this.RenderEnumSetting(groupPanel, areaConfiguration.FontSize);
+
+        var customFontPathTextBox = this.RenderTextSetting(groupPanel, areaConfiguration.CustomFontPath).textBox;
+        customFontPathTextBox.Width = groupPanel.ContentRegion.Width - customFontPathTextBox.Left;
+        //customFontPathTextBox.Enabled = false;
+        //this.RenderButton(groupPanel, "Select Font File",  () =>
+        //{
+        //        OpenFileDialog dialog = new OpenFileDialog();
+        //        dialog.Filter = "TrueFont (*.ttf)|*.ttf|BM Font (*.fnt)|*.fnt";
+        //        dialog.CheckFileExists = true;
+
+        //        var result = dialog.ShowDialog();
+
+        //        if (result != DialogResult.OK) return;
+
+        //        areaConfiguration.CustomFontPath.Value = dialog.FileName;
+        //        customFontPathTextBox.Text = dialog.FileName;
+        //});
+
         this.RenderColorSetting(groupPanel, areaConfiguration.TextColor);
         this.RenderFloatSetting(groupPanel, areaConfiguration.EventTextOpacity);
 

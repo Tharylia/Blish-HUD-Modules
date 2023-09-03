@@ -1,9 +1,10 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
+using Blish_HUD.Modules.Managers;
 using Flurl.Http;
 using Gw2Sharp.Models;
 using Microsoft.Xna.Framework;
@@ -20,13 +21,16 @@ using Shared.MumbleInfo.Map;
 using Shared.Services;
 using Shared.Threading;
 using Shared.Utils;
+using SpriteFontPlus;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using System.Windows.Media.TextFormatting;
 using static Blish_HUD.ContentService;
 using Color = Gw2Sharp.WebApi.V2.Models.Color;
 using Point = Microsoft.Xna.Framework.Point;
@@ -43,8 +47,10 @@ public class EventArea : RenderTarget2DControl
 
     private static TimeSpan _checkForNewEventsInterval = TimeSpan.FromMilliseconds(1000);
 
-    private static readonly ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
+    private SpriteFont _defaultFont;
+    private ConcurrentDictionary<FontSize, SpriteFont> _fonts = new ConcurrentDictionary<FontSize, SpriteFont>();
     private readonly Func<string> _getAccessToken;
+    private ContentsManager _contentsManager;
     private readonly Func<DateTime> _getNowAction;
     private readonly Func<Version> _getVersion;
     private Event _activeEvent;
@@ -83,7 +89,7 @@ public class EventArea : RenderTarget2DControl
     private TranslationService _translationService;
     private WorldbossService _worldbossService;
 
-    public EventArea(EventAreaConfiguration configuration, IconService iconService, TranslationService translationService, EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken)
+    public EventArea(EventAreaConfiguration configuration, IconService iconService, TranslationService translationService, EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, ContentsManager contentsManager)
     {
         this.Configuration = configuration;
 
@@ -102,6 +108,8 @@ public class EventArea : RenderTarget2DControl
         this.Configuration.DrawInterval.SettingChanged += this.DrawInterval_SettingChanged;
         this.Configuration.LimitToCurrentMap.SettingChanged += this.LimitToCurrentMap_SettingChanged;
         this.Configuration.AllowUnspecifiedMap.SettingChanged += this.AllowUnspecifiedMap_SettingChanged;
+        this.Configuration.FontFace.SettingChanged += this.FontFace_SettingChanged;
+        this.Configuration.CustomFontPath.SettingChanged += this.CustomFontPath_SettingChanged;
         GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
 
         this.Click += this.OnLeftMouseButtonPressed;
@@ -117,6 +125,7 @@ public class EventArea : RenderTarget2DControl
         this._getNowAction = getNowAction;
         this._getVersion = getVersion;
         this._getAccessToken = getAccessToken;
+        this._contentsManager = contentsManager;
         this._iconService = iconService;
         this._translationService = translationService;
         this._eventStateService = eventService;
@@ -126,6 +135,9 @@ public class EventArea : RenderTarget2DControl
         this._mapUtil = mapUtil;
         this._flurlClient = flurlClient;
         this._apiRootUrl = apiRootUrl;
+
+        using var defaultFontStream = this._contentsManager.GetFileStream("fonts\\Menomonia.ttf") ?? throw new FileNotFoundException("Memonia Font is not included in module ref folder.");
+        this._defaultFont = FontUtils.FromTrueTypeFont(defaultFontStream.ToByteArray(), 18, 256, 256);
 
         if (this._worldbossService != null)
         {
@@ -284,6 +296,19 @@ public class EventArea : RenderTarget2DControl
         if (this.Configuration.LimitToCurrentMap.Value)
         {
             this.ReAddEvents();
+        }
+    }
+
+    private void FontFace_SettingChanged(object sender, ValueChangedEventArgs<Shared.Models.FontFace> e)
+    {
+        this._fonts?.Clear();
+    }
+
+    private void CustomFontPath_SettingChanged(object sender, ValueChangedEventArgs<string> e)
+    {
+        if (this.Configuration.FontFace.Value == Shared.Models.FontFace.Custom)
+        {
+            this._fonts?.Clear();
         }
     }
 
@@ -463,9 +488,47 @@ public class EventArea : RenderTarget2DControl
         return this.Width - this.DrawXOffset;
     }
 
-    private BitmapFont GetFont()
+    private SpriteFont GetFont()
     {
-        return _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, ContentService.FontStyle.Regular));
+        var font = _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize =>
+        {
+            //GameService.Content.GetFont(FontFace.Menomonia, fontSize, ContentService.FontStyle.Regular)
+            try
+            {
+
+                switch (this.Configuration.FontFace.Value)
+                {
+                    case Shared.Models.FontFace.Custom:
+                        var path = this.Configuration.CustomFontPath.Value;
+                        switch (Path.GetExtension(path))
+                        {
+                            case ".ttf":
+                                var customTTFFontStream = FileUtil.ReadStream(path);
+                                var customTTFFont = FontUtils.FromTrueTypeFont(customTTFFontStream?.ToByteArray(), (int)fontSize, 256, 256);
+                                customTTFFontStream.Dispose();
+                                return customTTFFont;
+                            case ".fnt":
+                                return FontUtils.FromBMFont(path);
+                            default:
+                                return null;
+                        }
+                    default:
+                        var fontStream = this._contentsManager.GetFileStream($"fonts\\{this.Configuration.FontFace.Value.ToString()}.ttf");
+                        var ttfFont = FontUtils.FromTrueTypeFont(fontStream?.ToByteArray(), (int)fontSize, 256, 256);
+                        fontStream.Dispose();
+                        return ttfFont;
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        });
+
+        //this._logger.Warn($"Invalid font: Font Fact: {this.Configuration.FontFace.Value} - Path: {this.Configuration.CustomFontPath.Value}");
+        font ??= this._defaultFont;
+
+        return font;
     }
 
     private void ReAddEvents()
@@ -663,7 +726,7 @@ public class EventArea : RenderTarget2DControl
             {
                 if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Model.Category.TryGetTarget(out EventCategory eventCategory))
                 {
-                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).Width + 5, this._drawXOffset);
+                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).X + 5, this._drawXOffset);
                 }
             }
         }
@@ -1222,6 +1285,12 @@ public class EventArea : RenderTarget2DControl
             this._eventStateService.StateRemoved -= this.EventService_ServiceRemoved;
         }
 
+        if (this._fonts != null)
+        {
+            this._fonts.Clear();
+            this._fonts = null;
+        }
+
         this._iconService = null;
         this._worldbossService = null;
         this._mapchestService = null;
@@ -1229,6 +1298,7 @@ public class EventArea : RenderTarget2DControl
         this._translationService = null;
         this._mapUtil = null;
         this._pointOfInterestService = null;
+        this._contentsManager = null;
 
         this._flurlClient = null;
         this._apiRootUrl = null;
@@ -1250,14 +1320,16 @@ public class EventArea : RenderTarget2DControl
         this.Configuration.DrawInterval.SettingChanged -= this.DrawInterval_SettingChanged;
         this.Configuration.LimitToCurrentMap.SettingChanged -= this.LimitToCurrentMap_SettingChanged;
         this.Configuration.AllowUnspecifiedMap.SettingChanged -= this.AllowUnspecifiedMap_SettingChanged;
+        this.Configuration.FontFace.SettingChanged -= this.FontFace_SettingChanged;
+        this.Configuration.CustomFontPath.SettingChanged -= this.CustomFontPath_SettingChanged;
         GameService.Gw2Mumble.CurrentMap.MapChanged -= this.CurrentMap_MapChanged;
 
         this.Configuration = null;
 
         using (this._eventLock.Lock())
         {
-        this._allEvents?.Clear();
-        this._allEvents = null;
+            this._allEvents?.Clear();
+            this._allEvents = null;
+        }
     }
-}
 }

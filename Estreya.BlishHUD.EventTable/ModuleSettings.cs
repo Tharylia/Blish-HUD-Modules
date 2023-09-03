@@ -286,6 +286,8 @@ public class ModuleSettings : BaseModuleSettings
             BuildDirection = drawer.BuildDirection,
             BackgroundColor = drawer.BackgroundColor,
             FontSize = drawer.FontSize,
+            FontFace = drawer.FontFace,
+            CustomFontPath = drawer.CustomFontPath,
             TextColor = drawer.TextColor,
             Location = drawer.Location,
             Opacity = drawer.Opacity,

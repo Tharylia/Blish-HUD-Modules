@@ -25,6 +25,10 @@ public class DrawerConfiguration
 
     public SettingEntry<Color> TextColor { get; set; }
 
+    public SettingEntry<Models.FontFace> FontFace { get; set; }
+
+    public SettingEntry<string> CustomFontPath { get; set; }
+
     public SettingEntry<FontSize> FontSize { get; set; }
 
     public void CopyTo(DrawerConfiguration config)
@@ -40,6 +44,8 @@ public class DrawerConfiguration
         config.Opacity.Value = this.Opacity.Value;
         config.BackgroundColor.Value = this.BackgroundColor.Value;
         config.TextColor.Value = this.TextColor.Value;
+        config.FontFace.Value = this.FontFace.Value;
+        config.CustomFontPath.Value = this.CustomFontPath.Value;
         config.FontSize.Value = this.FontSize.Value;
     }
 }

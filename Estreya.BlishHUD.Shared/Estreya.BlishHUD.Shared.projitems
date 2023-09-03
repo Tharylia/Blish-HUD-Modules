@@ -45,6 +45,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ProcessExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\RectangleExtension.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\SettingEntryExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\StreamExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\StringExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\WaitHandleExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Helpers\AsyncHelper.cs" />
@@ -80,6 +81,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerLocation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerSize.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\FontFace.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\CurrentTransaction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\Transaction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\TransactionType.cs" />
@@ -148,10 +150,12 @@
     <Compile Include="$(MSBuildThisFileDirectory)Utils\ColorUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\DiscordUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\FileUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\FontUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\Gw2SharpHelper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\GW2Utils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\ImageUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\MapUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\SpriteBatchUtil - Copy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\SpriteBatchUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\StreamerUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\UpdateUtil.cs" />

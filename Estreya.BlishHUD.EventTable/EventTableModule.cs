@@ -479,7 +479,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.MODULE_API_URL,
             () => this.NowUTC,
             () => this.Version,
-            () => this.BlishHUDAPIService.AccessToken) { Parent = GameService.Graphics.SpriteScreen };
+            () => this.BlishHUDAPIService.AccessToken,
+            this.ContentsManager)
+        { Parent = GameService.Graphics.SpriteScreen };
 
         _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
     }
@@ -526,7 +528,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.TranslationService,
             this.SettingEventService,
             this.EventStateService,
-            GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+            GameService.Content.DefaultFont16)
+        { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         areaSettingsView.AddArea += (s, e) =>
         {
             e.AreaConfiguration = this.AddArea(e.Name);
