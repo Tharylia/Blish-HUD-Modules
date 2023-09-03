@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -777,7 +777,7 @@ public class EventArea : RenderTarget2DControl
             {
                 using (this._eventLock.Lock())
                 {
-                    validCategory = this._allEvents.Find(ec => ec.Key == categoryKey);
+                    validCategory = this._allEvents?.Find(ec => ec.Key == categoryKey);
                 }
             }
             else
@@ -1094,7 +1094,7 @@ public class EventArea : RenderTarget2DControl
 
             spriteBatch.DrawLine(Textures.Pixel, timeStepRect, Microsoft.Xna.Framework.Color.DarkGreen);
 
-            spriteBatch.DrawString(time.ToString(this.Configuration.TopTimelineTimeFormatString.Value), this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), Microsoft.Xna.Framework.Color.Red );
+            spriteBatch.DrawString(time.ToString(this.Configuration.TopTimelineTimeFormatString.Value), this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), Microsoft.Xna.Framework.Color.Red);
         }
 
         this._drawYOffset = (int)rect.Height;
@@ -1104,7 +1104,7 @@ public class EventArea : RenderTarget2DControl
     {
         float middleLineX = (this.GetWidth() * this.GetTimeSpanRatio()) + this.DrawXOffset;
         float width = 2;
-        spriteBatch.DrawLine(Textures.Pixel, new RectangleF(middleLineX - (width / 2),0, width, this.Height), Microsoft.Xna.Framework.Color.LightGray * this.Configuration.TimeLineOpacity.Value);
+        spriteBatch.DrawLine(Textures.Pixel, new RectangleF(middleLineX - (width / 2), 0, width, this.Height), Microsoft.Xna.Framework.Color.LightGray * this.Configuration.TimeLineOpacity.Value);
     }
 
     private void ClearEventControls()
@@ -1254,7 +1254,10 @@ public class EventArea : RenderTarget2DControl
 
         this.Configuration = null;
 
+        using (this._eventLock.Lock())
+        {
         this._allEvents?.Clear();
         this._allEvents = null;
     }
+}
 }
