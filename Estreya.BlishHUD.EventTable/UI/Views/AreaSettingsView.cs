@@ -161,6 +161,15 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
+        var copyFromTemplateLabel= this.RenderLabel(this._areaPanel, "Template").TitleLabel;
+        copyFromTemplateLabel.Location = new Point(areaName.Left, areaName.Bottom + 20);
+        copyFromTemplateLabel.Width = this.LABEL_WIDTH;
+        Dropdown<string> copyFromTemplate = this.RenderDropdown<string>(this._areaPanel,
+            new Point(copyFromTemplateLabel.Right + 20, copyFromTemplateLabel.Top),
+            350,
+            this._areaConfigurations.Select(x => x.Name).ToArray(),
+            null);
+
         Button saveButton = this.RenderButton(this._areaPanel, this.TranslationService.GetTranslation("areaSettingsView-save-btn", "Save"), () =>
         {
             try
@@ -173,11 +182,24 @@ public class AreaSettingsView : BaseSettingsView
                     return;
                 }
 
+                var copyFromTemplateName = copyFromTemplate.SelectedItem;
+                if (copyFromTemplateName != null && !this._areaConfigurations.Any(x => x.Name == copyFromTemplateName))
+                {
+                    this.ShowError("Selected template does not exist.");
+                    return;
+                }
+
                 AddAreaEventArgs addAreaEventArgs = new AddAreaEventArgs { Name = name };
 
                 this.AddArea?.Invoke(this, addAreaEventArgs);
 
                 EventAreaConfiguration configuration = addAreaEventArgs.AreaConfiguration ?? throw new ArgumentNullException("Area configuration could not be created.");
+
+                if (copyFromTemplateName != null)
+                {
+                    var template = this._areaConfigurations.First(x => x.Name == copyFromTemplateName);
+                    template.CopyTo(configuration);
+                }
 
                 MenuItem menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
