@@ -12,6 +12,7 @@ using System;
 using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using UI.Views;
 using Utils;
 
@@ -96,30 +97,21 @@ public class GitHubHelper : IDisposable
         {
             OauthDeviceFlowRequest request = new OauthDeviceFlowRequest(this._clientId);
             OauthDeviceFlowResponse deviceFlowResponse = await this._github.Oauth.InitiateDeviceFlow(request);
-            ScreenNotification notification = new ScreenNotification($"GITHUB: Enter the code {deviceFlowResponse.UserCode}", duration: TimeSpan.FromMinutes(15).Seconds)
-            {
-                Parent = GameService.Graphics.SpriteScreen,
-                Opacity = 1f,
-                Visible = true
-            };
-
             Process.Start(deviceFlowResponse.VerificationUri);
+            ConfirmDialog confirmDialog = new ConfirmDialog("GitHub Login", $"Enter the code \"{deviceFlowResponse.UserCode}\" in the opened GitHub browser window.", this._iconService);
 
-            try
+            var confirmResult = await confirmDialog.ShowDialog();
+
+            if (confirmResult != DialogResult.OK) throw new Exception("Login cancelled");
+
+            OauthToken token = await this._github.Oauth.CreateAccessTokenForDeviceFlow(this._clientId, deviceFlowResponse);
+
+            if (this._passwordManager != null)
             {
-                OauthToken token = await this._github.Oauth.CreateAccessTokenForDeviceFlow(this._clientId, deviceFlowResponse);
-
-                if (this._passwordManager != null)
-                {
-                    await this._passwordManager.Save("github", Encoding.UTF8.GetBytes(token.AccessToken), true);
-                }
-
-                this._github.Credentials = new Credentials(token.AccessToken);
+                await this._passwordManager.Save("github", Encoding.UTF8.GetBytes(token.AccessToken), true);
             }
-            finally
-            {
-                notification.Dispose();
-            }
+
+            this._github.Credentials = new Credentials(token.AccessToken);
         }
     }
 
@@ -141,7 +133,7 @@ public class GitHubHelper : IDisposable
     {
         this.UnloadIssueView();
 
-        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconService, this._translationService, GameService.Content.DefaultFont18, title, message);
+        this._issueView = new GitHubCreateIssueView(this._moduleName, this._iconService, this._translationService, title, message);
         this._issueView.CreateClicked += this.IssueView_CreateClicked;
         this._issueView.CancelClicked += this.IssueView_CancelClicked;
 
