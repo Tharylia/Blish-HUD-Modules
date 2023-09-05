@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -423,8 +423,70 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
-        EventNotification notification = new EventNotification(ev, $"{startsInTranslation} {e.Humanize(2, minUnit: TimeUnit.Second)}!", this.ModuleSettings.ReminderPosition.X.Value, this.ModuleSettings.ReminderPosition.Y.Value, this.IconService) { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
+        EventNotification notification = new EventNotification(ev, 
+            $"{startsInTranslation} {e.Humanize(2, minUnit: TimeUnit.Second)}!",
+            this.ModuleSettings.ReminderPosition.X.Value,
+            this.ModuleSettings.ReminderPosition.Y.Value, 
+            this.IconService,
+            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
+        { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
+        notification.Click += this.EventNotification_Click;
+        notification.Disposed += this.EventNotification_Disposed;
         notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
+    }
+
+    private void EventNotification_Disposed(object sender, EventArgs e)
+    {
+        var notification = sender as EventNotification;
+        notification.Click -= this.EventNotification_Click;
+        notification.Disposed -= this.EventNotification_Disposed;
+    }
+
+    private void EventNotification_Click(object sender, MouseEventArgs e)
+    {
+        var notification = sender as EventNotification;
+        switch (this.ModuleSettings.ReminderLeftClickAction.Value)
+        {
+            case LeftClickAction.CopyWaypoint:
+                if (!string.IsNullOrWhiteSpace(notification.Model.Waypoint))
+                {
+                    ClipboardUtil.WindowsClipboardService.SetTextAsync(notification.Model.Waypoint);
+                    ScreenNotification.ShowNotification(new[]
+                    {
+                        notification.Model.Name,
+                        "Copied to clipboard!"
+                    });
+                }
+                break;
+            case LeftClickAction.NavigateToWaypoint:
+                if (string.IsNullOrWhiteSpace(notification.Model.Waypoint))
+                {
+                    return;
+                }
+
+                if (this.PointOfInterestService.Loading)
+                {
+                    ScreenNotification.ShowNotification($"{nameof(PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
+                    return;
+                }
+
+                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this.PointOfInterestService.GetPointOfInterest(notification.Model.Waypoint);
+                if (poi == null)
+                {
+                    ScreenNotification.ShowNotification($"{notification.Model.Waypoint} not found!", ScreenNotification.NotificationType.Error);
+                    return;
+                }
+
+                _ = Task.Run(async () =>
+                {
+                    MapUtil.NavigationResult result = await (this.MapUtil?.NavigateToPosition(poi, this.ModuleSettings.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
+                    if (!result.Success)
+                    {
+                        ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
+                    }
+                });
+                break;
+        }
     }
 
     /// <summary>

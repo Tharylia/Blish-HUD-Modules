@@ -28,21 +28,21 @@ public class EventNotification : RenderTarget2DControl
     private static readonly Rectangle _messageRect = new Rectangle(_iconRect.Right + 5, _titleRect.Bottom, _fullRect.Width - (_iconRect.Right + 5), NOTIFICATION_HEIGHT - _titleRect.Height);
     private readonly string _message;
 
-    private Models.Event _event;
+    public Models.Event Model { get; private set; }
     private AsyncTexture2D _eventIcon;
     private IconService _iconService;
-
+    private readonly bool _captureMouseClicks;
     private readonly int _x;
     private readonly int _y;
 
-    public EventNotification(Models.Event ev, string message, int x, int y, IconService iconService)
+    public EventNotification(Models.Event ev, string message, int x, int y, IconService iconService, bool captureMouseClicks = false)
     {
-        this._event = ev;
+        this.Model = ev;
         this._message = message;
         this._x = x;
         this._y = y;
         this._iconService = iconService;
-
+        this._captureMouseClicks = captureMouseClicks;
         this._eventIcon = this._iconService?.GetIcon(ev.Icon);
 
         this.Width = NOTIFICATION_WIDTH;
@@ -94,18 +94,18 @@ public class EventNotification : RenderTarget2DControl
             spriteBatch.Draw(this._eventIcon, _iconRect, Color.White);
         }
 
-        spriteBatch.DrawString(this._event.Name, _titleFont, _titleRect, Color.White);
+        spriteBatch.DrawString(this.Model.Name, _titleFont, _titleRect, Color.White);
         spriteBatch.DrawString(this._message, _messageFont, _messageRect, Color.White);
     }
 
     protected override CaptureType CapturesInput()
     {
-        return CaptureType.None;
+        return this._captureMouseClicks ? CaptureType.Mouse : CaptureType.None;
     }
 
     protected override void InternalDispose()
     {
-        this._event = null;
+        this.Model = null;
         this._iconService = null;
         this._eventIcon = null;
     }
