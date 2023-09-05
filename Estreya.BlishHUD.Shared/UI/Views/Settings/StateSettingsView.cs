@@ -14,7 +14,7 @@ public class ServiceSettingsView : BaseSettingsView
     private readonly Func<Task> _reloadCalledAction;
     private readonly IEnumerable<ManagedService> _stateList;
 
-    public ServiceSettingsView(IEnumerable<ManagedService> stateList, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null, Func<Task> reloadCalledAction = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public ServiceSettingsView(IEnumerable<ManagedService> stateList, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, Func<Task> reloadCalledAction = null) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._stateList = stateList;
         this._reloadCalledAction = reloadCalledAction;

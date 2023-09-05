@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -6,6 +6,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Input;
 using Blish_HUD.Modules;
 using Blish_HUD.Settings;
+using Estreya.BlishHUD.Shared.Extensions;
 using Controls;
 using Flurl.Http;
 using Gw2Sharp.Models;
@@ -15,6 +16,7 @@ using Managers;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 using Models;
+using MonoGame.Extended.BitmapFonts;
 using Services;
 using Shared.Modules;
 using Shared.MumbleInfo.Map;
@@ -29,6 +31,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel.Composition;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -515,7 +518,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("156736.png"),
-            () => new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            () => new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             this.TranslationService.GetTranslation("generalSettingsView-title", "General")));
 
         //this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconService = this.IconService, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
@@ -527,8 +530,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.IconService,
             this.TranslationService,
             this.SettingEventService,
-            this.EventStateService,
-            GameService.Content.DefaultFont16)
+            this.EventStateService)
         { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         areaSettingsView.AddArea += (s, e) =>
         {
@@ -552,12 +554,12 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("1466345.png"),
-            () => new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            () => new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             this.TranslationService.GetTranslation("reminderSettingsView-title", "Reminders")));
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("759448.png"),
-            () => new DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            () => new DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             this.TranslationService.GetTranslation("dynamicEventsSettingsView-title", "Dynamic Events")));
 
         this.SettingsWindow.Tabs.Add(new Tab(
@@ -567,7 +569,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("157097.png"),
-            () => new HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            () => new HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             this.TranslationService.GetTranslation("helpView-title", "Help")));
     }
 
@@ -635,6 +637,24 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     protected override AsyncTexture2D GetCornerIcon()
     {
         return this.IconService.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
+    }
+
+    private BitmapFont _defaultFont;
+
+    public override BitmapFont Font
+    {
+        get
+        {
+            if (this._defaultFont == null)
+            {
+                using var defaultFontStream = this.ContentsManager.GetFileStream("fonts\\Anonymous.ttf");
+
+                // Default size 16 is same as loaded size 18
+                this._defaultFont = defaultFontStream is not null ? FontUtils.FromTrueTypeFont(defaultFontStream.ToByteArray(), 18, 256, 256).ToBitmapFont() : GameService.Content.DefaultFont16;
+            }
+
+            return this._defaultFont;
+        }
     }
 
     protected override void Unload()

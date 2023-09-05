@@ -47,8 +47,8 @@ public class EventArea : RenderTarget2DControl
 
     private static TimeSpan _checkForNewEventsInterval = TimeSpan.FromMilliseconds(1000);
 
-    private SpriteFont _defaultFont;
-    private ConcurrentDictionary<FontSize, SpriteFont> _fonts = new ConcurrentDictionary<FontSize, SpriteFont>();
+    private BitmapFont _defaultFont;
+    private ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
     private readonly Func<string> _getAccessToken;
     private ContentsManager _contentsManager;
     private readonly Func<DateTime> _getNowAction;
@@ -137,7 +137,7 @@ public class EventArea : RenderTarget2DControl
         this._apiRootUrl = apiRootUrl;
 
         using var defaultFontStream = this._contentsManager.GetFileStream("fonts\\Menomonia.ttf") ?? throw new FileNotFoundException("Memonia Font is not included in module ref folder.");
-        this._defaultFont = FontUtils.FromTrueTypeFont(defaultFontStream.ToByteArray(), 18, 256, 256);
+        this._defaultFont = FontUtils.FromTrueTypeFont(defaultFontStream.ToByteArray(), 18, 256, 256).ToBitmapFont();
 
         if (this._worldbossService != null)
         {
@@ -488,7 +488,7 @@ public class EventArea : RenderTarget2DControl
         return this.Width - this.DrawXOffset;
     }
 
-    private SpriteFont GetFont()
+    private BitmapFont GetFont()
     {
         var font = _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize =>
         {
@@ -506,9 +506,9 @@ public class EventArea : RenderTarget2DControl
                                 var customTTFFontStream = FileUtil.ReadStream(path);
                                 var customTTFFont = FontUtils.FromTrueTypeFont(customTTFFontStream?.ToByteArray(), (int)fontSize, 256, 256);
                                 customTTFFontStream.Dispose();
-                                return customTTFFont;
+                                return customTTFFont.ToBitmapFont();
                             case ".fnt":
-                                return FontUtils.FromBMFont(path);
+                                return FontUtils.FromBMFont(path).ToBitmapFont();
                             default:
                                 return null;
                         }
@@ -516,7 +516,7 @@ public class EventArea : RenderTarget2DControl
                         var fontStream = this._contentsManager.GetFileStream($"fonts\\{this.Configuration.FontFace.Value.ToString()}.ttf");
                         var ttfFont = FontUtils.FromTrueTypeFont(fontStream?.ToByteArray(), (int)fontSize, 256, 256);
                         fontStream.Dispose();
-                        return ttfFont;
+                        return ttfFont.ToBitmapFont();
                 }
             }
             catch (Exception)
@@ -726,7 +726,7 @@ public class EventArea : RenderTarget2DControl
             {
                 if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Model.Category.TryGetTarget(out EventCategory eventCategory))
                 {
-                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).X + 5, this._drawXOffset);
+                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).Width + 5, this._drawXOffset);
                 }
             }
         }

@@ -16,7 +16,7 @@ public class CustomEventView : BaseView
     private static readonly Point PADDING = new Point(25, 25);
     private readonly BlishHudApiService _blishHudApiService;
 
-    public CustomEventView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BlishHudApiService blishHudApiService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public CustomEventView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BlishHudApiService blishHudApiService) : base(apiManager, iconService, translationService)
     {
         this._blishHudApiService = blishHudApiService;
     }

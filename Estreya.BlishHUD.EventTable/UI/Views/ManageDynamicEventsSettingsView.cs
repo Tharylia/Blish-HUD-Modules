@@ -31,7 +31,7 @@ public class ManageDynamicEventsSettingsView : BaseView
     private readonly List<Map> _maps = new List<Map>();
     private Shared.Controls.StandardWindow _editEventWindow;
 
-    public ManageDynamicEventsSettingsView(DynamicEventService dynamicEventService, Func<List<string>> getDisabledEventGuids, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public ManageDynamicEventsSettingsView(DynamicEventService dynamicEventService, Func<List<string>> getDisabledEventGuids, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._dynamicEventService = dynamicEventService;
         this._getDisabledEventGuids = getDisabledEventGuids;

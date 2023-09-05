@@ -36,6 +36,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\ModuleInvalidException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ArrayExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\EnumExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\FontExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\GW2APIExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\HttpExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\IEnumerableExtensions.cs" />
@@ -77,6 +78,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\ApiJwtPayload.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\APITokens.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BuildDirection.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\ControlType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\CornerIconClickAction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerLocation.cs" />

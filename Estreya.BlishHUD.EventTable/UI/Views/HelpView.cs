@@ -24,7 +24,7 @@ public class HelpView : BaseView
     private readonly Func<List<EventCategory>> _getEvents;
     private readonly List<string> _autocompleteAPIKeys = new List<string>();
 
-    public HelpView(Func<List<EventCategory>> getEvents, string apiUrl, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public HelpView(Func<List<EventCategory>> getEvents, string apiUrl, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._getEvents = getEvents;
         this._apiUrl = apiUrl;

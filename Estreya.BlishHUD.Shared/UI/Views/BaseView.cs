@@ -6,6 +6,7 @@ using Blish_HUD.Graphics.UI;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
 using Controls;
+using Estreya.BlishHUD.Shared.Models;
 using Extensions;
 using Gw2Sharp.WebApi.V2;
 using Humanizer;
@@ -28,14 +29,13 @@ public abstract class BaseView : View
 
     private CancellationTokenSource _messageCancellationTokenSource;
 
-    public BaseView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null)
+    public BaseView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService)
     {
         this._logger = Logger.GetLogger(this.GetType());
 
         this.APIManager = apiManager;
         this.IconService = iconService;
         this.TranslationService = translationService;
-        this.Font = font ?? GameService.Content.DefaultFont16;
     }
 
     protected int CONTROL_X_SPACING { get; set; } = 20;
@@ -44,7 +44,6 @@ public abstract class BaseView : View
     protected static List<Color> Colors { get; set; }
 
     protected Gw2ApiManager APIManager { get; }
-    protected BitmapFont Font { get; }
     public Color DefaultColor { get; set; }
 
     protected IconService IconService { get; }
@@ -110,6 +109,14 @@ public abstract class BaseView : View
 
     protected abstract void InternalBuild(Panel parent);
 
+    protected virtual Dictionary<ControlType, BitmapFont> ControlFonts { get; } = new Dictionary<ControlType, BitmapFont>()
+    {
+        { ControlType.Label, GameService.Content.DefaultFont16 },
+        { ControlType.Dropdown, GameService.Content.DefaultFont16 },
+        { ControlType.Button, GameService.Content.DefaultFont16 },
+        { ControlType.TextBox, GameService.Content.DefaultFont16 }
+    };
+
     protected void RenderEmptyLine(Panel parent, int height = 25)
     {
         new Panel
@@ -132,7 +139,7 @@ public abstract class BaseView : View
             Text = value,
             Location = location,
             Width = width,
-            Font = this.Font
+            Font = this.ControlFonts[ControlType.TextBox]
         };
 
         if (onChangeAction != null)
@@ -282,7 +289,8 @@ public abstract class BaseView : View
         {
             Parent = parent,
             Width = width,
-            Location = location
+            Location = location,
+            Font = this.ControlFonts[ControlType.Dropdown]
         };
 
         values ??= (T[])Enum.GetValues(typeof(T));
@@ -322,7 +330,8 @@ public abstract class BaseView : View
         {
             Parent = parent,
             Width = width,
-            Location = location
+            Location = location,
+            Font = this.ControlFonts[ControlType.Dropdown]
         };
 
         if (values != null)
@@ -383,7 +392,7 @@ public abstract class BaseView : View
 
     protected Label GetLabel(Panel parent, string text, Microsoft.Xna.Framework.Color? color = null, BitmapFont font = null)
     {
-        font ??= this.Font;
+        font ??= this.ControlFonts[ControlType.Label];
         return new Label
         {
             Parent = parent,
@@ -401,10 +410,11 @@ public abstract class BaseView : View
         {
             Parent = parent,
             Text = text,
-            Enabled = !disabledCallback?.Invoke() ?? true
+            Enabled = !disabledCallback?.Invoke() ?? true,
+            Font = this.ControlFonts[ControlType.Button],
         };
 
-        int measuredWidth = (int)this.Font.MeasureString(text).Width + 10;
+        int measuredWidth = (int)button.Font.MeasureString(text).Width + 10;
 
         if (button.Width < measuredWidth)
         {
@@ -464,6 +474,7 @@ public abstract class BaseView : View
         Panel panel = this.GetPanel(parent);
 
         Label titleLabel = this.GetLabel(panel, title, textColorTitle);
+        titleLabel.VerticalAlignment = VerticalAlignment.Middle;
 
         Label valueLabel = null;
 
@@ -471,6 +482,7 @@ public abstract class BaseView : View
         {
             valueLabel = this.GetLabel(panel, value, textColorValue);
             valueLabel.Left = valueXLocation ?? titleLabel.Right + this.CONTROL_X_SPACING;
+            valueLabel.VerticalAlignment = VerticalAlignment.Middle;
         }
         else
         {
@@ -572,7 +584,7 @@ public abstract class BaseView : View
         this._messageCancellationTokenSource?.Cancel();
         this._messageCancellationTokenSource = new CancellationTokenSource();
 
-        font ??= this.Font;
+        font ??= this.ControlFonts[ControlType.Label];
 
         Size2 textSize = font.MeasureString(message);
 

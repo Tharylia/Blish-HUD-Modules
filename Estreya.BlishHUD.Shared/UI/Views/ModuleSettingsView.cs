@@ -51,9 +51,11 @@ public class ModuleSettingsView : BaseView
             Text = buttonText
         };
 
-        if (this.Font != null)
+        var font = this.ControlFonts[Models.ControlType.Button];
+
+        if (font != null)
         {
-            openSettingsButton.Width = (int)this.Font.MeasureString(buttonText).Width;
+            openSettingsButton.Width = (int)font.MeasureString(buttonText).Width;
         }
 
         openSettingsButton.Location = new Point(Math.Max((parentPanel.Width / 2) - (openSettingsButton.Width / 2), 20), Math.Max((parentPanel.Height / 2) - openSettingsButton.Height, 20));
@@ -68,9 +70,9 @@ public class ModuleSettingsView : BaseView
             Text = githubIssueText
         };
 
-        if (this.Font != null)
+        if (font != null)
         {
-            createGithubIssue.Width = (int)this.Font.MeasureString(githubIssueText).Width;
+            createGithubIssue.Width = (int)font.MeasureString(githubIssueText).Width;
         }
 
         createGithubIssue.Location = new Point(Math.Max((parentPanel.Width / 2) - (createGithubIssue.Width / 2), 20), openSettingsButton.Bottom + 10);

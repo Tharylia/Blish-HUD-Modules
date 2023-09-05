@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
+namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
@@ -32,7 +32,7 @@ public class ReminderSettingsView : BaseSettingsView
         });
     }
 
-    public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._moduleSettings = moduleSettings;
         this._getEvents = getEvents;

@@ -23,7 +23,7 @@ public abstract class BaseSettingsView : BaseView
     private readonly Point CONTROL_LOCATION;
     private readonly int CONTROL_WIDTH;
 
-    protected BaseSettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    protected BaseSettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService)
     {
         this.LABEL_WIDTH = 250;
         this.CONTROL_WIDTH = 250;

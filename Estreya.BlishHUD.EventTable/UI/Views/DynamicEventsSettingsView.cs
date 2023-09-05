@@ -34,7 +34,7 @@ public class DynamicEventsSettingsView : BaseSettingsView
     private StandardWindow _manageEventsWindow;
     private StandardWindow _editEventWindow; 
 
-    public DynamicEventsSettingsView(DynamicEventService dynamicEventService, ModuleSettings moduleSettings, IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public DynamicEventsSettingsView(DynamicEventService dynamicEventService, ModuleSettings moduleSettings, IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._dynamicEventService = dynamicEventService;
         this._moduleSettings = moduleSettings;

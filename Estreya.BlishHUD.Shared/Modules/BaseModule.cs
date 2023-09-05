@@ -597,18 +597,18 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.SettingsWindow ??= WindowUtil.CreateTabbedWindow(this.ModuleSettings, this.Name, this.GetType(), Guid.Parse("6bd04be4-dc19-4914-a2c3-8160ce76818b"), this.IconService, this.GetEmblem());
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("482926.png"), () => new NewsView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.NewsService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("482926.png"), () => new NewsView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.NewsService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
 
         this.OnSettingWindowBuild(this.SettingsWindow);
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156331.png"), () => new DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donations"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156331.png"), () => new DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donations"));
 
         if (this.Debug)
         {
             this.SettingsWindow.Tabs.Add(
                 new Tab(
                     this.IconService.GetIcon("155052.png"),
-                    () => new ServiceSettingsView(this._services, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+                    () => new ServiceSettingsView(this._services, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
                     "Debug"));
         }
 

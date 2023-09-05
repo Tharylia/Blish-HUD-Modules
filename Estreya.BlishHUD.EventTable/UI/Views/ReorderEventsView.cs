@@ -23,7 +23,7 @@ public class ReorderEventsView : BaseView
     private readonly EventAreaConfiguration _areaConfiguration;
     private readonly List<string> _order;
 
-    public ReorderEventsView(List<EventCategory> allEvents, List<string> order, EventAreaConfiguration areaConfiguration, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public ReorderEventsView(List<EventCategory> allEvents, List<string> order, EventAreaConfiguration areaConfiguration, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._allEvents = allEvents;
         this._order = order;
