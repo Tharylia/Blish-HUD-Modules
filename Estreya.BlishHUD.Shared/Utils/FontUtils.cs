@@ -13,7 +13,7 @@
 
     public static class FontUtils
     {
-        public static SpriteFont FromTrueTypeFont(byte[] ttfData, int fontSize, int bitmapWidth, int bitmapHeight)
+        public static SpriteFont FromTrueTypeFont(byte[] ttfData, float fontSize, int bitmapWidth, int bitmapHeight)
         {
             TtfFontBakerResult fontBakeResult = TtfFontBaker.Bake(ttfData,
                 fontSize,
