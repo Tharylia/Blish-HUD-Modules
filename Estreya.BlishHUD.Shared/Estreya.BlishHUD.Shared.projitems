@@ -33,6 +33,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldEntity.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldPolygone.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\World\WorldSphere.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Exceptions\ModuleBackendUnavailableException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\ModuleInvalidException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ArrayExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\EnumExtensions.cs" />

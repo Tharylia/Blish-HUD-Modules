@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -63,6 +63,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     }
 
     public override string UrlModuleName => "event-table";
+
+    protected override bool FailIfBackendDown => true;
 
     /// <summary>
     ///     Gets the current time in utc.

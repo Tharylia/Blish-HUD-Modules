@@ -88,6 +88,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected abstract string API_VERSION_NO { get; }
 
+    protected virtual bool FailIfBackendDown { get; }
+
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
 
     private ModuleSettingsView _defaultSettingView;
@@ -240,28 +242,58 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         // This function will fail if the backend is down. No catch needed as the module is useless anyway in that case.
 
-        IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "validate");
-        request.AllowAnyHttpStatus();
+        IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "validate").AllowAnyHttpStatus();
 
         ModuleValidationRequest data = new ModuleValidationRequest { Version = this.Version };
 
-        HttpResponseMessage response = await request.PostJsonAsync(data);
+        HttpResponseMessage response = null;
+        try
+        {
+            response = await request.PostJsonAsync(data);
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Debug(ex, "Failed to validate module.");
+            if (this.FailIfBackendDown)
+            {
+                throw new ModuleBackendUnavailableException();
+            }
+        }
 
-        if (response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound)
+        if (response is null || response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound)
         {
             return;
         }
 
-        ModuleValidationResponse validationResponse = await response.GetJsonAsync<ModuleValidationResponse>();
+        if (response.StatusCode != HttpStatusCode.Forbidden)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            throw new ModuleBackendUnavailableException($"Module validation failed with unexpected status code {response.StatusCode}: {content}");
+        }
+
+        ModuleValidationResponse validationResponse;
+        try
+        {
+            validationResponse = await response.GetJsonAsync<ModuleValidationResponse>();
+        }
+        catch (Exception)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            throw new ModuleBackendUnavailableException($"Could not read module validation response: {content}");
+        }
 
         if (showScreenNotification)
         {
             List<string> messages = new List<string>
             {
                 $"[{this.Name}]",
-                "The current module version is invalid!",
-                validationResponse.Message ?? response.ReasonPhrase ?? "Unknown"
+                "The current module version is invalid!"
             };
+
+            if (!string.IsNullOrWhiteSpace(validationResponse.Message) || !string.IsNullOrWhiteSpace(response.ReasonPhrase))
+            {
+                messages.Add(validationResponse.Message ?? response.ReasonPhrase);
+            }
 
             ScreenNotification.ShowNotification(messages.ToArray(), ScreenNotification.NotificationType.Error, duration: 10);
         }

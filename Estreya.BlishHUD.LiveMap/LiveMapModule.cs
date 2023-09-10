@@ -59,6 +59,8 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
 
     protected override string API_VERSION_NO => "1";
 
+    protected override bool FailIfBackendDown => true;
+
     protected override void Initialize()
     {
         base.Initialize();
