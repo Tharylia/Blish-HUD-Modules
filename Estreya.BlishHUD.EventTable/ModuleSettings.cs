@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -42,6 +42,8 @@ public class ModuleSettings : BaseModuleSettings
 
     public SettingEntry<LeftClickAction> ReminderLeftClickAction { get; private set; }
     public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
+
+    public SettingEntry<ReminderStackDirection> ReminderStackDirection { get; set; }
 
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
@@ -101,6 +103,8 @@ public class ModuleSettings : BaseModuleSettings
         this.ReminderLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderLeftClickAction), LeftClickAction.CopyWaypoint, () => "Reminder Left Click Action", () => "Defines the action to execute on a left click.");
 
         this.AcceptWaypointPrompt = this.GlobalSettings.DefineSetting(nameof(this.AcceptWaypointPrompt), true, () => "Accept Waypoint Prompt", () => "Defines if the waypoint prompt should be auto accepted");
+
+        this.ReminderStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderStackDirection), Models.ReminderStackDirection.Down, () => "Reminder Stack Direction", () => "Defines the direction in which reminders stack.");
 
         this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 

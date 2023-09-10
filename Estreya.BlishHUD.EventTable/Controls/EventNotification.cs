@@ -3,6 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
+using Estreya.BlishHUD.EventTable.Models;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
@@ -34,13 +35,15 @@ public class EventNotification : RenderTarget2DControl
     private readonly bool _captureMouseClicks;
     private readonly int _x;
     private readonly int _y;
+    private readonly ReminderStackDirection _stackDirection;
 
-    public EventNotification(Models.Event ev, string message, int x, int y, IconService iconService, bool captureMouseClicks = false)
+    public EventNotification(Models.Event ev, string message, int x, int y, ReminderStackDirection stackDirection, IconService iconService, bool captureMouseClicks = false)
     {
         this.Model = ev;
         this._message = message;
         this._x = x;
         this._y = y;
+        this._stackDirection = stackDirection;
         this._iconService = iconService;
         this._captureMouseClicks = captureMouseClicks;
         this._eventIcon = this._iconService?.GetIcon(ev.Icon);
@@ -56,7 +59,15 @@ public class EventNotification : RenderTarget2DControl
 
     public void Show(TimeSpan duration)
     {
-        this.Location = new Point(this._x, _lastShown != null ? _lastShown.Bottom + 15 : this._y);
+        this.Location = this._stackDirection switch
+        {
+            ReminderStackDirection.Top => new Point(_lastShown != null ? _lastShown.Left : this._x, _lastShown != null ? _lastShown.Top - this.Height - 15 : this._y),
+            ReminderStackDirection.Down => new Point(_lastShown != null ? _lastShown.Left : this._x, _lastShown != null ? _lastShown.Bottom + 15 : this._y),
+            ReminderStackDirection.Left => new Point(_lastShown != null ? _lastShown.Left - this.Width - 15 : this._x, _lastShown != null ? _lastShown.Top : this._y),
+            ReminderStackDirection.Right => new Point(_lastShown != null ? _lastShown.Right + 15 : this._x, _lastShown != null ? _lastShown.Top : this._y),
+            _ => throw new ArgumentException($"Invalid stack direction: {this._stackDirection}"),
+        };
+
         base.Show();
         _lastShown = this;
 
@@ -64,10 +75,7 @@ public class EventNotification : RenderTarget2DControl
                        .Repeat(1)
                        .RepeatDelay((float)duration.TotalSeconds)
                        .Reflect()
-                       .OnComplete(() =>
-                       {
-                           this.Hide();
-                       });
+                       .OnComplete(this.Hide);
     }
 
     public new void Hide()
@@ -89,7 +97,7 @@ public class EventNotification : RenderTarget2DControl
     {
         spriteBatch.Draw(ContentService.Textures.Pixel, _fullRect, Color.Black * this.BackgroundOpacity);
 
-        if (this._eventIcon != null && this._eventIcon.HasSwapped)
+        if (this._eventIcon != null)
         {
             spriteBatch.Draw(this._eventIcon, _iconRect, Color.White);
         }

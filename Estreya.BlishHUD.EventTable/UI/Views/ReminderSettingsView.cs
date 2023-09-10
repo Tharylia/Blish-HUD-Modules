@@ -46,6 +46,7 @@ public class ReminderSettingsView : BaseSettingsView
         this.RenderIntSetting(parent, this._moduleSettings.ReminderPosition.Y);
         this.RenderFloatSetting(parent, this._moduleSettings.ReminderDuration);
         this.RenderFloatSetting(parent, this._moduleSettings.ReminderOpacity);
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderStackDirection);
 
         this.RenderEmptyLine(parent);
 
@@ -90,7 +91,12 @@ public class ReminderSettingsView : BaseSettingsView
             {
                 Name = "Test Event",
                 Icon = "textures/maintenance.png"
-            }, "Test description!", this._moduleSettings.ReminderPosition.X.Value, this._moduleSettings.ReminderPosition.Y.Value, this.IconService) { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
+            }, "Test description!",
+            this._moduleSettings.ReminderPosition.X.Value,
+            this._moduleSettings.ReminderPosition.Y.Value,
+            this._moduleSettings.ReminderStackDirection.Value,
+            this.IconService)
+            { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
 
             reminder.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
         });

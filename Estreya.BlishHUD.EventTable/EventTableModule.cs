@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -429,6 +429,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             $"{startsInTranslation} {e.Humanize(2, minUnit: TimeUnit.Second)}!",
             this.ModuleSettings.ReminderPosition.X.Value,
             this.ModuleSettings.ReminderPosition.Y.Value, 
+            this.ModuleSettings.ReminderStackDirection.Value,
             this.IconService,
             this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
         { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
