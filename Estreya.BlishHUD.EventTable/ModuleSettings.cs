@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -287,7 +287,13 @@ public class ModuleSettings : BaseModuleSettings
         SettingEntry<string> eventAbsoluteTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-eventAbsoluteTimeFormatString", "HH\\:mm", () => "Absolute Time Format String", () => "Defines the format strings for absolute time.");
 
         var showTopTimeline = this.DrawerSettings.DefineSetting($"{name}-showTopTimeline", false, () => "Show Top Timeline", () => "Defines whether the top timeline is visible.");
-        var topTimeLineTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-topTimeLineTimeFormatString", "HH\\:mm", () => "Top Timeline Time Format String", () => "Defines the format strings for absolute time.");
+        var topTimelineTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-topTimelineTimeFormatString", "HH\\:mm", () => "Top Timeline Time Format String", () => "Defines the format strings for absolute time.");
+        var topTimelineBackgroundColor = this.DrawerSettings.DefineSetting($"{name}-topTimelineBackgroundColor", this.DefaultGW2Color, () => "Top Timeline Background Color", () => "Defines the background color of the top timeline.");
+        var topTimelineLineColor = this.DrawerSettings.DefineSetting($"{name}-topTimelineLineColor", this.DefaultGW2Color, () => "Top Timeline Line Color", () => "Defines the line color of the top timeline.");
+        var topTimelineTimeColor = this.DrawerSettings.DefineSetting($"{name}-topTimelineTimeColor", this.DefaultGW2Color, () => "Top Timeline Time Color", () => "Defines the time color of the top timeline.");
+        var topTimelineBackgroundOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineBackgroundOpacity", 1f, () => "Top Timeline Background Opacity", () => "Defines the background color opacity of the top timeline.");
+        var topTimelineLineOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineLineOpacity", 1f, () => "Top Timeline Line Opacity", () => "Defines the line color opacity of the top timeline.");
+        var topTimelineTimeOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineTimeOpacity", 1f, () => "Top Timeline Time Opacity", () => "Defines the time color opacity of the top timeline.");
 
         return new EventAreaConfiguration
         {
@@ -348,7 +354,13 @@ public class ModuleSettings : BaseModuleSettings
             EventTimespanMinutesFormatString = eventTimespanMinutesFormatString,
             EventAbsoluteTimeFormatString = eventAbsoluteTimeFormatString,
             ShowTopTimeline = showTopTimeline,
-            TopTimelineTimeFormatString = topTimeLineTimeFormatString
+            TopTimelineTimeFormatString = topTimelineTimeFormatString,
+            TopTimelineBackgroundColor = topTimelineBackgroundColor,
+            TopTimelineLineColor = topTimelineLineColor,
+            TopTimelineTimeColor = topTimelineTimeColor,
+            TopTimelineBackgroundOpacity = topTimelineBackgroundOpacity,
+            TopTimelineLineOpacity = topTimelineLineOpacity,
+            TopTimelineTimeOpacity = topTimelineTimeOpacity,
         };
     }
 
@@ -416,6 +428,12 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-eventAbsoluteTimeFormatString");
         this.DrawerSettings.UndefineSetting($"{name}-showTopTimeline");
         this.DrawerSettings.UndefineSetting($"{name}-topTimeLineTimeFormatString");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineBackgroundColor");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineLineColor");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineTimeColor");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineBackgroundOpacity");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineLineOpacity");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineTimeOpacity");
     }
 
     public override void UpdateLocalization(TranslationService translationService)

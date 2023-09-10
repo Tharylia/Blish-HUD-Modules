@@ -70,6 +70,16 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<bool> ShowTopTimeline { get; set; }
     public SettingEntry<string> TopTimelineTimeFormatString { get; set; }
 
+    public SettingEntry<Color> TopTimelineBackgroundColor { get; set; }
+
+    public SettingEntry<Color> TopTimelineLineColor { get; set; }
+
+    public SettingEntry<Color> TopTimelineTimeColor { get; set; }
+
+    public SettingEntry<float> TopTimelineBackgroundOpacity { get; set; }
+    public SettingEntry<float> TopTimelineLineOpacity { get; set; }
+    public SettingEntry<float> TopTimelineTimeOpacity { get; set; }
+
     public void CopyTo(EventAreaConfiguration other)
     {
         base.CopyTo(other);
@@ -119,5 +129,11 @@ public class EventAreaConfiguration : DrawerConfiguration
         other.EventTimespanMinutesFormatString.Value = this.EventTimespanMinutesFormatString.Value;
         other.ShowTopTimeline.Value = this.ShowTopTimeline.Value;
         other.TopTimelineTimeFormatString.Value = this.TopTimelineTimeFormatString.Value;
+        other.TopTimelineBackgroundColor.Value = this.TopTimelineBackgroundColor.Value;
+        other.TopTimelineLineColor.Value = this.TopTimelineLineColor.Value;
+        other.TopTimelineTimeColor.Value = this.TopTimelineTimeColor.Value;
+        other.TopTimelineBackgroundOpacity.Value = this.TopTimelineBackgroundOpacity.Value;
+        other.TopTimelineLineOpacity.Value = this.TopTimelineLineOpacity.Value;
+        other.TopTimelineTimeOpacity.Value = this.TopTimelineTimeOpacity.Value;
     }
 }

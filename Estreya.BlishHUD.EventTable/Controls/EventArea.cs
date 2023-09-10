@@ -495,7 +495,6 @@ public class EventArea : RenderTarget2DControl
             //GameService.Content.GetFont(FontFace.Menomonia, fontSize, ContentService.FontStyle.Regular)
             try
             {
-
                 switch (this.Configuration.FontFace.Value)
                 {
                     case Shared.Models.FontFace.Custom:
@@ -1141,7 +1140,11 @@ public class EventArea : RenderTarget2DControl
 
         var rect = new RectangleF(this.DrawXOffset, 0, width, 30);
 
-        spriteBatch.DrawRectangle(Textures.Pixel, rect, Microsoft.Xna.Framework.Color.LightGray);
+        var backgroundColor = (this.Configuration.TopTimelineBackgroundColor.Value.Id == 1 
+            ? Microsoft.Xna.Framework.Color.Transparent 
+            : this.Configuration.TopTimelineBackgroundColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineBackgroundOpacity.Value;
+
+        spriteBatch.DrawRectangle(Textures.Pixel, rect, backgroundColor);
 
         var timeInterval = 15;
 
@@ -1149,15 +1152,21 @@ public class EventArea : RenderTarget2DControl
 
         var timeStepLineHeight = rect.Height;// this.Height;
 
+        var lineColor = (this.Configuration.TopTimelineLineColor.Value.Id == 1 
+            ? Microsoft.Xna.Framework.Color.Black 
+            : this.Configuration.TopTimelineLineColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineLineOpacity.Value;
+        var timeColor = (this.Configuration.TopTimelineTimeColor.Value.Id == 1 
+            ? Microsoft.Xna.Framework.Color.Red 
+            : this.Configuration.TopTimelineTimeColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineTimeOpacity.Value;
         for (int i = 0; i < timeSteps; i++)
         {
             var x = ((float)this.PixelPerMinute * timeInterval * i) + this.DrawXOffset;
             var timeStepRect = new RectangleF(x, 0, 2, timeStepLineHeight);
             var time = times.Min.AddMinutes(timeInterval * i);
 
-            spriteBatch.DrawLine(Textures.Pixel, timeStepRect, Microsoft.Xna.Framework.Color.DarkGreen);
+            spriteBatch.DrawLine(Textures.Pixel, timeStepRect, lineColor);
 
-            spriteBatch.DrawString(time.ToString(this.Configuration.TopTimelineTimeFormatString.Value), this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), Microsoft.Xna.Framework.Color.Red);
+            spriteBatch.DrawString(time.ToString(this.Configuration.TopTimelineTimeFormatString.Value), this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), timeColor);
         }
 
         this._drawYOffset = (int)rect.Height;
