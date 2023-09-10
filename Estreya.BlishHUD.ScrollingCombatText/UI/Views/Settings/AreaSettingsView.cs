@@ -16,7 +16,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
-using Dropdown = Shared.Controls.Dropdown;
 using Menu = Shared.Controls.Menu;
 
 public class AreaSettingsView : BaseSettingsView
@@ -29,7 +28,7 @@ public class AreaSettingsView : BaseSettingsView
     private Panel _areaPanel;
     private readonly Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
 
-    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public AreaSettingsView(Func<IEnumerable<ScrollingTextAreaConfiguration>> areaConfiguration, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._areaConfigurationFunc = areaConfiguration;
     }
@@ -498,7 +497,7 @@ public class AreaSettingsView : BaseSettingsView
             changedAction?.Invoke();
         }
 
-        Dropdown formatRuleTextSizeSelect = this.RenderDropdown(
+        Dropdown<string> formatRuleTextSizeSelect = this.RenderDropdown(
             parent,
             new Point(formatRuleText.Left, formatRuleTextSizeSelectLabel.Top),
             bounds.Width - formatRuleText.Left,
