@@ -20,16 +20,21 @@ public abstract class BaseSettingsView : BaseView
 {
     private static readonly Logger Logger = Logger.GetLogger<BaseSettingsView>();
     private readonly SettingEventService _settingEventService;
-    private readonly Point CONTROL_LOCATION;
-    private readonly int CONTROL_WIDTH;
+    private Point CONTROL_LOCATION;
+    protected int CONTROL_WIDTH;
 
     protected BaseSettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService)
     {
         this.LABEL_WIDTH = 250;
         this.CONTROL_WIDTH = 250;
 
-        this.CONTROL_LOCATION = new Point(this.LABEL_WIDTH + 20, 0);
+        this.UpdateControlLocation();
         this._settingEventService = settingEventService;
+    }
+
+    protected void UpdateControlLocation()
+    {
+        this.CONTROL_LOCATION = new Point(this.LABEL_WIDTH + 20, 0);
     }
 
     protected sealed override void InternalBuild(Panel parent)
