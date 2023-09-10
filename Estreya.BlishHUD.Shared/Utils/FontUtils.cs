@@ -3,12 +3,17 @@
     using Blish_HUD;
     using Microsoft.Xna.Framework;
     using Microsoft.Xna.Framework.Graphics;
+    using MonoGame.Extended.BitmapFonts;
+    using MonoGame.Extended.TextureAtlases;
     using SpriteFontPlus;
+    using System;
+    using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
 
     public static class FontUtils
     {
-        public static SpriteFont FromTrueTypeFont(byte[] ttfData, int fontSize, int bitmapWidth, int bitmapHeight)
+        public static SpriteFont FromTrueTypeFont(byte[] ttfData, float fontSize, int bitmapWidth, int bitmapHeight)
         {
             TtfFontBakerResult fontBakeResult = TtfFontBaker.Bake(ttfData,
                 fontSize,

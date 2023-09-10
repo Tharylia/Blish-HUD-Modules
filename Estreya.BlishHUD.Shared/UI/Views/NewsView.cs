@@ -29,7 +29,7 @@ public class NewsView : BaseView
     private Texture2D _discordLogo;
     private NewsService _newsService;
 
-    public NewsView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, NewsService newsService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public NewsView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, NewsService newsService) : base(apiManager, iconService, translationService)
     {
         this._flurlClient = flurlClient;
         this._newsService = newsService;

@@ -22,7 +22,7 @@ public class Event : IDisposable
     private readonly Func<bool> _getDrawBorders;
     private readonly Func<bool> _getDrawCrossout;
     private readonly Func<bool> _getDrawShadowAction;
-    private readonly Func<SpriteFont> _getFontAction;
+    private readonly Func<BitmapFont> _getFontAction;
     private readonly Func<DateTime> _getNowAction;
     private readonly Func<Color> _getShadowColor;
     private readonly Func<string> _getAbsoluteTimeFormatStrings;
@@ -36,7 +36,7 @@ public class Event : IDisposable
 
     public Event(Models.Event ev, IconService iconService, TranslationService translationService,
         Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
-        Func<SpriteFont> getFontAction,
+        Func<BitmapFont> getFontAction,
         Func<bool> getDrawBorders,
         Func<bool> getDrawCrossout,
         Func<Color> getTextColor,
@@ -141,7 +141,7 @@ public class Event : IDisposable
 
     public void Render(SpriteBatch spriteBatch, RectangleF bounds)
     {
-        SpriteFont font = this._getFontAction();
+        BitmapFont font = this._getFontAction();
 
         this.DrawBackground(spriteBatch, bounds);
         float nameWidth = this.Model.Filler ? 0 : this.DrawName(spriteBatch, bounds, font);
@@ -171,7 +171,7 @@ public class Event : IDisposable
         }
     }
 
-    private float DrawName(SpriteBatch spriteBatch, RectangleF bounds, SpriteFont font)
+    private float DrawName(SpriteBatch spriteBatch, RectangleF bounds, BitmapFont font)
     {
         float xOffset = 5;
         float maxWidth = bounds.Width - (xOffset * 2);
@@ -179,7 +179,7 @@ public class Event : IDisposable
         string text = this.Model.Name;
         do
         {
-            nameWidth = (float)Math.Ceiling(font.MeasureString(text).X);
+            nameWidth = (float)Math.Ceiling(font.MeasureString(text).Width);
 
             if (string.IsNullOrWhiteSpace(text))
             {
@@ -199,7 +199,7 @@ public class Event : IDisposable
         return nameRect.Width;
     }
 
-    private void DrawRemainingTime(SpriteBatch spriteBatch, RectangleF bounds, SpriteFont font, float nameWidth)
+    private void DrawRemainingTime(SpriteBatch spriteBatch, RectangleF bounds, BitmapFont font, float nameWidth)
     {
         if (nameWidth > bounds.Width)
         {
@@ -213,7 +213,7 @@ public class Event : IDisposable
         }
 
         string remainingTimeString = this.FormatTimespan(remainingTime);
-        float timeWidth = (float)Math.Ceiling(font.MeasureString(remainingTimeString).X);
+        float timeWidth = (float)Math.Ceiling(font.MeasureString(remainingTimeString).Width);
         float maxWidth = bounds.Width - nameWidth;
         float centerX = (maxWidth / 2) - (timeWidth / 2);
         if (centerX < nameWidth)

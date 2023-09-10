@@ -27,7 +27,7 @@ public class ManageEventsView : BaseView
     private readonly ModuleSettings _moduleSettings;
     private readonly List<EventCategory> allEvents;
 
-    public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this.allEvents = allEvents;
         this._additionalData = additionalData ?? new Dictionary<string, object>();

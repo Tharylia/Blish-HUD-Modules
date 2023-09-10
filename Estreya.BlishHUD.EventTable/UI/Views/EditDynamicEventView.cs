@@ -32,7 +32,7 @@ public class EditDynamicEventView : BaseView
     public event AsyncEventHandler<DynamicEvent> RemoveClicked;
     public event EventHandler CloseRequested;
 
-    public EditDynamicEventView(DynamicEvent dynamicEvent, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public EditDynamicEventView(DynamicEvent dynamicEvent, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._dynamicEvent = dynamicEvent;
         this._isRemoveVisibile = this._dynamicEvent is not null && this._dynamicEvent.IsCustom;

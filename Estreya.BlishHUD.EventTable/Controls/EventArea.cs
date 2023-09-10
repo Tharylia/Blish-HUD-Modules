@@ -47,8 +47,8 @@ public class EventArea : RenderTarget2DControl
 
     private static TimeSpan _checkForNewEventsInterval = TimeSpan.FromMilliseconds(1000);
 
-    private SpriteFont _defaultFont;
-    private ConcurrentDictionary<FontSize, SpriteFont> _fonts = new ConcurrentDictionary<FontSize, SpriteFont>();
+    private BitmapFont _defaultFont;
+    private ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
     private readonly Func<string> _getAccessToken;
     private ContentsManager _contentsManager;
     private readonly Func<DateTime> _getNowAction;
@@ -137,7 +137,7 @@ public class EventArea : RenderTarget2DControl
         this._apiRootUrl = apiRootUrl;
 
         using var defaultFontStream = this._contentsManager.GetFileStream("fonts\\Menomonia.ttf") ?? throw new FileNotFoundException("Memonia Font is not included in module ref folder.");
-        this._defaultFont = FontUtils.FromTrueTypeFont(defaultFontStream.ToByteArray(), 18, 256, 256);
+        this._defaultFont = FontUtils.FromTrueTypeFont(defaultFontStream.ToByteArray(), 18, 256, 256).ToBitmapFont();
 
         if (this._worldbossService != null)
         {
@@ -488,14 +488,13 @@ public class EventArea : RenderTarget2DControl
         return this.Width - this.DrawXOffset;
     }
 
-    private SpriteFont GetFont()
+    private BitmapFont GetFont()
     {
         var font = _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize =>
         {
             //GameService.Content.GetFont(FontFace.Menomonia, fontSize, ContentService.FontStyle.Regular)
             try
             {
-
                 switch (this.Configuration.FontFace.Value)
                 {
                     case Shared.Models.FontFace.Custom:
@@ -506,9 +505,9 @@ public class EventArea : RenderTarget2DControl
                                 var customTTFFontStream = FileUtil.ReadStream(path);
                                 var customTTFFont = FontUtils.FromTrueTypeFont(customTTFFontStream?.ToByteArray(), (int)fontSize, 256, 256);
                                 customTTFFontStream.Dispose();
-                                return customTTFFont;
+                                return customTTFFont.ToBitmapFont();
                             case ".fnt":
-                                return FontUtils.FromBMFont(path);
+                                return FontUtils.FromBMFont(path).ToBitmapFont();
                             default:
                                 return null;
                         }
@@ -516,7 +515,7 @@ public class EventArea : RenderTarget2DControl
                         var fontStream = this._contentsManager.GetFileStream($"fonts\\{this.Configuration.FontFace.Value.ToString()}.ttf");
                         var ttfFont = FontUtils.FromTrueTypeFont(fontStream?.ToByteArray(), (int)fontSize, 256, 256);
                         fontStream.Dispose();
-                        return ttfFont;
+                        return ttfFont.ToBitmapFont();
                 }
             }
             catch (Exception)
@@ -726,7 +725,7 @@ public class EventArea : RenderTarget2DControl
             {
                 if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Model.Category.TryGetTarget(out EventCategory eventCategory))
                 {
-                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).X + 5, this._drawXOffset);
+                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).Width + 5, this._drawXOffset);
                 }
             }
         }
@@ -1141,7 +1140,11 @@ public class EventArea : RenderTarget2DControl
 
         var rect = new RectangleF(this.DrawXOffset, 0, width, 30);
 
-        spriteBatch.DrawRectangle(Textures.Pixel, rect, Microsoft.Xna.Framework.Color.LightGray);
+        var backgroundColor = (this.Configuration.TopTimelineBackgroundColor.Value.Id == 1 
+            ? Microsoft.Xna.Framework.Color.Transparent 
+            : this.Configuration.TopTimelineBackgroundColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineBackgroundOpacity.Value;
+
+        spriteBatch.DrawRectangle(Textures.Pixel, rect, backgroundColor);
 
         var timeInterval = 15;
 
@@ -1149,15 +1152,21 @@ public class EventArea : RenderTarget2DControl
 
         var timeStepLineHeight = rect.Height;// this.Height;
 
+        var lineColor = (this.Configuration.TopTimelineLineColor.Value.Id == 1 
+            ? Microsoft.Xna.Framework.Color.Black 
+            : this.Configuration.TopTimelineLineColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineLineOpacity.Value;
+        var timeColor = (this.Configuration.TopTimelineTimeColor.Value.Id == 1 
+            ? Microsoft.Xna.Framework.Color.Red 
+            : this.Configuration.TopTimelineTimeColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineTimeOpacity.Value;
         for (int i = 0; i < timeSteps; i++)
         {
             var x = ((float)this.PixelPerMinute * timeInterval * i) + this.DrawXOffset;
             var timeStepRect = new RectangleF(x, 0, 2, timeStepLineHeight);
             var time = times.Min.AddMinutes(timeInterval * i);
 
-            spriteBatch.DrawLine(Textures.Pixel, timeStepRect, Microsoft.Xna.Framework.Color.DarkGreen);
+            spriteBatch.DrawLine(Textures.Pixel, timeStepRect, lineColor);
 
-            spriteBatch.DrawString(time.ToString(this.Configuration.TopTimelineTimeFormatString.Value), this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), Microsoft.Xna.Framework.Color.Red);
+            spriteBatch.DrawString(time.ToString(this.Configuration.TopTimelineTimeFormatString.Value), this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), timeColor);
         }
 
         this._drawYOffset = (int)rect.Height;

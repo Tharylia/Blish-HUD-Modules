@@ -57,6 +57,8 @@ public class LookingForGroupModule : BaseModule<LookingForGroupModule, ModuleSet
 
     protected override string API_VERSION_NO => "1";
 
+    protected override bool FailIfBackendDown => true;
+
     protected override void Initialize()
     {
         base.Initialize();

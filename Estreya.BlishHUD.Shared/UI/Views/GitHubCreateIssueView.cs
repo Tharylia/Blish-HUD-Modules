@@ -16,12 +16,12 @@ public class GitHubCreateIssueView : BaseView
     private readonly string _moduleName;
     private readonly string _title;
 
-    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(null, iconService, translationService, font)
+    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService) : base(null, iconService, translationService)
     {
         this._moduleName = moduleName;
     }
 
-    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, BitmapFont font = null, string title = null, string message = null) : this(moduleName, iconService, translationService, font)
+    public GitHubCreateIssueView(string moduleName, IconService iconService, TranslationService translationService, string title = null, string message = null) : this(moduleName, iconService, translationService)
     {
         this._title = title;
         this._message = message;

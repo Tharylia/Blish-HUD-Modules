@@ -24,7 +24,7 @@ public class DonationView : BaseView
     private readonly IFlurlClient _flurlClient;
     private Texture2D _kofiLogo;
 
-    public DonationView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public DonationView(IFlurlClient flurlClient, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._flurlClient = flurlClient;
     }

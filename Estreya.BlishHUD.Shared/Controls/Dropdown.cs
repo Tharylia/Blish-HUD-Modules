@@ -5,6 +5,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Input;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using MonoGame.Extended.BitmapFonts;
 using MonoGame.Extended.TextureAtlases;
 using System;
 using System.Collections.ObjectModel;
@@ -76,6 +77,8 @@ public class Dropdown<T> : Control
 
     public int ItemHeight { get; set; } = -1;
 
+    public BitmapFont Font { get; set; } = GameService.Content.DefaultFont14;
+
     /// <summary>
     ///     If the Dropdown box items are currently being shown, they are hidden.
     /// </summary>
@@ -140,7 +143,7 @@ public class Dropdown<T> : Control
 
         // Draw text
         spriteBatch.DrawStringOnCtrl(this, this.SelectedItem?.ToString(),
-            Content.DefaultFont14,
+            this.Font,
             new Rectangle(5, 0, this._size.X - 10 - _textureArrow.Width, this._size.Y),
             this.Enabled
                 ? Color.FromNonPremultiplied(239, 240, 239, 255)
@@ -182,7 +185,8 @@ public class Dropdown<T> : Control
                 {
                     Parent = this,
                     Height = this._assocDropdown.ItemHeight == -1 ? this._assocDropdown.Height : this._assocDropdown.ItemHeight,
-                    Width = this._assocDropdown.Width
+                    Width = this._assocDropdown.Width,
+                    Font = this._assocDropdown.Font,
                 };
 
                 dropdownPanelItem.Click += this.DropdownPanelItem_Click;
@@ -280,6 +284,8 @@ public class Dropdown<T> : Control
 
         private double _hoverTime;
 
+        public BitmapFont Font { get; set; } = GameService.Content.DefaultFont14;
+
         public DropdownPanelItem(T value)
         {
             this.Value = value;
@@ -321,7 +327,7 @@ public class Dropdown<T> : Control
                     new Color(45, 37, 25, 255));
 
                 spriteBatch.DrawStringOnCtrl(this, this.Value?.ToString(),
-                    Content.DefaultFont14,
+                    this.Font,
                     new Rectangle(8,
                         0,
                         bounds.Width - 13 - _textureArrow.Width,
@@ -331,7 +337,7 @@ public class Dropdown<T> : Control
             else
             {
                 spriteBatch.DrawStringOnCtrl(this, this.Value?.ToString(),
-                    Content.DefaultFont14,
+                    this.Font,
                     new Rectangle(8,
                         0,
                         bounds.Width - 13 - _textureArrow.Width,

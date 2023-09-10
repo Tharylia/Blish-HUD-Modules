@@ -3,6 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Extensions;
 using Microsoft.Xna.Framework;
 using Models;
 using MonoGame.Extended.BitmapFonts;
@@ -43,7 +44,7 @@ public class AreaSettingsView : BaseSettingsView
     private Dictionary<string, MenuItem> _menuItems;
     private StandardWindow _reorderEventsWindow;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
@@ -512,6 +513,15 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel);
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.EnableColorGradients);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderColorSetting(groupPanel, areaConfiguration.TopTimelineBackgroundColor);
+        this.RenderColorSetting(groupPanel, areaConfiguration.TopTimelineLineColor);
+        this.RenderColorSetting(groupPanel, areaConfiguration.TopTimelineTimeColor);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.TopTimelineBackgroundOpacity);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.TopTimelineLineOpacity);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.TopTimelineTimeOpacity);
 
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }

@@ -352,7 +352,7 @@ public class SkillService : FilesystemAPIService<Skill>
 
     public bool AddMissingSkill(int id, string name)
     {
-        if (this._missingSkillsFromAPIReportedByArcDPS.Any(m => m.ID == id))
+        if (this._missingSkillsFromAPIReportedByArcDPS is null || this._missingSkillsFromAPIReportedByArcDPS.Any(m => m.ID == id))
         {
             return false;
         }
@@ -382,8 +382,8 @@ public class SkillService : FilesystemAPIService<Skill>
 
     public void RemoveMissingSkill(int id)
     {
-        List<MissingArcDPSSkill> items = this._missingSkillsFromAPIReportedByArcDPS.Where(m => m.ID == id).ToList();
-        if (!items.Any())
+        List<MissingArcDPSSkill> items = this._missingSkillsFromAPIReportedByArcDPS?.Where(m => m.ID == id).ToList();
+        if (items is null || !items.Any())
         {
             return;
         }

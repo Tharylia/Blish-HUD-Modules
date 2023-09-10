@@ -19,7 +19,7 @@ public class ManageReminderTimesView : BaseView
     private readonly bool _showKeepCustomizedQuestion;
     private readonly List<TimeSpan> _reminderTimes = new List<TimeSpan>();
 
-    public ManageReminderTimesView(Event ev, bool showKeepCustomizedQuestion, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public ManageReminderTimesView(Event ev, bool showKeepCustomizedQuestion, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._ev = ev;
         this._showKeepCustomizedQuestion = showKeepCustomizedQuestion;

@@ -88,6 +88,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected abstract string API_VERSION_NO { get; }
 
+    protected virtual bool FailIfBackendDown { get; }
+
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
 
     private ModuleSettingsView _defaultSettingView;
@@ -240,28 +242,58 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         // This function will fail if the backend is down. No catch needed as the module is useless anyway in that case.
 
-        IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "validate");
-        request.AllowAnyHttpStatus();
+        IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "validate").AllowAnyHttpStatus();
 
         ModuleValidationRequest data = new ModuleValidationRequest { Version = this.Version };
 
-        HttpResponseMessage response = await request.PostJsonAsync(data);
+        HttpResponseMessage response = null;
+        try
+        {
+            response = await request.PostJsonAsync(data);
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Debug(ex, "Failed to validate module.");
+            if (this.FailIfBackendDown)
+            {
+                throw new ModuleBackendUnavailableException();
+            }
+        }
 
-        if (response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound)
+        if (response is null || response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound)
         {
             return;
         }
 
-        ModuleValidationResponse validationResponse = await response.GetJsonAsync<ModuleValidationResponse>();
+        if (response.StatusCode != HttpStatusCode.Forbidden)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            throw new ModuleBackendUnavailableException($"Module validation failed with unexpected status code {response.StatusCode}: {content}");
+        }
+
+        ModuleValidationResponse validationResponse;
+        try
+        {
+            validationResponse = await response.GetJsonAsync<ModuleValidationResponse>();
+        }
+        catch (Exception)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            throw new ModuleBackendUnavailableException($"Could not read module validation response: {content}");
+        }
 
         if (showScreenNotification)
         {
             List<string> messages = new List<string>
             {
                 $"[{this.Name}]",
-                "The current module version is invalid!",
-                validationResponse.Message ?? response.ReasonPhrase ?? "Unknown"
+                "The current module version is invalid!"
             };
+
+            if (!string.IsNullOrWhiteSpace(validationResponse.Message) || !string.IsNullOrWhiteSpace(response.ReasonPhrase))
+            {
+                messages.Add(validationResponse.Message ?? response.ReasonPhrase);
+            }
 
             ScreenNotification.ShowNotification(messages.ToArray(), ScreenNotification.NotificationType.Error, duration: 10);
         }
@@ -597,18 +629,18 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.SettingsWindow ??= WindowUtil.CreateTabbedWindow(this.ModuleSettings, this.Name, this.GetType(), Guid.Parse("6bd04be4-dc19-4914-a2c3-8160ce76818b"), this.IconService, this.GetEmblem());
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("482926.png"), () => new NewsView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.NewsService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("482926.png"), () => new NewsView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.NewsService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "News"));
 
         this.OnSettingWindowBuild(this.SettingsWindow);
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156331.png"), () => new DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donations"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156331.png"), () => new DonationView(this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Donations"));
 
         if (this.Debug)
         {
             this.SettingsWindow.Tabs.Add(
                 new Tab(
                     this.IconService.GetIcon("155052.png"),
-                    () => new ServiceSettingsView(this._services, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.Font) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+                    () => new ServiceSettingsView(this._services, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
                     "Debug"));
         }
 

@@ -41,20 +41,20 @@ public abstract class APIService<T> : APIService
         return Task.CompletedTask;
     }
 
-    protected override async Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress)
+    protected override async Task<bool> FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress)
     {
         this.Logger.Info("Check for api objects.");
 
         if (apiManager == null)
         {
             this.Logger.Warn("API Manager is null");
-            return;
+            return false;
         }
 
         if (this.Configuration.NeededPermissions.Count > 0 && !apiManager.HasPermission(TokenPermission.Account))
         {
             this.Logger.Debug("No token yet.");
-            return;
+            return false;
         }
 
         try
@@ -70,7 +70,7 @@ public abstract class APIService<T> : APIService
                 if (!this._apiManager.HasPermissions(this.Configuration.NeededPermissions))
                 {
                     this.Logger.Warn("API Manager does not have needed permissions: {0}", this.Configuration.NeededPermissions.Humanize());
-                    return;
+                    return false;
                 }
 
                 List<T> apiObjects = await this.Fetch(apiManager, progress, this.CancellationToken).ConfigureAwait(false);
@@ -135,6 +135,8 @@ public abstract class APIService<T> : APIService
             }
 
             this.Logger.Info("Check for api objects finished.");
+
+            return true;
         }
         catch (MissingScopesException msex)
         {
@@ -148,6 +150,8 @@ public abstract class APIService<T> : APIService
         {
             this.Logger.Warn(ex, "Error updating api objects:");
         }
+
+        return false;
     }
 
     protected abstract Task<List<T>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken);

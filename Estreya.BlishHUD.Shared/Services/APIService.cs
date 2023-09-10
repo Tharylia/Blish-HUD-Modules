@@ -97,12 +97,12 @@ public abstract class APIService : ManagedService
         await this.LoadFromAPI();
     }
 
-    protected async Task LoadFromAPI(bool resetCompletion = true)
+    protected async Task<bool> LoadFromAPI(bool resetCompletion = true)
     {
         if (!this._loadingLock.IsFree())
         {
             this.Logger.Warn("Tried to load again while already loading.");
-            return;
+            return false;
         }
 
         using (await this._loadingLock.LockAsync())
@@ -118,8 +118,11 @@ public abstract class APIService : ManagedService
             {
                 IProgress<string> progress = new Progress<string>(this.ReportProgress);
                 progress.Report($"Loading {this.GetType().Name}");
-                await this.FetchFromAPI(this._apiManager, progress);
+
+                var result = await this.FetchFromAPI(this._apiManager, progress);
                 this.SignalUpdated();
+
+                return result;
             }
             finally
             {
@@ -134,7 +137,7 @@ public abstract class APIService : ManagedService
         this.ProgressText = status;
     }
 
-    protected abstract Task FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress);
+    protected abstract Task<bool> FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress);
 
     protected void SignalUpdated()
     {

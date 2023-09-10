@@ -40,6 +40,11 @@ public class ModuleSettings : BaseModuleSettings
 
     public SettingEntry<Dictionary<string, List<TimeSpan>>> ReminderTimesOverride { get; private set; }
 
+    public SettingEntry<LeftClickAction> ReminderLeftClickAction { get; private set; }
+    public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
+
+    public SettingEntry<ReminderStackDirection> ReminderStackDirection { get; set; }
+
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
     public SettingEntry<bool> ShowDynamicEventInWorld { get; private set; }
@@ -94,6 +99,12 @@ public class ModuleSettings : BaseModuleSettings
 
         this.ReminderOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderOpacity), 0.5f, () => "Reminder Opacity", () => "Defines the background opacity for reminders.");
         this.ReminderOpacity.SetRange(0.1f, 1f);
+
+        this.ReminderLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderLeftClickAction), LeftClickAction.CopyWaypoint, () => "Reminder Left Click Action", () => "Defines the action to execute on a left click.");
+
+        this.AcceptWaypointPrompt = this.GlobalSettings.DefineSetting(nameof(this.AcceptWaypointPrompt), true, () => "Accept Waypoint Prompt", () => "Defines if the waypoint prompt should be auto accepted");
+
+        this.ReminderStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderStackDirection), Models.ReminderStackDirection.Down, () => "Reminder Stack Direction", () => "Defines the direction in which reminders stack.");
 
         this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 
@@ -276,7 +287,13 @@ public class ModuleSettings : BaseModuleSettings
         SettingEntry<string> eventAbsoluteTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-eventAbsoluteTimeFormatString", "HH\\:mm", () => "Absolute Time Format String", () => "Defines the format strings for absolute time.");
 
         var showTopTimeline = this.DrawerSettings.DefineSetting($"{name}-showTopTimeline", false, () => "Show Top Timeline", () => "Defines whether the top timeline is visible.");
-        var topTimeLineTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-topTimeLineTimeFormatString", "HH\\:mm", () => "Top Timeline Time Format String", () => "Defines the format strings for absolute time.");
+        var topTimelineTimeFormatString = this.DrawerSettings.DefineSetting($"{name}-topTimelineTimeFormatString", "HH\\:mm", () => "Top Timeline Time Format String", () => "Defines the format strings for absolute time.");
+        var topTimelineBackgroundColor = this.DrawerSettings.DefineSetting($"{name}-topTimelineBackgroundColor", this.DefaultGW2Color, () => "Top Timeline Background Color", () => "Defines the background color of the top timeline.");
+        var topTimelineLineColor = this.DrawerSettings.DefineSetting($"{name}-topTimelineLineColor", this.DefaultGW2Color, () => "Top Timeline Line Color", () => "Defines the line color of the top timeline.");
+        var topTimelineTimeColor = this.DrawerSettings.DefineSetting($"{name}-topTimelineTimeColor", this.DefaultGW2Color, () => "Top Timeline Time Color", () => "Defines the time color of the top timeline.");
+        var topTimelineBackgroundOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineBackgroundOpacity", 1f, () => "Top Timeline Background Opacity", () => "Defines the background color opacity of the top timeline.");
+        var topTimelineLineOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineLineOpacity", 1f, () => "Top Timeline Line Opacity", () => "Defines the line color opacity of the top timeline.");
+        var topTimelineTimeOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineTimeOpacity", 1f, () => "Top Timeline Time Opacity", () => "Defines the time color opacity of the top timeline.");
 
         return new EventAreaConfiguration
         {
@@ -337,7 +354,13 @@ public class ModuleSettings : BaseModuleSettings
             EventTimespanMinutesFormatString = eventTimespanMinutesFormatString,
             EventAbsoluteTimeFormatString = eventAbsoluteTimeFormatString,
             ShowTopTimeline = showTopTimeline,
-            TopTimelineTimeFormatString = topTimeLineTimeFormatString
+            TopTimelineTimeFormatString = topTimelineTimeFormatString,
+            TopTimelineBackgroundColor = topTimelineBackgroundColor,
+            TopTimelineLineColor = topTimelineLineColor,
+            TopTimelineTimeColor = topTimelineTimeColor,
+            TopTimelineBackgroundOpacity = topTimelineBackgroundOpacity,
+            TopTimelineLineOpacity = topTimelineLineOpacity,
+            TopTimelineTimeOpacity = topTimelineTimeOpacity,
         };
     }
 
@@ -405,6 +428,12 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-eventAbsoluteTimeFormatString");
         this.DrawerSettings.UndefineSetting($"{name}-showTopTimeline");
         this.DrawerSettings.UndefineSetting($"{name}-topTimeLineTimeFormatString");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineBackgroundColor");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineLineColor");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineTimeColor");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineBackgroundOpacity");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineLineOpacity");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineTimeOpacity");
     }
 
     public override void UpdateLocalization(TranslationService translationService)

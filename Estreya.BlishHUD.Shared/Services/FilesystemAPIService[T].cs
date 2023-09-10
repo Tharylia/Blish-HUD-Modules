@@ -116,7 +116,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
             // Refresh files after we loaded the prior saved
             if (forceAPI || !shouldLoadFiles)
             {
-                await this.LoadFromAPI(!canLoadFiles); // Only reset completion if we could not load anything at start
+                var result = await this.LoadFromAPI(!canLoadFiles); // Only reset completion if we could not load anything at start
                 if (!this.CancellationToken.IsCancellationRequested)
                 {
                     try
@@ -124,9 +124,13 @@ public abstract class FilesystemAPIService<T> : APIService<T>
                         this.Loading = true;
                         this.ReportProgress("Saving...");
 
-                        await this.OnAfterLoadFromAPIBeforeSave();
-                        await this.Save();
-                        await this.OnAfterLoadFromAPIAfterSave();
+                        result = await this.OnAfterLoadFromAPIBeforeSave();
+
+                        if (result)
+                        {
+                            await this.Save();
+                            await this.OnAfterLoadFromAPIAfterSave();
+                        }
                     }
                     finally
                     {
@@ -165,9 +169,9 @@ public abstract class FilesystemAPIService<T> : APIService<T>
     /// <summary>
     ///     Called after the load from api finished and before calling save.
     /// </summary>
-    protected virtual Task OnAfterLoadFromAPIBeforeSave()
+    protected virtual Task<bool> OnAfterLoadFromAPIBeforeSave()
     {
-        return Task.CompletedTask;
+        return Task.FromResult(true);
     }
 
     /// <summary>
