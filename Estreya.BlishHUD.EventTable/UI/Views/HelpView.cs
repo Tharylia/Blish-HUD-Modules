@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 
 public class HelpView : BaseView
 {
-    private const string DISCORD_USERNAME = "Estreya#0001";
+    private const string DISCORD_USERNAME = "estreya";
     private static readonly Point PADDING = new Point(25, 25);
     private readonly string _apiUrl;
     private readonly Func<List<EventCategory>> _getEvents;
@@ -76,11 +76,11 @@ public class HelpView : BaseView
                                                  .CreatePart("What events are qualified for autocompletion?", builder => { builder.SetFontSize(ContentService.FontSize.Size20).MakeUnderlined(); })
                                                  .CreatePart("\n \n", builder => { });
 
-        List<EventCategory> events = this._getEvents();
+        IEnumerable<Event> events = this._getEvents().SelectMany(ec => ec.Events);
 
         foreach (string apiKey in this._autocompleteAPIKeys)
         {
-            IEnumerable<Event> eventsFromAPIKey = events.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiKey).DistinctBy(ev => ev.Key);
+            IEnumerable<Event> eventsFromAPIKey = events.Where(ev => ev.APICode == apiKey).DistinctBy(ev => ev.Key);
             foreach (Event ev in eventsFromAPIKey)
             {
                 labelBuilder.CreatePart($"- {ev.Name}", builder => { })
