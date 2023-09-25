@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -1162,7 +1162,7 @@ public class EventArea : RenderTarget2DControl
         {
             var x = ((float)this.PixelPerMinute * timeInterval * i) + this.DrawXOffset;
             var timeStepRect = new RectangleF(x, 0, 2, timeStepLineHeight);
-            var time = times.Min.AddMinutes(timeInterval * i);
+            var time = times.Min.AddMinutes(timeInterval * i).ToLocalTime();
 
             spriteBatch.DrawLine(Textures.Pixel, timeStepRect, lineColor);
 
