@@ -1,0 +1,21 @@
+{
+  "name": "Valuable Items",
+  "version": "0.1.0",
+  "namespace": "estreya.bh.valuableItems",
+  "package": "Estreya.BlishHUD.ValuableItems.dll",
+  "manifest_version": 1,
+  "description": "Notifies you in case of valuable item drops.",
+  "dependencies": {
+    "bh.blishhud": ">=1.0.0"
+  },
+  "url": "https://github.com/Tharylia/Blish-HUD-Modules",
+  "contributors": [
+    {
+      "name": "Estreya",
+      "username": "Estreya.8675"
+    }
+  ],
+  "directories": ["valuable_items"],
+  "actions": [],
+  "enabled_without_gw2": false
+}

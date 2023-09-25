@@ -100,6 +100,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         await base.LoadAsync();
 
         this.BlishHUDAPIService.NewLogin += this.BlishHUDAPIService_NewLogin;
+        this.BlishHUDAPIService.RefreshedLogin += this.BlishHUDAPIService_RefreshedLogin; ;
         this.BlishHUDAPIService.LoggedOut += this.BlishHUDAPIService_LoggedOut;
 
         this.MapUtil = new MapUtil(this.ModuleSettings.MapKeybinding.Value, this.Gw2ApiManager);
@@ -656,6 +657,16 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The empty event arguments.</param>
     private void BlishHUDAPIService_NewLogin(object sender, EventArgs e)
+    {
+        this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
+    }
+
+    /// <summary>
+    ///     Handles the event of a refreshed login on the api backend.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The empty event arguments.</param>
+    private void BlishHUDAPIService_RefreshedLogin(object sender, EventArgs e)
     {
         this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
     }

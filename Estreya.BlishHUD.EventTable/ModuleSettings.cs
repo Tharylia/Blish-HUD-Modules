@@ -294,6 +294,8 @@ public class ModuleSettings : BaseModuleSettings
         var topTimelineBackgroundOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineBackgroundOpacity", 1f, () => "Top Timeline Background Opacity", () => "Defines the background color opacity of the top timeline.");
         var topTimelineLineOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineLineOpacity", 1f, () => "Top Timeline Line Opacity", () => "Defines the line color opacity of the top timeline.");
         var topTimelineTimeOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineTimeOpacity", 1f, () => "Top Timeline Time Opacity", () => "Defines the time color opacity of the top timeline.");
+        var topTimelineLinesOverWholeHeight = this.DrawerSettings.DefineSetting($"{name}-topTimelineLinesOverWholeHeight", false, () => "Top Timeline Lines Over Whole Height", () => "Defines if the top timeline lines should cover the whole event area height.");
+        var topTimelineLinesInBackground = this.DrawerSettings.DefineSetting($"{name}-topTimelineLinesInBackground", true, () => "Top Timeline Lines in Background", () => "Defines if the top timeline lines should be in the background or foreground.");
 
         return new EventAreaConfiguration
         {
@@ -361,6 +363,8 @@ public class ModuleSettings : BaseModuleSettings
             TopTimelineBackgroundOpacity = topTimelineBackgroundOpacity,
             TopTimelineLineOpacity = topTimelineLineOpacity,
             TopTimelineTimeOpacity = topTimelineTimeOpacity,
+            TopTimelineLinesOverWholeHeight = topTimelineLinesOverWholeHeight,
+            TopTimelineLinesInBackground = topTimelineLinesInBackground
         };
     }
 
@@ -434,6 +438,8 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineBackgroundOpacity");
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineLineOpacity");
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineTimeOpacity");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineLinesOverWholeHeight");
+        this.DrawerSettings.UndefineSetting($"{name}-topTimelineLinesInBackground");
     }
 
     public override void UpdateLocalization(TranslationService translationService)
