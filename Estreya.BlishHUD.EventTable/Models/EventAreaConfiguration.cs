@@ -80,6 +80,9 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<float> TopTimelineLineOpacity { get; set; }
     public SettingEntry<float> TopTimelineTimeOpacity { get; set; }
 
+    public SettingEntry<bool> TopTimelineLinesOverWholeHeight { get; set; }
+    public SettingEntry<bool> TopTimelineLinesInBackground { get; set; }
+
     public void CopyTo(EventAreaConfiguration other)
     {
         base.CopyTo(other);
@@ -135,5 +138,7 @@ public class EventAreaConfiguration : DrawerConfiguration
         other.TopTimelineBackgroundOpacity.Value = this.TopTimelineBackgroundOpacity.Value;
         other.TopTimelineLineOpacity.Value = this.TopTimelineLineOpacity.Value;
         other.TopTimelineTimeOpacity.Value = this.TopTimelineTimeOpacity.Value;
+        other.TopTimelineLinesOverWholeHeight.Value = this.TopTimelineLinesOverWholeHeight.Value;
+        other.TopTimelineLinesInBackground.Value = this.TopTimelineLinesInBackground.Value;
     }
 }

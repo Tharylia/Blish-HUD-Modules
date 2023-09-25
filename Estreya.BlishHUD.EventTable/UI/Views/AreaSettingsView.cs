@@ -422,6 +422,8 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel);
 
         this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTopTimeline);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.TopTimelineLinesOverWholeHeight);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.TopTimelineLinesInBackground);
 
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }

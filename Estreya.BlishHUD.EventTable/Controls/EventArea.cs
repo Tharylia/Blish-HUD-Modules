@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -1124,8 +1124,12 @@ public class EventArea : RenderTarget2DControl
 
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
+        if (this.Configuration.TopTimelineLinesInBackground.Value) this.DrawTopTimeLine(spriteBatch);
+
         this.UpdateEventsOnScreen(spriteBatch);
-        this.DrawTopTimeLine(spriteBatch);
+
+        if (!this.Configuration.TopTimelineLinesInBackground.Value) this.DrawTopTimeLine(spriteBatch);
+
         this.DrawTimeLine(spriteBatch);
     }
 
@@ -1150,7 +1154,7 @@ public class EventArea : RenderTarget2DControl
 
         var timeSteps = (int)Math.Floor((times.Max - times.Min).TotalMinutes) / timeInterval;
 
-        var timeStepLineHeight = rect.Height;// this.Height;
+        var timeStepLineHeight = this.Configuration.TopTimelineLinesOverWholeHeight.Value ? this.Height : rect.Height;
 
         var lineColor = (this.Configuration.TopTimelineLineColor.Value.Id == 1 
             ? Microsoft.Xna.Framework.Color.Black 
@@ -1166,7 +1170,15 @@ public class EventArea : RenderTarget2DControl
 
             spriteBatch.DrawLine(Textures.Pixel, timeStepRect, lineColor);
 
-            spriteBatch.DrawString(time.ToString(this.Configuration.TopTimelineTimeFormatString.Value), this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), timeColor);
+            var formattedString = "FORMAT";
+
+            try
+            {
+                formattedString = time.ToString(this.Configuration.TopTimelineTimeFormatString.Value);
+            }
+            catch { }
+
+            spriteBatch.DrawString(formattedString, this.GetFont(), new RectangleF(timeStepRect.X + 5, 5, (float)this.PixelPerMinute * timeInterval, 20), timeColor);
         }
 
         this._drawYOffset = (int)rect.Height;
