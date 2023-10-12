@@ -169,6 +169,16 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     protected override void OnModuleLoaded(EventArgs e)
     {
         base.OnModuleLoaded(e);
+        this.RegisterContext();
+    }
+
+    private void RegisterContext()
+    {
+        if (!this.ModuleSettings.RegisterContext.Value)
+        {
+            this.Logger.Info("Event Table context was not registered due to user preferences.");
+            return;
+        }
 
         this._eventTableContext = new EventTableContext();
         this._eventTableContext.RequestAddCategory += this.EventTableContext_RequestAddCategory;

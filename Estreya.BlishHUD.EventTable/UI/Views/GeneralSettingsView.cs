@@ -29,6 +29,10 @@ public class GeneralSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(parent);
 
+        this.RenderBoolSetting(parent, this._moduleSettings.RegisterContext);
+
+        this.RenderEmptyLine(parent);
+
         this.RenderKeybindingSetting(parent, this._moduleSettings.MapKeybinding);
 
         this.RenderEmptyLine(parent);

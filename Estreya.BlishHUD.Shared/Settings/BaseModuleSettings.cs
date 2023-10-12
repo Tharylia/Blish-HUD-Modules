@@ -203,6 +203,8 @@ public abstract class BaseModuleSettings
 
         this.BlishAPIUsername = this.GlobalSettings.DefineSetting(nameof(this.BlishAPIUsername), (string)null, () => "Blish API Username", () => "Defines the login username for the Estreya Blish HUD API.");
 
+        this.RegisterContext = this.GlobalSettings.DefineSetting(nameof(this.RegisterContext), true, () => "Register Context", () => "Whether the module should register an api context for cross module interaction. Requires a restart.");
+
         //this.NotifiedNews = this.GlobalSettings.DefineSetting(nameof(this.NotifiedNews), new List<string>(), () => "Notified News", () => "The news already notified about.");
         //this.NotifyOnUnreadNews = this.GlobalSettings.DefineSetting(nameof(this.NotifyOnUnreadNews), true, () => "Notify on unread News", () => "Whether the module should notify you when new news arrive.");
 
@@ -555,6 +557,8 @@ public abstract class BaseModuleSettings
     public SettingEntry<bool> HideInPvP { get; private set; }
     public SettingEntry<bool> DebugEnabled { get; private set; }
     public SettingEntry<string> BlishAPIUsername { get; private set; }
+
+    public SettingEntry<bool> RegisterContext { get; private set; }
 
     //public SettingEntry<bool> NotifyOnUnreadNews { get; private set; }
     //public SettingEntry<List<string>> NotifiedNews { get; private set; }
