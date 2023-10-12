@@ -38,7 +38,7 @@ public class AreaSettingsView : BaseSettingsView
     private readonly Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
     private StandardWindow _reorderEventsWindow;
 
-    public AreaSettingsView(Func<IEnumerable<TransactionAreaConfiguration>> areaConfiguration, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public AreaSettingsView(Func<IEnumerable<TransactionAreaConfiguration>> areaConfiguration, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._moduleSettings = moduleSettings;

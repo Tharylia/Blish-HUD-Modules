@@ -192,7 +192,7 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
 
     private BitmapFont GetFont()
     {
-        return _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(FontFace.Menomonia, fontSize, FontStyle.Regular));
+        return _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize => GameService.Content.GetFont(ContentService.FontFace.Menomonia, fontSize, FontStyle.Regular));
     }
 
     public void AddTransactions(IEnumerable<PlayerTransaction> transactions)
