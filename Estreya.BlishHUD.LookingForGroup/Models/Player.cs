@@ -14,5 +14,6 @@ public class Player
     [JsonProperty("accountName")]
     public string AccountName { get; set; }
 
+    [JsonProperty("profession")]
     public int Profession { get; set; } = -1;
 }

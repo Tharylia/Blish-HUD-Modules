@@ -27,7 +27,7 @@ public class LookingForGroupView : BaseView
 
     public event AsyncEventHandler<Models.LFGEntry> JoinClicked;
 
-    public LookingForGroupView(AccountService accountService, Func<IEnumerable<CategoryDefinition>> getCategories, Func<IEnumerable<Models.LFGEntry>> getEntries, Func<int> getMapId, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public LookingForGroupView(AccountService accountService, Func<IEnumerable<CategoryDefinition>> getCategories, Func<IEnumerable<Models.LFGEntry>> getEntries, Func<int> getMapId, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._accountService = accountService;
         this._getCategories = getCategories;
