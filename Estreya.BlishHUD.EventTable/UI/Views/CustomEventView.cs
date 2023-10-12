@@ -51,7 +51,9 @@ public class CustomEventView : BaseView
 
         FormattedLabelBuilder labelBuilder = this.GetLabelBuilder(parent)
                                                  .CreatePart(this.TranslationService.GetTranslation("customEventView-manual1", "1. Make an account at") + " ", builder => { builder.SetFontSize(ContentService.FontSize.Size20); })
-                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual2", "Estreya BlishHUD API."), builder => { builder.SetFontSize(ContentService.FontSize.Size20).SetHyperLink("https://blish-hud.estreya.de/register"); })
+                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual2", "Estreya BlishHUD API."), builder => { 
+                                                     builder.SetFontSize(ContentService.FontSize.Size20).SetTextColor(Color.CornflowerBlue).SetHyperLink("https://blish-hud.estreya.de/register"); 
+                                                 })
                                                  .CreatePart("\n \n", builder => { })
                                                  .CreatePart(this.TranslationService.GetTranslation("customEventView-manual3", "2. Follow steps send by mail."), builder => { builder.SetFontSize(ContentService.FontSize.Size20); })
                                                  .CreatePart("\n \n", builder => { })

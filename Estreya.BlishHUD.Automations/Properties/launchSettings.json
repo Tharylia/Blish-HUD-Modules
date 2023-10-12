@@ -1,0 +1,22 @@
+{
+  "profiles": {
+    "Estreya.BlishHUD.Automations": {
+      "commandName": "Project"
+    },
+    "BlishHUD Debug": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\domin\\Documents\\Blish_HUD\\Blish HUD.exe",
+      "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.Automations/bin/Debug/net48/Estreya.BlishHUD.Automations.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\""
+    },
+    "BlishHUD Debug PS": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\domin\\Documents\\Blish_HUD\\Blish HUD.exe",
+      "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.Automations/bin/Debug/net48/Estreya.BlishHUD.Automations.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\"  --process WindowsTerminal --window \"Windows PowerShell\" "
+    },
+    "BlishHUD Debug PS Release": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\domin\\Documents\\Blish_HUD\\Blish HUD.exe",
+      "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.Automations/bin/Release/net48/Estreya.BlishHUD.Automations.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\"  --process WindowsTerminal --window \"Windows PowerShell\" "
+    }
+  }
+}

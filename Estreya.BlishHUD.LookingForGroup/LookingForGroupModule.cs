@@ -13,6 +13,7 @@ using Humanizer;
 using Humanizer.Localisation;
 using Microsoft.Xna.Framework;
 using Models;
+using Newtonsoft.Json;
 using Shared.Modules;
 using Shared.MumbleInfo.Map;
 using Shared.Services;
@@ -277,6 +278,7 @@ public class LookingForGroupModule : BaseModule<LookingForGroupModule, ModuleSet
 
 
         categories.ForEach(category => category.Maps.ToList().ForEach(map => map.Load(category)));
+
 
         this._categories = categories;
     }

@@ -16,9 +16,9 @@ public class EventCategory
 
     [JsonIgnore] private AsyncLock _eventLock = new AsyncLock();
 
-    [JsonIgnore] private List<Event> _fillerEvents = new List<Event>();
+    [JsonProperty("fillers")] public List<Event> FillerEvents { get; private set; } = new List<Event>();
 
-    [JsonProperty("events")] private List<Event> _originalEvents = new List<Event>();
+    [JsonProperty("events")] public List<Event> OriginalEvents { get; private set; } = new List<Event>();
 
     [JsonProperty("key")] public string Key { get; set; }
 
@@ -28,22 +28,39 @@ public class EventCategory
 
     [JsonProperty("showCombined")] public bool ShowCombined { get; set; }
 
+    [JsonProperty("fromContext")] internal bool FromContext { get; set; }
+
+    /// <summary>
+    /// Gets original and filler events or sets original events. Adding to the getted list does nothing.
+    /// </summary>
     [JsonIgnore]
     public List<Event> Events
     {
-        get => this._originalEvents.Concat(this._fillerEvents).ToList();
-        set => this._originalEvents = value;
+        get => this.OriginalEvents.Concat(this.FillerEvents).ToList();
     }
 
     public void UpdateFillers(List<Event> fillers)
     {
-        lock (this._fillerEvents)
+        lock (this.FillerEvents)
         {
-            this._fillerEvents.Clear();
+            this.FillerEvents.Clear();
 
             if (fillers != null)
             {
-                this._fillerEvents.AddRange(fillers);
+                this.FillerEvents.AddRange(fillers);
+            }
+        }
+    }
+
+    public void UpdateOriginalEvents(List<Event> events)
+    {
+        lock (this.OriginalEvents)
+        {
+            this.OriginalEvents.Clear();
+
+            if (events != null)
+            {
+                this.OriginalEvents.AddRange(events);
             }
         }
     }

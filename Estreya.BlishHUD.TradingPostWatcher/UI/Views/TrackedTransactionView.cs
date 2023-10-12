@@ -31,7 +31,7 @@ public class TrackedTransactionView : BaseView
     private List<TrackedTransaction> _trackedTransactions;
     private Panel _transactionPanel;
 
-    public TrackedTransactionView(Func<List<TrackedTransaction>> getTrackedTransactions, Gw2ApiManager apiManager, IconService iconService, ItemService itemService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public TrackedTransactionView(Func<List<TrackedTransaction>> getTrackedTransactions, Gw2ApiManager apiManager, IconService iconService, ItemService itemService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._getTrackedTransactions = getTrackedTransactions;
         this._itemService = itemService;

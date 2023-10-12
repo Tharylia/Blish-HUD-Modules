@@ -162,7 +162,7 @@ public class AreaSettingsView : BaseSettingsView
             PlaceholderText = "Area Name"
         };
 
-        var copyFromTemplateLabel= this.RenderLabel(this._areaPanel, "Template").TitleLabel;
+        var copyFromTemplateLabel = this.RenderLabel(this._areaPanel, "Template").TitleLabel;
         copyFromTemplateLabel.Location = new Point(areaName.Left, areaName.Bottom + 20);
         copyFromTemplateLabel.Width = this.LABEL_WIDTH;
         Dropdown<string> copyFromTemplate = this.RenderDropdown<string>(this._areaPanel,
@@ -324,7 +324,8 @@ public class AreaSettingsView : BaseSettingsView
                 {
                     new ButtonDefinition("Yes", DialogResult.Yes),
                     new ButtonDefinition("No", DialogResult.No)
-                }) { SelectedButtonIndex = 1 };
+                })
+            { SelectedButtonIndex = 1 };
 
             DialogResult result = await dialog.ShowDialog();
             dialog.Dispose();
@@ -548,6 +549,8 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel);
 
+        #region Tooltip Option Group
+
         FlowPanel tooltipOptionGroup = new FlowPanel
         {
             Parent = groupPanel,
@@ -567,6 +570,11 @@ public class AreaSettingsView : BaseSettingsView
                                                         .CreatePart(this.TranslationService.GetTranslation("areaSettingsView-tooltipOptionGroup-absoluteTimeFormatExamples", "Examples:\n24-Hour: HH\\:mm\n12-Hour: hh\\:mm tt"), builder =>
                                                         {
                                                             builder.MakeBold().SetFontSize(ContentService.FontSize.Size16);
+                                                        })
+                                                        .CreatePart("\n\n", builder => { })
+                                                        .CreatePart(this.TranslationService.GetTranslation("areaSettingsView-tooltipOptionGroup-absoluteTimeFormatTestLink", "Click here for testing."), builder =>
+                                                        {
+                                                            builder.SetHyperLink("https://www.homedev.com.au/Online/DateFormat");
                                                         }).Build();
         lbl.Parent = tooltipOptionGroup;
 
@@ -576,7 +584,9 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanHoursFormatString);
         this.RenderTextSetting(tooltipOptionGroup, areaConfiguration.EventTimespanMinutesFormatString);
 
-        this.RenderEmptyLine(tooltipOptionGroup, 20);
+        this.RenderEmptyLine(tooltipOptionGroup, (int)tooltipOptionGroup.OuterControlPadding.Y);
+
+        #endregion
 
         this.RenderEmptyLine(groupPanel);
 

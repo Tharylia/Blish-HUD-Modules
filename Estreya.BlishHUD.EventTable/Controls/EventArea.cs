@@ -354,19 +354,19 @@ public class EventArea : RenderTarget2DControl
 
     public void UpdateAllEvents(List<EventCategory> allEvents)
     {
+        this._logger.Debug($"Receiving new events..");
         using (this._eventLock.Lock())
         {
             this._allEvents.Clear();
 
             this._allEvents.AddRange(JsonConvert.DeserializeObject<List<EventCategory>>(JsonConvert.SerializeObject(allEvents)));
 
-            (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
-
             this._allEvents.ForEach(ec => ec.Load(this._getNowAction, this._translationService));
             // Events should have occurences calculated already
         }
 
         this.ReAddEvents();
+        this._logger.Debug($"Finished Receiving new events..");
     }
 
     private void Event_Removed(object sender, string apiCode)
@@ -610,7 +610,8 @@ public class EventArea : RenderTarget2DControl
 
             using (this._eventLock.Lock())
             {
-                activeEvents.AddRange(this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList());
+                // Keep passed filler events in here as well. These could be added through context.
+                activeEvents.AddRange(this._allEvents.SelectMany(a => a.Events).Where(ev => ev.Filler || activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList());
             }
 
             IEnumerable<string> eventKeys = activeEvents.Select(a => a.SettingKey).Distinct();
@@ -631,7 +632,13 @@ public class EventArea : RenderTarget2DControl
             OnlineFillerCategory[] fillers = await response.GetJsonAsync<OnlineFillerCategory[]>();
 
             List<OnlineFillerCategory> fillerList = fillers.ToList();
-            ConcurrentDictionary<string, List<Models.Event>> parsedFillers = new ConcurrentDictionary<string, List<Models.Event>>();
+            // Keep filler events from contexts
+            ConcurrentDictionary<string, List<Models.Event>> parsedFillers = new ConcurrentDictionary<string, List<Models.Event>>(activeEvents.Where(ev => ev.Filler).GroupBy(ev =>
+            {
+                ev.Category.TryGetTarget(out var ec);
+                return ec.Key;
+            }).ToDictionary(group => group.Key, group =>group.Where(ev => ev.Filler).ToList()).ToList());
+
             for (int i = 0; i < fillerList.Count; i++)
             {
                 OnlineFillerCategory currentCategory = fillerList[i];
@@ -658,6 +665,10 @@ public class EventArea : RenderTarget2DControl
         {
             string error = await ex.GetResponseStringAsync();
             _logger.Warn($"Could not load fillers from {ex.Call.Request.RequestUri}: {error}");
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(ex, "Could not load fillers.");
         }
 
         return new ConcurrentDictionary<string, List<Models.Event>>();
@@ -1195,7 +1206,11 @@ public class EventArea : RenderTarget2DControl
     {
         using (this._eventLock.Lock())
         {
-            this._allEvents?.ForEach(a => a.UpdateFillers(new List<Models.Event>()));
+            this._allEvents?.ForEach(a =>
+            {
+                if (a.FromContext) return; // Don't clear fillers from context events
+                a.UpdateFillers(new List<Models.Event>());
+            });
         }
 
         using (this._controlLock.Lock())
@@ -1204,6 +1219,8 @@ public class EventArea : RenderTarget2DControl
         }
 
         this._orderedControlEvents = null;
+
+        this._logger.Debug($"Cleared filler and controls.");
     }
 
     private void AddEventHooks(Event ev)

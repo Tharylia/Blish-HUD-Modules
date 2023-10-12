@@ -43,7 +43,7 @@ public abstract class APIService<T> : APIService
 
     protected override async Task<bool> FetchFromAPI(Gw2ApiManager apiManager, IProgress<string> progress)
     {
-        this.Logger.Info("Check for api objects.");
+        this.Logger.Debug("Check for api objects.");
 
         if (apiManager == null)
         {
@@ -134,7 +134,7 @@ public abstract class APIService<T> : APIService
                 }
             }
 
-            this.Logger.Info("Check for api objects finished.");
+            this.Logger.Debug("Check for api objects finished.");
 
             return true;
         }

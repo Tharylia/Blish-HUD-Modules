@@ -78,7 +78,7 @@ public class Event : IUpdatable
 
     [JsonProperty("apiCode")] public string APICode { get; set; }
 
-    [JsonIgnore] public bool Filler { get; set; }
+    [JsonProperty("filler")] public bool Filler { get; set; }
 
     [JsonProperty("occurences")] public List<DateTime> Occurences { get; private set; } = new List<DateTime>();
 
