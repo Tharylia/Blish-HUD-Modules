@@ -15,34 +15,34 @@ public struct AddEvent
     {
     }
 
-    public string CategoryKey { get; set; }
-    public string Key { get; set; }
-    public string Name { get; set; }
-    public string Icon { get; set; }
+    public string CategoryKey { get; set; } = null;
+    public string Key { get; set; } = null;
+    public string Name { get; set; } = null;
+    public string Icon { get; set; } = null;
     public TimeSpan Offset { get; set; } = TimeSpan.Zero;
     public TimeSpan Repeat { get; set; } = TimeSpan.Zero;
-    public DateTime? StartingDate { get; set; }
-    public string Location { get; set; }
+    public DateTime? StartingDate { get; set; } = null;
+    public string Location { get; set; } = null;
 
-    public int[] MapIds { get; set; }
+    public int[] MapIds { get; set; } = null;
 
-    public string Waypoint { get; set; }
+    public string Waypoint { get; set; } = null;
 
-    public string Wiki { get; set; }
+    public string Wiki { get; set; } = null;
 
-    public int Duration { get; set; }
+    public int Duration { get; set; } = 0;
 
-    public string BackgroundColorCode { get; set; }
+    public string BackgroundColorCode { get; set; } = null;
 
-    public string[] BackgroundColorGradientCodes { get; set; }
+    public string[] BackgroundColorGradientCodes { get; set; } = null;
 
-    public APICodeType? APICodeType { get; set; }
+    public APICodeType? APICodeType { get; set; } = null;
 
-    public string APICode { get; set; }
+    public string APICode { get; set; } = null;
 
-    public bool Filler { get; set; }
+    public bool Filler { get; set; } = false;
 
-    public List<DateTime> Occurences { get; set; }
+    public List<DateTime> Occurences { get; set; } = null;
 
     public TimeSpan[] ReminderTimes { get; set; } =
     {
