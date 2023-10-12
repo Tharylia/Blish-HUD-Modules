@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -665,6 +665,10 @@ public class EventArea : RenderTarget2DControl
         {
             string error = await ex.GetResponseStringAsync();
             _logger.Warn($"Could not load fillers from {ex.Call.Request.RequestUri}: {error}");
+        }
+        catch (Exception ex)
+        {
+            _logger.Warn(ex, "Could not load fillers.");
         }
 
         return new ConcurrentDictionary<string, List<Models.Event>>();
