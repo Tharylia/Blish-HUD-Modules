@@ -354,19 +354,19 @@ public class EventArea : RenderTarget2DControl
 
     public void UpdateAllEvents(List<EventCategory> allEvents)
     {
+        this._logger.Debug($"Receiving new events..");
         using (this._eventLock.Lock())
         {
             this._allEvents.Clear();
 
             this._allEvents.AddRange(JsonConvert.DeserializeObject<List<EventCategory>>(JsonConvert.SerializeObject(allEvents)));
 
-            (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
-
             this._allEvents.ForEach(ec => ec.Load(this._getNowAction, this._translationService));
             // Events should have occurences calculated already
         }
 
         this.ReAddEvents();
+        this._logger.Debug($"Finished Receiving new events..");
     }
 
     private void Event_Removed(object sender, string apiCode)
@@ -1215,6 +1215,8 @@ public class EventArea : RenderTarget2DControl
         }
 
         this._orderedControlEvents = null;
+
+        this._logger.Debug($"Cleared filler and controls.");
     }
 
     private void AddEventHooks(Event ev)
