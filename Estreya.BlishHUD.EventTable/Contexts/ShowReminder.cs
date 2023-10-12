@@ -7,7 +7,11 @@ using System.Threading.Tasks;
 
 public struct ShowReminder
 {
-    public string Title { get; set; }
-    public string Message { get; set; }
-    public string Icon { get; set; }
+    public ShowReminder()
+    {
+    }
+
+    public string Title { get; set; } = null;
+    public string Message { get; set; } = null;
+    public string Icon { get; set; } = null;
 }

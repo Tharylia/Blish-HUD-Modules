@@ -11,8 +11,8 @@ public struct AddCategory
     {
     }
 
-    public string Key { get; set; }
-    public string Name { get; set; }
-    public string Icon { get; set; }
+    public string Key { get; set; } = null;
+    public string Name { get; set; } = null;
+    public string Icon { get; set; } = null;
     public bool ShowCombined { get; set; } = false;
 }

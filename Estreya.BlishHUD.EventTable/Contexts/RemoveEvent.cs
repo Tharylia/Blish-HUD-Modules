@@ -7,6 +7,10 @@ using System.Threading.Tasks;
 
 public struct RemoveEvent
 {
-    public string CategoryKey { get; set; }
-    public string EventKey { get; set; }
+    public RemoveEvent()
+    {
+    }
+
+    public string CategoryKey { get; set; } = null;
+    public string EventKey { get; set; } = null;
 }
