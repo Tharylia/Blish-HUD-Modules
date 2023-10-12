@@ -11,6 +11,9 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\IgnoreCopyAttribute.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Attributes\TranslationAttribute.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Contexts\BaseContext.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Contexts\ContextEventArgs.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Contexts\ContextEventArgs[T].cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Button.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Dropdown.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapBorder.cs" />

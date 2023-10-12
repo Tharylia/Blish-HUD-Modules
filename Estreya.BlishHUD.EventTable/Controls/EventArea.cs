@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -610,7 +610,8 @@ public class EventArea : RenderTarget2DControl
 
             using (this._eventLock.Lock())
             {
-                activeEvents.AddRange(this._allEvents.SelectMany(a => a.Events).Where(ev => activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList());
+                // Keep passed filler events in here as well. These could be added through context.
+                activeEvents.AddRange(this._allEvents.SelectMany(a => a.Events).Where(ev => ev.Filler || activeEventKeys.Any(aeg => aeg == ev.SettingKey)).ToList());
             }
 
             IEnumerable<string> eventKeys = activeEvents.Select(a => a.SettingKey).Distinct();
@@ -631,7 +632,13 @@ public class EventArea : RenderTarget2DControl
             OnlineFillerCategory[] fillers = await response.GetJsonAsync<OnlineFillerCategory[]>();
 
             List<OnlineFillerCategory> fillerList = fillers.ToList();
-            ConcurrentDictionary<string, List<Models.Event>> parsedFillers = new ConcurrentDictionary<string, List<Models.Event>>();
+            // Keep filler events from contexts
+            ConcurrentDictionary<string, List<Models.Event>> parsedFillers = new ConcurrentDictionary<string, List<Models.Event>>(activeEvents.Where(ev => ev.Filler).GroupBy(ev =>
+            {
+                ev.Category.TryGetTarget(out var ec);
+                return ec.Key;
+            }).ToDictionary(group => group.Key, group =>group.Where(ev => ev.Filler).ToList()).ToList());
+
             for (int i = 0; i < fillerList.Count; i++)
             {
                 OnlineFillerCategory currentCategory = fillerList[i];
@@ -1195,7 +1202,11 @@ public class EventArea : RenderTarget2DControl
     {
         using (this._eventLock.Lock())
         {
-            this._allEvents?.ForEach(a => a.UpdateFillers(new List<Models.Event>()));
+            this._allEvents?.ForEach(a =>
+            {
+                if (a.FromContext) return; // Don't clear fillers from context events
+                a.UpdateFillers(new List<Models.Event>());
+            });
         }
 
         using (this._controlLock.Lock())
