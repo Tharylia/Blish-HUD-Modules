@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -76,12 +76,13 @@ public class ModuleSettings : BaseModuleSettings
         this.EventAreaSettings = settings.AddSubCollection(EVENT_AREA_SETTINGS);
 
         this.EventAreaNames = this.EventAreaSettings.DefineSetting(nameof(this.EventAreaNames), new List<string>(), () => "Event Area Names", () => "Defines the event area names.");
+
+        this.EventAreaSettings.AddLoggingEvents();
     }
 
     protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
     {
         this.MapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.MapKeybinding), new KeyBinding(Keys.M), () => "Open Map Hotkey", () => "Defines the key used to open the fullscreen map.");
-        this.MapKeybinding.SettingChanged += this.LogSettingChanged;
         this.MapKeybinding.Value.Enabled = true;
         this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
 
@@ -314,6 +315,8 @@ public class ModuleSettings : BaseModuleSettings
         var topTimelineTimeOpacity = this.DrawerSettings.DefineSetting($"{name}-topTimelineTimeOpacity", 1f, () => "Top Timeline Time Opacity", () => "Defines the time color opacity of the top timeline.");
         var topTimelineLinesOverWholeHeight = this.DrawerSettings.DefineSetting($"{name}-topTimelineLinesOverWholeHeight", false, () => "Top Timeline Lines Over Whole Height", () => "Defines if the top timeline lines should cover the whole event area height.");
         var topTimelineLinesInBackground = this.DrawerSettings.DefineSetting($"{name}-topTimelineLinesInBackground", true, () => "Top Timeline Lines in Background", () => "Defines if the top timeline lines should be in the background or foreground.");
+
+        this.DrawerSettings.AddLoggingEvents();
 
         return new EventAreaConfiguration
         {
@@ -760,5 +763,7 @@ public class ModuleSettings : BaseModuleSettings
         base.Unload();
         this.ShowDynamicEventInWorld.SettingChanged -= this.ShowDynamicEventInWorld_SettingChanged;
         this.ShowDynamicEventsInWorldOnlyWhenInside.SettingChanged -= this.ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged;
+
+        this.EventAreaSettings.RemoveLoggingEvents();
     }
 }
