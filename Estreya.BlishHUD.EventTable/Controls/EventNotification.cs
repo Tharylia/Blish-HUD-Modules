@@ -4,6 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
 using Estreya.BlishHUD.EventTable.Models.Reminders;
+using Glide;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
@@ -35,6 +36,7 @@ public class EventNotification : RenderTarget2DControl
     private readonly int _y;
     private readonly int _iconSize;
     private readonly EventReminderStackDirection _stackDirection;
+    private Tween _showAnimation;
 
     public EventNotification(Models.Event ev, string title, string message, AsyncTexture2D icon, int x, int y, int width, int height,int iconSize, EventReminderStackDirection stackDirection, FontSize titleFontSize, FontSize messageFontSize , IconService iconService, bool captureMouseClicks = false)
     {
@@ -97,20 +99,14 @@ public class EventNotification : RenderTarget2DControl
         base.Show();
         _lastShown = this;
 
-        _ = GameService.Animation.Tweener.Tween(this, new { Opacity = 1f }, 0.2f)
+        this._showAnimation?.Cancel();
+        this._showAnimation = GameService.Animation.Tweener.Tween(this, new { Opacity = 1f }, 0.2f)
                        .Repeat(1)
                        .RepeatDelay((float)duration.TotalSeconds)
                        .Reflect()
-                       .OnComplete(this.Hide);
-    }
-
-    public new void Hide()
-    {
-        base.Hide();
-
-        _ = GameService.Animation.Tweener.Tween(this, new { Opacity = 0f }, 0.4f)
                        .OnComplete(() =>
                        {
+                           base.Hide();
                            this.Dispose();
                            if (_lastShown == this)
                            {
@@ -118,6 +114,21 @@ public class EventNotification : RenderTarget2DControl
                            }
                        });
     }
+
+    //public new void Hide()
+    //{
+    //    base.Hide();
+
+    //    _ = GameService.Animation.Tweener.Tween(this, new { Opacity = 0f }, 0.4f)
+    //                   .OnComplete(() =>
+    //                   {
+    //                       this.Dispose();
+    //                       if (_lastShown == this)
+    //                       {
+    //                           _lastShown = null;
+    //                       }
+    //                   });
+    //}
 
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
@@ -146,6 +157,8 @@ public class EventNotification : RenderTarget2DControl
 
     protected override void InternalDispose()
     {
+        this._showAnimation?.Cancel();
+        this._showAnimation = null;
         this.Model = null;
         this._iconService = null;
         this._icon = null;

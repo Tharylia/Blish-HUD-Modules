@@ -45,6 +45,7 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<Dictionary<string, List<TimeSpan>>> ReminderTimesOverride { get; private set; }
 
     public SettingEntry<LeftClickAction> ReminderLeftClickAction { get; private set; }
+    public SettingEntry<EventReminderRightClickAction> ReminderRightClickAction { get; private set; }
     public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
 
     public SettingEntry<EventReminderStackDirection> ReminderStackDirection { get; set; }
@@ -119,6 +120,7 @@ public class ModuleSettings : BaseModuleSettings
         this.ReminderOpacity.SetRange(0.1f, 1f);
 
         this.ReminderLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderLeftClickAction), LeftClickAction.CopyWaypoint, () => "Reminder Left Click Action", () => "Defines the action to execute on a left click.");
+        this.ReminderRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderRightClickAction), EventReminderRightClickAction.Dismiss, () => "Reminder Right Click Action", () => "Defines the action to execute on a right click.");
 
         this.AcceptWaypointPrompt = this.GlobalSettings.DefineSetting(nameof(this.AcceptWaypointPrompt), true, () => "Accept Waypoint Prompt", () => "Defines if the waypoint prompt should be auto accepted");
 

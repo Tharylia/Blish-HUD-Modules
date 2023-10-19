@@ -485,6 +485,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
         { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
         notification.Click += this.EventNotification_Click;
+        notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
         notification.Disposed += this.EventNotification_Disposed;
         notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
     }
@@ -493,6 +494,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
         var notification = sender as EventNotification;
         notification.Click -= this.EventNotification_Click;
+        notification.RightMouseButtonPressed -= this.EventNotification_RightMouseButtonPressed;
         notification.Disposed -= this.EventNotification_Disposed;
     }
 
@@ -539,6 +541,17 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                         ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
                     }
                 });
+                break;
+        }
+    }
+
+    private void EventNotification_RightMouseButtonPressed(object sender, MouseEventArgs e)
+    {
+        var notification = sender as EventNotification;
+        switch (this.ModuleSettings.ReminderRightClickAction.Value)
+        {
+            case Models.Reminders.EventReminderRightClickAction.Dismiss:
+                notification?.Dispose();
                 break;
         }
     }
