@@ -42,11 +42,27 @@ public class ReminderSettingsView : BaseSettingsView
     {
         this.RenderBoolSetting(parent, this._moduleSettings.RemindersEnabled);
 
+        this.RenderEmptyLine(parent);
+
         this.RenderIntSetting(parent, this._moduleSettings.ReminderPosition.X);
         this.RenderIntSetting(parent, this._moduleSettings.ReminderPosition.Y);
+
+        this.RenderEmptyLine(parent);
+
+        this.RenderIntSetting(parent, this._moduleSettings.ReminderSize.X);
+        this.RenderIntSetting(parent, this._moduleSettings.ReminderSize.Y);
+        this.RenderIntSetting(parent, this._moduleSettings.ReminderSize.Icon);
+
+        this.RenderEmptyLine(parent);
+
         this.RenderFloatSetting(parent, this._moduleSettings.ReminderDuration);
         this.RenderFloatSetting(parent, this._moduleSettings.ReminderOpacity);
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderStackDirection);
+
+        this.RenderEmptyLine(parent);
+
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderFonts.TitleSize);
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderFonts.MessageSize);
 
         this.RenderEmptyLine(parent);
 
@@ -94,7 +110,12 @@ public class ReminderSettingsView : BaseSettingsView
             }, "Test description!",
             this._moduleSettings.ReminderPosition.X.Value,
             this._moduleSettings.ReminderPosition.Y.Value,
+            this._moduleSettings.ReminderSize.X.Value,
+            this._moduleSettings.ReminderSize.Y.Value,
+            this._moduleSettings.ReminderSize.Icon.Value,
             this._moduleSettings.ReminderStackDirection.Value,
+            this._moduleSettings.ReminderFonts.TitleSize.Value,
+            this._moduleSettings.ReminderFonts.MessageSize.Value,
             this.IconService)
             { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
 

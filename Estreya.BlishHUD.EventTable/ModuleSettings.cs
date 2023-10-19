@@ -1,9 +1,11 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
 using Blish_HUD.Settings;
 using Controls;
+using Estreya.BlishHUD.EventTable.Models.Reminders;
+using Estreya.BlishHUD.Shared.Extensions;
 using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework.Input;
 using Models;
@@ -28,7 +30,9 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<KeyBinding> MapKeybinding { get; private set; }
 
     public SettingEntry<bool> RemindersEnabled { get; private set; }
-    public EventReminderPositition ReminderPosition { get; private set; }
+    public EventReminderPosition ReminderPosition { get; private set; }
+    public EventReminderSize ReminderSize { get; private set; }
+    public EventReminderFonts ReminderFonts { get; private set; }
     public SettingEntry<float> ReminderDuration { get; private set; }
 
     public SettingEntry<float> ReminderOpacity { get; private set; }
@@ -43,7 +47,7 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<LeftClickAction> ReminderLeftClickAction { get; private set; }
     public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
 
-    public SettingEntry<ReminderStackDirection> ReminderStackDirection { get; set; }
+    public SettingEntry<EventReminderStackDirection> ReminderStackDirection { get; set; }
 
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
@@ -82,10 +86,23 @@ public class ModuleSettings : BaseModuleSettings
         this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
 
         this.RemindersEnabled = this.GlobalSettings.DefineSetting(nameof(this.RemindersEnabled), true, () => "Reminders Enabled", () => "Whether the module should display alerts before an event starts.");
-        this.ReminderPosition = new EventReminderPositition
+        this.ReminderPosition = new EventReminderPosition
         {
             X = this.GlobalSettings.DefineSetting("ReminderPositionX", 200, () => "Location X", () => "Defines the position of reminders on the x axis."),
             Y = this.GlobalSettings.DefineSetting("ReminderPositionY", 200, () => "Location Y", () => "Defines the position of reminders on the y axis.")
+        };
+
+        this.ReminderSize = new EventReminderSize
+        {
+            X = this.GlobalSettings.DefineSetting("ReminderSizeX", 350, () => "Size X", () => "Defines the size of reminders on the x axis."),
+            Y = this.GlobalSettings.DefineSetting("ReminderSizeY", 96, () => "Size Y", () => "Defines the size of reminders on the y axis."),
+            Icon = this.GlobalSettings.DefineSetting("ReminderSizeIcon", 64, () => "Icon Width/Height", () => "Defines the size of the reminder icon on the x and y axis."),
+        };
+
+        this.ReminderFonts = new EventReminderFonts
+        {
+            TitleSize = this.GlobalSettings.DefineSetting("ReminderFontsTitleSize", ContentService.FontSize.Size18, () => "Title Font Size", () => "Defines the size the reminder title font."),
+            MessageSize = this.GlobalSettings.DefineSetting("ReminderFontsMessageSize", ContentService.FontSize.Size16, () => "Message Font Size", () => "Defines the size the reminder message font."),
         };
 
         int reminderDurationMin = 1;
@@ -104,7 +121,7 @@ public class ModuleSettings : BaseModuleSettings
 
         this.AcceptWaypointPrompt = this.GlobalSettings.DefineSetting(nameof(this.AcceptWaypointPrompt), true, () => "Accept Waypoint Prompt", () => "Defines if the waypoint prompt should be auto accepted");
 
-        this.ReminderStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderStackDirection), Models.ReminderStackDirection.Down, () => "Reminder Stack Direction", () => "Defines the direction in which reminders stack.");
+        this.ReminderStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderStackDirection), Models.Reminders.EventReminderStackDirection.Down, () => "Reminder Stack Direction", () => "Defines the direction in which reminders stack.");
 
         this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 
@@ -174,18 +191,19 @@ public class ModuleSettings : BaseModuleSettings
         }
 
         int minLocationX = 0;
-        int maxLocationX = maxResX - EventNotification.NOTIFICATION_WIDTH;
+        int maxLocationX = maxResX - this.ReminderSize.X.Value;
         int minLocationY = 0;
-        int maxLocationY = maxResY - EventNotification.NOTIFICATION_HEIGHT;
-
-        if (maxLocationX < 50 || maxLocationY < 50)
-        {
-            //Logger.Debug($"Max Location X or Y has a small value which seems unreasonable. X: {maxLocationX}, Y: {maxLocationY}"); // Has the potential to spam log
-            //return;
-        }
+        int maxLocationY = maxResY - this.ReminderSize.Y.Value;
+        int minWidth = 0;
+        int maxWidth = maxResX - this.ReminderPosition.X.Value;
+        int minHeight = 0;
+        int maxHeight = maxResY - this.ReminderPosition.Y.Value;
 
         this.ReminderPosition?.X.SetRange(minLocationX, maxLocationX);
         this.ReminderPosition?.Y.SetRange(minLocationY, maxLocationY);
+        this.ReminderSize?.X.SetRange(minWidth, maxWidth);
+        this.ReminderSize?.Y.SetRange(minHeight, maxHeight);
+        this.ReminderSize?.Icon.SetRange(0, this.ReminderSize.Y.Value);
     }
 
     public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories)

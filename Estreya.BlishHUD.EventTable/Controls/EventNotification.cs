@@ -3,7 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
-using Estreya.BlishHUD.EventTable.Models;
+using Estreya.BlishHUD.EventTable.Models.Reminders;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended.BitmapFonts;
@@ -11,22 +11,19 @@ using Shared.Controls;
 using Shared.Services;
 using Shared.Utils;
 using System;
+using static Blish_HUD.ContentService;
 
 public class EventNotification : RenderTarget2DControl
 {
-    public const int NOTIFICATION_WIDTH = 350;
-    public const int NOTIFICATION_HEIGHT = 96;
-    private const int ICON_SIZE = 64;
-
     private static EventNotification _lastShown;
 
-    private static readonly BitmapFont _titleFont = GameService.Content.DefaultFont18;
-    private static readonly BitmapFont _messageFont = GameService.Content.DefaultFont16;
+    private readonly BitmapFont _titleFont;
+    private readonly BitmapFont _messageFont;
 
-    private static readonly Rectangle _fullRect = new Rectangle(0, 0, NOTIFICATION_WIDTH, NOTIFICATION_HEIGHT);
-    private static readonly Rectangle _iconRect = new Rectangle(10, (NOTIFICATION_HEIGHT / 2) - (ICON_SIZE / 2), ICON_SIZE, ICON_SIZE);
-    private static readonly Rectangle _titleRect = new Rectangle(_iconRect.Right + 5, 10, _fullRect.Width - (_iconRect.Right + 5), _titleFont.LineHeight);
-    private static readonly Rectangle _messageRect = new Rectangle(_iconRect.Right + 5, _titleRect.Bottom, _fullRect.Width - (_iconRect.Right + 5), NOTIFICATION_HEIGHT - _titleRect.Height);
+    private Rectangle _fullRect;
+    private Rectangle _iconRect;
+    private Rectangle _titleRect;
+    private Rectangle _messageRect;
     private readonly string _title;
     private readonly string _message;
 
@@ -36,16 +33,17 @@ public class EventNotification : RenderTarget2DControl
     private readonly bool _captureMouseClicks;
     private readonly int _x;
     private readonly int _y;
-    private readonly ReminderStackDirection _stackDirection;
+    private readonly int _iconSize;
+    private readonly EventReminderStackDirection _stackDirection;
 
-
-    public EventNotification(Models.Event ev, string title, string message, AsyncTexture2D icon, int x, int y, ReminderStackDirection stackDirection, IconService iconService, bool captureMouseClicks = false)
+    public EventNotification(Models.Event ev, string title, string message, AsyncTexture2D icon, int x, int y, int width, int height,int iconSize, EventReminderStackDirection stackDirection, FontSize titleFontSize, FontSize messageFontSize , IconService iconService, bool captureMouseClicks = false)
     {
         this.Model = ev;
         this._title = title;
         this._message = message;
         this._x = x;
         this._y = y;
+        this._iconSize = iconSize;
         this._stackDirection = stackDirection;
         this._iconService = iconService;
         this._captureMouseClicks = captureMouseClicks;
@@ -59,27 +57,40 @@ public class EventNotification : RenderTarget2DControl
             this._icon = ev?.Icon != null ? this._iconService?.GetIcon(ev.Icon) : null;
         }
 
-        this.Width = NOTIFICATION_WIDTH;
-        this.Height = NOTIFICATION_HEIGHT;
+        this._titleFont = GameService.Content.GetFont(FontFace.Menomonia, titleFontSize, FontStyle.Regular);
+        this._messageFont = GameService.Content.GetFont(FontFace.Menomonia, messageFontSize, FontStyle.Regular);
+
+        this.Width = width;
+        this.Height = height;
         this.Visible = false;
         this.Opacity = 0f;
         this.Parent = GameService.Graphics.SpriteScreen;
+
+        if (this._iconSize > this.Height) throw new ArgumentOutOfRangeException(nameof(iconSize), "The icon size can't be higher than the total height.");
     }
 
-    public EventNotification(Models.Event ev, string message, int x, int y, ReminderStackDirection stackDirection, IconService iconService, bool captureMouseClicks = false) :
-        this(ev, ev?.Name, message, null, x, y, stackDirection, iconService, captureMouseClicks)
+    public EventNotification(Models.Event ev, string message, int x, int y, int width, int height,int iconSize, EventReminderStackDirection stackDirection, FontSize titleFontSize, FontSize messageFontSize, IconService iconService, bool captureMouseClicks = false) :
+        this(ev, ev?.Name, message, null, x, y,width,height,iconSize, stackDirection, titleFontSize, messageFontSize, iconService, captureMouseClicks)
     { }
 
     public float BackgroundOpacity { get; set; } = 1f;
+
+    public override void RecalculateLayout()
+    {
+        this._fullRect = new Rectangle(0, 0, this.Width, this.Height);
+        this._iconRect = new Rectangle(10, (this.Height / 2) - (this._iconSize/ 2), this._iconSize, this._iconSize);
+        this._titleRect = new Rectangle(_iconRect.Right + 5, 10, _fullRect.Width - (_iconRect.Right + 5), _titleFont.LineHeight);
+        this._messageRect = new Rectangle(_iconRect.Right + 5, _titleRect.Bottom, _fullRect.Width - (_iconRect.Right + 5), this.Height - _titleRect.Height);
+    }
 
     public void Show(TimeSpan duration)
     {
         this.Location = this._stackDirection switch
         {
-            ReminderStackDirection.Top => new Point(_lastShown != null ? _lastShown.Left : this._x, _lastShown != null ? _lastShown.Top - this.Height - 15 : this._y),
-            ReminderStackDirection.Down => new Point(_lastShown != null ? _lastShown.Left : this._x, _lastShown != null ? _lastShown.Bottom + 15 : this._y),
-            ReminderStackDirection.Left => new Point(_lastShown != null ? _lastShown.Left - this.Width - 15 : this._x, _lastShown != null ? _lastShown.Top : this._y),
-            ReminderStackDirection.Right => new Point(_lastShown != null ? _lastShown.Right + 15 : this._x, _lastShown != null ? _lastShown.Top : this._y),
+            EventReminderStackDirection.Top => new Point(_lastShown != null ? _lastShown.Left : this._x, _lastShown != null ? _lastShown.Top - this.Height - 15 : this._y),
+            EventReminderStackDirection.Down => new Point(_lastShown != null ? _lastShown.Left : this._x, _lastShown != null ? _lastShown.Bottom + 15 : this._y),
+            EventReminderStackDirection.Left => new Point(_lastShown != null ? _lastShown.Left - this.Width - 15 : this._x, _lastShown != null ? _lastShown.Top : this._y),
+            EventReminderStackDirection.Right => new Point(_lastShown != null ? _lastShown.Right + 15 : this._x, _lastShown != null ? _lastShown.Top : this._y),
             _ => throw new ArgumentException($"Invalid stack direction: {this._stackDirection}"),
         };
 
