@@ -20,12 +20,20 @@
             this.ConfirmReady();
         }
 
+        /// <summary>
+        /// Checks if the context is ready.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">Throws if context is expired or not ready.</exception>
         protected void CheckReady()
         {
             if (this.State == ContextState.Expired) throw new InvalidOperationException("Context has expired.");
             if (this.State != ContextState.Ready) throw new InvalidOperationException("Context is not ready.");
         }
 
+        /// <summary>
+        /// Gets the caller of the context method.
+        /// </summary>
+        /// <returns>The calling type.</returns>
         protected Type GetCaller()
         {
             bool lastFrameWasBaseType = false;
