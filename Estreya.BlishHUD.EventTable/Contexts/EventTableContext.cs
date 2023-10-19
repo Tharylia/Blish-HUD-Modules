@@ -19,6 +19,8 @@ public class EventTableContext : BaseContext
     internal event AsyncEventHandler<ContextEventArgs<RemoveEvent>> RequestRemoveEvent;
     internal event AsyncEventHandler<ContextEventArgs> RequestReloadEvents;
     internal event AsyncEventHandler<ContextEventArgs<ShowReminder>> RequestShowReminder;
+    internal event AsyncEventHandler<ContextEventArgs<AddDynamicEvent>> RequestAddDynamicEvent;
+    internal event AsyncEventHandler<ContextEventArgs<Guid>> RequestRemoveDynamicEvent;
 
     /// <summary>
     /// Adds a new category to the event table module. Shows up for the table and reminders.
@@ -108,5 +110,34 @@ public class EventTableContext : BaseContext
 
         this.Logger.Info($"\"{caller.FullName}\" triggered a context action: {nameof(ShowReminder)}().");
         await (this.RequestShowReminder?.Invoke(this, new ContextEventArgs<ShowReminder>(caller, reminder)) ?? Task.FromException(new NotImplementedException()));
+    }
+
+    /// <summary>
+    /// Adds a new dynamic event. 
+    /// <para/>
+    /// All custom dynamic events are persisted between sessions and do not need to be added everytime.<br/>
+    /// If you need to add them every time, be sure to call <see cref="RemoveDynamicEvent(string)"/> on unload.
+    /// </summary>
+    /// <param name="addDynamicEvent"></param>
+    public async Task AddDynamicEvent(AddDynamicEvent addDynamicEvent)
+    {
+        this.CheckReady();
+        var caller = this.GetCaller();
+
+        this.Logger.Info($"\"{caller.FullName}\" triggered a context action: {nameof(AddDynamicEvent)}(\"{addDynamicEvent.Name} ({addDynamicEvent.Id})\").");
+        await (this.RequestAddDynamicEvent?.Invoke(this, new ContextEventArgs<AddDynamicEvent>(caller, addDynamicEvent)) ?? Task.FromException(new NotImplementedException()));
+    }
+
+    /// <summary>
+    /// Removes a dynamic event with the specified id.
+    /// </summary>
+    /// <param name="id">The id of the dynamic event to delete.</param>
+    public async Task RemoveDynamicEvent(Guid id)
+    {
+        this.CheckReady();
+        var caller = this.GetCaller();
+
+        this.Logger.Info($"\"{caller.FullName}\" triggered a context action: {nameof(RemoveDynamicEvent)}(\"{id}\").");
+        await (this.RequestRemoveDynamicEvent?.Invoke(this, new ContextEventArgs<Guid>(caller, id)) ?? Task.FromException(new NotImplementedException()));
     }
 }

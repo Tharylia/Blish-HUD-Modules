@@ -4,6 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Extensions;
+using Estreya.BlishHUD.Shared.Threading.Events;
 using Microsoft.Xna.Framework;
 using Models;
 using MonoGame.Extended.BitmapFonts;
@@ -54,6 +55,9 @@ public class AreaSettingsView : BaseSettingsView
 
     public event EventHandler<AddAreaEventArgs> AddArea;
     public event EventHandler<EventAreaConfiguration> RemoveArea;
+    public event AsyncEventHandler<EventAreaConfiguration> SyncEnabledEventsToReminders;
+    public event AsyncEventHandler<EventAreaConfiguration> SyncEnabledEventsFromReminders;
+    public event AsyncEventHandler<EventAreaConfiguration> SyncEnabledEventsToOtherAreas;
 
     private void LoadConfigurations()
     {
@@ -294,6 +298,10 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(settingsPanel);
 
         this.RenderFillerSettings(settingsPanel, areaConfiguration);
+
+        this.RenderEmptyLine(settingsPanel);
+
+        this.RenderSynchronizationSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -641,6 +649,80 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderColorSetting(groupPanel, areaConfiguration.FillerShadowColor);
         this.RenderFloatSetting(groupPanel, areaConfiguration.FillerShadowOpacity);
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+    private void RenderSynchronizationSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    {
+        FlowPanel groupPanel = new FlowPanel
+        {
+            Parent = settingsPanel,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = settingsPanel.Width - 30,
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-synchronization", "Synchronization")
+        };
+
+        this.RenderButtonAsync(groupPanel, "Sync enabled Events to Reminders",
+            async () =>
+            {
+                var confirmDialog = new ConfirmDialog(
+                    "Synchronizing",
+                    "You are in the process of synchronizing the enabled events of this area to the reminders.\n\nThis will override all previously configured enabled/disabled reminder settings.",
+                    this.IconService)
+                {
+                    SelectedButtonIndex = 1 // Preselect cancel
+                };
+
+                var confirmResult = await confirmDialog.ShowDialog();
+                if (confirmResult != DialogResult.OK) return;
+
+                await (this.SyncEnabledEventsToReminders?.Invoke(this, areaConfiguration) ?? Task.FromException(new NotImplementedException()));
+
+                Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
+            });
+
+        this.RenderButtonAsync(groupPanel, "Sync enabled Events from Reminders",
+            async () =>
+            {
+                var confirmDialog = new ConfirmDialog(
+                    "Synchronizing",
+                    "You are in the process of synchronizing the enabled events for reminders to this area.\n\nThis will override all previously configured enabled/disabled event settings of this area.",
+                    this.IconService)
+                {
+                    SelectedButtonIndex = 1 // Preselect cancel
+                };
+
+                var confirmResult = await confirmDialog.ShowDialog();
+                if (confirmResult != DialogResult.OK) return;
+
+                await (this.SyncEnabledEventsFromReminders?.Invoke(this, areaConfiguration) ?? Task.FromException(new NotImplementedException()));
+
+                Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
+            });
+
+        this.RenderButtonAsync(groupPanel, "Sync enabled Events to other Areas",
+            async () =>
+            {
+                var confirmDialog = new ConfirmDialog(
+                    "Synchronizing",
+                    "You are in the process of synchronizing the enabled events of this area to all other areas.\n\nThis will override all previously configured enabled/disabled event settings of other areas.",
+                    this.IconService)
+                {
+                    SelectedButtonIndex = 1 // Preselect cancel
+                };
+
+                var confirmResult = await confirmDialog.ShowDialog();
+                if (confirmResult != DialogResult.OK) return;
+
+                await (this.SyncEnabledEventsToOtherAreas?.Invoke(this, areaConfiguration) ?? Task.FromException(new NotImplementedException()));
+
+                Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
+            });
+
+        this.RenderEmptyLine(groupPanel, (int)groupPanel.OuterControlPadding.Y); // Fake bottom padding
     }
 
     private void ReorderEvents(EventAreaConfiguration configuration)

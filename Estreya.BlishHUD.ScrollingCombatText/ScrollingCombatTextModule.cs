@@ -34,7 +34,7 @@ public class ScrollingCombatTextModule : BaseModule<ScrollingCombatTextModule, M
     [ImportingConstructor]
     public ScrollingCombatTextModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string UrlModuleName => "scrolling-combat-text";
+    protected override string UrlModuleName => "scrolling-combat-text";
 
     protected override string API_VERSION_NO => "1";
 

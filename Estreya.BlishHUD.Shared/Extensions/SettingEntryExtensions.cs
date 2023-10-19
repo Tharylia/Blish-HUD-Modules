@@ -1,11 +1,49 @@
 ﻿namespace Estreya.BlishHUD.Shared.Extensions;
 
+using Blish_HUD;
 using Blish_HUD.Settings;
+using Newtonsoft.Json;
+using System.Collections.Concurrent;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 public static class SettingEntryExtensions
 {
+    private static Logger _logger = Logger.GetLogger(typeof(SettingEntryExtensions));
+    private static ConcurrentDictionary<string, Delegate> _loggingDelegates = new ConcurrentDictionary<string, Delegate>();
+
+    public static void AddLoggingEvent<T>(this SettingEntry<T> setting)
+    {
+        if (_loggingDelegates.ContainsKey(setting.EntryKey)) return;
+
+        var handlerMethodInfo = typeof(SettingEntryExtensions).GetMethod(nameof(OnSettingChanged), BindingFlags.NonPublic | BindingFlags.Static);
+
+        var eventInfo = setting.GetType().GetEvent(nameof(SettingEntry<object>.SettingChanged));
+        var handlerDelegate = Delegate.CreateDelegate(eventInfo.EventHandlerType, handlerMethodInfo.MakeGenericMethod(setting.SettingType));
+
+        eventInfo.AddEventHandler(setting, handlerDelegate);
+
+        _loggingDelegates.AddOrUpdate(setting.EntryKey, handlerDelegate, (key, old) => handlerDelegate);
+    }
+
+    public static void RemoveLoggingEvent<T>(this SettingEntry<T> setting)
+    {
+        if (!_loggingDelegates.TryRemove(setting.EntryKey, out var handlerDelegate)) return;
+
+        var eventInfo = setting.GetType().GetEvent(nameof(SettingEntry<object>.SettingChanged));
+        eventInfo.RemoveEventHandler(setting, handlerDelegate);
+    }
+
+    private static void OnSettingChanged<T>(object sender, ValueChangedEventArgs<T> e)
+    {
+        SettingEntry<T> settingEntry = (SettingEntry<T>)sender;
+        string prevValue = e.PreviousValue is string ? e.PreviousValue.ToString() : JsonConvert.SerializeObject(e.PreviousValue);
+        string newValue = e.NewValue is string ? e.NewValue.ToString() : JsonConvert.SerializeObject(e.NewValue);
+        _logger.Debug($"Changed setting \"{settingEntry.EntryKey}\" from \"{prevValue}\" to \"{newValue}\"");
+    }
+
     public static float GetValue(this SettingEntry<float> settingEntry)
     {
         if (settingEntry == null)

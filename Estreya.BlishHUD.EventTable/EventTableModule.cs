@@ -56,13 +56,13 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     private ConcurrentDictionary<string, EventArea> _areas;
     private List<EventCategory> _eventCategories;
-    private List<EventCategory> _temporaryEventCategories = new List<EventCategory>(); // Added by context
 
     private readonly AsyncLock _eventCategoryLock = new AsyncLock();
     private double _lastCheckDrawerSettings;
     private AsyncRef<double> _lastEventUpdate;
 
     private EventTableContext _eventTableContext;
+    private ContextManager _contextManager;
     private ContextsService.ContextHandle<EventTableContext> _eventTableContextHandle;
 
     [ImportingConstructor]
@@ -70,7 +70,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
     }
 
-    public override string UrlModuleName => "event-table";
+    protected override string UrlModuleName => "event-table";
 
     protected override bool FailIfBackendDown => true;
 
@@ -181,153 +181,24 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         this._eventTableContext = new EventTableContext();
-        this._eventTableContext.RequestAddCategory += this.EventTableContext_RequestAddCategory;
-        this._eventTableContext.RequestAddEvent += this.EventTableContext_RequestAddEvent;
-        this._eventTableContext.RequestRemoveCategory += this.EventTableContext_RequestRemoveCategory;
-        this._eventTableContext.RequestRemoveEvent += this.EventTableContext_RequestRemoveEvent;
-        this._eventTableContext.RequestReloadEvents += this.EventTableContext_RequestReloadEvents;
-        this._eventTableContext.RequestShowReminder += this.EventTableContext_RequestShowReminder;
+        this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService, this.IconService);
 
         this._eventTableContextHandle = GameService.Contexts.RegisterContext(this._eventTableContext);
         this.Logger.Info("Event Table context registered.");
     }
 
-    private Task EventTableContext_RequestShowReminder(object sender, ContextEventArgs<ShowReminder> e)
+    private async Task ReloadEvents()
     {
-        ShowReminder eArgsContent = e.Content;
-        EventNotification notification = new EventNotification(null,
-            eArgsContent.Title,
-            eArgsContent.Message,
-            !string.IsNullOrWhiteSpace(eArgsContent.Icon) ? this.IconService.GetIcon(eArgsContent.Icon) : null,
-            this.ModuleSettings.ReminderPosition.X.Value,
-            this.ModuleSettings.ReminderPosition.Y.Value,
-            this.ModuleSettings.ReminderStackDirection.Value,
-            this.IconService,
-            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
-        { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
-        notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
-
-        return Task.CompletedTask;
-    }
-
-    private async Task EventTableContext_RequestReloadEvents(object sender, ContextEventArgs e)
-    {
-        this.Logger.Info($"\"{e.Caller.FullName}\" trggered a event reload via context.");
         this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
 
         await AsyncHelper.WaitUntil(() => this._lastEventUpdate.Value < _updateEventsInterval.TotalMilliseconds, TimeSpan.FromSeconds(15));
-    }
-
-    private async Task EventTableContext_RequestRemoveEvent(object sender, ContextEventArgs<RemoveEvent> e)
-    {
-        RemoveEvent eArgsContent = e.Content;
-        using (await this._eventCategoryLock.LockAsync())
-        {
-            var category = this._temporaryEventCategories.FirstOrDefault(ec => ec.Key == eArgsContent.CategoryKey)
-                ?? throw new ArgumentException($"Category with key \"{eArgsContent.CategoryKey}\" does not exist.");
-
-            if (!category.Events.Any(ev => ev.Key == eArgsContent.EventKey)) throw new ArgumentException($"Event with the key \"{eArgsContent.EventKey}\" does not exist.");
-
-            category.UpdateOriginalEvents(category.OriginalEvents.Where(ev => ev.Key != eArgsContent.EventKey).ToList());
-            category.UpdateFillers(category.FillerEvents.Where(ev => ev.Key != eArgsContent.EventKey).ToList());
-
-            this.Logger.Info($"Event \"{eArgsContent.EventKey}\" of category \"{eArgsContent.CategoryKey}\" was removed via context.");
-        }
-    }
-
-    private async Task EventTableContext_RequestRemoveCategory(object sender, ContextEventArgs<string> e)
-    {
-        using (await this._eventCategoryLock.LockAsync())
-        {
-            var category = this._temporaryEventCategories.FirstOrDefault(ec => ec.Key == e.Content)
-                ?? throw new ArgumentException($"Category with key \"{e.Content}\" does not exist.");
-
-            this._temporaryEventCategories.Remove(category);
-
-            this.Logger.Info($"Category \"{category.Name}\" ({category.Key}) was removed via context.");
-        }
-    }
-
-    private async Task EventTableContext_RequestAddEvent(object sender, ContextEventArgs<AddEvent> e)
-    {
-        AddEvent eArgsContent = e.Content;
-        using (await this._eventCategoryLock.LockAsync())
-        {
-            var category = this._temporaryEventCategories.FirstOrDefault(ec => ec.Key == eArgsContent.CategoryKey)
-                ?? throw new ArgumentException($"Category with key \"{eArgsContent.Key}\" does not exist.");
-
-            if (category.Events.Any(ev => ev.Key == eArgsContent.Key)) throw new ArgumentException($"Event with the key \"{eArgsContent.Key}\" already exists.");
-
-            var newEvent = new Event()
-            {
-                Key = eArgsContent.Key,
-                Name = eArgsContent.Name,
-                APICode = eArgsContent.APICode,
-                APICodeType = eArgsContent.APICodeType,
-                BackgroundColorCode = eArgsContent.BackgroundColorCode,
-                BackgroundColorGradientCodes = eArgsContent.BackgroundColorGradientCodes,
-                Duration = eArgsContent.Duration,
-                Filler = eArgsContent.Filler,
-                Icon = eArgsContent.Icon,
-                Location = eArgsContent.Location,
-                MapIds = eArgsContent.MapIds,
-                Offset = eArgsContent.Offset,
-                Repeat = eArgsContent.Repeat,
-                StartingDate = eArgsContent.StartingDate,
-                Waypoint = eArgsContent.Waypoint,
-                Wiki = eArgsContent.Wiki,
-            };
-
-            if (eArgsContent.Occurences != null)
-            {
-                newEvent.Occurences.AddRange(eArgsContent.Occurences);
-            }
-
-            if (eArgsContent.ReminderTimes != null)
-            {
-                newEvent.UpdateReminderTimes(eArgsContent.ReminderTimes);
-            }
-
-            // Event is loaded in LoadEvents
-
-            if (newEvent.Filler)
-            {
-                category.UpdateFillers(new List<Event>(category.FillerEvents) { newEvent });
-            }
-            else
-            {
-                category.UpdateOriginalEvents(new List<Event>(category.OriginalEvents) { newEvent });
-            }
-
-            this.Logger.Info($"Event \"{eArgsContent.Name}\" ({eArgsContent.Key}) of category \"{category.Name}\" ({category.Key}) was registered via context.");
-        }
-    }
-
-    private async Task EventTableContext_RequestAddCategory(object sender, ContextEventArgs<AddCategory> e)
-    {
-        AddCategory eArgsContent = e.Content;
-        using (await this._eventCategoryLock.LockAsync())
-        {
-            if (this._temporaryEventCategories.Any(ec => ec.Key == eArgsContent.Key)) throw new ArgumentException($"Category with key \"{eArgsContent.Key}\" already exists.");
-
-            this._temporaryEventCategories.Add(new EventCategory()
-            {
-                Key = eArgsContent.Key,
-                Name = eArgsContent.Name,
-                Icon = eArgsContent.Icon,
-                ShowCombined = eArgsContent.ShowCombined,
-                FromContext = true
-            });
-
-            this.Logger.Info($"Category \"{eArgsContent.Name}\" ({eArgsContent.Key}) was registered via context.");
-        }
     }
 
     /// <summary>
     ///     Reloads all events.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task LoadEvents()
+    private async Task LoadEvents()
     {
         this.Logger.Info("Load events...");
         using (await this._eventCategoryLock.LockAsync())
@@ -353,11 +224,12 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
                 this.Logger.Info($"Loaded {eventCategoryCount} Categories with {eventCount} Events.");
 
-                if (this._temporaryEventCategories is not null && this._temporaryEventCategories.Count > 0)
+                var contextEvents = this._contextManager?.GetContextCategories();
+                if (contextEvents is not null && contextEvents.Count > 0)
                 {
-                    this.Logger.Info($"Include {this._temporaryEventCategories.Count} temporary categories with {this._temporaryEventCategories.Sum(ec => ec.Events?.Count ?? 0)}.");
+                    this.Logger.Info($"Include {contextEvents.Count} context categories with {contextEvents.Sum(ec => ec.Events?.Count ?? 0)} events.");
 
-                    categories.AddRange(this._temporaryEventCategories);
+                    categories.AddRange(contextEvents);
                 }
 
                 categories.ForEach(ec =>
@@ -480,6 +352,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         this.DynamicEventHandler.Update(gameTime);
+        this._contextManager.Update(gameTime);
 
         UpdateUtil.Update(this.CheckDrawerSettings, gameTime, _checkDrawerSettingInterval.TotalMilliseconds, ref this._lastCheckDrawerSettings);
         _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
@@ -602,11 +475,18 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             $"{startsInTranslation} {e.Humanize(2, minUnit: TimeUnit.Second)}!",
             this.ModuleSettings.ReminderPosition.X.Value,
             this.ModuleSettings.ReminderPosition.Y.Value,
+            this.ModuleSettings.ReminderSize.X.Value,
+            this.ModuleSettings.ReminderSize.Y.Value,
+            this.ModuleSettings.ReminderSize.Icon.Value,
             this.ModuleSettings.ReminderStackDirection.Value,
+            this.ModuleSettings.ReminderFonts.TitleSize.Value,
+            this.ModuleSettings.ReminderFonts.MessageSize.Value,
             this.IconService,
-            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
+            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None
+            || this.ModuleSettings.ReminderRightClickAction.Value != Models.Reminders.EventReminderRightClickAction.None)
         { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
         notification.Click += this.EventNotification_Click;
+        notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
         notification.Disposed += this.EventNotification_Disposed;
         notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
     }
@@ -615,6 +495,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
         var notification = sender as EventNotification;
         notification.Click -= this.EventNotification_Click;
+        notification.RightMouseButtonPressed -= this.EventNotification_RightMouseButtonPressed;
         notification.Disposed -= this.EventNotification_Disposed;
     }
 
@@ -661,6 +542,17 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                         ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
                     }
                 });
+                break;
+        }
+    }
+
+    private void EventNotification_RightMouseButtonPressed(object sender, MouseEventArgs e)
+    {
+        var notification = sender as EventNotification;
+        switch (this.ModuleSettings.ReminderRightClickAction.Value)
+        {
+            case Models.Reminders.EventReminderRightClickAction.Dismiss:
+                notification?.Dispose();
                 break;
         }
     }
@@ -785,6 +677,32 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.RemoveArea(e);
         };
 
+        areaSettingsView.SyncEnabledEventsToReminders += (s, e) =>
+        {
+            this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(e.DisabledEventKeys.Value);
+            return Task.CompletedTask;
+        };
+
+        areaSettingsView.SyncEnabledEventsFromReminders += (s, e) =>
+        {
+            e.DisabledEventKeys.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value);
+            return Task.CompletedTask;
+        };
+
+        areaSettingsView.SyncEnabledEventsToOtherAreas += (s, e) =>
+        {
+            if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");
+
+            foreach (EventArea area in this._areas.Values)
+            {
+                if (area.Configuration.Name == e.Name) continue;
+
+                area.Configuration.DisabledEventKeys.Value = new List<string>(e.DisabledEventKeys.Value);
+            }
+
+            return Task.CompletedTask;
+        };
+
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("605018.png"),
             () => areaSettingsView,
@@ -889,7 +807,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     private BitmapFont _defaultFont;
 
-    public override BitmapFont Font
+    protected override BitmapFont Font
     {
         get
         {
@@ -905,6 +823,15 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
     }
 
+    private void UnloadContext()
+    {
+        this._eventTableContextHandle?.Expire();
+        this.Logger.Info("Event Table context expired.");
+        this._contextManager?.Dispose();
+        this._eventTableContext = null;
+        this._eventTableContextHandle = null;
+    }
+
     protected override void Unload()
     {
         this.Logger.Debug("Unload module.");
@@ -916,18 +843,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.DynamicEventHandler = null;
         }
 
-        this._eventTableContextHandle?.Expire();
-        this.Logger.Info("Event Table context expired.");
-        if (this._eventTableContext != null)
-        {
-            this._eventTableContext.RequestAddCategory -= this.EventTableContext_RequestAddCategory;
-            this._eventTableContext.RequestAddEvent -= this.EventTableContext_RequestAddEvent;
-            this._eventTableContext.RequestRemoveCategory -= this.EventTableContext_RequestRemoveCategory;
-            this._eventTableContext.RequestRemoveEvent -= this.EventTableContext_RequestRemoveEvent;
-            this._eventTableContext.RequestReloadEvents -= this.EventTableContext_RequestReloadEvents;
-            this._eventTableContext.RequestShowReminder -= this.EventTableContext_RequestShowReminder;
-            this._eventTableContext = null;
-        }
+        this.UnloadContext();
 
         this.MapUtil?.Dispose();
         this.MapUtil = null;

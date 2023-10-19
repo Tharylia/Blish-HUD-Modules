@@ -34,7 +34,7 @@ public class ValuableItemsModule : BaseModule<ValuableItemsModule, ModuleSetting
     [ImportingConstructor]
     public ValuableItemsModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string UrlModuleName => "valuable-items";
+    protected override string UrlModuleName => "valuable-items";
 
     protected override string API_VERSION_NO => "1";
 

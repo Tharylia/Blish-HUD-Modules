@@ -3,6 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Input;
 using Blish_HUD.Settings;
+using Estreya.BlishHUD.Shared.Extensions;
 using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework.Input;
 using Models;
@@ -151,7 +152,6 @@ public abstract class BaseModuleSettings
         this.GlobalSettings = settings.AddSubCollection(GLOBAL_SETTINGS);
 
         this.GlobalDrawerVisible = this.GlobalSettings.DefineSetting(nameof(this.GlobalDrawerVisible), true, () => "Global Visible", () => "Whether the modules drawers should be visible.");
-        this.GlobalDrawerVisible.SettingChanged += this.LogSettingChanged;
 
         bool globalHotkeyEnabled = this._globalEnabledKeybinding != null;
         if (this._globalEnabledKeybinding == null)
@@ -161,45 +161,33 @@ public abstract class BaseModuleSettings
         }
 
         this.GlobalDrawerVisibleHotkey = this.GlobalSettings.DefineSetting(nameof(this.GlobalDrawerVisibleHotkey), this._globalEnabledKeybinding, () => "Global Visible Hotkey", () => "Defines the hotkey used to toggle the global visibility.");
-        this.GlobalDrawerVisibleHotkey.SettingChanged += this.LogSettingChanged;
         this.GlobalDrawerVisibleHotkey.Value.Enabled = globalHotkeyEnabled;
         this.GlobalDrawerVisibleHotkey.Value.Activated += this.GlobalEnabledHotkey_Activated;
         this.GlobalDrawerVisibleHotkey.Value.IgnoreWhenInTextField = true;
         this.GlobalDrawerVisibleHotkey.Value.BlockSequenceFromGw2 = globalHotkeyEnabled;
 
         this.RegisterCornerIcon = this.GlobalSettings.DefineSetting(nameof(this.RegisterCornerIcon), true, () => "Register Corner Icon", () => "Whether the module should register a corner icon.");
-        this.RegisterCornerIcon.SettingChanged += this.LogSettingChanged;
         this.RegisterCornerIcon.SettingChanged += this.RegisterCornerIcon_SettingChanged;
 
         this.CornerIconLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconLeftClickAction), CornerIconClickAction.Settings, () => "Corner Icon Left Click Action", () => "Defines the action of the corner icon when left clicked.");
-        this.CornerIconLeftClickAction.SettingChanged += this.LogSettingChanged;
 
         this.CornerIconRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.CornerIconRightClickAction), CornerIconClickAction.None, () => "Corner Icon Right Click Action", () => "Defines the action of the corner icon when right clicked.");
-        this.CornerIconRightClickAction.SettingChanged += this.LogSettingChanged;
 
         this.HideOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideOnOpenMap), true, () => "Hide on open Map", () => "Whether the modules drawers should hide when the map is open.");
-        this.HideOnOpenMap.SettingChanged += this.LogSettingChanged;
 
         this.HideOnMissingMumbleTicks = this.GlobalSettings.DefineSetting(nameof(this.HideOnMissingMumbleTicks), true, () => "Hide on Cutscenes", () => "Whether the modules drawers should hide when cutscenes are played.");
-        this.HideOnMissingMumbleTicks.SettingChanged += this.LogSettingChanged;
 
         this.HideInCombat = this.GlobalSettings.DefineSetting(nameof(this.HideInCombat), false, () => "Hide in Combat", () => "Whether the modules drawers should hide when in combat.");
-        this.HideInCombat.SettingChanged += this.LogSettingChanged;
 
         this.HideInPvE_OpenWorld = this.GlobalSettings.DefineSetting(nameof(this.HideInPvE_OpenWorld), false, () => "Hide in PvE (Open World)", () => "Whether the drawers should hide when in PvE (Open World).");
-        this.HideInPvE_OpenWorld.SettingChanged += this.LogSettingChanged;
 
         this.HideInPvE_Competetive = this.GlobalSettings.DefineSetting(nameof(this.HideInPvE_Competetive), false, () => "Hide in PvE (Competetive)", () => "Whether the drawers should hide when in PvE (Competetive).");
-        this.HideInPvE_Competetive.SettingChanged += this.LogSettingChanged;
 
         this.HideInWvW = this.GlobalSettings.DefineSetting(nameof(this.HideInWvW), false, () => "Hide in WvW", () => "Whether the drawers should hide when in world vs. world.");
-        this.HideInWvW.SettingChanged += this.LogSettingChanged;
 
         this.HideInPvP = this.GlobalSettings.DefineSetting(nameof(this.HideInPvP), false, () => "Hide in PvP", () => "Whether the drawers should hide when in player vs. player.");
-        this.HideInPvP.SettingChanged += this.LogSettingChanged;
 
         this.DebugEnabled = this.GlobalSettings.DefineSetting(nameof(this.DebugEnabled), false, () => "Debug Enabled", () => "Whether the module runs in debug mode.");
-        this.DebugEnabled.SettingChanged += this.LogSettingChanged;
 
         this.BlishAPIUsername = this.GlobalSettings.DefineSetting(nameof(this.BlishAPIUsername), (string)null, () => "Blish API Username", () => "Defines the login username for the Estreya Blish HUD API.");
 
@@ -211,6 +199,8 @@ public abstract class BaseModuleSettings
         this.HandleEnabledStates();
 
         this.DoInitializeGlobalSettings(this.GlobalSettings);
+
+        this.GlobalSettings.AddLoggingEvents();
     }
 
     /// <summary>
@@ -303,7 +293,7 @@ public abstract class BaseModuleSettings
             Opacity = opacity,
             BackgroundColor = backgroundColor,
             FontSize = fontSize,
-            FontFace=fontFace,
+            FontFace = fontFace,
             CustomFontPath = customFontPath,
             TextColor = textColor
         };
@@ -515,28 +505,8 @@ public abstract class BaseModuleSettings
     /// </summary>
     public virtual void Unload()
     {
-        // Global Settings
-        this.GlobalDrawerVisible.SettingChanged -= this.LogSettingChanged;
-        this.GlobalDrawerVisibleHotkey.SettingChanged -= this.LogSettingChanged;
-        this.GlobalDrawerVisibleHotkey.Value.Enabled = false;
-        this.GlobalDrawerVisibleHotkey.Value.Activated -= this.GlobalEnabledHotkey_Activated;
-        this.RegisterCornerIcon.SettingChanged -= this.LogSettingChanged;
-        this.RegisterCornerIcon.SettingChanged -= this.RegisterCornerIcon_SettingChanged;
-        this.HideOnOpenMap.SettingChanged -= this.LogSettingChanged;
-        this.HideOnMissingMumbleTicks.SettingChanged -= this.LogSettingChanged;
-        this.HideInPvE_OpenWorld.SettingChanged -= this.LogSettingChanged;
-        this.HideInPvE_Competetive.SettingChanged -= this.LogSettingChanged;
-        this.HideInCombat.SettingChanged -= this.LogSettingChanged;
-        this.HideInPvP.SettingChanged -= this.LogSettingChanged;
-        this.DebugEnabled.SettingChanged -= this.LogSettingChanged;
-    }
-
-    protected void LogSettingChanged<T>(object sender, ValueChangedEventArgs<T> e)
-    {
-        SettingEntry<T> settingEntry = (SettingEntry<T>)sender;
-        string prevValue = e.PreviousValue is string ? e.PreviousValue.ToString() : JsonConvert.SerializeObject(e.PreviousValue);
-        string newValue = e.NewValue is string ? e.NewValue.ToString() : JsonConvert.SerializeObject(e.NewValue);
-        this.Logger.Debug($"Changed setting \"{settingEntry.EntryKey}\" from \"{prevValue}\" to \"{newValue}\"");
+        this.GlobalSettings.RemoveLoggingEvents();
+        this.DrawerSettings.RemoveLoggingEvents();
     }
 
     #region Global Settings

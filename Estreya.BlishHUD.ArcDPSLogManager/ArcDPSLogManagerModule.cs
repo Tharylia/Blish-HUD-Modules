@@ -37,7 +37,7 @@ public class ArcDPSLogManagerModule : BaseModule<ArcDPSLogManagerModule, ModuleS
     [ImportingConstructor]
     public ArcDPSLogManagerModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string UrlModuleName => "arcdps-log-manager";
+    protected override string UrlModuleName => "arcdps-log-manager";
 
     protected override string API_VERSION_NO => "1";
 
