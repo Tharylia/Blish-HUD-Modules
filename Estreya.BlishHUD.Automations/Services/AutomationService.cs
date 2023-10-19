@@ -87,15 +87,16 @@ public abstract class AutomationService<TAutomation, TActionInput> : ManagedServ
     {
         const int maxEntries = 10;
         int processEntries = 0;
-        while (processEntries <= maxEntries && this._automationsQueue.TryDequeue(out var automation))
+        while (processEntries <= maxEntries && this._automationsQueue.TryDequeue(out var queueEntry))
         {
             try
             {
-                await this.ProcessAutomation(automation.Automation, automation.Input);
+                await this.ProcessAutomation(queueEntry.Automation, queueEntry.Input);
+                this.Logger.Debug(message: $"Executed automation \"{queueEntry.Automation.Name}\".");
             }
             catch (Exception ex)
             {
-                this.Logger.Warn(ex, $"Failed to execute automation \"{automation.Automation.Name}\".");
+                this.Logger.Warn(ex, $"Failed to execute automation \"{queueEntry.Automation.Name}\".");
             }
         }
     }
