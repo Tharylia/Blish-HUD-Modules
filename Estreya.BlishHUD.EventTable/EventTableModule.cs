@@ -482,7 +482,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.ModuleSettings.ReminderFonts.TitleSize.Value,
             this.ModuleSettings.ReminderFonts.MessageSize.Value,
             this.IconService,
-            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None 
+            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None
             || this.ModuleSettings.ReminderRightClickAction.Value != Models.Reminders.EventReminderRightClickAction.None)
         { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
         notification.Click += this.EventNotification_Click;
@@ -675,6 +675,32 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         areaSettingsView.RemoveArea += (s, e) =>
         {
             this.RemoveArea(e);
+        };
+
+        areaSettingsView.SyncEnabledEventsToReminders += (s, e) =>
+        {
+            this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(e.DisabledEventKeys.Value);
+            return Task.CompletedTask;
+        };
+
+        areaSettingsView.SyncEnabledEventsFromReminders += (s, e) =>
+        {
+            e.DisabledEventKeys.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value);
+            return Task.CompletedTask;
+        };
+
+        areaSettingsView.SyncEnabledEventsToOtherAreas += (s, e) =>
+        {
+            if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");
+
+            foreach (EventArea area in this._areas.Values)
+            {
+                if (area.Configuration.Name == e.Name) continue;
+
+                area.Configuration.DisabledEventKeys.Value = new List<string>(e.DisabledEventKeys.Value);
+            }
+
+            return Task.CompletedTask;
         };
 
         this.SettingsWindow.Tabs.Add(new Tab(
