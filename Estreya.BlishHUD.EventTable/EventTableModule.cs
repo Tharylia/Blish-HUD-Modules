@@ -482,7 +482,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.ModuleSettings.ReminderFonts.TitleSize.Value,
             this.ModuleSettings.ReminderFonts.MessageSize.Value,
             this.IconService,
-            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
+            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None 
+            || this.ModuleSettings.ReminderRightClickAction.Value != Models.Reminders.EventReminderRightClickAction.None)
         { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
         notification.Click += this.EventNotification_Click;
         notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
