@@ -62,6 +62,11 @@ public partial class DynamicEventService : APIService<DynamicEvent>
 
     public async Task AddCustomEvent(DynamicEvent dynamicEvent)
     {
+        if (dynamicEvent is null) throw new ArgumentNullException(nameof(dynamicEvent), "Dynamic event can't be null.");
+        if (string.IsNullOrWhiteSpace(dynamicEvent.ID)) throw new ArgumentNullException(nameof(dynamicEvent.ID), "Id can't be null or empty.");
+        if (string.IsNullOrWhiteSpace(dynamicEvent.Location?.Type)) throw new ArgumentNullException(nameof(dynamicEvent.Location.Type), "Location.Type can't be null or empty.");
+        if (dynamicEvent.MapId == 0) throw new ArgumentNullException(nameof(dynamicEvent.MapId), "Map id can't be empty.");
+
         this._customEvents.RemoveAll(e => e.ID == dynamicEvent.ID);
 
         dynamicEvent.IsCustom = true;
