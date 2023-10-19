@@ -31,7 +31,7 @@ public class FoodReminderModule : BaseModule<FoodReminderModule, ModuleSettings>
     [ImportingConstructor]
     public FoodReminderModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string UrlModuleName => "food-reminder";
+    protected override string UrlModuleName => "food-reminder";
 
     protected override string API_VERSION_NO => "1";
 

@@ -8,6 +8,7 @@ using Blish_HUD.Modules;
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Automations.Models.Automations.MapChange;
 using Estreya.BlishHUD.Automations.Services;
+using Estreya.BlishHUD.EventTable.Contexts;
 using Estreya.BlishHUD.Shared.Services;
 using Gw2Sharp.WebApi.V2.Models;
 using HandlebarsDotNet;
@@ -33,7 +34,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
     [ImportingConstructor]
     public AutomationsModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string UrlModuleName => "automations";
+    protected override string UrlModuleName => "automations";
 
     protected override string API_VERSION_NO => "1";
 

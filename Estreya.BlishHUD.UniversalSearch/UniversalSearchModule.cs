@@ -41,7 +41,7 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
     [ImportingConstructor]
     public UniversalSearchModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string UrlModuleName => "universal-search";
+    protected override string UrlModuleName => "universal-search";
 
     protected override string API_VERSION_NO => "1";
 

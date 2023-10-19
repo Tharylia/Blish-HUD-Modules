@@ -70,7 +70,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
     }
 
-    public override string UrlModuleName => "event-table";
+    protected override string UrlModuleName => "event-table";
 
     protected override bool FailIfBackendDown => true;
 
@@ -327,7 +327,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     ///     Reloads all events.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task LoadEvents()
+    private async Task LoadEvents()
     {
         this.Logger.Info("Load events...");
         using (await this._eventCategoryLock.LockAsync())
@@ -894,7 +894,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     private BitmapFont _defaultFont;
 
-    public override BitmapFont Font
+    protected override BitmapFont Font
     {
         get
         {

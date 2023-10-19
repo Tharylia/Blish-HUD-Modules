@@ -32,7 +32,7 @@ public class BrowserModule : BaseModule<BrowserModule, ModuleSettings>
     [ImportingConstructor]
     public BrowserModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string UrlModuleName => "browser";
+    protected override string UrlModuleName => "browser";
 
     protected override string API_VERSION_NO => "1";
 

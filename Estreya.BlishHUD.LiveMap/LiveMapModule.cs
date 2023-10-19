@@ -55,7 +55,7 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
 
     public string GuildId { get; private set; }
 
-    public override string UrlModuleName => "live-map";
+    protected override string UrlModuleName => "live-map";
 
     protected override string API_VERSION_NO => "1";
 

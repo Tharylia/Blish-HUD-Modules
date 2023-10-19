@@ -54,7 +54,7 @@ public class LookingForGroupModule : BaseModule<LookingForGroupModule, ModuleSet
     {
     }
 
-    public override string UrlModuleName => "looking-for-group";
+    protected override string UrlModuleName => "looking-for-group";
 
     protected override string API_VERSION_NO => "1";
 

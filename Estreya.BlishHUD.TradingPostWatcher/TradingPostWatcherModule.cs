@@ -36,7 +36,7 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
     [ImportingConstructor]
     public TradingPostWatcherModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    public override string UrlModuleName => "trading-post-watcher";
+    protected override string UrlModuleName => "trading-post-watcher";
 
     protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
     {
