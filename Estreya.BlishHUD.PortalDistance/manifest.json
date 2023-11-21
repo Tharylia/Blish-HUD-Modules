@@ -1,6 +1,6 @@
 {
   "name": "Portal Distance",
-  "version": "0.1.0-beta.1",
+  "version": "1.0.0",
   "namespace": "estreya.bh.portalDistance",
   "package": "Estreya.BlishHUD.PortalDistance.dll",
   "manifest_version": 1,
