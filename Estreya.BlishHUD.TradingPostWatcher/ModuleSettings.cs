@@ -12,7 +12,7 @@ using System.Collections.Generic;
 public class ModuleSettings : BaseModuleSettings
 {
     public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.T)) { }
-    public SettingEntry<List<string>> AreaNames { get; set; }
+    public SettingEntry<List<string>> AreaNames { get; private set; }
 
     protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
     {

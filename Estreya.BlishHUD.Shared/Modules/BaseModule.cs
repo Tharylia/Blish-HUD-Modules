@@ -9,6 +9,8 @@ using Blish_HUD.Input;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
+using Estreya.BlishHUD.Shared.Controls.Input;
+using Estreya.BlishHUD.Shared.Services.TradingPost;
 using Exceptions;
 using Extensions;
 using Flurl.Http;
@@ -90,6 +92,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected virtual bool FailIfBackendDown { get; }
 
+    protected virtual bool EnableMetrics => false;
+
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
 
     private ModuleSettingsView _defaultSettingView;
@@ -154,13 +158,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected PointOfInterestService PointOfInterestService { get; private set; }
     protected AccountService AccountService { get; private set; }
     protected SkillService SkillService { get; private set; }
-    protected TradingPostService TradingPostService { get; private set; }
+    protected PlayerTransactionsService PlayerTransactionsService { get; private set; }
+    protected TransactionsService TransactionsService { get; private set; }
     protected ItemService ItemService { get; private set; }
     protected ArcDPSService ArcDPSService { get; private set; }
     protected BlishHudApiService BlishHUDAPIService { get; private set; }
 
     protected AchievementService AchievementService { get; private set; }
     protected AccountAchievementService AccountAchievementService { get; private set; }
+
+    protected MetricsService MetricsService { get; private set; }
 
     #endregion
 
@@ -223,8 +230,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         await this.ThrowIfModuleInvalid(true);
 
-        this.Logger.Debug("Initialize states");
         await Task.Factory.StartNew(this.InitializeServices, TaskCreationOptions.LongRunning).Unwrap();
+
+        if (this.EnableMetrics)
+        {
+            await this.MetricsService.AskMetricsConsent();
+        }
 
         this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY, GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconService, this.TranslationService, this.ModuleSettings);
 
@@ -319,6 +330,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// <exception cref="ArgumentNullException">Gets thrown if the directory path could not be loaded for depending services.</exception>
     private async Task InitializeServices()
     {
+        this.Logger.Debug("Initialize states");
         string directoryName = this.GetDirectoryName();
 
         string directoryPath = null;
@@ -378,16 +390,29 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             }, this.GetFlurlClient(), this.MODULE_FILE_URL);
             this._services.Add(this.NewsService);
 
+            this.MetricsService = new MetricsService(new ServiceConfiguration
+            {
+                Enabled = true,
+                AwaitLoading = true
+            }, this.GetFlurlClient(), API_ROOT_URL,this.Name, this.Namespace,this.Version, this.ModuleSettings, this.IconService);
+            this._services.Add(this.MetricsService);
+
             if (configurations.Items.Enabled)
             {
                 this.ItemService = new ItemService(configurations.Items, this.Gw2ApiManager, directoryPath);
                 this._services.Add(this.ItemService);
             }
 
-            if (configurations.TradingPost.Enabled)
+            if (configurations.PlayerTransactions.Enabled)
             {
-                this.TradingPostService = new TradingPostService(configurations.TradingPost, this.Gw2ApiManager, this.ItemService);
-                this._services.Add(this.TradingPostService);
+                this.PlayerTransactionsService = new PlayerTransactionsService(configurations.PlayerTransactions, this.ItemService, this.Gw2ApiManager);
+                this._services.Add(this.PlayerTransactionsService);
+            }
+
+            if (configurations.Transactions.Enabled)
+            {
+                this.TransactionsService = new TransactionsService(configurations.Transactions, this.ItemService, this.Gw2ApiManager);
+                this._services.Add(this.TransactionsService);
             }
 
             if (configurations.Worldbosses.Enabled)
@@ -647,6 +672,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Finished building settings window.");
 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
+
+        _ = this.MetricsService.SendMetricAsync("loaded");
     }
 
     /// <summary>
@@ -884,7 +911,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             this.PointOfInterestService = null;
             this.SettingEventService = null;
             this.SkillService = null;
-            this.TradingPostService = null;
+            this.PlayerTransactionsService = null;
+            this.TransactionsService = null;
             this.TranslationService = null;
         }
 

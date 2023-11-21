@@ -13,10 +13,12 @@ using System.Threading.Tasks;
 public class GeneralSettingsView : BaseSettingsView
 {
     private readonly ModuleSettings _moduleSettings;
+    private readonly MetricsService _metricsService;
 
-    public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
+    public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, MetricsService metricsService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._moduleSettings = moduleSettings;
+        this._metricsService = metricsService;
     }
 
     protected override void BuildView(FlowPanel parent)
@@ -30,6 +32,10 @@ public class GeneralSettingsView : BaseSettingsView
         this.RenderEmptyLine(parent);
 
         this.RenderBoolSetting(parent, this._moduleSettings.RegisterContext);
+        this.RenderButtonAsync(parent, "Change Metrics Consent", async () =>
+        {
+            await this._metricsService.AskMetricsConsent(true);
+        });
 
         this.RenderEmptyLine(parent);
 

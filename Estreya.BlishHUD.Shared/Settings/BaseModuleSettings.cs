@@ -10,6 +10,7 @@ using Models;
 using Models.Drawers;
 using MonoGame.Extended;
 using Newtonsoft.Json;
+using SemVer;
 using Services;
 using System;
 using System.Collections.Generic;
@@ -192,6 +193,12 @@ public abstract class BaseModuleSettings
         this.BlishAPIUsername = this.GlobalSettings.DefineSetting(nameof(this.BlishAPIUsername), (string)null, () => "Blish API Username", () => "Defines the login username for the Estreya Blish HUD API.");
 
         this.RegisterContext = this.GlobalSettings.DefineSetting(nameof(this.RegisterContext), true, () => "Register Context", () => "Whether the module should register an api context for cross module interaction. Requires a restart.");
+
+        this.SendMetrics = this.GlobalSettings.DefineSetting(nameof(this.SendMetrics), false, () => "Send Anonymous Metrics", () => "Allows the module to send anonymous metric data to a backend server to view advanced usage statistics.");
+
+        this.AskedMetricsConsent = this.GlobalSettings.DefineSetting(nameof(this.AskedMetricsConsent), false, () => "Asked Metrics Consent", () => "Whether the module asked for metric consent.");
+
+        this.MetricsConsentGivenVersion = this.GlobalSettings.DefineSetting(nameof(this.MetricsConsentGivenVersion), new SemVer.Version("0.0.0"), () => "Metrics Consent Version", () => "Defines the version at which point a metric consent was given.");
 
         //this.NotifiedNews = this.GlobalSettings.DefineSetting(nameof(this.NotifiedNews), new List<string>(), () => "Notified News", () => "The news already notified about.");
         //this.NotifyOnUnreadNews = this.GlobalSettings.DefineSetting(nameof(this.NotifyOnUnreadNews), true, () => "Notify on unread News", () => "Whether the module should notify you when new news arrive.");
@@ -529,6 +536,10 @@ public abstract class BaseModuleSettings
     public SettingEntry<string> BlishAPIUsername { get; private set; }
 
     public SettingEntry<bool> RegisterContext { get; private set; }
+
+    public SettingEntry<bool> SendMetrics { get; private set; }
+    public SettingEntry<bool> AskedMetricsConsent { get; private set; }
+    public SettingEntry<SemVer.Version> MetricsConsentGivenVersion { get; private set; }
 
     //public SettingEntry<bool> NotifyOnUnreadNews { get; private set; }
     //public SettingEntry<List<string>> NotifiedNews { get; private set; }

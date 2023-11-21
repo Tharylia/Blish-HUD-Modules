@@ -6,7 +6,7 @@
   "manifest_version": 1,
   "description": "Allows you to search for in game landmarks (waypoints, POIs, vistas, etc.), skills and traits and copy the chat codes into your clipboard or directly into the ingame chat.",
   "dependencies": {
-    "bh.blishhud": ">=1.0.0"
+    "bh.blishhud": "^1.0.0"
   },
   "url": "https://github.com/Tharylia/Blish-HUD-Modules",
   "contributors": [

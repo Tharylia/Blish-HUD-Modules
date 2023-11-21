@@ -16,9 +16,10 @@
     <Compile Include="$(MSBuildThisFileDirectory)Contexts\ContextEventArgs[T].cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Button.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Dropdown.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Input\ButtonDefinition.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapBorder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapCircle.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Controls\ConfirmDialog.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Input\ConfirmDialog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ControlMover.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\FlatMap.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\KeybindingAssigner.cs" />
@@ -39,6 +40,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\ModuleBackendUnavailableException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Exceptions\ModuleInvalidException.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ArrayExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\AsyncTexture2DExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\EnumExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\FontExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\GW2APIExtensions.cs" />
@@ -90,6 +92,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerSize.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\FontFace.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\CurrentTransaction.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\PriceRange.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\Transaction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\TransactionType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Converter\BottomUpRectangleConverter.cs" />
@@ -121,6 +124,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Services\AccountAchievementService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AchievementService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\FilesystemAPIService[T].cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\MetricsService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\TradingPost\PlayerTransactionsService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Settings\BaseModuleSettings.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AccountService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\APIService.cs" />
@@ -138,7 +143,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Services\SkillService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\ServiceConfiguration.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\ServiceConfigurations.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Services\TradingPostService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\TradingPost\TransactionsService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\TranslationService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\WorldbossService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\StandardWindow.cs" />

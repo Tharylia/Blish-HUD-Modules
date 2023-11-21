@@ -50,7 +50,8 @@ public abstract class BaseSettingsView : BaseView
             WidthSizingMode = SizingMode.Fill,
             HeightSizingMode = SizingMode.Fill,
             //AutoSizePadding = new Point(0, 15),
-            Parent = parent
+            Parent = parent,
+            CanScroll = true
         };
 
         this.BuildView(parentPanel);

@@ -79,56 +79,62 @@ public abstract class APIService<T> : APIService
 
                 this.APIObjectList.AddRange(apiObjects);
 
-                progress.Report($"Check what api objects are new.. 0/{apiObjects.Count}");
-                // Check if new api objects have been added.
-                for (int i = 0; i < apiObjects.Count; i++)
+                if (this.APIObjectAdded is not null) // Only check if event has been subscribed to
                 {
-                    progress.Report($"Check what api objects are new.. {i}/{apiObjects.Count}");
-
-                    T apiObject = apiObjects[i];
-
-                    if (!oldAPIObjectList.Any(oldApiObject => oldApiObject.GetHashCode() == apiObject.GetHashCode()))
+                    progress.Report($"Check what api objects are new.. 0/{apiObjects.Count}");
+                    // Check if new api objects have been added.
+                    for (int i = 0; i < apiObjects.Count; i++)
                     {
-                        if (apiObjects.Count <= 25)
-                        {
-                            this.Logger.Debug($"API Object added: {apiObject}");
-                        }
+                        progress.Report($"Check what api objects are new.. {i}/{apiObjects.Count}");
 
-                        try
+                        T apiObject = apiObjects[i];
+
+                        if (!oldAPIObjectList.Any(oldApiObject => oldApiObject.GetHashCode() == apiObject.GetHashCode()))
                         {
-                            this.APIObjectAdded?.Invoke(this, apiObject);
-                        }
-                        catch (Exception ex)
-                        {
-                            this.Logger.Error(ex, "Error handling api object added event:");
+                            if (apiObjects.Count <= 25)
+                            {
+                                this.Logger.Debug($"API Object added: {apiObject}");
+                            }
+
+                            try
+                            {
+                                this.APIObjectAdded?.Invoke(this, apiObject);
+                            }
+                            catch (Exception ex)
+                            {
+                                this.Logger.Error(ex, "Error handling api object added event:");
+                            }
                         }
                     }
                 }
 
-                progress.Report($"Check what api objects are removed.. 0/{oldAPIObjectList.Count}");
-                // Immediately after login the api still reports some objects as available because the account record has not been updated yet.
-                // After another request to the api they should disappear.
-                for (int i = oldAPIObjectList.Count - 1; i >= 0; i--)
+                if (this.APIObjectRemoved is not null) // Only check if event has been subscribed to
                 {
-                    progress.Report($"Check what api objects are removed.. {oldAPIObjectList.Count - i}/{oldAPIObjectList.Count}");
-                    T oldApiObject = oldAPIObjectList[i];
-
-                    if (!apiObjects.Any(apiObject => apiObject.GetHashCode() == oldApiObject.GetHashCode()))
+                    progress.Report($"Check what api objects are removed.. 0/{oldAPIObjectList.Count}");
+                    // Immediately after login the api still reports some objects as available because the account record has not been updated yet.
+                    // After another request to the api they should disappear.
+                    for (int i = oldAPIObjectList.Count - 1; i >= 0; i--)
                     {
-                        if (apiObjects.Count <= 25)
-                        {
-                            this.Logger.Debug($"API Object disappeared from the api: {oldApiObject}");
-                        }
+                        progress.Report($"Check what api objects are removed.. {oldAPIObjectList.Count - i}/{oldAPIObjectList.Count}");
+                        T oldApiObject = oldAPIObjectList[i];
 
-                        _ = oldAPIObjectList.Remove(oldApiObject);
+                        if (!apiObjects.Any(apiObject => apiObject.GetHashCode() == oldApiObject.GetHashCode()))
+                        {
+                            if (apiObjects.Count <= 25)
+                            {
+                                this.Logger.Debug($"API Object disappeared from the api: {oldApiObject}");
+                            }
 
-                        try
-                        {
-                            this.APIObjectRemoved?.Invoke(this, oldApiObject);
-                        }
-                        catch (Exception ex)
-                        {
-                            this.Logger.Error(ex, "Error handling api object removed event:");
+                            _ = oldAPIObjectList.Remove(oldApiObject);
+
+                            try
+                            {
+                                this.APIObjectRemoved?.Invoke(this, oldApiObject);
+                            }
+                            catch (Exception ex)
+                            {
+                                this.Logger.Error(ex, "Error handling api object removed event:");
+                            }
                         }
                     }
                 }

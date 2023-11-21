@@ -3,6 +3,7 @@
 using Blish_HUD;
 using Controls;
 using Humanizer;
+using Estreya.BlishHUD.Shared.Controls.Input;
 using Microsoft.Xna.Framework;
 using Octokit;
 using Security;

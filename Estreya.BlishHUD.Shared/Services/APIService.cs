@@ -33,6 +33,8 @@ public abstract class APIService : ManagedService
     protected new APIServiceConfiguration Configuration { get; }
     public bool Loading { get; protected set; }
 
+    public DateTimeOffset LastUpdated { get; protected set; }
+
     public string ProgressText { get; private set; } = string.Empty;
 
     /// <summary>
@@ -71,6 +73,12 @@ public abstract class APIService : ManagedService
     }
 
     protected virtual void DoUnload() { }
+
+    public override Task Reload()
+    {
+        this._timeSinceUpdate.Value = 0;
+        return base.Reload();
+    }
 
     protected sealed override void InternalUpdate(GameTime gameTime)
     {
@@ -141,6 +149,7 @@ public abstract class APIService : ManagedService
 
     protected void SignalUpdated()
     {
+        this.LastUpdated = DateTimeOffset.UtcNow;
         this.Updated?.Invoke(this, EventArgs.Empty);
     }
 

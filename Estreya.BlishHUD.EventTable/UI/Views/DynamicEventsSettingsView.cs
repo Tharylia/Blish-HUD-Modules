@@ -4,6 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Graphics;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Controls.Input;
 using Estreya.BlishHUD.EventTable.Models;
 using Flurl.Http;
 using Microsoft.Xna.Framework.Graphics;

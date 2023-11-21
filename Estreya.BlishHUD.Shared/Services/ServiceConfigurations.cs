@@ -56,7 +56,7 @@ public class ServiceConfigurations
         AwaitLoading = false
     };
 
-    public APIServiceConfiguration TradingPost { get; } = new APIServiceConfiguration
+    public APIServiceConfiguration PlayerTransactions { get; } = new APIServiceConfiguration
     {
         Enabled = false,
         AwaitLoading = false,
@@ -65,6 +65,13 @@ public class ServiceConfigurations
             TokenPermission.Account,
             TokenPermission.Tradingpost
         },
+        UpdateInterval = TimeSpan.FromMinutes(2)
+    };
+
+    public APIServiceConfiguration Transactions { get; } = new APIServiceConfiguration
+    {
+        Enabled = false,
+        AwaitLoading = false,
         UpdateInterval = TimeSpan.FromMinutes(2)
     };
 

@@ -7,6 +7,7 @@ using Controls;
 using Estreya.BlishHUD.EventTable.Models.Reminders;
 using Estreya.BlishHUD.Shared.Extensions;
 using Gw2Sharp.WebApi.V2.Models;
+using Humanizer.Localisation;
 using Microsoft.Xna.Framework.Input;
 using Models;
 using Shared.Models.Drawers;
@@ -46,9 +47,12 @@ public class ModuleSettings : BaseModuleSettings
 
     public SettingEntry<LeftClickAction> ReminderLeftClickAction { get; private set; }
     public SettingEntry<EventReminderRightClickAction> ReminderRightClickAction { get; private set; }
-    public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
+    public SettingEntry<TimeUnit> ReminderMinTimeUnit { get; private set; }
+    public SettingEntry<EventReminderStackDirection> ReminderStackDirection { get; private set; }
+    public SettingEntry<EventReminderStackDirection> ReminderOverflowStackDirection { get; private set; }
+    public SettingEntry<ReminderType> ReminderType { get; private set; }
+    public SettingEntry<bool> AcceptWaypointPrompt { get; private set; }
 
-    public SettingEntry<EventReminderStackDirection> ReminderStackDirection { get; set; }
 
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
@@ -121,10 +125,16 @@ public class ModuleSettings : BaseModuleSettings
 
         this.ReminderLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderLeftClickAction), LeftClickAction.CopyWaypoint, () => "Reminder Left Click Action", () => "Defines the action to execute on a left click.");
         this.ReminderRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderRightClickAction), EventReminderRightClickAction.Dismiss, () => "Reminder Right Click Action", () => "Defines the action to execute on a right click.");
+        
+        this.ReminderStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderStackDirection), Models.Reminders.EventReminderStackDirection.Down, () => "Reminder Stack Direction", () => "Defines the direction in which reminders stack.");
+        this.ReminderOverflowStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderOverflowStackDirection), Models.Reminders.EventReminderStackDirection.Right, () => "Reminder Overflow Stack Direction", () => "Defines the direction in which reminders stack if they overflow off the screen.");
+
+        this.ReminderMinTimeUnit = this.GlobalSettings.DefineSetting(nameof(this.ReminderMinTimeUnit), TimeUnit.Second, () => "Reminder min. Timeunit", () => "Defines what min. timeunit should be used for reminders.");
+        this.ReminderMinTimeUnit.SetIncluded(TimeUnit.Second, TimeUnit.Minute, TimeUnit.Hour);
+
+        this.ReminderType = this.GlobalSettings.DefineSetting(nameof(this.ReminderType), Models.Reminders.ReminderType.Control, () => "Reminder Type", () => "Defines what type the reminder should be displayed as.");
 
         this.AcceptWaypointPrompt = this.GlobalSettings.DefineSetting(nameof(this.AcceptWaypointPrompt), true, () => "Accept Waypoint Prompt", () => "Defines if the waypoint prompt should be auto accepted");
-
-        this.ReminderStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderStackDirection), Models.Reminders.EventReminderStackDirection.Down, () => "Reminder Stack Direction", () => "Defines the direction in which reminders stack.");
 
         this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 

@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.Shared.Services;
 
 using Blish_HUD;
+using Estreya.BlishHUD.Shared.Threading.Events;
 using Microsoft.Xna.Framework;
 using System;
 using System.Threading;
@@ -92,7 +93,7 @@ public abstract class ManagedService : IDisposable
     ///     Clears and reloads the state
     /// </summary>
     /// <returns></returns>
-    public async Task Reload()
+    public virtual async Task Reload()
     {
         if (!this.Running)
         {
