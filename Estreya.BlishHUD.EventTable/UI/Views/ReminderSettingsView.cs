@@ -1,7 +1,8 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Controls;
 using Controls;
 using Microsoft.Xna.Framework;
 using Models;
@@ -15,6 +16,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using Event = Models.Event;
 using StandardWindow = Shared.Controls.StandardWindow;
+using System.Windows.Forms;
+using Estreya.BlishHUD.Shared.Threading.Events;
+using Humanizer;
+using System.Runtime.CompilerServices;
+using Estreya.BlishHUD.Shared.Controls.Input;
+using Windows.UI.Notifications;
+using static Humanizer.On;
+using Windows.Data.Xml.Dom;
+using Estreya.BlishHUD.Shared.Extensions;
+using System.IO;
 
 public class ReminderSettingsView : BaseSettingsView
 {
@@ -23,6 +34,8 @@ public class ReminderSettingsView : BaseSettingsView
     private readonly ModuleSettings _moduleSettings;
     private StandardWindow _manageEventsWindow;
     private StandardWindow _manageReminderTimesWindow;
+
+    public event AsyncEventHandler SyncEnabledEventsToAreas;
 
     static ReminderSettingsView()
     {
@@ -36,6 +49,8 @@ public class ReminderSettingsView : BaseSettingsView
     {
         this._moduleSettings = moduleSettings;
         this._getEvents = getEvents;
+
+        this.CONTROL_WIDTH = 500;
     }
 
     protected override void BuildView(FlowPanel parent)
@@ -127,19 +142,19 @@ public class ReminderSettingsView : BaseSettingsView
                    title,
                     message,
                     icon,
-            this._moduleSettings.ReminderPosition.X.Value,
-            this._moduleSettings.ReminderPosition.Y.Value,
-            this._moduleSettings.ReminderSize.X.Value,
-            this._moduleSettings.ReminderSize.Y.Value,
-            this._moduleSettings.ReminderSize.Icon.Value,
-            this._moduleSettings.ReminderStackDirection.Value,
+                    this._moduleSettings.ReminderPosition.X.Value,
+                    this._moduleSettings.ReminderPosition.Y.Value,
+                    this._moduleSettings.ReminderSize.X.Value,
+                    this._moduleSettings.ReminderSize.Y.Value,
+                    this._moduleSettings.ReminderSize.Icon.Value,
+                    this._moduleSettings.ReminderStackDirection.Value,
                     this._moduleSettings.ReminderOverflowStackDirection.Value,
-            this._moduleSettings.ReminderFonts.TitleSize.Value,
-            this._moduleSettings.ReminderFonts.MessageSize.Value,
-            this.IconService)
-            { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
+                    this._moduleSettings.ReminderFonts.TitleSize.Value,
+                    this._moduleSettings.ReminderFonts.MessageSize.Value,
+                    this.IconService)
+                { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
 
-            reminder.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
+                reminder.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
             }
 
             if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
@@ -160,6 +175,25 @@ public class ReminderSettingsView : BaseSettingsView
                 TimeSpan.FromMinutes(10)
             }, false));
         });
+
+        this.RenderButtonAsync(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-syncEnabledEventsToAreas", "Sync enabled Events to Areas"),
+            async () =>
+            {
+                var confirmDialog = new ConfirmDialog(
+                    "Synchronizing",
+                    "You are in the process of synchronizing the enabled events of reminders to all event areas.\n\nThis will override all previously configured enabled/disabled settings in event areas.",
+                    this.IconService)
+                {
+                    SelectedButtonIndex = 1 // Preselect cancel
+                };
+
+                var confirmResult = await confirmDialog.ShowDialog();
+                if (confirmResult != DialogResult.OK) return;
+
+                await (this.SyncEnabledEventsToAreas?.Invoke(this) ?? Task.FromException(new NotImplementedException()));
+
+                Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
+            });
 
         this.RenderEmptyLine(parent);
 

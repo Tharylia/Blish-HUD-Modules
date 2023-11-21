@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -73,6 +73,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     protected override string UrlModuleName => "event-table";
 
     protected override bool FailIfBackendDown => true;
+
+    protected override bool EnableMetrics => true;
 
     /// <summary>
     ///     Gets the current time in utc.
@@ -461,7 +463,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
     /// <param name="e">The timespan until the event start.</param>
-    private void Ev_Reminder(object sender, TimeSpan e)
+    private async void Ev_Reminder(object sender, TimeSpan e)
     {
         Event ev = sender as Event;
 
@@ -478,7 +480,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         try
         {
-        string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
+            string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
             var title = ev.Name;
             var message = $"{startsInTranslation} {e.Humanize(6, minUnit: this.ModuleSettings.ReminderMinTimeUnit.Value)}!";
             var icon = string.IsNullOrWhiteSpace(ev.Icon) ? new AsyncTexture2D() : this.IconService.GetIcon(ev.Icon);
@@ -490,23 +492,23 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     title,
                     message,
                     icon,
-            this.ModuleSettings.ReminderPosition.X.Value,
-            this.ModuleSettings.ReminderPosition.Y.Value,
-            this.ModuleSettings.ReminderSize.X.Value,
-            this.ModuleSettings.ReminderSize.Y.Value,
-            this.ModuleSettings.ReminderSize.Icon.Value,
-            this.ModuleSettings.ReminderStackDirection.Value,
+                    this.ModuleSettings.ReminderPosition.X.Value,
+                    this.ModuleSettings.ReminderPosition.Y.Value,
+                    this.ModuleSettings.ReminderSize.X.Value,
+                    this.ModuleSettings.ReminderSize.Y.Value,
+                    this.ModuleSettings.ReminderSize.Icon.Value,
+                    this.ModuleSettings.ReminderStackDirection.Value,
                     this.ModuleSettings.ReminderOverflowStackDirection.Value,
-            this.ModuleSettings.ReminderFonts.TitleSize.Value,
-            this.ModuleSettings.ReminderFonts.MessageSize.Value,
-            this.IconService,
-            this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None
-            || this.ModuleSettings.ReminderRightClickAction.Value != Models.Reminders.EventReminderRightClickAction.None)
-        { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
-        notification.Click += this.EventNotification_Click;
-        notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
-        notification.Disposed += this.EventNotification_Disposed;
-        notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
+                    this.ModuleSettings.ReminderFonts.TitleSize.Value,
+                    this.ModuleSettings.ReminderFonts.MessageSize.Value,
+                    this.IconService,
+                    this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None
+                    || this.ModuleSettings.ReminderRightClickAction.Value != Models.Reminders.EventReminderRightClickAction.None)
+                { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
+                notification.Click += this.EventNotification_Click;
+                notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
+                notification.Disposed += this.EventNotification_Disposed;
+                notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
             }
 
             if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
@@ -677,7 +679,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("156736.png"),
-            () => new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            () => new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.MetricsService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             this.TranslationService.GetTranslation("generalSettingsView-title", "General")));
 
         //this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconService = this.IconService, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
@@ -737,9 +739,22 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => areaSettingsView,
             this.TranslationService.GetTranslation("areaSettingsView-title", "Event Areas")));
 
+        var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        reminderSettingsView.SyncEnabledEventsToAreas += (s) =>
+        {
+            if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");
+
+            foreach (EventArea area in this._areas.Values)
+            {
+                area.Configuration.DisabledEventKeys.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value);
+            }
+
+            return Task.CompletedTask;
+        };
+
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("1466345.png"),
-            () => new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            () => reminderSettingsView,
             this.TranslationService.GetTranslation("reminderSettingsView-title", "Reminders")));
 
         this.SettingsWindow.Tabs.Add(new Tab(
