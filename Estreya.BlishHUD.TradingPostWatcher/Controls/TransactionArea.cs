@@ -18,6 +18,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using static Blish_HUD.ContentService;
 using Color = Gw2Sharp.WebApi.V2.Models.Color;
 
@@ -27,7 +28,6 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
 
     private static readonly ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
     private readonly IconService _iconService;
-    private readonly TradingPostService _tradingPostService;
     private readonly TranslationService _translationService;
 
     private int _heightFromLastDraw = 1;
@@ -39,11 +39,10 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
 
     private readonly List<Transaction> _transactions = new List<Transaction>();
 
-    public TransactionArea(TransactionAreaConfiguration configuration, IconService iconService, TradingPostService tradingPostService, TranslationService translationService)
+    public TransactionArea(TransactionAreaConfiguration configuration, IconService iconService, TranslationService translationService)
     {
         this.Configuration = configuration;
         this._iconService = iconService;
-        this._tradingPostService = tradingPostService;
         this._translationService = translationService;
 
         this.Size_X_SettingChanged(this, new ValueChangedEventArgs<int>(0, this.Configuration.Size.X.Value));
@@ -171,7 +170,7 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
                 () => this.Configuration.ShowPriceAsTotal.Value,
                 () => this.Configuration.ShowRemaining.Value,
                 () => this.Configuration.ShowCreated.Value,
-                async () => await this._tradingPostService.GetPriceForItem(transaction.ItemId, transaction.Type)));
+                () => Task.FromResult(transaction.Price)));
         }
 
         Logger.Debug($"Added new transaction: {transaction}");

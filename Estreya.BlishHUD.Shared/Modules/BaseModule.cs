@@ -9,6 +9,8 @@ using Blish_HUD.Input;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
+using Estreya.BlishHUD.Shared.Controls.Input;
+using Estreya.BlishHUD.Shared.Services.TradingPost;
 using Exceptions;
 using Extensions;
 using Flurl.Http;
@@ -154,7 +156,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected PointOfInterestService PointOfInterestService { get; private set; }
     protected AccountService AccountService { get; private set; }
     protected SkillService SkillService { get; private set; }
-    protected TradingPostService TradingPostService { get; private set; }
+    protected PlayerTransactionsService PlayerTransactionsService { get; private set; }
+    protected TransactionsService TransactionsService { get; private set; }
     protected ItemService ItemService { get; private set; }
     protected ArcDPSService ArcDPSService { get; private set; }
     protected BlishHudApiService BlishHUDAPIService { get; private set; }
@@ -384,10 +387,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 this._services.Add(this.ItemService);
             }
 
-            if (configurations.TradingPost.Enabled)
+            if (configurations.PlayerTransactions.Enabled)
             {
-                this.TradingPostService = new TradingPostService(configurations.TradingPost, this.Gw2ApiManager, this.ItemService);
-                this._services.Add(this.TradingPostService);
+                this.PlayerTransactionsService = new PlayerTransactionsService(configurations.PlayerTransactions, this.ItemService, this.Gw2ApiManager);
+                this._services.Add(this.PlayerTransactionsService);
+            }
+
+            if (configurations.Transactions.Enabled)
+            {
+                this.TransactionsService = new TransactionsService(configurations.Transactions, this.ItemService, this.Gw2ApiManager);
+                this._services.Add(this.TransactionsService);
             }
 
             if (configurations.Worldbosses.Enabled)
@@ -884,7 +893,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             this.PointOfInterestService = null;
             this.SettingEventService = null;
             this.SkillService = null;
-            this.TradingPostService = null;
+            this.PlayerTransactionsService = null;
+            this.TransactionsService = null;
             this.TranslationService = null;
         }
 

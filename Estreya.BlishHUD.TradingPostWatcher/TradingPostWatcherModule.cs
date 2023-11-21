@@ -6,6 +6,7 @@ using Blish_HUD.Controls;
 using Blish_HUD.Modules;
 using Blish_HUD.Settings;
 using Controls;
+using Estreya.BlishHUD.TradingPostWatcher.Services;
 using Microsoft.Xna.Framework;
 using Models;
 using Service;
@@ -32,6 +33,7 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
     private ConcurrentDictionary<string, TransactionArea> _areas;
 
     private TrackedTransactionView _trackedTransactionView;
+    private FavouriteItemsView _favouriteItemsView;
 
     [ImportingConstructor]
     public TradingPostWatcherModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
@@ -85,25 +87,30 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
 
     protected override void ConfigureServices(ServiceConfigurations configurations)
     {
-        configurations.TradingPost.Enabled = true;
-        configurations.TradingPost.AwaitLoading = false;
+        configurations.PlayerTransactions.Enabled = true;
+        configurations.PlayerTransactions.AwaitLoading = false;
+        configurations.PlayerTransactions.UpdateInterval = TimeSpan.FromMinutes(2);
+
+        configurations.Transactions.Enabled = true;
+        configurations.Transactions.AwaitLoading = false;
+        configurations.Transactions.UpdateInterval = TimeSpan.FromMinutes(10); // Takes ages
 
         configurations.Items.Enabled = true;
         configurations.Items.AwaitLoading = false;
     }
 
-    private void TradingPostService_TransactionsUpdated(object sender, EventArgs e)
+    private void OwnTransactionsService_TransactionsUpdated(object sender, EventArgs e)
     {
         foreach (TransactionArea transactionArea in this._areas.Values)
         {
             transactionArea?.ClearTransactions();
-            transactionArea?.AddTransactions(this.TradingPostService.OwnTransactions);
+            transactionArea?.AddTransactions(this.PlayerTransactionsService.Transactions);
         }
     }
 
     protected override Collection<ManagedService> GetAdditionalServices(string directoryPath)
     {
-        Collection<ManagedService> states = new Collection<ManagedService>();
+        Collection<ManagedService> services = new Collection<ManagedService>();
 
         this.TrackedTransactionService = new TrackedTransactionService(new APIServiceConfiguration
         {
@@ -115,14 +122,22 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
         this.TrackedTransactionService.TransactionEnteredRange += this.TrackedTransactionService_TransactionEnteredRange;
         this.TrackedTransactionService.TransactionLeftRange += this.TrackedTransactionService_TransactionLeftRange;
 
-        states.Add(this.TrackedTransactionService);
+        this.FavouriteItemService = new FavouriteItemService(new ServiceConfiguration()
+        {
+            AwaitLoading = false,
+            Enabled = true,
+            SaveInterval = TimeSpan.FromSeconds(30)
+        }, directoryPath, this.TransactionsService);
 
-        return states;
+        services.Add(this.TrackedTransactionService);
+        services.Add(this.FavouriteItemService);
+
+        return services;
     }
 
     protected override void OnBeforeServicesStarted()
     {
-        this.TradingPostService.Updated += this.TradingPostService_TransactionsUpdated;
+        this.PlayerTransactionsService.Updated += this.OwnTransactionsService_TransactionsUpdated;
     }
 
     protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
@@ -157,6 +172,10 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
         this._trackedTransactionView.RemoveTracking += this.TrackedTransactionView_RemoveTracking;
 
         this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("255379.png"), () => this._trackedTransactionView, "Tracked Transactions"));
+
+        this._favouriteItemsView = new FavouriteItemsView(this.FavouriteItemService, this.ItemService, this.TransactionsService, this.Gw2ApiManager, this.IconService, this.TranslationService);
+
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156751.png"), () => this._favouriteItemsView, "Favourite Items"));
     }
 
     private void TrackedTransactionService_TransactionLeftRange(object sender, TrackedTransaction e)
@@ -274,7 +293,6 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
         TransactionArea area = new TransactionArea(
             configuration,
             this.IconService,
-            this.TradingPostService,
             this.TranslationService)
         {
             Parent = GameService.Graphics.SpriteScreen,
@@ -296,7 +314,7 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
     private void SetAreaTransactions(TransactionArea area)
     {
         area.ClearTransactions();
-        area.AddTransactions(this.TradingPostService.OwnTransactions);
+        area.AddTransactions(this.PlayerTransactionsService.Transactions);
     }
 
     private void RemoveArea(TransactionAreaConfiguration configuration)
@@ -336,9 +354,9 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
         this.Logger.Debug("Unloaded views.");
 
         this.Logger.Debug("Unloading states...");
-        if (this.TradingPostService != null)
+        if (this.PlayerTransactionsService != null)
         {
-            this.TradingPostService.Updated -= this.TradingPostService_TransactionsUpdated;
+            this.PlayerTransactionsService.Updated -= this.OwnTransactionsService_TransactionsUpdated;
         }
 
         if (this.TrackedTransactionService != null)
@@ -360,7 +378,9 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
 
     #region Services
 
-    public TrackedTransactionService TrackedTransactionService { get; private set; }
+    private TrackedTransactionService TrackedTransactionService { get; set; }
+
+    private FavouriteItemService FavouriteItemService { get; set; }
 
     protected override string API_VERSION_NO => "1";
 
