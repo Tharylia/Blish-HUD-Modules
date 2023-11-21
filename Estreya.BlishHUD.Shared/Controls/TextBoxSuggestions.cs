@@ -41,11 +41,14 @@ public class TextBoxSuggestions : FlowPanel
         this.FlowDirection = ControlFlowDirection.SingleTopToBottom;
 
         this._textBox.TextChanged += this.TextBox_TextChanged;
-        this._textBox.Resized += this._textBox_Resized;
-        this._textBox.Moved += this._textBox_Moved;
-        this._textBox.InputFocusChanged += this._textBox_InputFocusChanged;
+        this._textBox.Resized += this.TextBox_Resized;
+        this._textBox.Moved += this.TextBox_Moved;
+        this._textBox.InputFocusChanged += this.TextBox_InputFocusChanged;
+        this._textBox.Disposed += this.TextBox_Disposed;
 
         GameService.Input.Mouse.LeftMouseButtonPressed += this.Mouse_LeftMouseButtonPressed;
+
+        this.UpdateSizeAndLocation();
     }
 
     public int MaxHeight { get; set; } = 400;
@@ -55,7 +58,7 @@ public class TextBoxSuggestions : FlowPanel
 
     public StringComparison StringComparison { get; set; } = StringComparison.InvariantCulture;
 
-    private void _textBox_InputFocusChanged(object sender, ValueEventArgs<bool> e)
+    private void TextBox_InputFocusChanged(object sender, ValueEventArgs<bool> e)
     {
         if (e.Value)
         {
@@ -63,12 +66,12 @@ public class TextBoxSuggestions : FlowPanel
         }
     }
 
-    private void _textBox_Moved(object sender, MovedEventArgs e)
+    private void TextBox_Moved(object sender, MovedEventArgs e)
     {
         this.UpdateSizeAndLocation();
     }
 
-    private void _textBox_Resized(object sender, ResizedEventArgs e)
+    private void TextBox_Resized(object sender, ResizedEventArgs e)
     {
         this.UpdateSizeAndLocation();
     }
@@ -115,6 +118,12 @@ public class TextBoxSuggestions : FlowPanel
         {
             this.RemoveSuggestionList();
         }
+    }
+
+    private void TextBox_Disposed(object sender, EventArgs e)
+    {
+        // Dispose text box suggestion control when textbox is getting disposed.
+        this.Dispose();
     }
 
     private void BuildSuggestionList(List<string> suggestions)
@@ -168,9 +177,10 @@ public class TextBoxSuggestions : FlowPanel
         this.RemoveSuggestionList();
 
         this._textBox.TextChanged -= this.TextBox_TextChanged;
-        this._textBox.Resized -= this._textBox_Resized;
-        this._textBox.Moved -= this._textBox_Moved;
-        this._textBox.InputFocusChanged -= this._textBox_InputFocusChanged;
+        this._textBox.Resized -= this.TextBox_Resized;
+        this._textBox.Moved -= this.TextBox_Moved;
+        this._textBox.InputFocusChanged -= this.TextBox_InputFocusChanged;
+        this._textBox.Disposed -= this.TextBox_Disposed;
         GameService.Input.Mouse.LeftMouseButtonPressed -= this.Mouse_LeftMouseButtonPressed;
 
         this.Suggestions = null;
