@@ -6,7 +6,7 @@
   "manifest_version": 1,
   "description": "Notifies you in case of valuable item drops.",
   "dependencies": {
-    "bh.blishhud": ">=1.0.0"
+    "bh.blishhud": "^1.0.0"
   },
   "url": "https://github.com/Tharylia/Blish-HUD-Modules",
   "contributors": [

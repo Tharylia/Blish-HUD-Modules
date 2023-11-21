@@ -6,7 +6,7 @@
   "manifest_version": 1,
   "description": "Shares your ingame position with your guild members or even global for everyone to see.",
   "dependencies": {
-    "bh.blishhud": ">=1.0.0"
+    "bh.blishhud": "^1.0.0"
   },
   "url": "https://github.com/Tharylia/Blish-HUD-Modules",
   "contributors": [
