@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -470,15 +470,27 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             return;
         }
 
+        try
+        {
         string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
-        EventNotification notification = new EventNotification(ev,
-            $"{startsInTranslation} {e.Humanize(2, minUnit: TimeUnit.Second)}!",
+            var title = ev.Name;
+            var message = $"{startsInTranslation} {e.Humanize(6, minUnit: this.ModuleSettings.ReminderMinTimeUnit.Value)}!";
+            var icon = string.IsNullOrWhiteSpace(ev.Icon) ? new AsyncTexture2D() : this.IconService.GetIcon(ev.Icon);
+
+            if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
+            {
+                EventNotification notification = new EventNotification(
+                    null,
+                    title,
+                    message,
+                    icon,
             this.ModuleSettings.ReminderPosition.X.Value,
             this.ModuleSettings.ReminderPosition.Y.Value,
             this.ModuleSettings.ReminderSize.X.Value,
             this.ModuleSettings.ReminderSize.Y.Value,
             this.ModuleSettings.ReminderSize.Icon.Value,
             this.ModuleSettings.ReminderStackDirection.Value,
+                    this.ModuleSettings.ReminderOverflowStackDirection.Value,
             this.ModuleSettings.ReminderFonts.TitleSize.Value,
             this.ModuleSettings.ReminderFonts.MessageSize.Value,
             this.IconService,
@@ -489,6 +501,17 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
         notification.Disposed += this.EventNotification_Disposed;
         notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
+            }
+
+            if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
+            {
+                await EventNotification.ShowAsWindowsNotification(title, message, icon);
+            }
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, $"Failed to show reminder for event \"{ev.SettingKey}\"");
+        }
     }
 
     private void EventNotification_Disposed(object sender, EventArgs e)

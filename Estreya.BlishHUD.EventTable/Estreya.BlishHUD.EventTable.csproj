@@ -25,6 +25,7 @@
             <ExcludeAssets>runtime;contentFiles</ExcludeAssets>
         </PackageReference>
         <PackageReference Include="Flurl.Http" Version="2.4.2" />
+        <PackageReference Include="Microsoft.Windows.SDK.Contracts" Version="10.0.25936-preview" />
         <PackageReference Include="Octokit" Version="3.0.0" />
         <PackageReference Include="jose-jwt" Version="4.1.0" />
         <PackageReference Include="SemanticVersioning" Version="1.2.2">
