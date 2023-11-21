@@ -110,6 +110,7 @@ public class ContextManager : IDisposable, IUpdatable
             this._moduleSettings.ReminderSize.Y.Value,
             this._moduleSettings.ReminderSize.Icon.Value,
             this._moduleSettings.ReminderStackDirection.Value,
+            this._moduleSettings.ReminderOverflowStackDirection.Value,
             this._moduleSettings.ReminderFonts.TitleSize.Value,
             this._moduleSettings.ReminderFonts.MessageSize.Value,
             this._iconService,

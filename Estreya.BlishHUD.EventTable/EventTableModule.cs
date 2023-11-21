@@ -182,9 +182,15 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this._eventTableContext = new EventTableContext();
         this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService, this.IconService);
+        this._contextManager.ReloadEvents += this.ContextManager_ReloadEvents;
 
         this._eventTableContextHandle = GameService.Contexts.RegisterContext(this._eventTableContext);
         this.Logger.Info("Event Table context registered.");
+    }
+
+    private async Task ContextManager_ReloadEvents(object sender)
+    {
+        await this.ReloadEvents();
     }
 
     private async Task ReloadEvents()
@@ -850,7 +856,14 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
         this._eventTableContextHandle?.Expire();
         this.Logger.Info("Event Table context expired.");
-        this._contextManager?.Dispose();
+
+        if (this._contextManager != null)
+        {
+            this._contextManager.Dispose();
+            this._contextManager.ReloadEvents -= this.ContextManager_ReloadEvents;
+            this._contextManager = null;
+        }
+
         this._eventTableContext = null;
         this._eventTableContextHandle = null;
     }
