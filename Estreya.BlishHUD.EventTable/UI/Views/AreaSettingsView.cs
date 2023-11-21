@@ -3,6 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Controls.Input;
 using Estreya.BlishHUD.Shared.Extensions;
 using Estreya.BlishHUD.Shared.Threading.Events;
 using Microsoft.Xna.Framework;
@@ -205,6 +206,8 @@ public class AreaSettingsView : BaseSettingsView
                     var template = this._areaConfigurations.First(x => x.Name == copyFromTemplateName);
                     template.CopyTo(configuration);
                 }
+
+                this.LoadConfigurations();
 
                 MenuItem menuItem = menu.AddMenuItem(name);
                 menuItem.Click += (s, e) =>
