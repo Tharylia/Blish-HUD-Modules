@@ -92,6 +92,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected virtual bool FailIfBackendDown { get; }
 
+    protected virtual bool EnableMetrics => false;
+
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
 
     private ModuleSettingsView _defaultSettingView;
@@ -165,6 +167,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected AchievementService AchievementService { get; private set; }
     protected AccountAchievementService AccountAchievementService { get; private set; }
 
+    protected MetricsService MetricsService { get; private set; }
+
     #endregion
 
     /// <summary>
@@ -226,8 +230,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         await this.ThrowIfModuleInvalid(true);
 
-        this.Logger.Debug("Initialize states");
         await Task.Factory.StartNew(this.InitializeServices, TaskCreationOptions.LongRunning).Unwrap();
+
+        if (this.EnableMetrics)
+        {
+            await this.MetricsService.AskMetricsConsent();
+        }
 
         this.GithubHelper = new GitHubHelper(GITHUB_OWNER, GITHUB_REPOSITORY, GITHUB_CLIENT_ID, this.Name, this.PasswordManager, this.IconService, this.TranslationService, this.ModuleSettings);
 
@@ -322,6 +330,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// <exception cref="ArgumentNullException">Gets thrown if the directory path could not be loaded for depending services.</exception>
     private async Task InitializeServices()
     {
+        this.Logger.Debug("Initialize states");
         string directoryName = this.GetDirectoryName();
 
         string directoryPath = null;
@@ -380,6 +389,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 Enabled = true
             }, this.GetFlurlClient(), this.MODULE_FILE_URL);
             this._services.Add(this.NewsService);
+
+            this.MetricsService = new MetricsService(new ServiceConfiguration
+            {
+                Enabled = true,
+                AwaitLoading = true
+            }, this.GetFlurlClient(), API_ROOT_URL,this.Name, this.Namespace,this.Version, this.ModuleSettings, this.IconService);
+            this._services.Add(this.MetricsService);
 
             if (configurations.Items.Enabled)
             {
@@ -656,6 +672,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.Logger.Debug("Finished building settings window.");
 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
+
+        _ = this.MetricsService.SendMetricAsync("loaded");
     }
 
     /// <summary>
