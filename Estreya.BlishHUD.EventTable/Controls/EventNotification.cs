@@ -175,12 +175,7 @@ public class EventNotification : RenderTarget2DControl
                        .Reflect()
                        .OnComplete(() =>
                        {
-                           base.Hide();
                            this.Dispose();
-                           if (_lastShown == this)
-                           {
-                               _lastShown = null;
-                           }
                        });
     }
 
@@ -211,6 +206,12 @@ public class EventNotification : RenderTarget2DControl
 
     protected override void InternalDispose()
     {
+        base.Hide(); 
+        if (_lastShown == this)
+        {
+            _lastShown = null;
+        }
+
         this._showAnimation?.Cancel();
         this._showAnimation = null;
         this.Model = null;
