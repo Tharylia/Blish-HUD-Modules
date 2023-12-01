@@ -55,17 +55,16 @@ public class TranslationService : ManagedService
 
     protected override async Task Load()
     {
-        foreach (string locale in _locales)
-        {
-            await this.LoadLocale(locale);
-        }
+        var tasks = _locales.Select(this.LoadLocale);
+
+        await Task.WhenAll(tasks);
     }
 
     private async Task LoadLocale(string locale)
     {
         try
         {
-            string translations = await this._flurlClient.Request(this._rootUrl, $"translation.{locale}.properties").GetStringAsync();
+            string translations = await this._flurlClient.Request(this._rootUrl, $"translation.{locale}.properties").WithTimeout(TimeSpan.FromSeconds(5)).GetStringAsync();
 
             ConcurrentDictionary<string, string> localeTranslations = new ConcurrentDictionary<string, string>();
 
@@ -94,6 +93,8 @@ public class TranslationService : ManagedService
             }
 
             this._translations.TryAdd(locale, localeTranslations);
+
+            this.Logger.Debug($"Loaded {localeTranslations.Count} translations for locale {locale}");
         }
         catch (Exception ex)
         {
