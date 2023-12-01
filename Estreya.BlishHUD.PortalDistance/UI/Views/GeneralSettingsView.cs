@@ -21,6 +21,10 @@ public class GeneralSettingsView : BaseSettingsView
 
     protected override void BuildView(FlowPanel parent)
     {
+        this.RenderBoolSetting(parent, this._moduleSettings.RegisterCornerIcon);
+
+        this.RenderEmptyLine(parent);
+
         this.RenderKeybindingSetting(parent, this._moduleSettings.ManualKeyBinding);
 
         this.RenderEmptyLine(parent, 10);
