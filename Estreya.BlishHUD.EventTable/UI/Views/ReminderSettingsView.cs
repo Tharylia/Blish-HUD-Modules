@@ -129,10 +129,7 @@ public class ReminderSettingsView : BaseSettingsView
         this.RenderButtonAsync(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-testReminder", "Test Reminder"), async () =>
         {
             var title = "Test Event";
-            var message = $"Test starts in {TimeSpan.FromHours(5)
-                            .Add(TimeSpan.FromMinutes(21)
-                            .Add(TimeSpan.FromSeconds(23)))
-                        .Humanize(6, minUnit: this._moduleSettings.ReminderMinTimeUnit.Value)}!";
+            var message = $"Test starts in {TimeSpan.FromHours(5).Add(TimeSpan.FromMinutes(21).Add(TimeSpan.FromSeconds(23))).Humanize(6, minUnit: this._moduleSettings.ReminderMinTimeUnit.Value)}!";
             var icon = this.IconService.GetIcon("textures/maintenance.png");
 
             if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
