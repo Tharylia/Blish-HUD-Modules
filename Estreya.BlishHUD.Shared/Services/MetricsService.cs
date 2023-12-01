@@ -14,11 +14,12 @@
 
     public class MetricsService : ManagedService
     {
+        private static SemVer.Version CURRENT_VERSION = new SemVer.Version("4.0.0"); // Starting at 4 to fix bug with event table
+
         private readonly IFlurlClient _flurlClient;
         private readonly string _apiBaseUrl;
         private readonly string _moduleName;
         private readonly string _moduleNamespace;
-        private readonly SemVer.Version _moduleVersion;
         private readonly BaseModuleSettings _moduleSettings;
         private readonly IconService _iconService;
         private ConcurrentQueue<string> _metricsQueue;
@@ -30,15 +31,14 @@
 
         public bool NeedsConsentRenewal => this._moduleSettings.SendMetrics.Value
             && this._moduleSettings.MetricsConsentGivenVersion.Value is not null
-            && this._moduleSettings.MetricsConsentGivenVersion.Value < new SemVer.Version("3.6.1");// Change to when usage last updated
+            && this._moduleSettings.MetricsConsentGivenVersion.Value < CURRENT_VERSION;
 
-        public MetricsService(ServiceConfiguration configuration, IFlurlClient flurlClient, string apiBaseUrl, string moduleName, string moduleNamespace, SemVer.Version moduleVersion, BaseModuleSettings moduleSettings, IconService iconService) : base(configuration)
+        public MetricsService(ServiceConfiguration configuration, IFlurlClient flurlClient, string apiBaseUrl, string moduleName, string moduleNamespace, BaseModuleSettings moduleSettings, IconService iconService) : base(configuration)
         {
             this._flurlClient = flurlClient;
             this._apiBaseUrl = apiBaseUrl;
             this._moduleName = moduleName;
             this._moduleNamespace = moduleNamespace;
-            this._moduleVersion = moduleVersion;
             this._moduleSettings = moduleSettings;
             this._iconService = iconService;
         }
@@ -118,7 +118,7 @@
             this._moduleSettings.AskedMetricsConsent.Value = true;
 
             this._moduleSettings.SendMetrics.Value = consentGiven;
-            this._moduleSettings.MetricsConsentGivenVersion.Value = consentGiven ? this._moduleVersion : new SemVer.Version("0.0.0");
+            this._moduleSettings.MetricsConsentGivenVersion.Value = consentGiven ? CURRENT_VERSION : new SemVer.Version("0.0.0");
         }
     }
 }

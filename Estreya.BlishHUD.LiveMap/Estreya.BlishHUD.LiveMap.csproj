@@ -27,6 +27,7 @@
         <PackageReference Include="SocketIOClient" Version="3.0.6"/>
 		<PackageReference Include="SpriteFontPlus" Version="0.9.2" />
 		<PackageReference Include="SpriteFontPlus.MonoGame" Version="0.7.0.22" />
+		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
     </ItemGroup>
 
     <ItemGroup>

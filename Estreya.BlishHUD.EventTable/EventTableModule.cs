@@ -488,7 +488,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
             {
                 EventNotification notification = new EventNotification(
-                    null,
+                    ev,
                     title,
                     message,
                     icon,
@@ -536,7 +536,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         switch (this.ModuleSettings.ReminderLeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (!string.IsNullOrWhiteSpace(notification.Model.Waypoint))
+                if (notification is not null && notification.Model is not null && !string.IsNullOrWhiteSpace(notification.Model.Waypoint))
                 {
                     ClipboardUtil.WindowsClipboardService.SetTextAsync(notification.Model.Waypoint);
                     ScreenNotification.ShowNotification(new[]
@@ -547,22 +547,22 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 }
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (string.IsNullOrWhiteSpace(notification.Model.Waypoint))
+                if (notification is null || notification.Model is null || string.IsNullOrWhiteSpace(notification.Model.Waypoint))
                 {
-                    return;
+                    break;
                 }
 
                 if (this.PointOfInterestService.Loading)
                 {
-                    ScreenNotification.ShowNotification($"{nameof(PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
-                    return;
+                    ScreenNotification.ShowNotification($"{nameof(this.PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
+                    break;
                 }
 
                 Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this.PointOfInterestService.GetPointOfInterest(notification.Model.Waypoint);
                 if (poi == null)
                 {
                     ScreenNotification.ShowNotification($"{notification.Model.Waypoint} not found!", ScreenNotification.NotificationType.Error);
-                    return;
+                    break;
                 }
 
                 _ = Task.Run(async () =>

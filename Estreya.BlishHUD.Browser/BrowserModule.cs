@@ -7,6 +7,8 @@ using Blish_HUD.Modules;
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Browser.CEF;
 using Estreya.BlishHUD.Browser.UI.Views;
+using Estreya.BlishHUD.Shared.Extensions;
+using Flurl.Http;
 using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
@@ -22,6 +24,7 @@ using System.ComponentModel.Composition;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using TabbedWindow = Shared.Controls.TabbedWindow;
 
 [Export(typeof(Module))]
@@ -60,12 +63,15 @@ public class BrowserModule : BaseModule<BrowserModule, ModuleSettings>
     {
         base.Initialize();
 
-        OffscreenBrowserRenderer.Init(this.GetCefBasePath(), Path.Combine(this.DirectoriesManager.GetFullDirectoryPath(this.GetDirectoryName()), "cache"));
     }
 
     protected override async Task LoadAsync()
     {
         await base.LoadAsync();
+
+        var cefRootPath = await this.ExtractCefFiles();
+
+        OffscreenBrowserRenderer.Init(cefRootPath, this.GetGameCefBasePath(), Path.Combine(this.DirectoriesManager.GetFullDirectoryPath(this.GetDirectoryName()), "cache"));
 
         this._window = WindowUtil.CreateStandardWindow(this.ModuleSettings, "Browser", this.GetType(), Guid.Parse("8d143453-67a8-467f-945b-6b06985b0150"), this.IconService, null);
 
@@ -78,7 +84,33 @@ public class BrowserModule : BaseModule<BrowserModule, ModuleSettings>
         this._window.Show(new BrowserView(() => "https://wiki.guildwars2.com/wiki/Event_timers", this.Gw2ApiManager, this.IconService, this.TranslationService));
     }
 
-    private string GetCefBasePath()
+    private async Task<string> ExtractCefFiles()
+    {
+        var tempFolder = Path.Combine(Path.GetTempPath(), "blish-hud", "browser", "cef-extract");
+
+        if (!Directory.Exists(tempFolder))
+        {
+            Directory.CreateDirectory(tempFolder);
+        }
+
+        var fileName = Path.Combine(tempFolder, "cef.zip");
+        if (System.IO.File.Exists(fileName))
+        {
+            System.IO.File.Delete(fileName);
+        }
+
+        System.IO.File.Copy(@"C:\users\domin\downloads\cef.zip", fileName);
+        //await this.GetFlurlClient().Request(this.MODULE_FILE_URL, "cef", "cef.zip").DownloadFileAsync(tempFolder,Path.GetFileName(fileName));
+
+        var blishRootPath = AppDomain.CurrentDomain.BaseDirectory;
+
+        var archive = System.IO.Compression.ZipFile.OpenRead(fileName);
+        archive.ExtractToDirectory(blishRootPath, true);
+
+        return blishRootPath;
+    }
+
+    private string GetGameCefBasePath()
     {
         var gw2Path = Path.GetDirectoryName(GameService.GameIntegration.Gw2Instance.Gw2ExecutablePath);
 

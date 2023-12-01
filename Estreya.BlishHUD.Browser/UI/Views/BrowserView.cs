@@ -18,7 +18,7 @@ public class BrowserView : BaseView
     private readonly Func<string> _getHomepage;
     private BrowserControl _browserControl;
 
-    public BrowserView(Func<string> getHomepage, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public BrowserView(Func<string> getHomepage, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this._getHomepage = getHomepage;
     }
