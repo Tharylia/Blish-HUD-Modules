@@ -35,7 +35,7 @@ public class OffscreenBrowserRenderer : IDisposable
         Cef.Shutdown();
     }
 
-    public static void Init(string cefRootPath, string cachePath, bool multiThreadedMessageLoop = true, IBrowserProcessHandler browserProcessHandler = null)
+    public static void Init(string cefRootPath, string gameCefRootPath, string cachePath, bool multiThreadedMessageLoop = true, IBrowserProcessHandler browserProcessHandler = null)
     {
         browserProcessHandler ??= new BrowserProcessHandler();
         CefSharpSettings.ShutdownOnExit = true;
@@ -56,14 +56,16 @@ public class OffscreenBrowserRenderer : IDisposable
 
         CefSettings settings = new CefSettings
         {
-            LocalesDirPath = cefRootPath,
+            LocalesDirPath = Path.Combine(cefRootPath, "locales"),
+            ResourcesDirPath = cefRootPath.TrimEnd('\\'),
             //settings.ResourcesDirPath = cefRootPath;
-            RemoteDebuggingPort = 8088
+            RemoteDebuggingPort = 8088,
+            CachePath = cachePath,
         };
+
+        var result = CefSharp.DependencyChecker.CheckDependencies(false, false, cefRootPath.TrimEnd('\\'), cefRootPath.TrimEnd('\\'), Path.Combine(cefRootPath, "CefSharp.BrowserSubprocess.exe"));
+
         settings.CefCommandLineArgs.Add("transparent-painting-enabled", "1");
-        //The location where cache data will be stored on disk. If empty an in-memory cache will be used for some features and a temporary disk cache for others.
-        //HTML5 databases such as localStorage will only persist across sessions if a cache path is specified. 
-        settings.CachePath = cachePath;
         //settings.UserAgent = "CefSharp Browser" + Cef.CefSharpVersion; // Example User Agent
         //settings.CefCommandLineArgs.Add("renderer-process-limit", "1");
         //settings.CefCommandLineArgs.Add("renderer-startup-dialog", "1");
