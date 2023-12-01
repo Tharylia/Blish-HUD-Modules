@@ -394,7 +394,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 Enabled = true,
                 AwaitLoading = true
-            }, this.GetFlurlClient(), API_ROOT_URL,this.Name, this.Namespace,this.Version, this.ModuleSettings, this.IconService);
+            }, this.GetFlurlClient(), API_ROOT_URL,this.Name, this.Namespace, this.ModuleSettings, this.IconService);
             this._services.Add(this.MetricsService);
 
             if (configurations.Items.Enabled)
