@@ -359,8 +359,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             }
         }
 
-        this.DynamicEventHandler.Update(gameTime);
-        this._contextManager.Update(gameTime);
+        this.DynamicEventHandler?.Update(gameTime);
+        this._contextManager?.Update(gameTime);
 
         UpdateUtil.Update(this.CheckDrawerSettings, gameTime, _checkDrawerSettingInterval.TotalMilliseconds, ref this._lastCheckDrawerSettings);
         _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
