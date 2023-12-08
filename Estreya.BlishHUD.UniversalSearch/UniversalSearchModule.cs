@@ -217,11 +217,11 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
 
     protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
     {
-        GeneralSettingsView generalSettingsView = new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        GeneralSettingsView generalSettingsView = new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         generalSettingsView.ReloadServicesRequested += this.GeneralSettingsView_ReloadServicesRequested;
 
         settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => generalSettingsView, "General"));
-        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => new SearchHandlerSettingsView(() => this.GetSearchHandlers().Select(s => s.Configuration), this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Search Handler"));
+        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("605018.png"), () => new SearchHandlerSettingsView(() => this.GetSearchHandlers().Select(s => s.Configuration), this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Search Handler"));
     }
 
     private async Task GeneralSettingsView_ReloadServicesRequested(object sender)

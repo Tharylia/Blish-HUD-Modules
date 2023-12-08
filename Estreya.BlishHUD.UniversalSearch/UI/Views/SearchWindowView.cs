@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Dropdown = Shared.Controls.Dropdown;
 
 public class SearchWindowView : BaseView
 {
@@ -31,12 +30,12 @@ public class SearchWindowView : BaseView
     private readonly List<SearchResultItem> _results = new List<SearchResultItem>();
 
     private TextBox _searchbox;
-    private Dropdown _searchHandlerSelect;
+    private Shared.Controls.Dropdown<string> _searchHandlerSelect;
     private string _searchString;
     private SearchHandler _selectedSearchHandler;
     private LoadingSpinner _spinner;
 
-    public SearchWindowView(IEnumerable<SearchHandler> searchHandlers, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconState, TranslationService translationState, BitmapFont font = null) : base(apiManager, iconState, translationState, font)
+    public SearchWindowView(IEnumerable<SearchHandler> searchHandlers, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconState, TranslationService translationState) : base(apiManager, iconState, translationState)
     {
         this._searchHandlers = searchHandlers.ToDictionary(x => x.Name, y => y);
 
@@ -105,9 +104,9 @@ public class SearchWindowView : BaseView
         return Task.FromResult(true);
     }
 
-    private void SearchHandlerSelectValueChanged(object sender, ValueChangedEventArgs e)
+    private void SearchHandlerSelectValueChanged(object sender, ValueChangedEventArgs<string> e)
     {
-        this._selectedSearchHandler = this._searchHandlers[e.CurrentValue];
+        this._selectedSearchHandler = this._searchHandlers[e.NewValue];
         this.Search();
     }
 

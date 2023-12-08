@@ -2,11 +2,11 @@
 
 using Blish_HUD;
 using Blish_HUD.Controls;
+using Estreya.BlishHUD.Shared.Controls.Input;
 using Blish_HUD.Modules.Managers;
 using Microsoft.Xna.Framework;
 using Models;
 using MonoGame.Extended.BitmapFonts;
-using Shared.Controls;
 using Shared.Services;
 using Shared.UI.Views;
 using System;
@@ -32,7 +32,7 @@ public class SearchHandlerSettingsView : BaseSettingsView
     private Panel _areaPanel;
     private readonly Dictionary<string, MenuItem> _menuItems = new Dictionary<string, MenuItem>();
 
-    public SearchHandlerSettingsView(Func<IEnumerable<SearchHandlerConfiguration>> areaConfiguration, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public SearchHandlerSettingsView(Func<IEnumerable<SearchHandlerConfiguration>> areaConfiguration, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._moduleSettings = moduleSettings;
