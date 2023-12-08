@@ -7,7 +7,7 @@ using Blish_HUD.Modules.Managers;
 using Microsoft.Xna.Framework;
 using Models;
 using MonoGame.Extended.BitmapFonts;
-using Shared.Controls;
+using Shared.Controls.Input;
 using Shared.Helpers;
 using Shared.Services;
 using Shared.UI.Views;
@@ -40,7 +40,7 @@ public class WebhookSettingsView : BaseSettingsView
     private Panel _webhookPanel;
     private IEnumerable<Webhook> _webhooks;
 
-    public WebhookSettingsView(ModuleSettings moduleSettings, Func<IEnumerable<Webhook>> getWebhooks, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public WebhookSettingsView(ModuleSettings moduleSettings, Func<IEnumerable<Webhook>> getWebhooks, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._moduleSettings = moduleSettings;
         this._webhooksFunc = getWebhooks;

@@ -217,12 +217,12 @@ public class WebhookUpdaterModule : BaseModule<WebhookUpdaterModule, ModuleSetti
 
     protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
     {
-        WebhookSettingsView webhookView = new WebhookSettingsView(this.ModuleSettings, () => this._webhooks, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        WebhookSettingsView webhookView = new WebhookSettingsView(this.ModuleSettings, () => this._webhooks, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         webhookView.AddWebhook += this.WebhookView_AddWebhook;
         webhookView.RemoveWebhook += this.WebhookView_RemoveWebhook;
 
         settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => webhookView, "Webhooks"));
-        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("157097.png"), () => new HelpView(this.Gw2ApiManager, this.IconService, this.TranslationService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
+        settingWindow.Tabs.Add(new Tab(this.IconService.GetIcon("157097.png"), () => new HelpView(this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Help"));
     }
 
     private Webhook AddWebhook(string name)

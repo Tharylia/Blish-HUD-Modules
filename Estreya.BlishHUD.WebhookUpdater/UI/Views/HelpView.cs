@@ -18,7 +18,7 @@ public class HelpView : BaseView
     private const string DISCORD_USERNAME = "Estreya#0001";
     private static readonly Point PADDING = new Point(25, 25);
 
-    public HelpView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public HelpView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
     }
 
