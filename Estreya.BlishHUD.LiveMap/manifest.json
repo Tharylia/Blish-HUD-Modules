@@ -1,6 +1,6 @@
 {
   "name": "Live Map",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "namespace": "estreya.bh.liveMap",
   "package": "Estreya.BlishHUD.LiveMap.dll",
   "manifest_version": 1,
