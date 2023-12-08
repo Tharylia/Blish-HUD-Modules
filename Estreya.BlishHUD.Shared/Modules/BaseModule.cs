@@ -90,7 +90,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected abstract string API_VERSION_NO { get; }
 
-    protected virtual bool FailIfBackendDown { get; }
+    protected virtual bool FailIfBackendDown => false;
 
     protected virtual bool EnableMetrics => false;
 
