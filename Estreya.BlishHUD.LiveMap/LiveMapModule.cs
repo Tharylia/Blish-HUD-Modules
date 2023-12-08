@@ -51,7 +51,7 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     [ImportingConstructor]
     public LiveMapModule([Import("ModuleParameters")] ModuleParameters moduleParameters) : base(moduleParameters) { }
 
-    private string LIVE_MAP_API_URL => $"{this.MODULE_API_URL}/write"; //$"http://localhost:3004/v{this.API_VERSION_NO}/{this.WebsiteModuleName}/write";
+    private string LIVE_MAP_API_URL => $"{this.MODULE_API_URL}/write"; //$"http://localhost:3004/blish-hud/v{this.API_VERSION_NO}/{this.WebsiteModuleName}/write";
 
     public string GuildId { get; private set; }
 
@@ -65,8 +65,11 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     {
         base.Initialize();
 
-        this.GlobalSocket = new SocketIO(this.LIVE_MAP_API_URL, new SocketIOOptions { Transport = TransportProtocol.WebSocket });
-
+        this.GlobalSocket = new SocketIO(this.LIVE_MAP_API_URL, new SocketIOOptions {  
+            Path= "/blish-hud/socket.io",
+            Transport = TransportProtocol.WebSocket
+        });
+        
         this.Gw2ApiManager.SubtokenUpdated += this.Gw2ApiManager_SubtokenUpdated;
         GameService.Gw2Mumble.PlayerCharacter.NameChanged += this.PlayerCharacter_NameChanged;
         GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
