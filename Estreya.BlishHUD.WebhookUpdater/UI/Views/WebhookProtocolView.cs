@@ -16,7 +16,7 @@ public class WebhookProtocolView : BaseView
 {
     private Webhook webhook;
 
-    public WebhookProtocolView(Webhook webhook, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BitmapFont font = null) : base(apiManager, iconService, translationService, font)
+    public WebhookProtocolView(Webhook webhook, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this.webhook = webhook;
     }

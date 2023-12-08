@@ -13,7 +13,7 @@ public class GeneralSettingsView : BaseSettingsView
 {
     private readonly ModuleSettings _moduleSettings;
 
-    public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconState, TranslationService translationState, SettingEventService settingEventState, BitmapFont font = null) : base(apiManager, iconState, translationState, settingEventState, font)
+    public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconState, TranslationService translationState, SettingEventService settingEventState) : base(apiManager, iconState, translationState, settingEventState)
     {
         this._moduleSettings = moduleSettings;
     }
