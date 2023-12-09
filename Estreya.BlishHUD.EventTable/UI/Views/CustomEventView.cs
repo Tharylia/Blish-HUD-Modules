@@ -11,30 +11,16 @@ using Shared.UI.Views;
 using System;
 using System.Threading.Tasks;
 
-public class CustomEventView : BaseView
+public class CustomEventView : BlishHUDAPILoginView
 {
-    private static readonly Point PADDING = new Point(25, 25);
-    private readonly BlishHudApiService _blishHudApiService;
-
-    public CustomEventView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BlishHudApiService blishHudApiService) : base(apiManager, iconService, translationService)
+    public CustomEventView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BlishHudApiService blishHudApiService) : base(apiManager, iconService, translationService, blishHudApiService)
     {
-        this._blishHudApiService = blishHudApiService;
+
     }
 
-    protected override void InternalBuild(Panel parent)
+    protected override void OnBeforeBuildLoginSection(FlowPanel parent)
     {
-        FlowPanel flowPanel = new FlowPanel
-        {
-            Parent = parent,
-            Width = parent.ContentRegion.Width - (PADDING.X * 2),
-            Height = parent.ContentRegion.Height - (PADDING.Y * 2),
-            Location = new Point(PADDING.X, PADDING.Y),
-            CanScroll = true,
-            FlowDirection = ControlFlowDirection.SingleTopToBottom
-        };
-
-        this.BuildInstructionSection(flowPanel);
-        this.BuildLoginSection(flowPanel);
+        this.BuildInstructionSection(parent);
     }
 
     private void BuildInstructionSection(FlowPanel parent)
@@ -51,7 +37,7 @@ public class CustomEventView : BaseView
 
         FormattedLabelBuilder labelBuilder = this.GetLabelBuilder(parent)
                                                  .CreatePart(this.TranslationService.GetTranslation("customEventView-manual1", "1. Make an account at") + " ", builder => { builder.SetFontSize(ContentService.FontSize.Size20); })
-                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual2", "Estreya BlishHUD API."), builder => { 
+                                                 .CreatePart(this.TranslationService.GetTranslation("customEventView-manual2", "Estreya BlishHUD."), builder => { 
                                                      builder.SetFontSize(ContentService.FontSize.Size20).SetTextColor(Color.CornflowerBlue).SetHyperLink("https://blish-hud.estreya.de/register"); 
                                                  })
                                                  .CreatePart("\n \n", builder => { })
@@ -65,56 +51,6 @@ public class CustomEventView : BaseView
         label.Parent = instructionPanel;
 
         this.RenderEmptyLine(instructionPanel, 20);
-    }
-
-    private void BuildLoginSection(FlowPanel parent)
-    {
-        FlowPanel loginPanel = new FlowPanel
-        {
-            Parent = parent,
-            WidthSizingMode = SizingMode.AutoSize,
-            HeightSizingMode = SizingMode.AutoSize,
-            ControlPadding = new Vector2(0, 5),
-            FlowDirection = ControlFlowDirection.SingleTopToBottom
-        };
-
-        string password = AsyncHelper.RunSync(() => this._blishHudApiService.GetAPIPassword());
-
-        const string passwordUnchangedPhrase = "<<Unchanged>>";
-
-        TextBox usernameTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, this._blishHudApiService.GetAPIUsername(), this.TranslationService.GetTranslation("customEventView-apiUsername", "API Username"));
-
-        TextBox passwordTextBox = this.RenderTextbox(loginPanel, new Point(0, 0), 250, !string.IsNullOrWhiteSpace(password) ? passwordUnchangedPhrase : null, this.TranslationService.GetTranslation("customEventView-apiPassword", "API Password"));
-
-        FlowPanel buttonPanel = new FlowPanel
-        {
-            Parent = loginPanel,
-            WidthSizingMode = SizingMode.AutoSize,
-            HeightSizingMode = SizingMode.AutoSize,
-            FlowDirection = ControlFlowDirection.SingleLeftToRight
-        };
-
-        this.RenderButtonAsync(buttonPanel, this.TranslationService.GetTranslation("customEventView-btn-save", "Save"), async () =>
-        {
-            this._blishHudApiService.SetAPIUsername(usernameTextBox.Text);
-            await this._blishHudApiService.SetAPIPassword(passwordTextBox.Text == passwordUnchangedPhrase ? password : passwordTextBox.Text);
-
-            await this._blishHudApiService.Login();
-        });
-
-        this.RenderButtonAsync(buttonPanel, this.TranslationService.GetTranslation("customEventView-btn-testLogin", "Test Login"), async () =>
-        {
-            await this._blishHudApiService.TestLogin(usernameTextBox.Text, passwordTextBox.Text == passwordUnchangedPhrase ? password : passwordTextBox.Text);
-            this.ShowInfo("Login successful!");
-        });
-
-        this.RenderButtonAsync(buttonPanel, this.TranslationService.GetTranslation("customEventView-btn-clearCredentials", "Clear Credentials"), async () =>
-        {
-            this._blishHudApiService.SetAPIUsername(null);
-            await this._blishHudApiService.SetAPIPassword(null);
-            this._blishHudApiService.Logout();
-            this.ShowInfo("Logout successful!");
-        });
     }
 
     private FormattedLabelBuilder GetLabelBuilder(Panel parent)
