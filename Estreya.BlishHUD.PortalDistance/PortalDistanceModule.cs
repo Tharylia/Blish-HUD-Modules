@@ -41,9 +41,9 @@ public class PortalDistanceModule : BaseModule<PortalDistanceModule, ModuleSetti
 
     private List<PortalDefinition> _portals = new List<PortalDefinition>
     {
-        new ( 10198, 5000), // Mesmer Portal
-        new PortalDefinition( 16437, 5000), // Thief Portal
-        new PortalDefinition(34978, 5000), // White Mantle Portal Device
+        new PortalDefinition(10198, () => GameService.Gw2Mumble.CurrentMap.Type is MapType.Pvp or MapType.Tournament ? 6000 : 5000), // Mesmer Portal
+        new PortalDefinition(16437, () => 5000), // Thief Portal
+        new PortalDefinition(34978, () => 5000), // White Mantle Portal Device
     };
 
     [ImportingConstructor]
@@ -135,7 +135,7 @@ public class PortalDistanceModule : BaseModule<PortalDistanceModule, ModuleSetti
         this._messageControl?.UpdateDistance(distance);
         if (this._activePortal is not null)
         {
-            this._messageControl?.UpdateColor(distance > this._activePortal.MaxDistance ? Color.Red : Color.Green);
+            this._messageControl?.UpdateColor(distance > this._activePortal.GetMaxDistance() ? Color.Red : Color.Green);
         }
         else
         {
