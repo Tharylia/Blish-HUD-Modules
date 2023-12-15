@@ -27,10 +27,13 @@ public class ContextManager : IDisposable, IUpdatable
     private readonly ModuleSettings _moduleSettings;
     private readonly DynamicEventService _dynamicEventService;
     private readonly IconService _iconService;
+    private readonly EventStateService _eventStateService;
+    private readonly Func<Task<IEnumerable<Models.Event>>> _getEvents;
 
     public event AsyncEventHandler ReloadEvents;
 
-    public ContextManager(EventTableContext context, ModuleSettings moduleSettings, DynamicEventService dynamicEventService, IconService iconService)
+    public ContextManager(EventTableContext context, ModuleSettings moduleSettings, DynamicEventService dynamicEventService, IconService iconService, EventStateService eventStateService,
+        Func<Task<IEnumerable<Models.Event>>> getEvents)
     {
         if (context is null) throw new ArgumentNullException(nameof(context));
         if (moduleSettings is null) throw new ArgumentNullException(nameof(moduleSettings));
@@ -41,7 +44,8 @@ public class ContextManager : IDisposable, IUpdatable
         this._moduleSettings = moduleSettings;
         this._dynamicEventService = dynamicEventService;
         this._iconService = iconService;
-
+        this._eventStateService = eventStateService;
+        this._getEvents = getEvents;
         this._context.RequestAddCategory += this.RequestAddCategory;
         this._context.RequestAddEvent += this.RequestAddEvent;
         this._context.RequestRemoveCategory += this.RequestRemoveCategory;
@@ -50,6 +54,10 @@ public class ContextManager : IDisposable, IUpdatable
         this._context.RequestShowReminder += this.RequestShowReminder;
         this._context.RequestAddDynamicEvent += this.RequestAddDynamicEvent;
         this._context.RequestRemoveDynamicEvent += this.RequestRemoveDynamicEvent;
+        this._context.RequestEventSettingKeys += this.RequestEventSettingKeys;
+        this._context.RequestAreaNames += this.RequestAreaNames;
+        this._context.RequestAddEventState += this.RequestAddEventState;
+        this._context.RequestRemoveEventState += this.RequestRemoveEventState;
     }
 
     public List<EventCategory> GetContextCategories()
@@ -58,6 +66,34 @@ public class ContextManager : IDisposable, IUpdatable
         {
             return this._temporaryEventCategories;
         }
+    }
+
+    private Task RequestRemoveEventState(object sender, ContextEventArgs<RemoveEventState> e)
+    {
+        this._eventStateService.Remove(e.Content.AreaName, e.Content.EventKey);
+        return Task.CompletedTask;
+    }
+
+    private Task RequestAddEventState(object sender, ContextEventArgs<AddEventState> e)
+    {
+        this._eventStateService.Add(e.Content.AreaName, e.Content.EventKey, e.Content.Until, e.Content.State);
+        return Task.CompletedTask;
+    }
+
+    private async Task<IEnumerable<string>> RequestEventSettingKeys(object sender, ContextEventArgs e)
+    {
+        if (this._getEvents is null) throw new ArgumentNullException(nameof(this._getEvents), "Method to get events is null.");
+
+        var events = await this._getEvents();
+
+        return events is null ? Enumerable.Empty<string>() : events.Select(e => e.SettingKey);
+    }
+
+    private Task<IEnumerable<string>> RequestAreaNames(object sender, ContextEventArgs e)
+    {
+        var areaNames = this._moduleSettings.EventAreaNames.Value;
+
+        return Task.FromResult(areaNames is null ? Enumerable.Empty<string>() : areaNames);
     }
 
     private async Task RequestRemoveDynamicEvent(object sender, ContextEventArgs<Guid> e)
@@ -97,28 +133,36 @@ public class ContextManager : IDisposable, IUpdatable
         await this._dynamicEventService.NotifyCustomEventsUpdated();
     }
 
-    private Task RequestShowReminder(object sender, ContextEventArgs<ShowReminder> e)
+    private async Task RequestShowReminder(object sender, ContextEventArgs<ShowReminder> e)
     {
         ShowReminder eArgsContent = e.Content;
-        EventNotification notification = new EventNotification(null,
-            eArgsContent.Title,
-            eArgsContent.Message,
-            !string.IsNullOrWhiteSpace(eArgsContent.Icon) ? this._iconService.GetIcon(eArgsContent.Icon) : null,
-            this._moduleSettings.ReminderPosition.X.Value,
-            this._moduleSettings.ReminderPosition.Y.Value,
-            this._moduleSettings.ReminderSize.X.Value,
-            this._moduleSettings.ReminderSize.Y.Value,
-            this._moduleSettings.ReminderSize.Icon.Value,
-            this._moduleSettings.ReminderStackDirection.Value,
-            this._moduleSettings.ReminderOverflowStackDirection.Value,
-            this._moduleSettings.ReminderFonts.TitleSize.Value,
-            this._moduleSettings.ReminderFonts.MessageSize.Value,
-            this._iconService,
-            this._moduleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
-        { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
-        notification.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
+        var icon = !string.IsNullOrWhiteSpace(eArgsContent.Icon) ? this._iconService.GetIcon(eArgsContent.Icon) : null;
 
-        return Task.CompletedTask;
+        if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
+        {
+            EventNotification notification = new EventNotification(null,
+                eArgsContent.Title,
+                eArgsContent.Message,
+                icon,
+                this._moduleSettings.ReminderPosition.X.Value,
+                this._moduleSettings.ReminderPosition.Y.Value,
+                this._moduleSettings.ReminderSize.X.Value,
+                this._moduleSettings.ReminderSize.Y.Value,
+                this._moduleSettings.ReminderSize.Icon.Value,
+                this._moduleSettings.ReminderStackDirection.Value,
+                this._moduleSettings.ReminderOverflowStackDirection.Value,
+                this._moduleSettings.ReminderFonts.TitleSize.Value,
+                this._moduleSettings.ReminderFonts.MessageSize.Value,
+                this._iconService,
+                this._moduleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
+            { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
+            notification.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
+        }
+
+        if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
+        {
+            await EventNotification.ShowAsWindowsNotification(eArgsContent.Title, eArgsContent.Message, icon);
+        }
     }
 
     private async Task RequestReloadEvents(object sender, ContextEventArgs e)
@@ -254,6 +298,10 @@ public class ContextManager : IDisposable, IUpdatable
             this._context.RequestShowReminder -= this.RequestShowReminder;
             this._context.RequestAddDynamicEvent -= this.RequestAddDynamicEvent;
             this._context.RequestRemoveDynamicEvent -= this.RequestRemoveDynamicEvent;
+            this._context.RequestEventSettingKeys -= this.RequestEventSettingKeys;
+            this._context.RequestAreaNames -= this.RequestAreaNames;
+            this._context.RequestAddEventState -= this.RequestAddEventState;
+            this._context.RequestRemoveEventState -= this.RequestRemoveEventState;
         }
 
         this._context = null;

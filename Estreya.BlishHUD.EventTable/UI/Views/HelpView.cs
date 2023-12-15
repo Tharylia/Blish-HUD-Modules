@@ -44,6 +44,8 @@ public class HelpView : BaseView
 
         this.BuildEditEventSection(flowPanel);
         this.RenderEmptyLine(flowPanel);
+        this.BuildCustomEventSection(flowPanel);
+        this.RenderEmptyLine(flowPanel);
         this.BuildSettingSliderSection(flowPanel);
         this.RenderEmptyLine(flowPanel);
         this.BuildNoEventsSection(flowPanel);
@@ -136,6 +138,27 @@ public class HelpView : BaseView
                                                  .CreatePart("\n", builder => { })
                                                  .CreatePart("All events are loaded in the backend from the following file: ", builder => { })
                                                  .CreatePart("CLICK HERE", builder => { builder.SetHyperLink("https://files.estreya.de/blish-hud/event-table/v1/events.json"); });
+
+        FormattedLabel label = labelBuilder.Build();
+        label.Parent = panel;
+    }
+
+    private void BuildCustomEventSection(FlowPanel parent)
+    {
+        Panel panel = new Panel
+        {
+            Parent = parent,
+            WidthSizingMode = SizingMode.AutoSize,
+            HeightSizingMode = SizingMode.AutoSize,
+            ShowBorder = true
+        };
+
+        FormattedLabelBuilder labelBuilder = this.GetLabelBuilder(parent)
+                                                 .CreatePart("Can I create custom events?", builder => { builder.SetFontSize(ContentService.FontSize.Size20).MakeUnderlined(); })
+                                                 .CreatePart("\n \n", builder => { })
+                                                 .CreatePart("Yes.", builder => { builder.MakeBold(); })
+                                                 .CreatePart("\n", builder => { })
+                                                 .CreatePart("Head over to the tab called \"Estreya BlishHUD API\" and login there.", builder => { });
 
         FormattedLabel label = labelBuilder.Build();
         label.Parent = panel;

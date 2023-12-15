@@ -17,22 +17,22 @@ using Utils;
 public class BlishHudApiService : ManagedService
 {
     private const string API_PASSWORD_KEY = "estreyaBlishHudAPI";
+    private const int API_VERSION_AUTH = 1;
+    private const int API_VERSION_KOFI = 1;
 
     private static TimeSpan _checkAPITokenInterval = TimeSpan.FromMinutes(5);
     private readonly string _apiRootUrl;
-    private readonly string _apiVersion;
     private readonly AsyncRef<double> _lastAPITokenCheck = new AsyncRef<double>(0);
     private IFlurlClient _flurlClient;
     private PasswordManager _passwordManager;
     private SettingEntry<string> _usernameSetting;
 
-    public BlishHudApiService(ServiceConfiguration configuration, SettingEntry<string> usernameSetting, PasswordManager passwordManager, IFlurlClient flurlClient, string apiRootUrl, string apiVersion) : base(configuration)
+    public BlishHudApiService(ServiceConfiguration configuration, SettingEntry<string> usernameSetting, PasswordManager passwordManager, IFlurlClient flurlClient, string apiRootUrl) : base(configuration)
     {
         this._usernameSetting = usernameSetting;
         this._passwordManager = passwordManager;
         this._flurlClient = flurlClient;
         this._apiRootUrl = apiRootUrl;
-        this._apiVersion = apiVersion;
     }
 
     private APITokens? APITokens { get; set; }
@@ -152,7 +152,7 @@ public class BlishHudApiService : ManagedService
                 return;
             }
 
-            HttpResponseMessage response = await this._flurlClient.Request(this._apiRootUrl, $"v{this._apiVersion}", "auth", "login").PostJsonAsync(new
+            HttpResponseMessage response = await this._flurlClient.Request(this._apiRootUrl, $"v{API_VERSION_AUTH}", "auth", "login").PostJsonAsync(new
             {
                 username,
                 password
@@ -208,7 +208,7 @@ public class BlishHudApiService : ManagedService
                 throw new ArgumentNullException("Refresh API Token");
             }
 
-            HttpResponseMessage response = await this._flurlClient.Request(this._apiRootUrl, $"v{this._apiVersion}", "auth", "refresh").PostJsonAsync(new { refreshToken = this.APITokens.Value.RefreshToken });
+            HttpResponseMessage response = await this._flurlClient.Request(this._apiRootUrl, $"v{API_VERSION_AUTH}", "auth", "refresh").PostJsonAsync(new { refreshToken = this.APITokens.Value.RefreshToken });
 
             string content = await response.Content.ReadAsStringAsync();
             APITokens tokens = JsonConvert.DeserializeObject<APITokens>(content);
@@ -278,5 +278,19 @@ public class BlishHudApiService : ManagedService
             await this.RefreshAPILogin();
             // Trigger login refresh 
         }
+    }
+
+    public async Task<KofiStatus> GetKofiStatus()
+    {
+        var status = await this._flurlClient.Request(this._apiRootUrl, $"v{API_VERSION_KOFI}", "ko-fi", "status").WithOAuthBearerToken(this.AccessToken).GetJsonAsync<KofiStatus>();
+
+        return status;
+    }
+
+    public async Task<bool> IsSubscriptionActive()
+    {
+        var status = await this.GetKofiStatus();
+
+        return status.Active;
     }
 }

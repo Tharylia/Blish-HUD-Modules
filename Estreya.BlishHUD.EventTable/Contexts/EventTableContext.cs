@@ -21,6 +21,10 @@ public class EventTableContext : BaseContext
     internal event AsyncEventHandler<ContextEventArgs<ShowReminder>> RequestShowReminder;
     internal event AsyncEventHandler<ContextEventArgs<AddDynamicEvent>> RequestAddDynamicEvent;
     internal event AsyncEventHandler<ContextEventArgs<Guid>> RequestRemoveDynamicEvent;
+    internal event AsyncReturnEventHandler<ContextEventArgs, IEnumerable<string>> RequestEventSettingKeys;
+    internal event AsyncReturnEventHandler<ContextEventArgs, IEnumerable<string>> RequestAreaNames;
+    internal event AsyncEventHandler<ContextEventArgs<AddEventState>> RequestAddEventState;
+    internal event AsyncEventHandler<ContextEventArgs<RemoveEventState>> RequestRemoveEventState;
 
     /// <summary>
     /// Adds a new category to the event table module. Shows up for the table and reminders.
@@ -139,5 +143,69 @@ public class EventTableContext : BaseContext
 
         this.Logger.Info($"\"{caller.FullName}\" triggered a context action: {nameof(RemoveDynamicEvent)}(\"{id}\").");
         await (this.RequestRemoveDynamicEvent?.Invoke(this, new ContextEventArgs<Guid>(caller, id)) ?? Task.FromException(new NotImplementedException()));
+    }
+
+    /// <summary>
+    /// Gets a list of all currently loaded event setting keys.
+    /// </summary>
+    /// <returns>A list of event setting keys.</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public async Task<IEnumerable<string>> GetEventSettingKeys()
+    {
+        this.CheckReady();
+        var caller = this.GetCaller();
+        this.Logger.Info($"\"{caller.FullName}\" triggered a context action: {nameof(GetEventSettingKeys)}().");
+
+        if (this.RequestEventSettingKeys is null) throw new NotImplementedException();
+
+        var keys = await this.RequestEventSettingKeys.Invoke(this, new ContextEventArgs(caller));
+
+        return keys;
+    }
+
+    /// <summary>
+    /// Gets the names of all available areas. The enabled state of the areas is not checked.
+    /// </summary>
+    /// <returns>A list of area names.</returns>
+    /// <exception cref="NotImplementedException"></exception>
+    public async Task<IEnumerable<string>> GetAreaNames()
+    {
+        this.CheckReady();
+        var caller = this.GetCaller();
+        this.Logger.Info($"\"{caller.FullName}\" triggered a context action: {nameof(GetAreaNames)}().");
+
+        if (this.RequestAreaNames is null) throw new NotImplementedException();
+
+        var areaNames = await this.RequestAreaNames.Invoke(this, new ContextEventArgs(caller));
+
+        return areaNames;
+    }
+
+    /// <summary>
+    /// Adds an event state for a specific event inside the area.
+    /// </summary>
+    /// <param name="addEventState"></param>
+    /// <returns></returns>
+    public async Task AddEventState(AddEventState addEventState)
+    {
+        this.CheckReady();
+        var caller = this.GetCaller();
+
+        this.Logger.Info($"\"{caller.FullName}\" triggered a context action: {nameof(AddEventState)}(\"{addEventState.AreaName}\",\"{addEventState.EventKey}\",\"{addEventState.Until.ToUniversalTime()}\").");
+        await (this.RequestAddEventState?.Invoke(this, new ContextEventArgs<AddEventState>(caller, addEventState)) ?? Task.FromException(new NotImplementedException()));
+    }
+
+    /// <summary>
+    /// Removes an event state for a specific event inside the area.
+    /// </summary>
+    /// <param name="removeEventState"></param>
+    /// <returns></returns>
+    public async Task RemoveEventState(RemoveEventState removeEventState)
+    {
+        this.CheckReady();
+        var caller = this.GetCaller();
+
+        this.Logger.Info($"\"{caller.FullName}\" triggered a context action: {nameof(RemoveEventState)}(\"{removeEventState.AreaName}\",\"{removeEventState.EventKey}\").");
+        await (this.RequestRemoveEventState?.Invoke(this, new ContextEventArgs<RemoveEventState>(caller, removeEventState)) ?? Task.FromException(new NotImplementedException()));
     }
 }

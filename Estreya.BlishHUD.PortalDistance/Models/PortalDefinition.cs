@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 
 public class PortalDefinition
 {
-    public int SkillID { get; set; }
-    public float MaxDistance { get; set; }
+    public int SkillID { get; }
+    public Func<float> GetMaxDistance { get; }
 
-    public PortalDefinition(int skillId, float maxDistance)
+    public PortalDefinition(int skillId, Func<float> getMaxDistance)
     {
         this.SkillID = skillId;
-        this.MaxDistance = maxDistance;
+        this.GetMaxDistance = getMaxDistance;
     }
 }

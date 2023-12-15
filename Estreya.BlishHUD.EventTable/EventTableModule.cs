@@ -183,7 +183,17 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         this._eventTableContext = new EventTableContext();
-        this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService, this.IconService);
+        this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService,
+            this.IconService, 
+            this.EventStateService,
+            async () =>
+            {
+                using (await this._eventCategoryLock.LockAsync())
+                {
+                    return this._eventCategories.SelectMany(ec => ec.Events);
+                }
+            });
+
         this._contextManager.ReloadEvents += this.ContextManager_ReloadEvents;
 
         this._eventTableContextHandle = GameService.Contexts.RegisterContext(this._eventTableContext);
@@ -764,8 +774,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("156764.png"),
-            () => new CustomEventView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            this.TranslationService.GetTranslation("customEventView-title", "Custom Events")));
+            () => new Shared.UI.Views.BlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            "Estreya BlishHUD API"));
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("157097.png"),
