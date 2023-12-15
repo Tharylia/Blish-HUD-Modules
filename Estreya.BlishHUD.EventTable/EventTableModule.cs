@@ -183,7 +183,17 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         this._eventTableContext = new EventTableContext();
-        this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService, this.IconService);
+        this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService,
+            this.IconService, 
+            this.EventStateService,
+            async () =>
+            {
+                using (await this._eventCategoryLock.LockAsync())
+                {
+                    return this._eventCategories.SelectMany(ec => ec.Events);
+                }
+            });
+
         this._contextManager.ReloadEvents += this.ContextManager_ReloadEvents;
 
         this._eventTableContextHandle = GameService.Contexts.RegisterContext(this._eventTableContext);
