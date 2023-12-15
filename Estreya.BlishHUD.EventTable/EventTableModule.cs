@@ -764,8 +764,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("156764.png"),
-            () => new CustomEventView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            this.TranslationService.GetTranslation("customEventView-title", "Custom Events")));
+            () => new Shared.UI.Views.BlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            "Estreya BlishHUD API"));
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("157097.png"),

@@ -85,6 +85,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\StateChangeCombatEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\ApiJwtPayload.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\APITokens.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\KofiStatus.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BuildDirection.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ControlType.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\CornerIconClickAction.cs" />
@@ -151,7 +152,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Threading\AsyncRef.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Threading\Events\AsyncEventHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\BaseView.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\BlishHUDAPILoginView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\BlishHUDAPIView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\DonationView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\GitHubCreateIssueView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\ModuleSettingsView.cs" />
