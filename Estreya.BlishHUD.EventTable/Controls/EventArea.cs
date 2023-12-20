@@ -379,6 +379,7 @@ public class EventArea : RenderTarget2DControl
 
         events.ForEach(ev =>
         {
+            this._logger.Info($"Event \"{ev.SettingKey}\" no longer marked completed via api.");
             this._eventStateService.Remove(this.Configuration.Name, ev.SettingKey);
         });
     }
@@ -394,7 +395,8 @@ public class EventArea : RenderTarget2DControl
         events.ForEach(ev =>
         {
             DateTime until = this.GetNextReset(ev);
-            this.ToggleFinishEvent(ev, until);
+            this._logger.Info($"Event \"{ev.SettingKey}\" marked completed via api until: {until.ToUniversalTime()}");
+            this.FinishEvent(ev, until);
         });
     }
 
@@ -637,7 +639,7 @@ public class EventArea : RenderTarget2DControl
             {
                 ev.Category.TryGetTarget(out var ec);
                 return ec.Key;
-            }).ToDictionary(group => group.Key, group =>group.Where(ev => ev.Filler).ToList()).ToList());
+            }).ToDictionary(group => group.Key, group => group.Where(ev => ev.Filler).ToList()).ToList());
 
             for (int i = 0; i < fillerList.Count; i++)
             {
@@ -1155,8 +1157,8 @@ public class EventArea : RenderTarget2DControl
 
         var rect = new RectangleF(this.DrawXOffset, 0, width, 30);
 
-        var backgroundColor = (this.Configuration.TopTimelineBackgroundColor.Value.Id == 1 
-            ? Microsoft.Xna.Framework.Color.Transparent 
+        var backgroundColor = (this.Configuration.TopTimelineBackgroundColor.Value.Id == 1
+            ? Microsoft.Xna.Framework.Color.Transparent
             : this.Configuration.TopTimelineBackgroundColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineBackgroundOpacity.Value;
 
         spriteBatch.DrawRectangle(Textures.Pixel, rect, backgroundColor);
@@ -1167,11 +1169,11 @@ public class EventArea : RenderTarget2DControl
 
         var timeStepLineHeight = this.Configuration.TopTimelineLinesOverWholeHeight.Value ? this.Height : rect.Height;
 
-        var lineColor = (this.Configuration.TopTimelineLineColor.Value.Id == 1 
-            ? Microsoft.Xna.Framework.Color.Black 
+        var lineColor = (this.Configuration.TopTimelineLineColor.Value.Id == 1
+            ? Microsoft.Xna.Framework.Color.Black
             : this.Configuration.TopTimelineLineColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineLineOpacity.Value;
-        var timeColor = (this.Configuration.TopTimelineTimeColor.Value.Id == 1 
-            ? Microsoft.Xna.Framework.Color.Red 
+        var timeColor = (this.Configuration.TopTimelineTimeColor.Value.Id == 1
+            ? Microsoft.Xna.Framework.Color.Red
             : this.Configuration.TopTimelineTimeColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineTimeOpacity.Value;
         for (int i = 0; i < timeSteps; i++)
         {
@@ -1260,6 +1262,21 @@ public class EventArea : RenderTarget2DControl
                     this._eventStateService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Completed);
                 }
 
+                break;
+            case EventCompletedAction.Hide:
+                this.HideEvent(ev, until);
+                break;
+        }
+    }
+
+    private void FinishEvent(Models.Event ev, DateTime until)
+    {
+        switch (this.Configuration.CompletionAction.Value)
+        {
+            case EventCompletedAction.Crossout:
+            case EventCompletedAction.ChangeOpacity:
+            case EventCompletedAction.CrossoutAndChangeOpacity:
+                this._eventStateService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Completed);
                 break;
             case EventCompletedAction.Hide:
                 this.HideEvent(ev, until);
