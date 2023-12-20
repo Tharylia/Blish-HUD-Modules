@@ -557,7 +557,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 }
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (notification is null || notification.Model is null || string.IsNullOrWhiteSpace(notification.Model.Waypoint))
+                if (notification is null || notification.Model is null || string.IsNullOrWhiteSpace(notification.Model.Waypoint) || this.PointOfInterestService is null)
                 {
                     break;
                 }
