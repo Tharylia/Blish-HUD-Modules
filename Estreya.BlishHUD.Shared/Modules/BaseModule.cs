@@ -171,6 +171,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     #endregion
 
+    private CancellationTokenSource _cancellationTokenSource;
+
+    protected CancellationToken CancellationToken => this._cancellationTokenSource.Token;
+
     /// <summary>
     ///     Creates a new instance of the module class.
     /// </summary>
@@ -197,6 +201,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected override void Initialize()
     {
+        this._cancellationTokenSource = new CancellationTokenSource();
+
         this.TEMP_FIX_SetTacOAsActive();
 
         string directoryName = this.GetDirectoryName();
@@ -864,6 +870,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected override void Unload()
     {
+        this._cancellationTokenSource?.Cancel();
+
         this.Logger.Debug("Unload settings...");
 
         if (this.ModuleSettings != null)

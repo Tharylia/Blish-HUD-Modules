@@ -102,7 +102,7 @@ public class ReorderEventsView : BaseView
             Right = buttons.Width,
             Bottom = buttons.Height
         };
-        saveButton.Click += async (s, e) =>
+        saveButton.Click += (s, e) =>
         {
             Logger.Debug("Save reordered categories.");
             List<EventCategory> orderedCategories = listView.Children.ToList().Select(child =>
@@ -128,15 +128,6 @@ public class ReorderEventsView : BaseView
             }
 
             this.SaveClicked?.Invoke(this, (this._areaConfiguration, currentCategories.Select(x => x.Key).ToArray()));
-
-            /*Logger.Debug("Load current external file.");
-            EventSettingsFile eventSettingsFile = await EventTableModule.ModuleInstance.EventFileService.GetLocalFile();
-            eventSettingsFile.EventCategories = currentCategories;
-            Logger.Debug("Export updated file.");
-            await EventTableModule.ModuleInstance.EventFileService.ExportFile(eventSettingsFile);
-            Logger.Debug("Reload events.");
-            await EventTableModule.ModuleInstance.LoadEvents();
-            Shared.Controls.ScreenNotification.ShowNotification(Strings.ReorderEventsView_Save_Success);*/
         };
 
         StandardButton resetButton = new StandardButton

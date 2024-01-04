@@ -31,6 +31,7 @@ public class ReminderSettingsView : BaseSettingsView
 {
     private static readonly Event _globalChangeTempEvent = new Event();
     private readonly Func<List<EventCategory>> _getEvents;
+    private readonly Func<List<string>> _getAreaNames;
     private readonly ModuleSettings _moduleSettings;
     private StandardWindow _manageEventsWindow;
     private StandardWindow _manageReminderTimesWindow;
@@ -45,17 +46,22 @@ public class ReminderSettingsView : BaseSettingsView
         });
     }
 
-    public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
+    public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Func<List<string>> getAreaNames, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._moduleSettings = moduleSettings;
         this._getEvents = getEvents;
-
+        this._getAreaNames = getAreaNames;
         this.CONTROL_WIDTH = 500;
     }
 
     protected override void BuildView(FlowPanel parent)
     {
         this.RenderBoolSetting(parent, this._moduleSettings.RemindersEnabled);
+        this.RenderBoolSetting(parent, this._moduleSettings.DisableRemindersWhenEventFinished);
+
+        this.RenderEmptyLine(parent);
+
+        this.RenderDisableRemindersWhenEventFinishedArea(parent);
 
         this.RenderEmptyLine(parent);
 
@@ -201,6 +207,25 @@ public class ReminderSettingsView : BaseSettingsView
         this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersInPvE_Competetive);
         this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersInWvW);
         this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersInPvP);
+    }
+
+    private void RenderDisableRemindersWhenEventFinishedArea(FlowPanel parent)
+    {
+        var panel = new Blish_HUD.Controls.Panel()
+        {
+            Parent = parent,
+            WidthSizingMode = SizingMode.AutoSize,
+            HeightSizingMode = SizingMode.AutoSize,
+        };
+
+        var label = this.RenderLabel(panel, this._moduleSettings.DisableRemindersWhenEventFinishedArea.DisplayName).TitleLabel;
+        var values = new List<string>() { ModuleSettings.ANY_AREA_NAME };
+        values.AddRange(this._getAreaNames());
+        var dropdown = this.RenderDropdown(panel, this.CONTROL_LOCATION, this.CONTROL_WIDTH, values.ToArray(), this._moduleSettings.DisableRemindersWhenEventFinishedArea.Value, newVal =>
+        {
+            this._moduleSettings.DisableRemindersWhenEventFinishedArea.Value = newVal;
+        });
+        dropdown.BasicTooltipText = this._moduleSettings.DisableRemindersWhenEventFinishedArea.Description;
     }
 
     private void ManageView_EventChanged(object sender, ManageEventsView.EventChangedArgs e)

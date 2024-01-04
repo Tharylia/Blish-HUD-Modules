@@ -93,7 +93,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
                     await this.OnAfterFilesystemLoad(entities);
 
-                    using (this._apiObjectListLock.Lock())
+                    using (await this._apiObjectListLock.LockAsync())
                     {
                         this.APIObjectList.Clear();
                         this.APIObjectList.AddRange(entities);
@@ -124,7 +124,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
                         this.Loading = true;
                         this.ReportProgress("Saving...");
 
-                        result = await this.OnAfterLoadFromAPIBeforeSave();
+                        result |= await this.OnAfterLoadFromAPIBeforeSave();
 
                         if (result)
                         {
@@ -169,9 +169,10 @@ public abstract class FilesystemAPIService<T> : APIService<T>
     /// <summary>
     ///     Called after the load from api finished and before calling save.
     /// </summary>
+    /// <returns>True, if the method handled additional loading before saving. Otherwise false.</returns>
     protected virtual Task<bool> OnAfterLoadFromAPIBeforeSave()
     {
-        return Task.FromResult(true);
+        return Task.FromResult(false);
     }
 
     /// <summary>

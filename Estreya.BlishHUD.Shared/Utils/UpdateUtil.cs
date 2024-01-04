@@ -35,7 +35,7 @@ public static class UpdateUtil
         }
     }
 
-    public static async Task UpdateAsync(Func<GameTime, Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true)
+    public static async Task UpdateAsync(Func<GameTime, Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true, TaskCreationOptions taskCreationOptions = TaskCreationOptions.None)
     {
         lastCheck.Value += gameTime.ElapsedGameTime.TotalMilliseconds;
 
@@ -55,7 +55,7 @@ public static class UpdateUtil
 
         try
         {
-            Task task = call.Invoke(gameTime);
+            Task task = Task.Factory.StartNew(() => call.Invoke(gameTime), taskCreationOptions).Unwrap();
             await task;
 
             lastCheck.Value = 0;
@@ -71,7 +71,7 @@ public static class UpdateUtil
         }
     }
 
-    public static async Task UpdateAsync(Func<Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true)
+    public static async Task UpdateAsync(Func<Task> call, GameTime gameTime, double interval, AsyncRef<double> lastCheck, bool doLogging = true, TaskCreationOptions taskCreationOptions = TaskCreationOptions.None)
     {
         lastCheck.Value += gameTime.ElapsedGameTime.TotalMilliseconds;
 
@@ -91,7 +91,7 @@ public static class UpdateUtil
 
         try
         {
-            Task task = call.Invoke();
+            Task task = Task.Factory.StartNew(call, taskCreationOptions).Unwrap();
             await task;
 
             lastCheck.Value = 0;

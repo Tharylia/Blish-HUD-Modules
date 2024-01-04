@@ -178,6 +178,30 @@ public class EventStateService : ManagedService
         return Task.CompletedTask;
     }
 
+    public bool Contains(string eventKey)
+    {
+        lock (this.Instances)
+        {
+            return this.Instances.Any(instance => instance.EventKey == eventKey);
+        }
+    }
+
+    public bool Contains(string eventKey, EventStates state)
+    {
+        lock (this.Instances)
+        {
+            return this.Instances.Any(instance => instance.EventKey == eventKey && instance.State == state);
+        }
+    }
+
+    public bool Contains(string areaName, string eventKey)
+    {
+        lock (this.Instances)
+        {
+            return this.Instances.Any(instance => instance.AreaName == areaName && instance.EventKey == eventKey);
+        }
+    }
+
     public bool Contains(string areaName, string eventKey, EventStates state)
     {
         lock (this.Instances)

@@ -77,7 +77,7 @@ public class EventArea : RenderTarget2DControl
     private Event _lastActiveEvent;
     private double _lastCheckForNewEventsUpdate;
     private readonly AsyncRef<double> _lastEventOccurencesUpdate = new AsyncRef<double>(0);
-    private MouseEventType _lastMouseEventType;
+    //private MouseEventType _lastMouseEventType;
     private MapchestService _mapchestService;
     private MapUtil _mapUtil;
 
@@ -674,13 +674,6 @@ public class EventArea : RenderTarget2DControl
         }
 
         return new ConcurrentDictionary<string, List<Models.Event>>();
-    }
-
-    private bool EventCategoryDisabled(EventCategory ec)
-    {
-        bool finished = this._eventStateService?.Contains(this.Configuration.Name, ec.Key, EventStateService.EventStates.Completed) ?? false;
-
-        return finished;
     }
 
     private bool EventDisabled(Models.Event ev)

@@ -8,7 +8,6 @@ using Blish_HUD.Modules;
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Automations.Models.Automations.MapChange;
 using Estreya.BlishHUD.Automations.Services;
-using Estreya.BlishHUD.EventTable.Contexts;
 using Estreya.BlishHUD.Shared.Services;
 using Gw2Sharp.WebApi.V2.Models;
 using HandlebarsDotNet;
@@ -145,5 +144,5 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
         return this.IconService.GetIcon("156764.png");
     }
 
-    protected override int CornerIconPriority => 1_289_351_269;
+    protected override int CornerIconPriority => 1_289_351_268;
 }

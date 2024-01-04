@@ -20,7 +20,7 @@ public abstract class BaseSettingsView : BaseView
 {
     private static readonly Logger Logger = Logger.GetLogger<BaseSettingsView>();
     private readonly SettingEventService _settingEventService;
-    private Point CONTROL_LOCATION;
+    protected Point CONTROL_LOCATION { get; private set; }
     protected int CONTROL_WIDTH;
 
     protected BaseSettingsView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService)
