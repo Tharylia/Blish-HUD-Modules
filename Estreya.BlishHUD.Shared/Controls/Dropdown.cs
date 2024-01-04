@@ -14,7 +14,7 @@ using System.Linq;
 /// <summary>
 ///     Represents a Guild Wars 2 Dropdown control.
 /// </summary>
-public class Dropdown<T> : Control
+public class Dropdown<TItem> : Control
 {
     public static readonly DesignStandard Standard = new DesignStandard( /*          Size */ new Point(250, 27),
         /*   PanelOffset */ new Point(5, 2),
@@ -22,16 +22,16 @@ public class Dropdown<T> : Control
 
     private bool _hadPanel;
 
-    private DropdownPanel<T> _lastPanel;
+    private DropdownPanel _lastPanel;
 
-    private T _selectedItem;
+    private TItem _selectedItem;
 
     /// <summary>
     ///     Initializes a new instance of the <see cref="Dropdown" /> class.
     /// </summary>
     public Dropdown()
     {
-        this.Items = new ObservableCollection<T>();
+        this.Items = new ObservableCollection<TItem>();
 
         this.Items.CollectionChanged += delegate
         {
@@ -45,21 +45,21 @@ public class Dropdown<T> : Control
     /// <summary>
     ///     The collection of items contained in this <see cref="Dropdown" />.
     /// </summary>
-    public ObservableCollection<T> Items { get; }
+    public ObservableCollection<TItem> Items { get; }
 
     /// <summary>
     ///     Gets or sets the currently selected item in the <see cref="Dropdown" />.
     /// </summary>
-    public T SelectedItem
+    public TItem SelectedItem
     {
         get => this._selectedItem;
         set
         {
-            T previousValue = this._selectedItem;
+            TItem previousValue = this._selectedItem;
 
             if (this.SetProperty(ref this._selectedItem, value))
             {
-                this.OnValueChanged(new ValueChangedEventArgs<T>(previousValue, this._selectedItem));
+                this.OnValueChanged(new ValueChangedEventArgs<TItem>(previousValue, this._selectedItem));
             }
         }
     }
@@ -100,7 +100,7 @@ public class Dropdown<T> : Control
 
         if (this._lastPanel == null && !this._hadPanel)
         {
-            this._lastPanel = DropdownPanel<T>.ShowPanel(this, Math.Min(this.PanelHeight, this.Items.Sum(x => this.Height)));
+            this._lastPanel = DropdownPanel.ShowPanel(this, Math.Min(this.PanelHeight, this.Items.Sum(x => this.Height)));
             if (this.PanelHeight != -1)
             {
                 this._lastPanel.CanScroll = true;
@@ -150,15 +150,15 @@ public class Dropdown<T> : Control
                 : StandardColors.DisabledText);
     }
 
-    private class DropdownPanel<T> : FlowPanel
+    private class DropdownPanel : FlowPanel
     {
         private const int SCROLL_CLOSE_THRESHOLD = 20;
 
         private readonly int _startTop;
 
-        private Dropdown<T> _assocDropdown;
+        private Dropdown<TItem> _assocDropdown;
 
-        private DropdownPanel(Dropdown<T> assocDropdown, int panelHeight = -1)
+        private DropdownPanel(Dropdown<TItem> assocDropdown, int panelHeight = -1)
         {
             this._assocDropdown = assocDropdown;
             this._size = new Point(this._assocDropdown.Width, panelHeight != -1 ? panelHeight:  this._assocDropdown.Height * this._assocDropdown.Items.Count);
@@ -179,9 +179,9 @@ public class Dropdown<T> : Control
 
         private void AddItems()
         {
-            foreach (T itemValue in this._assocDropdown.Items)
+            foreach (TItem itemValue in this._assocDropdown.Items)
             {
-                DropdownPanelItem<T> dropdownPanelItem = new DropdownPanelItem<T>(itemValue)
+                DropdownPanelItem dropdownPanelItem = new DropdownPanelItem(itemValue)
                 {
                     Parent = this,
                     Height = this._assocDropdown.ItemHeight == -1 ? this._assocDropdown.Height : this._assocDropdown.ItemHeight,
@@ -195,7 +195,7 @@ public class Dropdown<T> : Control
 
         private void DropdownPanelItem_Click(object sender, MouseEventArgs e)
         {
-            if (sender is DropdownPanelItem<T> panelItem)
+            if (sender is DropdownPanelItem panelItem)
             {
                 this._assocDropdown.SelectedItem = panelItem.Value;
 
@@ -217,9 +217,9 @@ public class Dropdown<T> : Control
                 : dropdownLocation - new Point(0, this._size.Y + 1);
         }
 
-        public static DropdownPanel<T> ShowPanel(Dropdown<T> assocDropdown, int panelHeight = -1)
+        public static DropdownPanel ShowPanel(Dropdown<TItem> assocDropdown, int panelHeight = -1)
         {
-            return new DropdownPanel<T>(assocDropdown, panelHeight);
+            return new DropdownPanel(assocDropdown, panelHeight);
         }
 
         private void InputOnMousedOffDropdownPanel(object sender, MouseEventArgs e)
@@ -257,7 +257,7 @@ public class Dropdown<T> : Control
         {
             this.Children?.ToList().ForEach(child =>
             {
-                if (child is DropdownPanelItem<T> panelItem)
+                if (child is DropdownPanelItem panelItem)
                 {
                     panelItem.Click -= this.DropdownPanelItem_Click;
                 }
@@ -278,7 +278,7 @@ public class Dropdown<T> : Control
         }
     }
 
-    private class DropdownPanelItem<T> : Control
+    private class DropdownPanelItem : Control
     {
         private const int TOOLTIP_HOVER_DELAY = 800;
 
@@ -286,13 +286,13 @@ public class Dropdown<T> : Control
 
         public BitmapFont Font { get; set; } = GameService.Content.DefaultFont14;
 
-        public DropdownPanelItem(T value)
+        public DropdownPanelItem(TItem value)
         {
             this.Value = value;
             this.BackgroundColor = Color.Black;
         }
 
-        public T Value { get; }
+        public TItem Value { get; }
 
         private void UpdateHoverTimer(double elapsedMilliseconds)
         {
@@ -361,9 +361,9 @@ public class Dropdown<T> : Control
     /// <summary>
     ///     Occurs when the <see cref="SelectedItem" /> property has changed.
     /// </summary>
-    public event EventHandler<ValueChangedEventArgs<T>> ValueChanged;
+    public event EventHandler<ValueChangedEventArgs<TItem>> ValueChanged;
 
-    protected virtual void OnValueChanged(ValueChangedEventArgs<T> e)
+    protected virtual void OnValueChanged(ValueChangedEventArgs<TItem> e)
     {
         this.ValueChanged?.Invoke(this, e);
     }

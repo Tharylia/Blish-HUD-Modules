@@ -54,16 +54,15 @@ public class BlishHUDAPIView : BaseView
 
         this.BuildLoginSection(this._mainParent);
 
-        return; // Until used
-        this.RenderEmptyLine(this._mainParent);
-        this.RenderKofiStatus(this._mainParent);
+        //this.RenderEmptyLine(this._mainParent);
+        //this.RenderKofiStatus(this._mainParent);
 
-        if (this.BlishHUDAPIService != null)
-        {
-            this.BlishHUDAPIService.NewLogin += this.RedrawKofiStatusGroup;
-            this.BlishHUDAPIService.RefreshedLogin += this.RedrawKofiStatusGroup;
-            this.BlishHUDAPIService.LoggedOut += this.RedrawKofiStatusGroup;
-        }
+        //if (this.BlishHUDAPIService != null)
+        //{
+        //    this.BlishHUDAPIService.NewLogin += this.RedrawKofiStatusGroup;
+        //    this.BlishHUDAPIService.RefreshedLogin += this.RedrawKofiStatusGroup;
+        //    this.BlishHUDAPIService.LoggedOut += this.RedrawKofiStatusGroup;
+        //}
     }
 
     private void RenderKofiStatus(FlowPanel flowPanel)
