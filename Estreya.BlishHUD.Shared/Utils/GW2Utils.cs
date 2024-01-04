@@ -1,5 +1,7 @@
 ﻿namespace Estreya.BlishHUD.Shared.Utils;
 
+using Microsoft.Win32;
+
 public static class GW2Utils
 {
     public static string FormatCoins(int coins)
@@ -26,5 +28,11 @@ public static class GW2Utils
         coins += gold * 10000;
 
         return coins;
+    }
+
+    public static string GetInstallPath()
+    {
+        var regKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Default).OpenSubKey("SOFTWARE\\ArenaNet\\Guild Wars 2");
+        return (string)regKey.GetValue("Path");
     }
 }
