@@ -107,6 +107,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     protected override async Task LoadAsync()
     {
         Stopwatch sw = Stopwatch.StartNew();
+        this.ModuleSettings.ValidateAndTryFixSettings();
         await base.LoadAsync();
 
         this.BlishHUDAPIService.NewLogin += this.BlishHUDAPIService_NewLogin;
@@ -488,6 +489,22 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             return;
         }
 
+        if (this.ModuleSettings.DisableRemindersWhenEventFinished.Value)
+        {
+            var areaName = this.ModuleSettings.DisableRemindersWhenEventFinishedArea.Value;
+            var completed = areaName switch
+            {
+                ModuleSettings.ANY_AREA_NAME => this.EventStateService.Contains(ev.SettingKey),
+                _ => this.EventStateService.Contains(areaName, ev.SettingKey),
+            };
+
+            if (completed)
+            {
+                this.Logger.Debug($"Reminder {ev.SettingKey} was not displayed due to being completed/hidden in the area \"{areaName}\".");
+                return;
+            }
+        }
+
         try
         {
             string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
@@ -555,6 +572,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                         "Copied to clipboard!"
                     });
                 }
+
                 break;
             case LeftClickAction.NavigateToWaypoint:
                 if (notification is null || notification.Model is null || string.IsNullOrWhiteSpace(notification.Model.Waypoint) || this.PointOfInterestService is null)
@@ -583,6 +601,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                         ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
                     }
                 });
+
                 break;
         }
     }
@@ -749,7 +768,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => areaSettingsView,
             this.TranslationService.GetTranslation("areaSettingsView-title", "Event Areas")));
 
-        var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, () => this._areas.Keys.ToList(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         reminderSettingsView.SyncEnabledEventsToAreas += (s) =>
         {
             if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");

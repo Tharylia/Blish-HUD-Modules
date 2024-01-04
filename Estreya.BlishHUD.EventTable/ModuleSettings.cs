@@ -21,6 +21,8 @@ public class ModuleSettings : BaseModuleSettings
 {
     private const string EVENT_AREA_SETTINGS = "event-area-settings";
 
+    public const string ANY_AREA_NAME = "Any";
+
     public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.E))
     {
     }
@@ -51,9 +53,9 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<EventReminderStackDirection> ReminderStackDirection { get; private set; }
     public SettingEntry<EventReminderStackDirection> ReminderOverflowStackDirection { get; private set; }
     public SettingEntry<ReminderType> ReminderType { get; private set; }
+    public SettingEntry<bool> DisableRemindersWhenEventFinished { get; private set; }
+    public SettingEntry<string> DisableRemindersWhenEventFinishedArea { get; private set; }   
     public SettingEntry<bool> AcceptWaypointPrompt { get; private set; }
-
-
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
     public SettingEntry<bool> ShowDynamicEventInWorld { get; private set; }
@@ -133,6 +135,9 @@ public class ModuleSettings : BaseModuleSettings
         this.ReminderMinTimeUnit.SetIncluded(TimeUnit.Second, TimeUnit.Minute, TimeUnit.Hour);
 
         this.ReminderType = this.GlobalSettings.DefineSetting(nameof(this.ReminderType), Models.Reminders.ReminderType.Control, () => "Reminder Type", () => "Defines what type the reminder should be displayed as.");
+
+        this.DisableRemindersWhenEventFinished = this.GlobalSettings.DefineSetting(nameof(this.DisableRemindersWhenEventFinished), false, () => "Disable Reminders for finished Events", () => "Disabled the reminders for events with are either completed or hidden.");
+        this.DisableRemindersWhenEventFinishedArea = this.GlobalSettings.DefineSetting(nameof(this.DisableRemindersWhenEventFinishedArea), ANY_AREA_NAME, () => "Check finished Events in Area", () => "Defines the area name which is checked for completed/finished events");
 
         this.AcceptWaypointPrompt = this.GlobalSettings.DefineSetting(nameof(this.AcceptWaypointPrompt), true, () => "Accept Waypoint Prompt", () => "Defines if the waypoint prompt should be auto accepted");
 
@@ -768,6 +773,22 @@ public class ModuleSettings : BaseModuleSettings
         string enableColorGradientsDescriptionDefault = drawerConfiguration.EnableColorGradients.Description;
         drawerConfiguration.EnableColorGradients.GetDisplayNameFunc = () => translationService.GetTranslation("setting-drawerEnableColorGradients-name", enableColorGradientsDisplayNameDefault);
         drawerConfiguration.EnableColorGradients.GetDescriptionFunc = () => translationService.GetTranslation("setting-drawerEnableColorGradients-description", enableColorGradientsDescriptionDefault);
+    }
+
+    public void ValidateAndTryFixSettings()
+    {
+        this.ValidateAndFixDisableRemindersWhenEventFinishedArea();
+    }
+
+    private void ValidateAndFixDisableRemindersWhenEventFinishedArea()
+    {
+        var areaNames = this.EventAreaNames.Value.ToArray().ToList();
+        var disableRemindersWhenEventFinishedArea = this.DisableRemindersWhenEventFinishedArea.Value;
+        if (disableRemindersWhenEventFinishedArea != ANY_AREA_NAME && !areaNames.Contains(disableRemindersWhenEventFinishedArea))
+        {
+            this.Logger.Warn($"Setting \"{nameof(this.DisableRemindersWhenEventFinishedArea)}\" has the invalid area \"{disableRemindersWhenEventFinishedArea}\" set and will be reset to \"{ANY_AREA_NAME}\".");
+            this.DisableRemindersWhenEventFinishedArea.Value = ANY_AREA_NAME;
+        }
     }
 
     public override void Unload()
