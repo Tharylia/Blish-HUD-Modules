@@ -43,6 +43,8 @@ using Estreya.BlishHUD.Shared.Helpers;
 using Blish_HUD.ArcDps.Models;
 using Estreya.BlishHUD.Shared.Contexts;
 using Estreya.BlishHUD.EventTable.Contexts;
+using Windows.UI.WindowManagement;
+using Microsoft.Xna.Framework.Audio;
 
 /// <summary>
 /// The event table module class.
@@ -185,7 +187,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this._eventTableContext = new EventTableContext();
         this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService,
-            this.IconService, 
+            this.IconService,
             this.EventStateService,
             async () =>
             {
@@ -251,6 +253,32 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     categories.AddRange(contextEvents);
                 }
 
+                var selfHostedEvents = await this.LoadSelfHostedEvents();
+
+                if (selfHostedEvents is not null)
+                {
+                    foreach (var selfHostedCategory in selfHostedEvents)
+                    {
+                        if (!categories.Any(c => c.Key == selfHostedCategory.Key)) continue;
+
+                        var category = categories.Find(c => c.Key == selfHostedCategory.Key);
+                        foreach (var selfHostedEvent in selfHostedCategory.Value)
+                        {
+                            var ev = new Event()
+                            {
+                                Key = selfHostedEvent.EventKey,
+                                Name = selfHostedEvent.EventName ?? selfHostedEvent.EventKey,
+                                Duration = selfHostedEvent.Duration,
+                                HostedBySystem = false
+                            };
+
+                            ev.Occurences.Add(selfHostedEvent.StartTime.UtcDateTime);
+
+                            category.OriginalEvents.Add(ev);
+                        }
+                    }
+                }
+
                 categories.ForEach(ec =>
                 {
                     ec.Load(() => this.NowUTC, this.TranslationService);
@@ -283,6 +311,34 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 this.Logger.Error(ex, "Failed loading events.");
             }
         }
+    }
+
+    private async Task<Dictionary<string, List<SelfHostedEventEntry>>> LoadSelfHostedEvents()
+    {
+        try
+        {
+            IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "self-hosting");
+
+            var selfhostedEntries = await request.GetJsonAsync<Dictionary<string, List<SelfHostedEventEntry>>>();
+
+            int eventCategoryCount = selfhostedEntries.Count;
+            int eventCount = selfhostedEntries.Sum(ec => ec.Value.Count);
+
+            this.Logger.Info($"Loaded {eventCategoryCount} self hosted categories with {eventCount} events.");
+
+            return selfhostedEntries;
+        }
+        catch (FlurlHttpException ex)
+        {
+            string message = await ex.GetResponseStringAsync();
+            this.Logger.Warn(ex, $"Failed loading self hosted events: {message}");
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Error(ex, "Failed loading self hosted events.");
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -542,6 +598,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             {
                 await EventNotification.ShowAsWindowsNotification(title, message, icon);
             }
+
+            this.AudioService.PlaySoundFromFile("reminder", true);
         }
         catch (Exception ex)
         {
@@ -673,10 +731,40 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => this.NowUTC,
             () => this.Version,
             () => this.BlishHUDAPIService.AccessToken,
+            () => this.ModuleSettings.EventAreaNames.Value.ToArray().ToList(),
             this.ContentsManager)
         { Parent = GameService.Graphics.SpriteScreen };
 
+        area.CopyToAreaClicked += this.EventArea_CopyToAreaClicked;
+        area.MoveToAreaClicked += this.EventArea_MoveToAreaClicked;
+        area.Disposed += this.EventArea_Disposed;
+
         _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
+    }
+
+    private void EventArea_MoveToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
+    {
+        var sourceArea = sender as EventArea;
+        var destArea = this._areas.First(a => a.Key == e.DestinationArea).Value;
+
+        sourceArea.DisableEvent(e.EventSettingKey);
+        destArea.EnableEvent(e.EventSettingKey);
+    }
+
+    private void EventArea_CopyToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
+    {
+        var sourceArea = sender as EventArea;
+        var destArea = this._areas.First(a => a.Key == e.DestinationArea).Value;
+
+        destArea.EnableEvent(e.EventSettingKey);
+    }
+
+    private void EventArea_Disposed(object sender, EventArgs e)
+    {
+        var area = sender as EventArea;
+        area.CopyToAreaClicked -= this.EventArea_CopyToAreaClicked;
+        area.MoveToAreaClicked -= this.EventArea_MoveToAreaClicked;
+        area.Disposed -= this.EventArea_Disposed;
     }
 
     /// <summary>
@@ -812,6 +900,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         configurations.Worldbosses.Enabled = true;
         configurations.Mapchests.Enabled = true;
         configurations.PointOfInterests.Enabled = true;
+        configurations.Audio.Enabled = true;
     }
 
     /// <summary>

@@ -130,7 +130,7 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
         }, directoryPath, this.TransactionsService);
 
         services.Add(this.TrackedTransactionService);
-        services.Add(this.FavouriteItemService);
+        //services.Add(this.FavouriteItemService);
 
         return services;
     }
@@ -173,9 +173,9 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
 
         this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("255379.png"), () => this._trackedTransactionView, "Tracked Transactions"));
 
-        this._favouriteItemsView = new FavouriteItemsView(this.FavouriteItemService, this.ItemService, this.TransactionsService, this.Gw2ApiManager, this.IconService, this.TranslationService);
+        //this._favouriteItemsView = new FavouriteItemsView(this.FavouriteItemService, this.ItemService, this.TransactionsService, this.Gw2ApiManager, this.IconService, this.TranslationService);
 
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156751.png"), () => this._favouriteItemsView, "Favourite Items"));
+        //this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156751.png"), () => this._favouriteItemsView, "Favourite Items"));
     }
 
     private void TrackedTransactionService_TransactionLeftRange(object sender, TrackedTransaction e)

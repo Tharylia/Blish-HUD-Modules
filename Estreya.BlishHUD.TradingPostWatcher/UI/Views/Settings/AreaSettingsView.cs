@@ -7,6 +7,7 @@ using Microsoft.Xna.Framework;
 using Models;
 using MonoGame.Extended.BitmapFonts;
 using Shared.Controls;
+using Shared.Controls.Input;
 using Shared.Services;
 using Shared.UI.Views;
 using System;

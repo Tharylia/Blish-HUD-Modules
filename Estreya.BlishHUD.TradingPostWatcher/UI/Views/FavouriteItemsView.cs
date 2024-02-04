@@ -4,6 +4,7 @@ using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Controls;
+using Estreya.BlishHUD.Shared.Services.TradingPost;
 using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Utils;
 using Estreya.BlishHUD.Shared.UI.Views;

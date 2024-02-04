@@ -4,6 +4,7 @@ namespace Estreya.BlishHUD.ArcDPSLogManager.UI.Views;
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.ArcDPSLogManager.UI.Views;
 using Estreya.BlishHUD.ArcDPSLogManager.Models;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
@@ -13,6 +14,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Blish_HUD;
 
 public class LogManagerView : BaseView
 {
@@ -44,54 +46,55 @@ public class LogManagerView : BaseView
 
     protected override void InternalBuild(Panel parent)
     {
-        this._menuItems = new Dictionary<string, MenuItem>();
-        Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - PADDING_X, parent.ContentRegion.Height - (PADDING_Y * 2));
+        this.LoadLogs();
+        //this._menuItems = new Dictionary<string, MenuItem>();
+        //Rectangle bounds = new Rectangle(PADDING_X, PADDING_Y, parent.ContentRegion.Width - PADDING_X, parent.ContentRegion.Height - (PADDING_Y * 2));
 
-        Panel typeOverviewPanel = this.GetPanel(parent);
-        typeOverviewPanel.ShowBorder = true;
-        typeOverviewPanel.CanScroll = true;
-        typeOverviewPanel.HeightSizingMode = SizingMode.Standard;
-        typeOverviewPanel.WidthSizingMode = SizingMode.Standard;
-        typeOverviewPanel.Location = new Point(bounds.X, bounds.Y);
-        typeOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X - 75, bounds.Height - StandardButton.STANDARD_CONTROL_HEIGHT);
+        //Panel typeOverviewPanel = this.GetPanel(parent);
+        //typeOverviewPanel.ShowBorder = true;
+        //typeOverviewPanel.CanScroll = true;
+        //typeOverviewPanel.HeightSizingMode = SizingMode.Standard;
+        //typeOverviewPanel.WidthSizingMode = SizingMode.Standard;
+        //typeOverviewPanel.Location = new Point(bounds.X, bounds.Y);
+        //typeOverviewPanel.Size = new Point(Panel.MenuStandard.Size.X - 75, bounds.Height - StandardButton.STANDARD_CONTROL_HEIGHT);
 
-        Menu typeOverviewMenu = new Menu
-        {
-            Parent = typeOverviewPanel,
-            WidthSizingMode = SizingMode.Fill
-        };
+        //Menu typeOverviewMenu = new Menu
+        //{
+        //    Parent = typeOverviewPanel,
+        //    WidthSizingMode = SizingMode.Fill
+        //};
 
-        foreach (EventAreaConfiguration areaConfiguration in this._logs)
-        {
-            string itemName = areaConfiguration.Name;
+        //foreach (EventAreaConfiguration areaConfiguration in this._logs)
+        //{
+        //    string itemName = areaConfiguration.Name;
 
-            if (string.IsNullOrWhiteSpace(itemName))
-            {
-                continue;
-            }
+        //    if (string.IsNullOrWhiteSpace(itemName))
+        //    {
+        //        continue;
+        //    }
 
-            MenuItem menuItem = new MenuItem(itemName)
-            {
-                Parent = typeOverviewMenu,
-                Text = itemName,
-                WidthSizingMode = SizingMode.Fill,
-                HeightSizingMode = SizingMode.AutoSize
-            };
+        //    MenuItem menuItem = new MenuItem(itemName)
+        //    {
+        //        Parent = typeOverviewMenu,
+        //        Text = itemName,
+        //        WidthSizingMode = SizingMode.Fill,
+        //        HeightSizingMode = SizingMode.AutoSize
+        //    };
 
-            this._menuItems.Add(itemName, menuItem);
-        }
+        //    this._menuItems.Add(itemName, menuItem);
+        //}
 
-        int x = typeOverviewPanel.Right + Panel.MenuStandard.PanelOffset.X;
-        Rectangle areaPanelBounds = new Rectangle(x, bounds.Y, bounds.Width - x, bounds.Height);
+        //int x = typeOverviewPanel.Right + Panel.MenuStandard.PanelOffset.X;
+        //Rectangle areaPanelBounds = new Rectangle(x, bounds.Y, bounds.Width - x, bounds.Height);
 
-        this._menuItems.ToList().ForEach(menuItem =>
-        {
-            menuItem.Value.Click += (s, e) =>
-            {
-                EventAreaConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
-                this.BuildEditPanel(newParent, areaPanelBounds, menuItem.Value, areaConfiguration);
-            };
-        });
+        //this._menuItems.ToList().ForEach(menuItem =>
+        //{
+        //    menuItem.Value.Click += (s, e) =>
+        //    {
+        //        EventAreaConfiguration areaConfiguration = this._areaConfigurations.Where(areaConfiguration => areaConfiguration.Name == menuItem.Key).First();
+        //        this.BuildEditPanel(newParent, areaPanelBounds, menuItem.Value, areaConfiguration);
+        //    };
+        //});
 
         this._logList = new FlowPanel
         {
@@ -105,17 +108,32 @@ public class LogManagerView : BaseView
 
         _logList.MouseWheelScrolled += this.LogList_MouseWheelScrolled;
 
-        foreach (var log in logData)
+        foreach (var log in this._logs)
         {
-            var panel = new Panel()
+            //var panel = new Panel()
+            //{
+            //    Parent = this._logList,
+            //    Width = this._logList.ContentRegion.Width - (int)this._logList.OuterControlPadding.X * 2,
+            //    HeightSizingMode = SizingMode.AutoSize,
+            //    Title = this.GetLogTitle(log),
+            //    CanCollapse = true,
+            //    Collapsed = true
+            //};
+
+            var viewContainer = new ViewContainer()
             {
                 Parent = this._logList,
                 Width = this._logList.ContentRegion.Width - (int)this._logList.OuterControlPadding.X * 2,
                 HeightSizingMode = SizingMode.AutoSize,
-                Title = this.GetLogTitle(log),
-                CanCollapse = true,
-                Collapsed = true
+                //CanCollapse = true,
+                //Collapsed = true,
+                //ShowBorder= true,
+                ////AutoSizePadding = new Point(0, 5),
+                Title = log.GetLogTitle()
+
             };
+
+            viewContainer.Show(new LogOverviewView(log,this.APIManager, this.IconService, this.TranslationService));
         }
     }
 
@@ -124,12 +142,7 @@ public class LogManagerView : BaseView
         var heightSum = this._logList.Children.Sum(c => c.Height);
         var scrollingOffset = this._logList.VerticalScrollOffset;
         var percent = scrollingOffset * 100 / heightSum;
-        this._logger.Debug($"{scrollingOffset} - {heightSum} - {percent}");
-    }
-
-    private string GetLogTitle(LogData logData)
-    {
-        return $"{logData.MainTargetName} - {logData.EncounterStartTime?.ToString("d") ?? "Unknown Date"} - {logData.EncounterResult.Humanize()}";
+        //this._logger.Debug($"{scrollingOffset} - {heightSum} - {percent}");
     }
 
     public void Rebuild()

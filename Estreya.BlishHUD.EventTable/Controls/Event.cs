@@ -10,6 +10,7 @@ using Shared.Services;
 using Shared.UI.Views;
 using Shared.Utils;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using ColorUtil = Shared.Utils.ColorUtil;
 
@@ -65,11 +66,13 @@ public class Event : IDisposable
 
     public Models.Event Model { get; private set; }
 
-    public event EventHandler HideRequested;
-    public event EventHandler DisableRequested;
-    public event EventHandler ToggleFinishRequested;
+    public event EventHandler HideClicked;
+    public event EventHandler DisableClicked;
+    public event EventHandler ToggleFinishClicked;
+    public event EventHandler<string> MoveToAreaClicked;
+    public event EventHandler<string> CopyToAreaClicked;
 
-    public ContextMenuStrip BuildContextMenu()
+    public ContextMenuStrip BuildContextMenu(Func<List<string>> getAreaNames, string currentAreaName)
     {
         ContextMenuStrip menu = new ContextMenuStrip();
 
@@ -80,7 +83,7 @@ public class Event : IDisposable
         };
         disableAction.Click += (s, e) =>
         {
-            this.DisableRequested?.Invoke(this, EventArgs.Empty);
+            this.DisableClicked?.Invoke(this, EventArgs.Empty);
         };
 
         ContextMenuStripItem hideAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-hide-title", "Hide"))
@@ -90,7 +93,7 @@ public class Event : IDisposable
         };
         hideAction.Click += (s, e) =>
         {
-            this.HideRequested?.Invoke(this, EventArgs.Empty);
+            this.HideClicked?.Invoke(this, EventArgs.Empty);
         };
 
         ContextMenuStripItem toggleFinishAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-toggleFinish-title", "Toggle Finish"))
@@ -100,8 +103,59 @@ public class Event : IDisposable
         };
         toggleFinishAction.Click += (s, e) =>
         {
-            this.ToggleFinishRequested?.Invoke(this, EventArgs.Empty);
+            this.ToggleFinishClicked?.Invoke(this, EventArgs.Empty);
         };
+
+        if (getAreaNames != null && currentAreaName != null)
+        {
+            var areaNames = getAreaNames.Invoke();
+
+            if (areaNames.Count > 1)
+            {
+                var moveToAreaMenu = new ContextMenuStrip();
+                ContextMenuStripItem moveToAreaAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-moveToArea-title", "Move to Area..."))
+                {
+                    Parent = menu,
+                    BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-moveToArea-tooltip", "Moves the selected event to the selected area and disables it in the current area."),
+                    Submenu = moveToAreaMenu,
+                };
+
+                var copyToAreaMenu = new ContextMenuStrip();
+                ContextMenuStripItem copyToAreaAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-copyToArea-title", "Copy to Area..."))
+                {
+                    Parent = menu,
+                    BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-copyToArea-tooltip", "Copies the selected event to the selected area."),
+                    Submenu = copyToAreaMenu,
+                };
+
+                foreach (var areaName in areaNames)
+                {
+                    ContextMenuStripItem moveToAreaClickAction = new ContextMenuStripItem(areaName)
+                    {
+                        Parent = moveToAreaMenu,
+                        BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-moveToArea-tooltip", "Moves the selected event to the selected area and disables it in the current area."),
+                        Enabled = areaName != currentAreaName
+                    };
+
+                    moveToAreaClickAction.Click += (s, e) =>
+                    {
+                        this.MoveToAreaClicked?.Invoke(this, areaName);
+                    };
+
+                    ContextMenuStripItem copyToAreaClickAction = new ContextMenuStripItem(areaName)
+                    {
+                        Parent = copyToAreaMenu,
+                        BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-copyToArea-tooltip", "Copies the selected event to the selected area."),
+                        Enabled = areaName != currentAreaName
+                    };
+
+                    copyToAreaClickAction.Click += (s, e) =>
+                    {
+                        this.CopyToAreaClicked?.Invoke(this, areaName);
+                    };
+                }
+            }
+        }
 
         return menu;
     }

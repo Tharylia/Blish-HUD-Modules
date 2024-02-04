@@ -10,6 +10,7 @@ using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Controls.Input;
+using Estreya.BlishHUD.Shared.Services.Audio;
 using Estreya.BlishHUD.Shared.Services.TradingPost;
 using Exceptions;
 using Extensions;
@@ -168,6 +169,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected AccountAchievementService AccountAchievementService { get; private set; }
 
     protected MetricsService MetricsService { get; private set; }
+
+    protected AudioService AudioService { get; private set; }
 
     #endregion
 
@@ -402,6 +405,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 AwaitLoading = true
             }, this.GetFlurlClient(), API_ROOT_URL,this.Name, this.Namespace, this.ModuleSettings, this.IconService);
             this._services.Add(this.MetricsService);
+
+            if (configurations.Audio.Enabled)
+            {
+                this.AudioService = new AudioService(configurations.Audio, directoryPath);
+                this._services.Add(this.AudioService);
+            }
 
             if (configurations.Items.Enabled)
             {

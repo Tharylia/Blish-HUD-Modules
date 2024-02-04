@@ -125,6 +125,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Security\PasswordManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AccountAchievementService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AchievementService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\Audio\AudioService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\FilesystemAPIService[T].cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\MetricsService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\TradingPost\PlayerTransactionsService.cs" />

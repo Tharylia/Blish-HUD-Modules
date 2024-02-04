@@ -9,6 +9,7 @@ public class EventAreaConfiguration : DrawerConfiguration
 {
     public SettingEntry<List<string>> DisabledEventKeys { get; set; }
     public SettingEntry<EventCompletedAction> CompletionAction { get; set; }
+    public SettingEntry<bool> EnableLinkedCompletion { get; set; }
 
     public SettingEntry<bool> ShowTooltips { get; set; }
     public SettingEntry<LeftClickAction> LeftClickAction { get; set; }
@@ -89,6 +90,7 @@ public class EventAreaConfiguration : DrawerConfiguration
 
         other.DisabledEventKeys.Value = this.DisabledEventKeys.Value;
         other.CompletionAction.Value = this.CompletionAction.Value;
+        other.EnableLinkedCompletion.Value = this.EnableLinkedCompletion.Value;
         other.ShowTooltips.Value = this.ShowTooltips.Value;
         other.LeftClickAction.Value = this.LeftClickAction.Value;
         other.AcceptWaypointPrompt.Value = this.AcceptWaypointPrompt.Value;

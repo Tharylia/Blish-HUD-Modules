@@ -296,7 +296,7 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderBehaviourSettings(settingsPanel, areaConfiguration);
+        this.RenderBehaviorSettings(settingsPanel, areaConfiguration);
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -540,7 +540,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
 
-    private void RenderBehaviourSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    private void RenderBehaviorSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
     {
         FlowPanel groupPanel = new FlowPanel
         {
@@ -552,7 +552,7 @@ public class AreaSettingsView : BaseSettingsView
             ShowBorder = true,
             CanCollapse = true,
             Collapsed = true,
-            Title = this.TranslationService.GetTranslation("areaSettingsView-group-behaviours", "Behaviours")
+            Title = this.TranslationService.GetTranslation("areaSettingsView-group-behaviours", "Behaviors")
         };
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.LeftClickAction);
@@ -611,6 +611,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel);
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.CompletionAction);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.EnableLinkedCompletion);
         this.RenderFloatSetting(groupPanel, areaConfiguration.CompletedEventsBackgroundOpacity);
         this.RenderFloatSetting(groupPanel, areaConfiguration.CompletedEventsTextOpacity);
         this.RenderBoolSetting(groupPanel, areaConfiguration.CompletedEventsInvertTextColor);

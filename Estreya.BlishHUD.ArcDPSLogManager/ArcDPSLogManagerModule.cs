@@ -100,7 +100,10 @@ public class ArcDPSLogManagerModule : BaseModule<ArcDPSLogManagerModule, ModuleS
     {
         await base.LoadAsync();
 
-        this._parserAPIController = this.GetAPIController();
+        await Task.Factory.StartNew(() =>
+        {
+            this._parserAPIController = this.GetAPIController();
+        }, TaskCreationOptions.LongRunning);
 
         string gamePath = GW2Utils.GetInstallPath();
 
@@ -197,7 +200,7 @@ public class ArcDPSLogManagerModule : BaseModule<ArcDPSLogManagerModule, ModuleS
 
         var filteredFiles = files.Where(f => !this._logs.Any(l => l.FileInfo.FullName == f)).ToArray();
 
-        foreach ( var file in filteredFiles)
+        foreach (var file in filteredFiles)
         {
             this._logQueue.Enqueue(file);
         }
@@ -317,7 +320,8 @@ public class ArcDPSLogManagerModule : BaseModule<ArcDPSLogManagerModule, ModuleS
             {
                 return this._logs.ToArray().ToList();
             }
-        }, this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Logs"));
+        }, this.Gw2ApiManager, this.IconService, this.TranslationService)
+        { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Logs"));
     }
 
     protected override void Update(GameTime gameTime)
