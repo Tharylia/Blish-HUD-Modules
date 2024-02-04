@@ -698,13 +698,14 @@ public abstract class Window : Container, IWindow, IViewContainer
         {
             if (this._rebuildTask != null)
             {
-                this._rebuildCancellationTokenSource.Cancel();
+                this._rebuildCancellationTokenSource?.Cancel();
                 this._rebuildTask = null;
                 this._rebuildCancellationTokenSource = null;
             }
 
             this._rebuildCancellationTokenSource = new CancellationTokenSource();
-            this._rebuildTask = new Task(async () => await this.DelayRebuild(this._rebuildCancellationTokenSource.Token), this._rebuildCancellationTokenSource.Token);
+            var token = this._rebuildCancellationTokenSource.Token;
+            this._rebuildTask = new Task(async () => await this.DelayRebuild(token), token);
             this._rebuildTask.Start();
         }
         catch (Exception)
