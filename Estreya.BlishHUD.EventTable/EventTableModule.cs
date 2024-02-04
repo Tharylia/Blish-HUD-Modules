@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -43,6 +43,8 @@ using Estreya.BlishHUD.Shared.Helpers;
 using Blish_HUD.ArcDps.Models;
 using Estreya.BlishHUD.Shared.Contexts;
 using Estreya.BlishHUD.EventTable.Contexts;
+using Windows.UI.WindowManagement;
+using Microsoft.Xna.Framework.Audio;
 
 /// <summary>
 /// The event table module class.
@@ -185,7 +187,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this._eventTableContext = new EventTableContext();
         this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService,
-            this.IconService, 
+            this.IconService,
             this.EventStateService,
             async () =>
             {
@@ -596,6 +598,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             {
                 await EventNotification.ShowAsWindowsNotification(title, message, icon);
             }
+
+            this.AudioService.PlaySoundFromFile("reminder", true);
         }
         catch (Exception ex)
         {
@@ -896,6 +900,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         configurations.Worldbosses.Enabled = true;
         configurations.Mapchests.Enabled = true;
         configurations.PointOfInterests.Enabled = true;
+        configurations.Audio.Enabled = true;
     }
 
     /// <summary>

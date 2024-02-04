@@ -6,6 +6,12 @@ using System.Collections.Generic;
 
 public class ServiceConfigurations
 {
+    public ServiceConfiguration Audio { get; } = new ServiceConfiguration
+    {
+        Enabled = false,
+        AwaitLoading = false
+    };
+
     public ServiceConfiguration BlishHUDAPI { get; } = new ServiceConfiguration
     {
         Enabled = false,
