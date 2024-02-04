@@ -248,8 +248,9 @@ public class ModuleSettings : BaseModuleSettings
         SettingEntry<bool> acceptWaypointPrompt = this.DrawerSettings.DefineSetting($"{name}-acceptWaypointPrompt", true, () => "Accept Waypoint Prompt", () => "Whether the waypoint prompt should be accepted automatically when performing an automated teleport.");
 
         SettingEntry<EventCompletedAction> completionAction = this.DrawerSettings.DefineSetting($"{name}-completionAction", EventCompletedAction.Crossout, () => "Completion Action", () => "Defines the action to perform if an event has been completed.");
+        SettingEntry<bool> enableLinkedCompletion = this.DrawerSettings.DefineSetting($"{name}-enableLinkedCompletion", true, () => "Enable Linked Completion", () => "Enables the completion of events that are linked to the completed event. (e.g. Auric Basin)");
 
-        SettingEntry<List<string>> disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
+        SettingEntry <List<string>> disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
 
         SettingEntry<int> eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
         eventHeight.SetRange(5, 30);
@@ -361,6 +362,7 @@ public class ModuleSettings : BaseModuleSettings
             AcceptWaypointPrompt = acceptWaypointPrompt,
             DisabledEventKeys = disabledEventKeys,
             CompletionAction = completionAction,
+            EnableLinkedCompletion = enableLinkedCompletion,
             EventHeight = eventHeight,
             EventOrder = eventOrder,
             EventBackgroundOpacity = eventBackgroundOpacity,

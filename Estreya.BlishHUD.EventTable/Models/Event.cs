@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Models;
+﻿namespace Estreya.BlishHUD.EventTable.Models;
 
 using Blish_HUD;
 using Microsoft.Xna.Framework;
@@ -77,6 +77,8 @@ public class Event : IUpdatable
     [JsonProperty("apiType")] public APICodeType? APICodeType { get; set; }
 
     [JsonProperty("apiCode")] public string APICode { get; set; }
+
+    [JsonProperty("linkedCompletion")] public bool LinkedCompletion { get; set; }
 
     [JsonProperty("filler")] public bool Filler { get; set; }
 

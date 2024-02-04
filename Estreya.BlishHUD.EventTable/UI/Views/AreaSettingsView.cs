@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Controls;
@@ -611,6 +611,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel);
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.CompletionAction);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.EnableLinkedCompletion);
         this.RenderFloatSetting(groupPanel, areaConfiguration.CompletedEventsBackgroundOpacity);
         this.RenderFloatSetting(groupPanel, areaConfiguration.CompletedEventsTextOpacity);
         this.RenderBoolSetting(groupPanel, areaConfiguration.CompletedEventsInvertTextColor);
