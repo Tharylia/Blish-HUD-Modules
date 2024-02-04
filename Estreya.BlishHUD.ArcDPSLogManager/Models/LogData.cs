@@ -3,6 +3,8 @@
 using Estreya.BlishHUD.ArcDPSLogManager.Models.Enums;
 using Estreya.BlishHUD.ArcDPSLogManager.Processing;
 using GW2EIEvtcParser;
+using GW2EIEvtcParser.ParsedData;
+using Humanizer;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -273,5 +275,10 @@ public class LogData
     public LogData(string fileName)
     {
         this.FilePath = fileName;
+    }
+
+    public string GetLogTitle()
+    {
+        return $"{this.MainTargetName} - {this.EncounterStartTime?.ToString("d") ?? "Unknown Date"} - {this.EncounterResult.Humanize()}";
     }
 }
