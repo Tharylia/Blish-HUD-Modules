@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -251,6 +251,32 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     categories.AddRange(contextEvents);
                 }
 
+                var selfHostedEvents = await this.LoadSelfHostedEvents();
+
+                if (selfHostedEvents is not null)
+                {
+                    foreach (var selfHostedCategory in selfHostedEvents)
+                    {
+                        if (!categories.Any(c => c.Key == selfHostedCategory.Key)) continue;
+
+                        var category = categories.Find(c => c.Key == selfHostedCategory.Key);
+                        foreach (var selfHostedEvent in selfHostedCategory.Value)
+                        {
+                            var ev = new Event()
+                            {
+                                Key = selfHostedEvent.EventKey,
+                                Name = selfHostedEvent.EventName ?? selfHostedEvent.EventKey,
+                                Duration = selfHostedEvent.Duration,
+                                HostedBySystem = false
+                            };
+
+                            ev.Occurences.Add(selfHostedEvent.StartTime.UtcDateTime);
+
+                            category.OriginalEvents.Add(ev);
+                        }
+                    }
+                }
+
                 categories.ForEach(ec =>
                 {
                     ec.Load(() => this.NowUTC, this.TranslationService);
@@ -283,6 +309,34 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 this.Logger.Error(ex, "Failed loading events.");
             }
         }
+    }
+
+    private async Task<Dictionary<string, List<SelfHostedEventEntry>>> LoadSelfHostedEvents()
+    {
+        try
+        {
+            IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "self-hosting");
+
+            var selfhostedEntries = await request.GetJsonAsync<Dictionary<string, List<SelfHostedEventEntry>>>();
+
+            int eventCategoryCount = selfhostedEntries.Count;
+            int eventCount = selfhostedEntries.Sum(ec => ec.Value.Count);
+
+            this.Logger.Info($"Loaded {eventCategoryCount} self hosted categories with {eventCount} events.");
+
+            return selfhostedEntries;
+        }
+        catch (FlurlHttpException ex)
+        {
+            string message = await ex.GetResponseStringAsync();
+            this.Logger.Warn(ex, $"Failed loading self hosted events: {message}");
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Error(ex, "Failed loading self hosted events.");
+        }
+
+        return null;
     }
 
     /// <summary>

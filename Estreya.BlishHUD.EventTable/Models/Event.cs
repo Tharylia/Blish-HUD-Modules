@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Models;
+namespace Estreya.BlishHUD.EventTable.Models;
 
 using Blish_HUD;
 using Microsoft.Xna.Framework;
@@ -80,7 +80,9 @@ public class Event : IUpdatable
 
     [JsonProperty("filler")] public bool Filler { get; set; }
 
-    [JsonProperty("occurences")] public List<DateTime> Occurences { get; private set; } = new List<DateTime>();
+    [JsonProperty("occurences")] public List<DateTime> Occurences { get; set; } = new List<DateTime>();
+
+    [JsonIgnore] public bool HostedBySystem { get; set; } = true;
 
     [JsonIgnore] public string SettingKey { get; private set; }
 
