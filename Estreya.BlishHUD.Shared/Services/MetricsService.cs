@@ -65,13 +65,17 @@
         {
             int max = 50;
             int handled = 0;
-            while (this._metricsQueue.TryDequeue(out var metricKey) && handled <= max)
+            while (handled <= max && this._metricsQueue.TryDequeue(out var metricKey))
             {
                 await this.SendMetricAsync(metricKey);
                 handled++;
             }
         }
 
+        /// <summary>
+        ///     Queues the given metric key. Used for non priority metrics that don't need accurate timestamps.
+        /// </summary>
+        /// <param name="key"></param>
         public void QueueMetric(string key)
         {
             if (!this.ConsentGiven) return;
