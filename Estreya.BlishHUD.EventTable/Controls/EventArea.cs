@@ -1,7 +1,8 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
+using Blish_HUD.ArcDps.Models;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
@@ -50,6 +51,7 @@ public class EventArea : RenderTarget2DControl
     private BitmapFont _defaultFont;
     private ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
     private readonly Func<string> _getAccessToken;
+    private readonly Func<List<string>> _getAreaNames;
     private ContentsManager _contentsManager;
     private readonly Func<DateTime> _getNowAction;
     private readonly Func<Version> _getVersion;
@@ -89,7 +91,14 @@ public class EventArea : RenderTarget2DControl
     private TranslationService _translationService;
     private WorldbossService _worldbossService;
 
-    public EventArea(EventAreaConfiguration configuration, IconService iconService, TranslationService translationService, EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl, Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, ContentsManager contentsManager)
+    public event EventHandler<(string EventSettingKey, string DestinationArea)> MoveToAreaClicked;
+    public event EventHandler<(string EventSettingKey, string DestinationArea)> CopyToAreaClicked;
+
+    public EventArea(
+        EventAreaConfiguration configuration, IconService iconService, TranslationService translationService,
+        EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, 
+        PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
+        Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames, ContentsManager contentsManager)
     {
         this.Configuration = configuration;
 
@@ -125,6 +134,7 @@ public class EventArea : RenderTarget2DControl
         this._getNowAction = getNowAction;
         this._getVersion = getVersion;
         this._getAccessToken = getAccessToken;
+        this._getAreaNames = getAreaNames;
         this._contentsManager = contentsManager;
         this._iconService = iconService;
         this._translationService = translationService;
@@ -810,7 +820,7 @@ public class EventArea : RenderTarget2DControl
             if (!isFiller)
             {
                 this.Tooltip = this.Configuration.ShowTooltips.Value ? this._activeEvent?.BuildTooltip() : null;
-                this.Menu = this._activeEvent?.BuildContextMenu();
+                this.Menu = this._activeEvent?.BuildContextMenu(this._getAreaNames, this.Configuration.Name);
             }
 
             this._lastActiveEvent = this._activeEvent;
@@ -1220,19 +1230,35 @@ public class EventArea : RenderTarget2DControl
 
     private void AddEventHooks(Event ev)
     {
-        ev.HideRequested += this.Ev_HideRequested;
-        ev.ToggleFinishRequested += this.Ev_ToggleFinishRequested;
-        ev.DisableRequested += this.Ev_DisableRequested;
+        ev.HideClicked += this.Ev_HideClicked;
+        ev.ToggleFinishClicked += this.Ev_ToggleFinishClicked;
+        ev.DisableClicked += this.Ev_DisableClicked;
+        ev.CopyToAreaClicked += this.Ev_CopyToAreaClicked;
+        ev.MoveToAreaClicked += this.Ev_MoveToAreaClicked;
     }
 
     private void RemoveEventHooks(Event ev)
     {
-        ev.HideRequested -= this.Ev_HideRequested;
-        ev.ToggleFinishRequested -= this.Ev_ToggleFinishRequested;
-        ev.DisableRequested -= this.Ev_DisableRequested;
+        ev.HideClicked -= this.Ev_HideClicked;
+        ev.ToggleFinishClicked -= this.Ev_ToggleFinishClicked;
+        ev.DisableClicked -= this.Ev_DisableClicked;
+        ev.CopyToAreaClicked -= this.Ev_CopyToAreaClicked;
+        ev.MoveToAreaClicked -= this.Ev_MoveToAreaClicked;
     }
 
-    private void Ev_ToggleFinishRequested(object sender, EventArgs e)
+    private void Ev_MoveToAreaClicked(object sender, string e)
+    {
+        var ev = sender as Event;
+        this.MoveToAreaClicked?.Invoke(this, (ev.Model.SettingKey, e));
+    }
+
+    private void Ev_CopyToAreaClicked(object sender, string e)
+    {
+        var ev = sender as Event;
+        this.CopyToAreaClicked?.Invoke(this, (ev.Model.SettingKey, e));
+    }
+
+    private void Ev_ToggleFinishClicked(object sender, EventArgs e)
     {
         Event ev = sender as Event;
 
@@ -1282,18 +1308,31 @@ public class EventArea : RenderTarget2DControl
         this._eventStateService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Hidden);
     }
 
-    private void Ev_HideRequested(object sender, EventArgs e)
+    private void Ev_HideClicked(object sender, EventArgs e)
     {
         Event ev = sender as Event;
         this.HideEvent(ev.Model, this.GetNextReset(ev.Model));
     }
 
-    private void Ev_DisableRequested(object sender, EventArgs e)
+    private void Ev_DisableClicked(object sender, EventArgs e)
     {
         Event ev = sender as Event;
-        if (!this.Configuration.DisabledEventKeys.Value.Contains(ev.Model.SettingKey))
+        this.DisableEvent(ev.Model.SettingKey);
+    }
+
+    public void EnableEvent(string eventSettingKey)
+    {
+        if (this.Configuration.DisabledEventKeys.Value.Contains(eventSettingKey))
         {
-            this.Configuration.DisabledEventKeys.Value = new List<string>(this.Configuration.DisabledEventKeys.Value) { ev.Model.SettingKey };
+            this.Configuration.DisabledEventKeys.Value = new List<string>(this.Configuration.DisabledEventKeys.Value.Where(dek => dek != eventSettingKey));
+        }
+    }
+
+    public void DisableEvent(string eventSettingKey)
+    {
+        if (!this.Configuration.DisabledEventKeys.Value.Contains(eventSettingKey))
+        {
+            this.Configuration.DisabledEventKeys.Value = new List<string>(this.Configuration.DisabledEventKeys.Value) { eventSettingKey };
         }
     }
 

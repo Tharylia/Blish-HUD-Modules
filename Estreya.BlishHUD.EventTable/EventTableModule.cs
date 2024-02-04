@@ -727,10 +727,40 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => this.NowUTC,
             () => this.Version,
             () => this.BlishHUDAPIService.AccessToken,
+            () => this.ModuleSettings.EventAreaNames.Value.ToArray().ToList(),
             this.ContentsManager)
         { Parent = GameService.Graphics.SpriteScreen };
 
+        area.CopyToAreaClicked += this.EventArea_CopyToAreaClicked;
+        area.MoveToAreaClicked += this.EventArea_MoveToAreaClicked;
+        area.Disposed += this.EventArea_Disposed;
+
         _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
+    }
+
+    private void EventArea_MoveToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
+    {
+        var sourceArea = sender as EventArea;
+        var destArea = this._areas.First(a => a.Key == e.DestinationArea).Value;
+
+        sourceArea.DisableEvent(e.EventSettingKey);
+        destArea.EnableEvent(e.EventSettingKey);
+    }
+
+    private void EventArea_CopyToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
+    {
+        var sourceArea = sender as EventArea;
+        var destArea = this._areas.First(a => a.Key == e.DestinationArea).Value;
+
+        destArea.EnableEvent(e.EventSettingKey);
+    }
+
+    private void EventArea_Disposed(object sender, EventArgs e)
+    {
+        var area = sender as EventArea;
+        area.CopyToAreaClicked -= this.EventArea_CopyToAreaClicked;
+        area.MoveToAreaClicked -= this.EventArea_MoveToAreaClicked;
+        area.Disposed -= this.EventArea_Disposed;
     }
 
     /// <summary>
