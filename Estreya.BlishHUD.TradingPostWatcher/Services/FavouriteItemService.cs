@@ -1,5 +1,6 @@
 ﻿namespace Estreya.BlishHUD.TradingPostWatcher.Services;
 
+using Estreya.BlishHUD.Shared.Services.TradingPost;
 using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Utils;
 using Microsoft.Xna.Framework;
