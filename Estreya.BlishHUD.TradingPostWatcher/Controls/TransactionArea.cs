@@ -235,9 +235,13 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
 
         float y = 0;
         List<Transaction> transactions = new List<Transaction>();
-        using (this._transactionLock.Lock())
+
+        if (this._transactionLock.IsFree())
         {
-            transactions.AddRange(this._transactions.Take(this.Configuration.MaxTransactions.Value));
+            using (this._transactionLock.Lock())
+            {
+                transactions.AddRange(this._transactions.Take(this.Configuration.MaxTransactions.Value));
+            }
         }
 
         // Render transactions
