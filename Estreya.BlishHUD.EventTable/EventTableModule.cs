@@ -113,7 +113,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         await base.LoadAsync();
 
         this.BlishHUDAPIService.NewLogin += this.BlishHUDAPIService_NewLogin;
-        this.BlishHUDAPIService.RefreshedLogin += this.BlishHUDAPIService_RefreshedLogin; ;
+        this.BlishHUDAPIService.RefreshedLogin += this.BlishHUDAPIService_RefreshedLogin;
         this.BlishHUDAPIService.LoggedOut += this.BlishHUDAPIService_LoggedOut;
 
         this.MapUtil = new MapUtil(this.ModuleSettings.MapKeybinding.Value, this.Gw2ApiManager);
@@ -123,6 +123,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         await this.DynamicEventHandler.AddDynamicEventsToMap();
         await this.DynamicEventHandler.AddDynamicEventsToWorld();
 
+        this.ModuleSettings.IncludeSelfHostedEvents.SettingChanged += this.IncludeSelfHostedEvents_SettingChanged;
+
         await this.LoadEvents();
 
         this.AddAllAreas();
@@ -131,6 +133,11 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         sw.Stop();
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
+    }
+
+    private void IncludeSelfHostedEvents_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+    {
+        throw new NotImplementedException();
     }
 
     /// <summary>
@@ -253,28 +260,31 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     categories.AddRange(contextEvents);
                 }
 
-                var selfHostedEvents = await this.LoadSelfHostedEvents();
-
-                if (selfHostedEvents is not null)
+                if (this.ModuleSettings.IncludeSelfHostedEvents.Value)
                 {
-                    foreach (var selfHostedCategory in selfHostedEvents)
+                    var selfHostedEvents = await this.LoadSelfHostedEvents();
+
+                    if (selfHostedEvents is not null)
                     {
-                        if (!categories.Any(c => c.Key == selfHostedCategory.Key)) continue;
-
-                        var category = categories.Find(c => c.Key == selfHostedCategory.Key);
-                        foreach (var selfHostedEvent in selfHostedCategory.Value)
+                        foreach (var selfHostedCategory in selfHostedEvents)
                         {
-                            var ev = new Event()
+                            if (!categories.Any(c => c.Key == selfHostedCategory.Key)) continue;
+
+                            var category = categories.Find(c => c.Key == selfHostedCategory.Key);
+                            foreach (var selfHostedEvent in selfHostedCategory.Value)
                             {
-                                Key = selfHostedEvent.EventKey,
-                                Name = selfHostedEvent.EventName ?? selfHostedEvent.EventKey,
-                                Duration = selfHostedEvent.Duration,
-                                HostedBySystem = false
-                            };
+                                var ev = new Event()
+                                {
+                                    Key = selfHostedEvent.EventKey,
+                                    Name = selfHostedEvent.EventName ?? selfHostedEvent.EventKey,
+                                    Duration = selfHostedEvent.Duration,
+                                    HostedBySystem = false
+                                };
 
-                            ev.Occurences.Add(selfHostedEvent.StartTime.UtcDateTime);
+                                ev.Occurences.Add(selfHostedEvent.StartTime.UtcDateTime);
 
-                            category.OriginalEvents.Add(ev);
+                                category.OriginalEvents.Add(ev);
+                            }
                         }
                     }
                 }
@@ -335,7 +345,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
         catch (Exception ex)
         {
-            this.Logger.Error(ex, "Failed loading self hosted events.");
+            this.Logger.Warn(ex, "Failed loading self hosted events.");
         }
 
         return null;
@@ -1005,12 +1015,34 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
         this.Logger.Debug("Unload module.");
 
+        this.Logger.Debug("Unload events.");
+
+        using (this._eventCategoryLock.Lock())
+        {
+            foreach (EventCategory ec in this._eventCategories)
+            {
+                ec.Events.ForEach(ev => this.RemoveEventHooks(ev));
+            }
+
+            this._eventCategories?.Clear();
+        }
+
         if (this.DynamicEventHandler != null)
         {
             this.DynamicEventHandler.FoundLostEntities -= this.DynamicEventHandler_FoundLostEntities;
             this.DynamicEventHandler.Dispose();
             this.DynamicEventHandler = null;
         }
+
+        if (this.BlishHUDAPIService != null)
+        {
+            this.BlishHUDAPIService.NewLogin -= this.BlishHUDAPIService_NewLogin;
+            this.BlishHUDAPIService.LoggedOut -= this.BlishHUDAPIService_LoggedOut;
+        }
+
+        this.ModuleSettings.IncludeSelfHostedEvents.SettingChanged -= this.IncludeSelfHostedEvents_SettingChanged;
+
+        this.Logger.Debug("Unloaded events.");
 
         this.UnloadContext();
 
@@ -1030,26 +1062,6 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         this.Logger.Debug("Unloaded drawer.");
-
-        this.Logger.Debug("Unload events.");
-
-        using (this._eventCategoryLock.Lock())
-        {
-            foreach (EventCategory ec in this._eventCategories)
-            {
-                ec.Events.ForEach(ev => this.RemoveEventHooks(ev));
-            }
-
-            this._eventCategories?.Clear();
-        }
-
-        this.Logger.Debug("Unloaded events.");
-
-        if (this.BlishHUDAPIService != null)
-        {
-            this.BlishHUDAPIService.NewLogin -= this.BlishHUDAPIService_NewLogin;
-            this.BlishHUDAPIService.LoggedOut -= this.BlishHUDAPIService_LoggedOut;
-        }
 
         this.Logger.Debug("Unload base.");
 
