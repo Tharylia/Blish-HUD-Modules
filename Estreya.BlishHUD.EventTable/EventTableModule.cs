@@ -135,9 +135,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
     }
 
-    private void IncludeSelfHostedEvents_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+    private async void IncludeSelfHostedEvents_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
     {
-        throw new NotImplementedException();
+        await this.ReloadEvents();
     }
 
     /// <summary>
