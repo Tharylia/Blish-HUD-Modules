@@ -78,6 +78,8 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<bool> HideRemindersInWvW { get; private set; }
     public SettingEntry<bool> HideRemindersInPvP { get; private set; }
 
+    public SettingEntry<bool> IncludeSelfHostedEvents { get; private set; }
+
     protected override void InitializeAdditionalSettings(SettingCollection settings)
     {
         this.EventAreaSettings = settings.AddSubCollection(EVENT_AREA_SETTINGS);
@@ -171,6 +173,8 @@ public class ModuleSettings : BaseModuleSettings
         this.HideRemindersInWvW = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInWvW), false, () => "Hide Reminders in WvW", () => "Whether the reminders should hide when in world vs. world.");
 
         this.HideRemindersInPvP = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInPvP), false, () => "Hide Reminders in PvP", () => "Whether the reminders should hide when in player vs. player.");
+
+        this.IncludeSelfHostedEvents = this.GlobalSettings.DefineSetting(nameof(this.IncludeSelfHostedEvents), true, () => "Include Self Hosted Events", () => "Whether to include events hosted by other players inside the areas.");
 
         this.HandleEnabledStates();
     }
