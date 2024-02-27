@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
