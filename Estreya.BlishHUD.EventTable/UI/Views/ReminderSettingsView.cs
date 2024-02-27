@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
+namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
@@ -104,7 +104,11 @@ public class ReminderSettingsView : BaseSettingsView
 
         this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-manageReminders", "Manage Reminders"), () =>
         {
-            this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
+            if (this._manageEventsWindow == null)
+            {
+                this._manageEventsWindow = WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
+                this._manageEventsWindow.Width = 1040;
+            }
 
             if (this._manageEventsWindow.CurrentView != null)
             {
