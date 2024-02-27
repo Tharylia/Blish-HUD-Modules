@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -125,11 +125,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.ModuleSettings.IncludeSelfHostedEvents.SettingChanged += this.IncludeSelfHostedEvents_SettingChanged;
 
-        await this.LoadEvents();
-
         this.AddAllAreas();
 
-        this.SetAreaEvents();
+        await this.LoadEvents();
 
         sw.Stop();
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
