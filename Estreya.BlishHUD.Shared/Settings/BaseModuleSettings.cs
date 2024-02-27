@@ -190,6 +190,8 @@ public abstract class BaseModuleSettings
 
         this.DebugEnabled = this.GlobalSettings.DefineSetting(nameof(this.DebugEnabled), false, () => "Debug Enabled", () => "Whether the module runs in debug mode.");
 
+        this.UseDebugAPI = this.GlobalSettings.DefineSetting(nameof(this.UseDebugAPI), false, () => "Use Debug API", () => "Whether the module connects to the debug blish-hud api.\nRequires a restart to take full effect.");
+
         this.BlishAPIUsername = this.GlobalSettings.DefineSetting(nameof(this.BlishAPIUsername), (string)null, () => "Blish API Username", () => "Defines the login username for the Estreya Blish HUD API.");
 
         this.RegisterContext = this.GlobalSettings.DefineSetting(nameof(this.RegisterContext), true, () => "Register Context", () => "Whether the module should register an api context for cross module interaction. Requires a restart.");
@@ -533,6 +535,7 @@ public abstract class BaseModuleSettings
     public SettingEntry<bool> HideInWvW { get; private set; }
     public SettingEntry<bool> HideInPvP { get; private set; }
     public SettingEntry<bool> DebugEnabled { get; private set; }
+    public SettingEntry<bool> UseDebugAPI { get; private set; }
     public SettingEntry<string> BlishAPIUsername { get; private set; }
 
     public SettingEntry<bool> RegisterContext { get; private set; }
@@ -540,6 +543,8 @@ public abstract class BaseModuleSettings
     public SettingEntry<bool> SendMetrics { get; private set; }
     public SettingEntry<bool> AskedMetricsConsent { get; private set; }
     public SettingEntry<SemVer.Version> MetricsConsentGivenVersion { get; private set; }
+
+
 
     //public SettingEntry<bool> NotifyOnUnreadNews { get; private set; }
     //public SettingEntry<List<string>> NotifiedNews { get; private set; }

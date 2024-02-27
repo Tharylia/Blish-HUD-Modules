@@ -31,6 +31,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,16 +63,19 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected string MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
 
+    protected const string LIVE_API_HOSTNAME = "api.estreya.de";
+    protected const string DEBUG_API_HOSTNAME = "api.estreya.dev";
+
     /// <summary>
     ///     The api root url for the Estreya BlishHUD api.
     /// </summary>
-    protected const string API_ROOT_URL = "https://api.estreya.de/blish-hud";
+    protected string API_ROOT_URL => $"https://{(this.ModuleSettings.UseDebugAPI.Value ? DEBUG_API_HOSTNAME : LIVE_API_HOSTNAME)}/blish-hud";
 
     /// <summary>
     ///     The module sub route from the <see cref="API_ROOT_URL" /> including the specified api version from
     ///     <see cref="API_VERSION_NO" />.
     /// </summary>
-    protected string MODULE_API_URL => $"{API_ROOT_URL}/v{this.API_VERSION_NO}/{this.UrlModuleName}";
+    protected string MODULE_API_URL => $"{this.API_ROOT_URL}/v{this.API_VERSION_NO}/{this.UrlModuleName}";
 
     protected const string GITHUB_OWNER = "Tharylia";
     protected const string GITHUB_REPOSITORY = "Blish-HUD-Modules";
@@ -241,6 +245,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected override async Task LoadAsync()
     {
+        if (this.ModuleSettings.UseDebugAPI.Value)
+        {
+            this.Logger.Info($"User configured module to use debug api: {this.MODULE_API_URL}");
+        }
+
         await this.VerifyModuleState(true);
 
         await Task.Factory.StartNew(this.InitializeServices, TaskCreationOptions.LongRunning).Unwrap();
@@ -398,7 +407,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(this.PasswordManager));
                 }
 
-                this.BlishHUDAPIService = new BlishHudApiService(configurations.BlishHUDAPI, this.ModuleSettings.BlishAPIUsername, this.PasswordManager, this.GetFlurlClient(), API_ROOT_URL);
+                this.BlishHUDAPIService = new BlishHudApiService(configurations.BlishHUDAPI, this.ModuleSettings.BlishAPIUsername, this.PasswordManager, this.GetFlurlClient(), this.API_ROOT_URL);
                 this._services.Add(this.BlishHUDAPIService);
             }
 
@@ -441,7 +450,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 Enabled = true,
                 AwaitLoading = true
-            }, this.GetFlurlClient(), API_ROOT_URL,this.Name, this.Namespace, this.ModuleSettings, this.IconService);
+            }, this.GetFlurlClient(), this.API_ROOT_URL, this.Name, this.Namespace, this.ModuleSettings, this.IconService);
             this._services.Add(this.MetricsService);
 
             if (configurations.Audio.Enabled)

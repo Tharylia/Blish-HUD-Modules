@@ -9,6 +9,7 @@ using Shared.Services;
 using Shared.UI.Views;
 using System;
 using System.Threading.Tasks;
+using System.Windows.Media.Animation;
 
 public class GeneralSettingsView : BaseSettingsView
 {
@@ -78,6 +79,48 @@ public class GeneralSettingsView : BaseSettingsView
         this.RenderEmptyLine(parent);
 
         this.RenderEnumSetting(parent, this._moduleSettings.MenuEventSortMode);
+
+        this.RenderEmptyLine(parent);
+
+        this.RenderDebugGroup(parent);
+
+        this.RenderEmptyLine(parent);
+    }
+
+    private void RenderDebugGroup(FlowPanel parent)
+    {
+        var groupPanel = new FlowPanel()
+        {
+            Parent = parent,
+            OuterControlPadding = new Vector2(20,20),
+            ShowBorder = true,
+            Title = "Debug",
+            CanCollapse = true,
+            Collapsed = true,
+            HeightSizingMode =SizingMode.AutoSize,
+            Width = parent.ContentRegion.Width - (int)(parent.OuterControlPadding.X * 2),
+            FlowDirection = ControlFlowDirection.SingleTopToBottom
+        };
+
+        var lblBuilder = new FormattedLabelBuilder().SetWidth(groupPanel.ContentRegion.Width).AutoSizeHeight().SetVerticalAlignment(VerticalAlignment.Top);
+        lblBuilder.CreatePart("Use the Debug API happens on your own risk!", b => { b.MakeBold(); })
+            .CreatePart("\n", b => { })
+            .CreatePart("The API can be offline or in a broken state for your module version at any given time!", b => { })
+            .CreatePart("\n", b => { })
+            .CreatePart("This could lead to you not being able to use the module at all to reset this setting via the UI.", b => { })
+            .CreatePart("\n \n", b => { })
+            .CreatePart($"In this case open the settings.json file and set the option \"{this._moduleSettings.UseDebugAPI.EntryKey}\" back to false.", b => { })
+            .CreatePart("\n \n", b => { })
+            .CreatePart("Changing this option needs a complete restart of BlishHUD!", b => { b.MakeItalic(); });
+
+        var lbl = lblBuilder.Build();
+        lbl.Parent = groupPanel;
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.UseDebugAPI);
+
+        this.RenderEmptyLine(groupPanel, (int)groupPanel.OuterControlPadding.Y);
     }
 
     protected override Task<bool> InternalLoad(IProgress<string> progress)
