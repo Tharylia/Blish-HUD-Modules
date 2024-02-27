@@ -752,7 +752,11 @@ public class AreaSettingsView : BaseSettingsView
 
     private void ManageEvents(EventAreaConfiguration configuration)
     {
-        this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
+        if (this._manageEventsWindow == null)
+        {
+            this._manageEventsWindow = WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);
+            this._manageEventsWindow.Width = 1040;
+        }
 
         if (this._manageEventsWindow.CurrentView != null)
         {

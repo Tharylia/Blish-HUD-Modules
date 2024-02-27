@@ -110,12 +110,16 @@ public class ManageEventsView : BaseView
         };
 
         #region Register Categories
-
         Dictionary<string, MenuItem> menus = new Dictionary<string, MenuItem>();
 
         MenuItem allEvents = eventCategoryMenu.AddMenuItem("All Events");
         allEvents.Select();
         menus.Add(nameof(allEvents), allEvents);
+        MenuItem enabledEvents = eventCategoryMenu.AddMenuItem("Enabled Events");
+        menus.Add(nameof(enabledEvents), enabledEvents);
+        MenuItem divider1MenuItem = eventCategoryMenu.AddMenuItem("-------------------------------------"); // Arbitrary length. Seems to fit.
+        divider1MenuItem.Enabled = false;
+        menus.Add(nameof(divider1MenuItem), divider1MenuItem);
 
         IEnumerable<EventCategory> categoryList = eventCategories.GroupBy(ec => ec.Key).Select(ec => ec.First());
 
@@ -147,6 +151,12 @@ public class ManageEventsView : BaseView
                         if (menuItem == menus[nameof(allEvents)])
                         {
                             return true;
+                        }
+
+                        if (menuItem == menus[nameof(enabledEvents)])
+                        {
+                            bool enabled = !this._getDisabledEventKeys().Contains(detailsButton.Event.SettingKey);
+                            return enabled;
                         }
 
                         //IEnumerable<EventCategory> categories = EventCategories.Where(ec => ec.Events.Any(ev => ev.Name == detailsButton.Text));

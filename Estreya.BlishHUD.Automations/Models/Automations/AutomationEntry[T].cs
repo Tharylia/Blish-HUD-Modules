@@ -15,7 +15,7 @@ public abstract class AutomationEntry<TActionInput> : AutomationEntry
 
     protected List<Func<TActionInput, Task>> Actions { get; set; }
 
-    public AutomationEntry(AutomationType type, string name) : base(type, name)
+    public AutomationEntry(/*AutomationType type, */string name) : base(/*type,*/ name)
     {
         using (this._actionLock.Lock())
         {
@@ -23,7 +23,14 @@ public abstract class AutomationEntry<TActionInput> : AutomationEntry
         }
     }
 
-    public abstract Task Execute(TActionInput actionInput, IFlurlClient flurlClient, Gw2ApiManager apiManager);
+    public virtual async Task Execute(TActionInput actionInput, IFlurlClient flurlClient, Gw2ApiManager apiManager)
+    {
+        using (this._actionLock.Lock())
+        {
+            var tasks = this.Actions.Select(a => a.Invoke(actionInput));
+            await Task.WhenAll(tasks);
+        }
+    }
 
     public void AddAction(Action<TActionInput> action)
     {

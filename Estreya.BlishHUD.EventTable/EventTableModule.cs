@@ -74,7 +74,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     protected override string UrlModuleName => "event-table";
 
-    protected override bool FailIfBackendDown => true;
+    protected override bool NotifyIfBackendDown => true;
 
     protected override bool EnableMetrics => true;
 
@@ -125,11 +125,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.ModuleSettings.IncludeSelfHostedEvents.SettingChanged += this.IncludeSelfHostedEvents_SettingChanged;
 
-        await this.LoadEvents();
-
         this.AddAllAreas();
 
-        this.SetAreaEvents();
+        await this.LoadEvents();
 
         sw.Stop();
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
@@ -228,6 +226,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task LoadEvents()
     {
+        if (this.ModuleState == Shared.Modules.ModuleState.Error) return;
+
         this.Logger.Info("Load events...");
         using (await this._eventCategoryLock.LockAsync())
         {
@@ -959,7 +959,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             AwaitLoading = false,
             Enabled = true,
             SaveInterval = Timeout.InfiniteTimeSpan
-        }, this.Gw2ApiManager, this.GetFlurlClient(), API_ROOT_URL, directoryPath);
+        }, this.Gw2ApiManager, this.GetFlurlClient(), this.API_ROOT_URL, directoryPath);
 
         additionalServices.Add(this.EventStateService);
         additionalServices.Add(this.DynamicEventService);
@@ -975,6 +975,11 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     protected override AsyncTexture2D GetCornerIcon()
     {
         return this.IconService.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
+    }
+
+    protected override AsyncTexture2D GetErrorCornerIcon()
+    {
+        return this.IconService.GetIcon($"textures/event_boss_grey_error.png");
     }
 
     private BitmapFont _defaultFont;

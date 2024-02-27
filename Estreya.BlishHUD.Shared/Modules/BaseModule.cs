@@ -31,6 +31,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -62,16 +63,19 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected string MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
 
+    protected const string LIVE_API_HOSTNAME = "api.estreya.de";
+    protected const string DEBUG_API_HOSTNAME = "api.estreya.dev";
+
     /// <summary>
     ///     The api root url for the Estreya BlishHUD api.
     /// </summary>
-    protected const string API_ROOT_URL = "https://api.estreya.de/blish-hud";
+    protected string API_ROOT_URL => $"https://{(this.ModuleSettings.UseDebugAPI.Value ? DEBUG_API_HOSTNAME : LIVE_API_HOSTNAME)}/blish-hud";
 
     /// <summary>
     ///     The module sub route from the <see cref="API_ROOT_URL" /> including the specified api version from
     ///     <see cref="API_VERSION_NO" />.
     /// </summary>
-    protected string MODULE_API_URL => $"{API_ROOT_URL}/v{this.API_VERSION_NO}/{this.UrlModuleName}";
+    protected string MODULE_API_URL => $"{this.API_ROOT_URL}/v{this.API_VERSION_NO}/{this.UrlModuleName}";
 
     protected const string GITHUB_OWNER = "Tharylia";
     protected const string GITHUB_REPOSITORY = "Blish-HUD-Modules";
@@ -91,9 +95,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected abstract string API_VERSION_NO { get; }
 
-    protected virtual bool FailIfBackendDown => false;
+    protected virtual bool NotifyIfBackendDown => false;
 
     protected virtual bool EnableMetrics => false;
+
+    protected ModuleState ModuleState { get; private set; }
+
+    protected string ModuleStateText { get; private set; }
 
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
 
@@ -237,7 +245,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected override async Task LoadAsync()
     {
-        await this.ThrowIfModuleInvalid(true);
+        if (this.ModuleSettings.UseDebugAPI.Value)
+        {
+            this.Logger.Info($"User configured module to use debug api: {this.MODULE_API_URL}");
+        }
+
+        await this.VerifyModuleState(true);
 
         await Task.Factory.StartNew(this.InitializeServices, TaskCreationOptions.LongRunning).Unwrap();
 
@@ -258,10 +271,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     /// <param name="showScreenNotification">Whether a failure to satisfy all criteria should be shown via <see cref="Blish_HUD.Controls.ScreenNotification"/>.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    private async Task ThrowIfModuleInvalid(bool showScreenNotification)
+    private async Task VerifyModuleState(bool showScreenNotification)
     {
-        // This function will fail if the backend is down. No catch needed as the module is useless anyway in that case.
-
         IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "validate").AllowAnyHttpStatus();
 
         ModuleValidationRequest data = new ModuleValidationRequest { Version = this.Version };
@@ -274,21 +285,48 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         catch (Exception ex)
         {
             this.Logger.Debug(ex, "Failed to validate module.");
-            if (this.FailIfBackendDown)
-            {
-                throw new ModuleBackendUnavailableException();
-            }
         }
 
-        if (response is null || response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound)
+        // Everything is working correctly
+        if (response is not null && (response.IsSuccessStatusCode || response.StatusCode == HttpStatusCode.NotFound))
         {
             return;
         }
 
+        if (this.NotifyIfBackendDown && (response is null || response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable))
+        {
+            if (showScreenNotification)
+            {
+                ScreenNotification.ShowNotification(new string[]
+                {
+                    $"The backend for \"{this.Name}\" is currently unvailable.",
+                    "Please check the Estreya BlishHUD Discord for news."
+                }, ScreenNotification.NotificationType.Error, duration: 10);
+            }
+
+            this.SetModuleState(ModuleState.Error, "Backend unavailable.\n\nCheck Estreya BlishHUD Discord.");
+            return;
+        }
+
+        // Module should not fail if backend down
+        if (response is null || response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable) return;
+
+        // Any unexpected status codes
         if (response.StatusCode != HttpStatusCode.Forbidden)
         {
             var content = await response.Content.ReadAsStringAsync();
-            throw new ModuleBackendUnavailableException($"Module validation failed with unexpected status code {response.StatusCode}: {content}");
+            if (showScreenNotification)
+            {
+                ScreenNotification.ShowNotification(new string[]
+                {
+                    $"The module \"{this.Name}\" entered fault mode.",
+                    "Please check the latest log for more information."
+                }, ScreenNotification.NotificationType.Error, duration: 10);
+            }
+
+            this.Logger.Error($"Module validation failed with unexpected status code {response.StatusCode}: {content}");
+            this.SetModuleState(ModuleState.Error, $"Module validation failed.\n\nCheck latest log for more information.");
+            return;
         }
 
         ModuleValidationResponse validationResponse;
@@ -299,7 +337,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         catch (Exception)
         {
             var content = await response.Content.ReadAsStringAsync();
-            throw new ModuleBackendUnavailableException($"Could not read module validation response: {content}");
+            if (showScreenNotification)
+            {
+                ScreenNotification.ShowNotification(new string[]
+                {
+                    $"The module \"{this.Name}\" could not verify itself.",
+                    "Please check the latest log for more information."
+                }, ScreenNotification.NotificationType.Error, duration: 10);
+            }
+
+            throw new ModuleInvalidException($"Could not read module validation response: {content}");
         }
 
         if (showScreenNotification)
@@ -360,7 +407,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(this.PasswordManager));
                 }
 
-                this.BlishHUDAPIService = new BlishHudApiService(configurations.BlishHUDAPI, this.ModuleSettings.BlishAPIUsername, this.PasswordManager, this.GetFlurlClient(), API_ROOT_URL);
+                this.BlishHUDAPIService = new BlishHudApiService(configurations.BlishHUDAPI, this.ModuleSettings.BlishAPIUsername, this.PasswordManager, this.GetFlurlClient(), this.API_ROOT_URL);
                 this._services.Add(this.BlishHUDAPIService);
             }
 
@@ -403,7 +450,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             {
                 Enabled = true,
                 AwaitLoading = true
-            }, this.GetFlurlClient(), API_ROOT_URL,this.Name, this.Namespace, this.ModuleSettings, this.IconService);
+            }, this.GetFlurlClient(), this.API_ROOT_URL, this.Name, this.Namespace, this.ModuleSettings, this.IconService);
             this._services.Add(this.MetricsService);
 
             if (configurations.Audio.Enabled)
@@ -576,9 +623,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 this.CornerIcon = new CornerIcon
                 {
                     IconName = this.Name,
-                    Icon = this.GetCornerIcon(),
                     Priority = this.CornerIconPriority
                 };
+
+                this.UpdateCornerIcon();
 
                 this.OnCornerIconBuild();
             }
@@ -592,6 +640,15 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 this.CornerIcon = null;
             }
         }
+    }
+
+    private void UpdateCornerIcon()
+    {
+        if (this.CornerIcon is null) return;
+
+        this.CornerIcon.Icon = this.ModuleState is ModuleState.Error ? this.GetErrorCornerIcon() : this.GetCornerIcon();
+
+        this.CornerIcon.BasicTooltipText = this.ModuleStateText;
     }
 
     /// <summary>
@@ -702,6 +759,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     /// <returns>The corner icon as <see cref="AsyncTexture2D" />.</returns>
     protected abstract AsyncTexture2D GetCornerIcon();
+
+    protected virtual AsyncTexture2D GetErrorEmblem() => this.GetEmblem();
+
+    protected virtual AsyncTexture2D GetErrorCornerIcon() => this.GetCornerIcon();
 
     /// <summary>
     ///     Gets called after the base settings window has been constructed. Used to add custom tabs.
@@ -863,6 +924,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this._loadingSpinner.BasicTooltipText = text;
         this._loadingSpinner.Visible = show;
+    }
+
+    protected void SetModuleState(ModuleState state, string text = null)
+    {
+        this.ModuleState = state;
+        this.ModuleStateText = text;
+
+        this.UpdateCornerIcon();
     }
 
     protected async Task ReloadServices()
