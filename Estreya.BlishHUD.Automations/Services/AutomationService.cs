@@ -17,7 +17,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public abstract class AutomationService<TAutomation, TActionInput> : ManagedService where TAutomation: AutomationEntry<TActionInput>
+public abstract class AutomationService<TAutomation, TActionInput> : ManagedService where TAutomation : AutomationEntry<TActionInput>
 {
     private static TimeSpan _processingInterval = TimeSpan.FromSeconds(0.5);
     private AsyncRef<double> _lastProcessed = new AsyncRef<double>(0);
@@ -93,6 +93,15 @@ public abstract class AutomationService<TAutomation, TActionInput> : ManagedServ
             {
                 await this.ProcessAutomation(queueEntry.Automation, queueEntry.Input);
                 this.Logger.Debug(message: $"Executed automation \"{queueEntry.Automation.Name}\".");
+
+                if (queueEntry.Automation.ExecutionCount != -1)
+                {
+                    queueEntry.Automation.ExecutionCount--;
+                    if (queueEntry.Automation.ExecutionCount <= 0)
+                    {
+                        this.RemoveAutomation(queueEntry.Automation.Name);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -101,7 +110,10 @@ public abstract class AutomationService<TAutomation, TActionInput> : ManagedServ
         }
     }
 
-    protected abstract Task ProcessAutomation(TAutomation automation, TActionInput input);
+    protected virtual async Task ProcessAutomation(TAutomation automation, TActionInput input)
+    {
+        await automation.Execute(input, this._flurlClient, this._apiManager);
+    }
 
     protected override void InternalUpdate(GameTime gameTime)
     {

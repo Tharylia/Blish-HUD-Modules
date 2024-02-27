@@ -8,6 +8,7 @@ using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
+using Gw2Sharp.WebApi.V2.Models;
 using HandlebarsDotNet;
 using Microsoft.Xna.Framework;
 using System;
@@ -30,22 +31,33 @@ public class MapChangeAutomationService : AutomationService<MapChangeAutomationE
         return Task.CompletedTask;
     }
 
-    private void Mumble_MapChanged(object sender, ValueEventArgs<int> e)
+    private async void Mumble_MapChanged(object sender, ValueEventArgs<int> e)
     {
-        var mapChangeAutomations = this.GetAutomations().Where(a =>
-            a.Type == AutomationType.MAP_CHANGE
-            && a is MapChangeAutomationEntry mapChangeAutomationEntry
-            && (mapChangeAutomationEntry.ToMapId == -1 || mapChangeAutomationEntry.ToMapId == e.Value) 
+        var mapChangeEntries = this.GetAutomations().Where(mapChangeAutomationEntry =>
+            //a.Type == AutomationType.MAP_CHANGE
+            //&& a is MapChangeAutomationEntry mapChangeAutomationEntry
+            (mapChangeAutomationEntry.ToMapId == -1 || mapChangeAutomationEntry.ToMapId == e.Value) 
             && (mapChangeAutomationEntry.FromMapId == -1 || mapChangeAutomationEntry.FromMapId == this._lastMapId) // Last action input to map is now from map
         ).ToList();
 
-        foreach (var automation in mapChangeAutomations)
+        try
         {
-            this.EnqueueAutomation(automation, new MapChangeActionInput()
+            Map fromMap = this._lastMapId is -1 or 0 ? null : await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(this._lastMapId);
+            Map toMap = e.Value == -1 ? null : await this._apiManager.Gw2ApiClient.V2.Maps.GetAsync(e.Value);
+
+            foreach (var entry in mapChangeEntries)
             {
-                FromMapId = this._lastMapId,
-                ToMapId = e.Value
-            });
+
+                this.EnqueueAutomation(entry, new MapChangeActionInput()
+                {
+                    From = fromMap,
+                    To = toMap
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, "Could not enqueue automation entry.");
         }
 
         this._lastMapId = e.Value;
@@ -56,10 +68,5 @@ public class MapChangeAutomationService : AutomationService<MapChangeAutomationE
         GameService.Gw2Mumble.CurrentMap.MapChanged -= this.Mumble_MapChanged;
 
         base.InternalUnload();
-    }
-
-    protected override async Task ProcessAutomation(MapChangeAutomationEntry automation, MapChangeActionInput input)
-    {
-        await automation.Execute(input, this._flurlClient, this._apiManager);
     }
 }
