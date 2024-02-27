@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
@@ -56,6 +56,123 @@ public class ReminderSettingsView : BaseSettingsView
 
     protected override void BuildView(FlowPanel parent)
     {
+        var manageFlowPanel = new FlowPanel()
+        {
+            Parent = parent,
+            WidthSizingMode = SizingMode.AutoSize,
+            HeightSizingMode = SizingMode.AutoSize,
+            FlowDirection = ControlFlowDirection.SingleLeftToRight
+        };
+
+        this.RenderButton(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-manageReminders", "Manage Reminders"), () =>
+        {
+            if (this._manageEventsWindow == null)
+            {
+                this._manageEventsWindow = WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
+                this._manageEventsWindow.Width = 1040;
+            }
+
+            if (this._manageEventsWindow.CurrentView != null)
+            {
+                ManageEventsView manageEventView = this._manageEventsWindow.CurrentView as ManageEventsView;
+                manageEventView.EventChanged -= this.ManageView_EventChanged;
+            }
+
+            ManageEventsView view = new ManageEventsView(this._getEvents(), new Dictionary<string, object>
+            {
+                {
+                    "customActions", new List<ManageEventsView.CustomActionDefinition>
+                    {
+                        new ManageEventsView.CustomActionDefinition
+                        {
+                            Name = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-title", "Change Times"),
+                            Tooltip = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-tooltip", "Click to change the times at which reminders happen."),
+                            Icon = "1466345.png",
+                            Action = this.ManageReminderTimes
+                        }
+                    }
+                }
+            }, () => this._moduleSettings.ReminderDisabledForEvents.Value, this._moduleSettings, this.APIManager, this.IconService, this.TranslationService);
+            view.EventChanged += this.ManageView_EventChanged;
+
+            this._manageEventsWindow.Show(view);
+        });
+
+        this.RenderButtonAsync(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-testReminder", "Test Reminder"), async () =>
+        {
+            var title = "Test Event";
+            var message = $"Test starts in {TimeSpan.FromHours(5).Add(TimeSpan.FromMinutes(21).Add(TimeSpan.FromSeconds(23))).Humanize(6, minUnit: this._moduleSettings.ReminderMinTimeUnit.Value)}!";
+            var icon = this.IconService.GetIcon("textures/maintenance.png");
+
+            if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
+            {
+                EventNotification reminder = new EventNotification(
+                    null,
+                   title,
+                    message,
+                    icon,
+                    this._moduleSettings.ReminderPosition.X.Value,
+                    this._moduleSettings.ReminderPosition.Y.Value,
+                    this._moduleSettings.ReminderSize.X.Value,
+                    this._moduleSettings.ReminderSize.Y.Value,
+                    this._moduleSettings.ReminderSize.Icon.Value,
+                    this._moduleSettings.ReminderStackDirection.Value,
+                    this._moduleSettings.ReminderOverflowStackDirection.Value,
+                    this._moduleSettings.ReminderFonts.TitleSize.Value,
+                    this._moduleSettings.ReminderFonts.MessageSize.Value,
+                    this.IconService)
+                { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
+
+                reminder.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
+            }
+
+            if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
+            {
+                await EventNotification.ShowAsWindowsNotification(title, message, icon);
+            }
+        });
+
+        var changeTimesFlowPanel = new FlowPanel()
+        {
+            Parent = parent,
+            WidthSizingMode = SizingMode.AutoSize,
+            HeightSizingMode = SizingMode.AutoSize,
+            FlowDirection = ControlFlowDirection.SingleLeftToRight
+        };
+
+        this.RenderButton(changeTimesFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-changeAllTimes", "Change all Reminder Times"), () =>
+        {
+            this.ManageReminderTimes(_globalChangeTempEvent);
+        });
+
+        this.RenderButton(changeTimesFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-resetAllTimes", "Reset all Reminder Times"), () =>
+        {
+            this.ManageReminderTimesView_SaveClicked(this, (_globalChangeTempEvent, new List<TimeSpan>()
+            {
+                TimeSpan.FromMinutes(10)
+            }, false));
+        });
+
+        this.RenderButtonAsync(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-syncEnabledEventsToAreas", "Sync enabled Events to Areas"), async () =>
+        {
+            var confirmDialog = new ConfirmDialog(
+                "Synchronizing",
+                "You are in the process of synchronizing the enabled events of reminders to all event areas.\n\nThis will override all previously configured enabled/disabled settings in event areas.",
+                this.IconService)
+            {
+                SelectedButtonIndex = 1 // Preselect cancel
+            };
+
+            var confirmResult = await confirmDialog.ShowDialog();
+            if (confirmResult != DialogResult.OK) return;
+
+            await (this.SyncEnabledEventsToAreas?.Invoke(this) ?? Task.FromException(new NotImplementedException()));
+
+            Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
+        });
+
+        this.RenderEmptyLine(parent);
+
         this.RenderBoolSetting(parent, this._moduleSettings.RemindersEnabled);
         this.RenderBoolSetting(parent, this._moduleSettings.DisableRemindersWhenEventFinished);
 
@@ -99,108 +216,6 @@ public class ReminderSettingsView : BaseSettingsView
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderLeftClickAction);
         this.RenderBoolSetting(parent, this._moduleSettings.AcceptWaypointPrompt);
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderRightClickAction);
-
-        this.RenderEmptyLine(parent);
-
-        this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-manageReminders", "Manage Reminders"), () =>
-        {
-            if (this._manageEventsWindow == null)
-            {
-                this._manageEventsWindow = WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
-                this._manageEventsWindow.Width = 1040;
-            }
-
-            if (this._manageEventsWindow.CurrentView != null)
-            {
-                ManageEventsView manageEventView = this._manageEventsWindow.CurrentView as ManageEventsView;
-                manageEventView.EventChanged -= this.ManageView_EventChanged;
-            }
-
-            ManageEventsView view = new ManageEventsView(this._getEvents(), new Dictionary<string, object>
-            {
-                {
-                    "customActions", new List<ManageEventsView.CustomActionDefinition>
-                    {
-                        new ManageEventsView.CustomActionDefinition
-                        {
-                            Name = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-title", "Change Times"),
-                            Tooltip = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-tooltip", "Click to change the times at which reminders happen."),
-                            Icon = "1466345.png",
-                            Action = this.ManageReminderTimes
-                        }
-                    }
-                }
-            }, () => this._moduleSettings.ReminderDisabledForEvents.Value, this._moduleSettings, this.APIManager, this.IconService, this.TranslationService);
-            view.EventChanged += this.ManageView_EventChanged;
-
-            this._manageEventsWindow.Show(view);
-        });
-
-        this.RenderButtonAsync(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-testReminder", "Test Reminder"), async () =>
-        {
-            var title = "Test Event";
-            var message = $"Test starts in {TimeSpan.FromHours(5).Add(TimeSpan.FromMinutes(21).Add(TimeSpan.FromSeconds(23))).Humanize(6, minUnit: this._moduleSettings.ReminderMinTimeUnit.Value)}!";
-            var icon = this.IconService.GetIcon("textures/maintenance.png");
-
-            if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
-            {
-                EventNotification reminder = new EventNotification(
-                    null,
-                   title,
-                    message,
-                    icon,
-                    this._moduleSettings.ReminderPosition.X.Value,
-                    this._moduleSettings.ReminderPosition.Y.Value,
-                    this._moduleSettings.ReminderSize.X.Value,
-                    this._moduleSettings.ReminderSize.Y.Value,
-                    this._moduleSettings.ReminderSize.Icon.Value,
-                    this._moduleSettings.ReminderStackDirection.Value,
-                    this._moduleSettings.ReminderOverflowStackDirection.Value,
-                    this._moduleSettings.ReminderFonts.TitleSize.Value,
-                    this._moduleSettings.ReminderFonts.MessageSize.Value,
-                    this.IconService)
-                { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
-
-                reminder.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
-            }
-
-            if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
-            {
-                await EventNotification.ShowAsWindowsNotification(title, message, icon);
-            }
-        });
-
-        this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-changeAllTimes", "Change all Reminder Times"), () =>
-        {
-            this.ManageReminderTimes(_globalChangeTempEvent);
-        });
-
-        this.RenderButton(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-resetAllTimes", "Reset all Reminder Times"), () =>
-        {
-            this.ManageReminderTimesView_SaveClicked(this, (_globalChangeTempEvent, new List<TimeSpan>()
-            {
-                TimeSpan.FromMinutes(10)
-            }, false));
-        });
-
-        this.RenderButtonAsync(parent, this.TranslationService.GetTranslation("reminderSettingsView-btn-syncEnabledEventsToAreas", "Sync enabled Events to Areas"),
-            async () =>
-            {
-                var confirmDialog = new ConfirmDialog(
-                    "Synchronizing",
-                    "You are in the process of synchronizing the enabled events of reminders to all event areas.\n\nThis will override all previously configured enabled/disabled settings in event areas.",
-                    this.IconService)
-                {
-                    SelectedButtonIndex = 1 // Preselect cancel
-                };
-
-                var confirmResult = await confirmDialog.ShowDialog();
-                if (confirmResult != DialogResult.OK) return;
-
-                await (this.SyncEnabledEventsToAreas?.Invoke(this) ?? Task.FromException(new NotImplementedException()));
-
-                Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
-            });
 
         this.RenderEmptyLine(parent);
 
