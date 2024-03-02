@@ -69,7 +69,7 @@ public class ReminderSettingsView : BaseSettingsView
             if (this._manageEventsWindow == null)
             {
                 this._manageEventsWindow = WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("37e3f99c-f413-469c-b0f5-e2e6e31e4789"), this.IconService);
-                this._manageEventsWindow.Width = 1040;
+                this._manageEventsWindow.Width = ManageEventsView.BEST_WIDTH;
             }
 
             if (this._manageEventsWindow.CurrentView != null)
