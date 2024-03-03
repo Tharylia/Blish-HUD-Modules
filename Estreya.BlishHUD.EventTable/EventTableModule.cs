@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -758,14 +758,27 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => this.Version,
             () => this.BlishHUDAPIService.AccessToken,
             () => this.ModuleSettings.EventAreaNames.Value.ToArray().ToList(),
+            () => this.ModuleSettings.ReminderDisabledForEvents.Value.ToArray().ToList(),
             this.ContentsManager)
         { Parent = GameService.Graphics.SpriteScreen };
 
         area.CopyToAreaClicked += this.EventArea_CopyToAreaClicked;
         area.MoveToAreaClicked += this.EventArea_MoveToAreaClicked;
+        area.EnableReminderClicked += this.EventArea_EnableReminderClicked;
+        area.DisableReminderClicked += this.EventArea_DisableReminderClicked;
         area.Disposed += this.EventArea_Disposed;
 
         _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
+    }
+
+    private void EventArea_DisableReminderClicked(object sender, string e)
+    {
+        this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value) { e };
+    }
+
+    private void EventArea_EnableReminderClicked(object sender, string e)
+    {
+        this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value.Where(k => k != e));
     }
 
     private void EventArea_MoveToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
@@ -790,6 +803,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         var area = sender as EventArea;
         area.CopyToAreaClicked -= this.EventArea_CopyToAreaClicked;
         area.MoveToAreaClicked -= this.EventArea_MoveToAreaClicked;
+        area.EnableReminderClicked -= this.EventArea_EnableReminderClicked;
+        area.DisableReminderClicked -= this.EventArea_DisableReminderClicked;
         area.Disposed -= this.EventArea_Disposed;
     }
 

@@ -52,6 +52,7 @@ public class EventArea : RenderTarget2DControl
     private ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
     private readonly Func<string> _getAccessToken;
     private readonly Func<List<string>> _getAreaNames;
+    private readonly Func<List<string>> _getDisabledReminderKeys;
     private ContentsManager _contentsManager;
     private readonly Func<DateTime> _getNowAction;
     private readonly Func<Version> _getVersion;
@@ -93,12 +94,15 @@ public class EventArea : RenderTarget2DControl
 
     public event EventHandler<(string EventSettingKey, string DestinationArea)> MoveToAreaClicked;
     public event EventHandler<(string EventSettingKey, string DestinationArea)> CopyToAreaClicked;
+    public event EventHandler<string> EnableReminderClicked;
+    public event EventHandler<string> DisableReminderClicked;
 
     public EventArea(
         EventAreaConfiguration configuration, IconService iconService, TranslationService translationService,
         EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, 
         PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
-        Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames, ContentsManager contentsManager)
+        Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames,
+        Func<List<string>> getDisabledReminderKeys, ContentsManager contentsManager)
     {
         this.Configuration = configuration;
 
@@ -135,6 +139,7 @@ public class EventArea : RenderTarget2DControl
         this._getVersion = getVersion;
         this._getAccessToken = getAccessToken;
         this._getAreaNames = getAreaNames;
+        this._getDisabledReminderKeys = getDisabledReminderKeys;
         this._contentsManager = contentsManager;
         this._iconService = iconService;
         this._translationService = translationService;
@@ -820,7 +825,7 @@ public class EventArea : RenderTarget2DControl
             if (!isFiller)
             {
                 this.Tooltip = this.Configuration.ShowTooltips.Value ? this._activeEvent?.BuildTooltip() : null;
-                this.Menu = this._activeEvent?.BuildContextMenu(this._getAreaNames, this.Configuration.Name);
+                this.Menu = this._activeEvent?.BuildContextMenu(this._getAreaNames, this.Configuration.Name, this._getDisabledReminderKeys);
             }
 
             this._lastActiveEvent = this._activeEvent;
@@ -1235,6 +1240,8 @@ public class EventArea : RenderTarget2DControl
         ev.DisableClicked += this.Ev_DisableClicked;
         ev.CopyToAreaClicked += this.Ev_CopyToAreaClicked;
         ev.MoveToAreaClicked += this.Ev_MoveToAreaClicked;
+        ev.EnableReminderClicked += this.Ev_EnableReminderClicked;
+        ev.DisableReminderClicked += this.Ev_DisableReminderClicked;
     }
 
     private void RemoveEventHooks(Event ev)
@@ -1244,6 +1251,20 @@ public class EventArea : RenderTarget2DControl
         ev.DisableClicked -= this.Ev_DisableClicked;
         ev.CopyToAreaClicked -= this.Ev_CopyToAreaClicked;
         ev.MoveToAreaClicked -= this.Ev_MoveToAreaClicked;
+        ev.EnableReminderClicked -= this.Ev_EnableReminderClicked;
+        ev.DisableReminderClicked -= this.Ev_DisableReminderClicked;
+    }
+
+    private void Ev_DisableReminderClicked(object sender, EventArgs e)
+    {
+        var ev = sender as Event;
+        this.DisableReminderClicked?.Invoke(this, ev.Model.SettingKey);
+    }
+
+    private void Ev_EnableReminderClicked(object sender, EventArgs e)
+    {
+        var ev = sender as Event;
+        this.EnableReminderClicked?.Invoke(this, ev.Model.SettingKey);
     }
 
     private void Ev_MoveToAreaClicked(object sender, string e)

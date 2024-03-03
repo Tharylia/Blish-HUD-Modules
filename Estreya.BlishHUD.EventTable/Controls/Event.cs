@@ -71,8 +71,10 @@ public class Event : IDisposable
     public event EventHandler ToggleFinishClicked;
     public event EventHandler<string> MoveToAreaClicked;
     public event EventHandler<string> CopyToAreaClicked;
+    public event EventHandler EnableReminderClicked;
+    public event EventHandler DisableReminderClicked;
 
-    public ContextMenuStrip BuildContextMenu(Func<List<string>> getAreaNames, string currentAreaName)
+    public ContextMenuStrip BuildContextMenu(Func<List<string>> getAreaNames, string currentAreaName, Func<List<string>> getDisabledReminderKeys)
     {
         ContextMenuStrip menu = new ContextMenuStrip();
 
@@ -104,6 +106,40 @@ public class Event : IDisposable
         toggleFinishAction.Click += (s, e) =>
         {
             this.ToggleFinishClicked?.Invoke(this, EventArgs.Empty);
+        };
+
+        var isReminderEnabled = !getDisabledReminderKeys().Contains(this.Model.SettingKey);
+
+        var reminderMenu = new ContextMenuStrip();
+        ContextMenuStripItem reminderMenuAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-reminderMenu-title", "Reminders..."))
+        {
+            Parent = menu,
+            //BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-reminderMenu-tooltip", "Moves the selected event to the selected area and disables it in the current area."),
+            Submenu = reminderMenu,
+        };
+
+        ContextMenuStripItem enableReminderAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-reminderMenu-enable-title", "Enable Reminder"))
+        {
+            Parent = reminderMenu,
+            BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-reminderMenu-enable-tooltip", "Enables the corresponding reminder for this event."),
+            Enabled = !isReminderEnabled,
+        };
+
+        enableReminderAction.Click += (s, e) =>
+        {
+            this.EnableReminderClicked?.Invoke(this, EventArgs.Empty);
+        };
+
+        ContextMenuStripItem disableReminderAction = new ContextMenuStripItem(this._translationService.GetTranslation("event-contextMenu-reminderMenu-disable-title", "Disable Reminder"))
+        {
+            Parent = reminderMenu,
+            BasicTooltipText = this._translationService.GetTranslation("event-contextMenu-reminderMenu-disable-tooltip", "Disables the corresponding reminder for this event."),
+            Enabled = isReminderEnabled,
+        };
+
+        disableReminderAction.Click += (s, e) =>
+        {
+            this.DisableReminderClicked?.Invoke(this, EventArgs.Empty);
         };
 
         if (getAreaNames != null && currentAreaName != null)
