@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -74,7 +74,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     protected override string UrlModuleName => "event-table";
 
-    protected override bool NotifyIfBackendDown => true;
+    protected override bool NeedsBackend => true;
 
     protected override bool EnableMetrics => true;
 
@@ -104,6 +104,13 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this._lastEventUpdate = new AsyncRef<double>(0);
         this._lastCheckDrawerSettings = 0;
+
+        base.BackendConnectionRestored += this.EventTableModule_BackendConnectionRestored;
+    }
+
+    private async Task EventTableModule_BackendConnectionRestored(object sender)
+    {
+        await this.ReloadEvents();
     }
 
     protected override async Task LoadAsync()
@@ -226,8 +233,6 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task LoadEvents()
     {
-        if (this.ModuleState == Shared.Modules.ModuleState.Error) return;
-
         this.Logger.Info("Load events...");
         using (await this._eventCategoryLock.LockAsync())
         {
@@ -236,6 +241,13 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             {
                 this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(this.RemoveEventHooks);
                 this._eventCategories?.Clear();
+
+                if (this.HasErrorState(Shared.Modules.ModuleErrorStateGroup.BACKEND_UNAVAILABLE))
+                {
+                    this.Logger.Warn($"Abort event loading due to error state \"{Shared.Modules.ModuleErrorStateGroup.BACKEND_UNAVAILABLE}\".");
+                    this.SetAreaEvents(); // Clear events in all areas
+                    return;
+                }
 
                 IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "events");
 
@@ -310,15 +322,19 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 this.SetAreaEvents();
 
                 this.Logger.Debug("Updated events in all areas.");
+
+                this.ReportErrorState(Models.ModuleErrorStateGroup.LOADING_EVENTS, null);
             }
             catch (FlurlHttpException ex)
             {
                 string message = await ex.GetResponseStringAsync();
                 this.Logger.Warn(ex, $"Failed loading events: {message}");
+                this.ReportErrorState(Models.ModuleErrorStateGroup.LOADING_EVENTS, $"Failed loading events: {message}");
             }
             catch (Exception ex)
             {
                 this.Logger.Error(ex, "Failed loading events.");
+                this.ReportErrorState(Models.ModuleErrorStateGroup.LOADING_EVENTS, $"Failed loading events.");
             }
         }
     }
