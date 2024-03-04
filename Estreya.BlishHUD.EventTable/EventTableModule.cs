@@ -74,7 +74,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     protected override string UrlModuleName => "event-table";
 
-    protected override bool NotifyIfBackendDown => true;
+    protected override bool NeedsBackend => true;
 
     protected override bool EnableMetrics => true;
 
@@ -104,6 +104,13 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this._lastEventUpdate = new AsyncRef<double>(0);
         this._lastCheckDrawerSettings = 0;
+
+        base.BackendConnectionRestored += this.EventTableModule_BackendConnectionRestored;
+    }
+
+    private async Task EventTableModule_BackendConnectionRestored(object sender)
+    {
+        await this.ReloadEvents();
     }
 
     protected override async Task LoadAsync()
@@ -226,8 +233,6 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task LoadEvents()
     {
-        if (this.ModuleState == Shared.Modules.ModuleState.Error) return;
-
         this.Logger.Info("Load events...");
         using (await this._eventCategoryLock.LockAsync())
         {
@@ -236,6 +241,13 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             {
                 this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(this.RemoveEventHooks);
                 this._eventCategories?.Clear();
+
+                if (this.HasErrorState(Shared.Modules.ModuleErrorStateGroup.BACKEND_UNAVAILABLE))
+                {
+                    this.Logger.Warn($"Abort event loading due to error state \"{Shared.Modules.ModuleErrorStateGroup.BACKEND_UNAVAILABLE}\".");
+                    this.SetAreaEvents(); // Clear events in all areas
+                    return;
+                }
 
                 IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "events");
 
@@ -310,15 +322,19 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 this.SetAreaEvents();
 
                 this.Logger.Debug("Updated events in all areas.");
+
+                this.ReportErrorState(Models.ModuleErrorStateGroup.LOADING_EVENTS, null);
             }
             catch (FlurlHttpException ex)
             {
                 string message = await ex.GetResponseStringAsync();
                 this.Logger.Warn(ex, $"Failed loading events: {message}");
+                this.ReportErrorState(Models.ModuleErrorStateGroup.LOADING_EVENTS, $"Failed loading events: {message}");
             }
             catch (Exception ex)
             {
                 this.Logger.Error(ex, "Failed loading events.");
+                this.ReportErrorState(Models.ModuleErrorStateGroup.LOADING_EVENTS, $"Failed loading events.");
             }
         }
     }
@@ -742,14 +758,27 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => this.Version,
             () => this.BlishHUDAPIService.AccessToken,
             () => this.ModuleSettings.EventAreaNames.Value.ToArray().ToList(),
+            () => this.ModuleSettings.ReminderDisabledForEvents.Value.ToArray().ToList(),
             this.ContentsManager)
         { Parent = GameService.Graphics.SpriteScreen };
 
         area.CopyToAreaClicked += this.EventArea_CopyToAreaClicked;
         area.MoveToAreaClicked += this.EventArea_MoveToAreaClicked;
+        area.EnableReminderClicked += this.EventArea_EnableReminderClicked;
+        area.DisableReminderClicked += this.EventArea_DisableReminderClicked;
         area.Disposed += this.EventArea_Disposed;
 
         _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
+    }
+
+    private void EventArea_DisableReminderClicked(object sender, string e)
+    {
+        this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value) { e };
+    }
+
+    private void EventArea_EnableReminderClicked(object sender, string e)
+    {
+        this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value.Where(k => k != e));
     }
 
     private void EventArea_MoveToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
@@ -774,6 +803,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         var area = sender as EventArea;
         area.CopyToAreaClicked -= this.EventArea_CopyToAreaClicked;
         area.MoveToAreaClicked -= this.EventArea_MoveToAreaClicked;
+        area.EnableReminderClicked -= this.EventArea_EnableReminderClicked;
+        area.DisableReminderClicked -= this.EventArea_DisableReminderClicked;
         area.Disposed -= this.EventArea_Disposed;
     }
 

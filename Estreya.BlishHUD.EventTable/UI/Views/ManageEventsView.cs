@@ -19,6 +19,8 @@ using Event = Models.Event;
 
 public class ManageEventsView : BaseView
 {
+    public const int BEST_WIDTH = 1060;
+
     private static readonly Point MAIN_PADDING = new Point(20, 20);
 
     private static readonly Logger Logger = Logger.GetLogger<ManageEventsView>();
@@ -370,6 +372,9 @@ public class ManageEventsView : BaseView
                 };
             }
         }
+
+        eventPanel.Height -= 1;
+        eventPanel.Height += 1;
     }
 
     protected override Task<bool> InternalLoad(IProgress<string> progress)

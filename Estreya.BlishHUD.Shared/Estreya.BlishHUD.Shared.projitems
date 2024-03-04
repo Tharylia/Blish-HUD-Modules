@@ -116,6 +116,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\News.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ScreenRegion.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\BaseModule.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Modules\ModuleErrorStateGroup.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ModuleState.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ModuleValidationRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ModuleValidationResponse.cs" />
