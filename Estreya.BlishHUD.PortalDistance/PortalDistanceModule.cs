@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.PortalDistance;
+﻿namespace Estreya.BlishHUD.PortalDistance;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -155,7 +155,7 @@ public class PortalDistanceModule : BaseModule<PortalDistanceModule, ModuleSetti
 
         if (this.ArcDPSService != null)
         {
-            this.ArcDPSService.AreaCombatEvent += this.ArcDPSService_AreaCombatEvent;
+            this.ArcDPSService.AreaCombatEvent -= this.ArcDPSService_AreaCombatEvent;
         }
 
         this._activePortal = null;
