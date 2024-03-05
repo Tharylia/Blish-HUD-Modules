@@ -363,16 +363,16 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             throw new ModuleInvalidException($"Could not read module validation response: {content}");
         }
 
-            List<string> messages = new List<string>
-            {
-                $"[{this.Name}]",
-                "The current module version is invalid!"
-            };
+        List<string> messages = new List<string>
+        {
+            $"[{this.Name}]",
+            "The current module version is invalid!"
+        };
 
-            if (!string.IsNullOrWhiteSpace(validationResponse.Message) || !string.IsNullOrWhiteSpace(response.ReasonPhrase))
-            {
-                messages.Add(validationResponse.Message ?? response.ReasonPhrase);
-            }
+        if (!string.IsNullOrWhiteSpace(validationResponse.Message) || !string.IsNullOrWhiteSpace(response.ReasonPhrase))
+        {
+            messages.Add(validationResponse.Message ?? response.ReasonPhrase);
+        }
 
         ScreenNotification.ShowNotification(messages.ToArray(), ScreenNotification.NotificationType.Error, duration: 10);
 
