@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.PortalDistance;
+namespace Estreya.BlishHUD.PortalDistance;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -53,7 +53,7 @@ public class PortalDistanceModule : BaseModule<PortalDistanceModule, ModuleSetti
 
     protected override string API_VERSION_NO => "1";
 
-    protected override bool FailIfBackendDown => false;
+    protected override bool NeedsBackend => false;
 
     protected override void Initialize()
     {
@@ -222,6 +222,11 @@ public class PortalDistanceModule : BaseModule<PortalDistanceModule, ModuleSetti
     protected override AsyncTexture2D GetCornerIcon()
     {
         return this.IconService.GetIcon("textures/102338-grey.png");
+    }
+
+    protected override AsyncTexture2D GetErrorCornerIcon()
+    {
+        return this.IconService.GetIcon("textures/102338-grey-error.png");
     }
 
     protected override int CornerIconPriority => 1_289_351_269;
