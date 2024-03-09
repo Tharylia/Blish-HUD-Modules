@@ -40,7 +40,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
 
     protected override string API_VERSION_NO => "1";
 
-    protected override bool FailIfBackendDown => false;
+    protected override bool NeedsBackend => false;
 
     private MapChangeAutomationService MapChangeAutomationService { get; set; }
     private PositionChangeAutomationService PositionChangeAutomationService { get; set; }

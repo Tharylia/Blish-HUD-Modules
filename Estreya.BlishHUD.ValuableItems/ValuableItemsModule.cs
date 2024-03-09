@@ -38,7 +38,7 @@ public class ValuableItemsModule : BaseModule<ValuableItemsModule, ModuleSetting
 
     protected override string API_VERSION_NO => "1";
 
-    protected override bool FailIfBackendDown => false;
+    protected override bool NeedsBackend => false;
 
     private TesseractEngine _tesseractEngine;
 

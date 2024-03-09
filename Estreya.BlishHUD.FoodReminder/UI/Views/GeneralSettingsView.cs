@@ -6,6 +6,7 @@ using Blish_HUD.Modules.Managers;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
 using Shared.UI.Views;
+using Shared.Services;
 using System;
 using System.Threading.Tasks;
 
@@ -13,7 +14,7 @@ public class GeneralSettingsView : BaseSettingsView
 {
     private readonly ModuleSettings _moduleSettings;
 
-    public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, BitmapFont font = null) : base(apiManager, iconService, translationService, settingEventService, font)
+    public GeneralSettingsView(ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._moduleSettings = moduleSettings;
     }
