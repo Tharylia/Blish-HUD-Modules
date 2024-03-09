@@ -14,6 +14,7 @@ using Shared.Models.ArcDPS;
 using Shared.Models.ArcDPS.Buff;
 using Shared.Modules;
 using Shared.Settings;
+using Shared.Services;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.Composition;
@@ -38,6 +39,8 @@ public class FoodReminderModule : BaseModule<FoodReminderModule, ModuleSettings>
     private DataFileDefinition _data { get; set; }
 
     private List<OverviewTable> _areas { get; } = new List<OverviewTable>();
+
+    protected override int CornerIconPriority => 1_289_351_266;
 
     protected override void Initialize()
     {
@@ -69,17 +72,16 @@ public class FoodReminderModule : BaseModule<FoodReminderModule, ModuleSettings>
         this.AddAllAreas();
     }
 
-    protected override void OnSettingWindowBuild(TabbedWindow2 settingWindow)
+    protected override void OnSettingWindowBuild(Shared.Controls.TabbedWindow settingWindow)
     {
-        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
+        this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156736.png"), () => new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color }, "General"));
         AreaSettingsView areaSettingsView = new AreaSettingsView(
             () => this._areas.Select(area => area.Configuration),
             this.ModuleSettings,
             this.Gw2ApiManager,
             this.IconService,
             this.TranslationService,
-            this.SettingEventService,
-            GameService.Content.DefaultFont16) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+            this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         areaSettingsView.AddArea += (s, e) =>
         {
             e.AreaConfiguration = this.AddArea(e.Name);
