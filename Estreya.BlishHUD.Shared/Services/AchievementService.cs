@@ -2,6 +2,7 @@
 
 using Blish_HUD.Modules.Managers;
 using Extensions;
+using Flurl.Http;
 using Gw2Sharp.WebApi.V2;
 using Gw2Sharp.WebApi.V2.Models;
 using System;
@@ -12,7 +13,7 @@ using System.Threading.Tasks;
 
 public class AchievementService : FilesystemAPIService<Achievement>
 {
-    public AchievementService(Gw2ApiManager apiManager, APIServiceConfiguration configuration, string baseFolderPath) : base(apiManager, configuration, baseFolderPath) { }
+    public AchievementService(Gw2ApiManager apiManager, APIServiceConfiguration configuration, string baseFolderPath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration, baseFolderPath, flurlClient, fileRootUrl) { }
     protected override string BASE_FOLDER_STRUCTURE => "achievements";
 
     protected override string FILE_NAME => "achievements.json";

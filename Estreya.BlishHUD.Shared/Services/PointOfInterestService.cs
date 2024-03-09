@@ -2,6 +2,7 @@
 
 using Blish_HUD.Modules.Managers;
 using Extensions;
+using Flurl.Http;
 using Gw2Sharp.WebApi.V2;
 using Gw2Sharp.WebApi.V2.Models;
 using Models.GW2API.PointOfInterest;
@@ -13,7 +14,7 @@ using System.Threading.Tasks;
 
 public class PointOfInterestService : FilesystemAPIService<PointOfInterest>
 {
-    public PointOfInterestService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration, baseFolderPath) { }
+    public PointOfInterestService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration, baseFolderPath, flurlClient, fileRootUrl) { }
     protected override string BASE_FOLDER_STRUCTURE => "pois";
     protected override string FILE_NAME => "pois.json";
     public List<PointOfInterest> PointOfInterests => this.APIObjectList;

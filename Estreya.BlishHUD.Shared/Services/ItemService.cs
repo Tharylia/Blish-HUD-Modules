@@ -2,6 +2,8 @@
 
 using Blish_HUD.Modules.Managers;
 using Extensions;
+using Flurl.Http;
+using IO;
 using Gw2Sharp.WebApi.V2;
 using Models.GW2API.Items;
 using System;
@@ -9,10 +11,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.IO;
+using Newtonsoft.Json;
+using Gw2Sharp.Json.Converters;
+using Gw2Sharp;
+using Blish_HUD;
+using Estreya.BlishHUD.Shared.Utils;
+using System.Diagnostics;
 
 public class ItemService : FilesystemAPIService<Item>
 {
-    public ItemService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath) : base(apiManager, configuration, baseFolderPath)
+    public ItemService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, string baseFolderPath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration, baseFolderPath, flurlClient, fileRootUrl)
     {
     }
 
@@ -60,6 +69,33 @@ public class ItemService : FilesystemAPIService<Item>
 
             return null;
         }
+    }
+
+    protected override async Task<List<Item>> FetchFromStaticFile(IProgress<string> progress, CancellationToken cancellationToken)
+    {
+        var request = this._flurlClient.Request(this._fileRootUrl, "gw2", "api", "v2", "items", BlishHUDUtils.GetLocaleAsISO639_1(), "latest.json");
+
+        Stream stream = null;
+        try
+        {
+            stream = await request.GetStreamAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, "Could not load items from static file.");
+        }
+
+        if (stream == null) return null;
+
+        using ReadProgressStream progressStream = new ReadProgressStream(stream);
+        progressStream.ProgressChanged += (s, e) => progress.Report($"Parsing static file... {Math.Round(e.Progress, 0)}%");
+
+        // Convert with gw2 sharp settings because file is fresh from api. Same what gw2sharp reads.
+        List<Gw2Sharp.WebApi.V2.Models.Item> entities = await System.Text.Json.JsonSerializer.DeserializeAsync< List<Gw2Sharp.WebApi.V2.Models.Item>>(progressStream, options: this._gw2SharpSerializerOptions);
+
+        stream.Dispose();
+
+        return entities.Select(Item.FromAPI).ToList();
     }
 
     protected override async Task<List<Item>> Fetch(Gw2ApiManager apiManager, IProgress<string> progress, CancellationToken cancellationToken)

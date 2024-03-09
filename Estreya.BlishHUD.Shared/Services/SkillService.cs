@@ -27,18 +27,14 @@ public class SkillService : FilesystemAPIService<Skill>
 
     private const string LOCAL_MISSING_SKILL_FILE_NAME = "missingSkills.json";
     private readonly AsyncRef<double> _lastSaveMissingSkill = new AsyncRef<double>(0);
-    private readonly string _webRootUrl;
-    private IFlurlClient _flurlClient;
 
     private IconService _iconService;
 
     private SynchronizedCollection<MissingArcDPSSkill> _missingSkillsFromAPIReportedByArcDPS;
 
-    public SkillService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, IconService iconService, string baseFolderPath, IFlurlClient flurlClient, string webRootUrl) : base(apiManager, configuration, baseFolderPath)
+    public SkillService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, IconService iconService, string baseFolderPath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration, baseFolderPath, flurlClient, fileRootUrl)
     {
         this._iconService = iconService;
-        this._flurlClient = flurlClient;
-        this._webRootUrl = new Uri(new Uri(webRootUrl), "/gw2/api/v2/skills").ToString();
     }
 
     protected override string BASE_FOLDER_STRUCTURE => "skills";
@@ -67,7 +63,6 @@ public class SkillService : FilesystemAPIService<Skill>
         this._missingSkillsFromAPIReportedByArcDPS?.Clear();
         this._missingSkillsFromAPIReportedByArcDPS = null;
         this._iconService = null;
-        this._flurlClient = null;
     }
 
     protected override async Task Load()
@@ -181,7 +176,7 @@ public class SkillService : FilesystemAPIService<Skill>
 
     private async Task RemapSkillIds(List<Skill> skills)
     {
-        using Stream remappedSkillsStream = await this._flurlClient.Request(this._webRootUrl, REMAPPED_SKILLS_FILE_NAME).GetStreamAsync();
+        using Stream remappedSkillsStream = await this._flurlClient.Request(this._fileRootUrl, "/gw2/api/v2/skills", REMAPPED_SKILLS_FILE_NAME).GetStreamAsync();
         using ReadProgressStream progressStream = new ReadProgressStream(remappedSkillsStream);
         progressStream.ProgressChanged += (s, e) => this.ReportProgress($"Reading remapped skills... {Math.Round(e.Progress, 0)}%");
         JsonSerializer serializer = JsonSerializer.CreateDefault(this._serializerSettings);
@@ -215,7 +210,7 @@ public class SkillService : FilesystemAPIService<Skill>
 
     private async Task AddMissingSkills(List<Skill> skills)
     {
-        Stream missingSkillsStream = await this._flurlClient.Request(this._webRootUrl, MISSING_SKILLS_FILE_NAME).GetStreamAsync();
+        Stream missingSkillsStream = await this._flurlClient.Request(this._fileRootUrl, "/gw2/api/v2/skills", MISSING_SKILLS_FILE_NAME).GetStreamAsync();
         using ReadProgressStream progressStream = new ReadProgressStream(missingSkillsStream);
         progressStream.ProgressChanged += (s, e) => this.ReportProgress($"Reading missing skills... {Math.Round(e.Progress, 0)}%");
         JsonSerializer serializer = JsonSerializer.CreateDefault(this._serializerSettings);
