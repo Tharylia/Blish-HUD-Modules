@@ -308,6 +308,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (this.HasErrorState(ModuleErrorStateGroup.BACKEND_UNAVAILABLE)) return;
 
+        var isBackendUnavailable = (HttpResponseMessage response) => response is null || response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable;
+
         IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "validate").AllowAnyHttpStatus();
 
         ModuleValidationRequest data = new ModuleValidationRequest { Version = this.Version };
@@ -328,14 +330,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             return;
         }
 
-        if (this.NeedsBackend && (response is null || response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable))
-        {
-            // Backend down
-            return;
-        }
-
-        // Module should not fail if backend down
-        if (response is null || response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable) return;
+        if (isBackendUnavailable(response)) return;
 
         // Any unexpected status codes
         if (response.StatusCode != HttpStatusCode.Forbidden)
