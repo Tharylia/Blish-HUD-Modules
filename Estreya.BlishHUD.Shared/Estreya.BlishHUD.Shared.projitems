@@ -64,6 +64,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)IO\ReadProgressStream.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\DateJsonConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\DateTimeJsonConverter.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\GW2Sharp\SnakeCaseNamingPolicy.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\NullableRenderUrlConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\RenderUrlConverter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\Converter\SemanticRangeConverter.cs" />
@@ -121,9 +122,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ModuleValidationRequest.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\ModuleValidationResponse.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)MumbleInfo\Map\MapInfo.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)Net\WebClient.cs">
-      <SubType>Component</SubType>
-    </Compile>
+    <Compile Include="$(MSBuildThisFileDirectory)Net\FlurlHttpClientFactory.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Security\PasswordManager.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AccountAchievementService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\AchievementService.cs" />
@@ -165,6 +164,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\StringTooltipView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\TooltipView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\AsyncLock.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Utils\BlishHUDUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\ColorUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\DiscordUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\FileUtil.cs" />

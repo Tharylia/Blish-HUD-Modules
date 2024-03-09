@@ -2,6 +2,9 @@
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
+using Flurl.Http;
+using Gw2Sharp.Json.Converters;
+using Gw2Sharp;
 using IO;
 using Json.Converter;
 using Newtonsoft.Json;
@@ -10,8 +13,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Utils;
+using System.Threading;
 
 public abstract class FilesystemAPIService<T> : APIService<T>
 {
@@ -20,13 +25,17 @@ public abstract class FilesystemAPIService<T> : APIService<T>
     private const string DATE_TIME_FORMAT = "yyyy-MM-ddTHH:mm:ss";
 
     private readonly string _baseModulePath;
-
     protected JsonSerializerSettings _serializerSettings;
+    protected JsonSerializerOptions _gw2SharpSerializerOptions;
+    protected IFlurlClient _flurlClient;
+    protected string _fileRootUrl;
 
-    protected FilesystemAPIService(Gw2ApiManager apiManager, APIServiceConfiguration configuration, string baseModulePath) : base(apiManager, configuration)
+    protected FilesystemAPIService(Gw2ApiManager apiManager, APIServiceConfiguration configuration, string baseModulePath, IFlurlClient flurlClient, string fileRootUrl) : base(apiManager, configuration)
     {
         this.CreateJsonSettings();
         this._baseModulePath = baseModulePath;
+        this._flurlClient = flurlClient;
+        this._fileRootUrl = fileRootUrl;
     }
 
     protected abstract string BASE_FOLDER_STRUCTURE { get; }
@@ -43,11 +52,26 @@ public abstract class FilesystemAPIService<T> : APIService<T>
             TypeNameHandling = TypeNameHandling.All,
             Converters = new JsonConverter[]
             {
-                new RenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection),
+                new Json.Converter.RenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection),
                 new NullableRenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection),
                 new StringEnumConverter()
             }
         };
+
+        this._gw2SharpSerializerOptions = new System.Text.Json.JsonSerializerOptions
+        {
+            AllowTrailingCommas = true,
+            PropertyNameCaseInsensitive = true,
+            PropertyNamingPolicy = Json.Converter.GW2Sharp.SnakeCaseNamingPolicy.SnakeCase
+        };
+        this._gw2SharpSerializerOptions.Converters.Add(new ApiEnumConverter());
+        this._gw2SharpSerializerOptions.Converters.Add(new ApiFlagsConverter());
+        this._gw2SharpSerializerOptions.Converters.Add(new ApiObjectConverter());
+        this._gw2SharpSerializerOptions.Converters.Add(new ApiObjectListConverter());
+        this._gw2SharpSerializerOptions.Converters.Add(new CastableTypeConverter());
+        this._gw2SharpSerializerOptions.Converters.Add(new DictionaryIntKeyConverter());
+        this._gw2SharpSerializerOptions.Converters.Add(new Gw2Sharp.Json.Converters.RenderUrlConverter(GameService.Gw2WebApi.AnonymousConnection.Connection, new Gw2Client(GameService.Gw2WebApi.AnonymousConnection.Connection)));
+        this._gw2SharpSerializerOptions.Converters.Add(new TimeSpanConverter());
     }
 
     protected override async Task Load()
@@ -55,15 +79,53 @@ public abstract class FilesystemAPIService<T> : APIService<T>
         try
         {
             bool forceAPI = this.ForceAPI;
-            bool canLoadFiles = !forceAPI && this.CanLoadFiles();
-            bool shouldLoadFiles = !forceAPI && await this.ShouldLoadFiles();
 
             if (forceAPI)
             {
                 this.Logger.Debug("Force API is active.");
             }
 
-            if (!forceAPI && canLoadFiles)
+            bool loadedFromStatic = false;
+
+            if (!forceAPI)
+            {
+                try
+                {
+                    this.Loading = true;
+
+                    this.ReportProgress("Loading static file content...");
+
+                    IProgress<string> progress = new Progress<string>(this.ReportProgress);
+                    var entities = await this.FetchFromStaticFile(progress, this.CancellationToken);
+
+                    if (entities != null)
+                    {
+                        using (await this._apiObjectListLock.LockAsync())
+                        {
+                            this.APIObjectList.Clear();
+                            this.APIObjectList.AddRange(entities);
+                        }
+
+                        this.SignalUpdated();
+
+                        loadedFromStatic = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.Logger.Warn(ex, "Could not load from static file. Fallback to filesystem cache.");
+                }
+                finally
+                {
+                    this.Loading = false;
+                    this.SignalCompletion(); // This clears the progress text as well
+                }
+            }
+
+            bool canLoadFiles = !loadedFromStatic && !forceAPI && this.CanLoadFiles();
+            bool shouldLoadFiles = !loadedFromStatic && !forceAPI && await this.ShouldLoadFiles();
+
+            if (!loadedFromStatic && !forceAPI && canLoadFiles)
             {
                 try
                 {
@@ -84,7 +146,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
                     using ReadProgressStream progressStream = new ReadProgressStream(stream);
                     progressStream.ProgressChanged += (s, e) => this.ReportProgress($"Parsing json... {Math.Round(e.Progress, 0)}%");
 
-                    JsonSerializer serializer = JsonSerializer.CreateDefault(this._serializerSettings);
+                    Newtonsoft.Json.JsonSerializer serializer = Newtonsoft.Json.JsonSerializer.CreateDefault(this._serializerSettings);
 
                     using StreamReader sr = new StreamReader(progressStream);
                     using JsonReader reader = new JsonTextReader(sr);
@@ -114,7 +176,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
             }
 
             // Refresh files after we loaded the prior saved
-            if (forceAPI || !shouldLoadFiles)
+            if (!loadedFromStatic && (forceAPI || !shouldLoadFiles))
             {
                 var result = await this.LoadFromAPI(!canLoadFiles); // Only reset completion if we could not load anything at start
                 if (!this.CancellationToken.IsCancellationRequested)
@@ -146,6 +208,8 @@ public abstract class FilesystemAPIService<T> : APIService<T>
             this.Logger.Warn(ex, "Failed loading entites:");
         }
     }
+
+    protected virtual Task<List<T>> FetchFromStaticFile(IProgress<string> progress, CancellationToken cancellationToken) => Task.FromResult<List<T>>(default);
 
     /// <summary>
     ///     Called before the filesystem load started.

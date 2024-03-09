@@ -10,6 +10,7 @@ using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Controls.Input;
+using Estreya.BlishHUD.Shared.Net;
 using Estreya.BlishHUD.Shared.Services.Audio;
 using Estreya.BlishHUD.Shared.Services.TradingPost;
 using Estreya.BlishHUD.Shared.Threading;
@@ -130,7 +131,14 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         if (this._flurlClient == null)
         {
             this._flurlClient = new FlurlClient();
-            this._flurlClient.WithHeader("User-Agent", $"{this.Name} {this.Version}");
+            this._flurlClient
+                .WithHeader("User-Agent", $"{this.Name} {this.Version}")
+                .WithHeader("Accept-Encoding", "gzip, delate")
+                .Configure(c =>
+                {
+                    // AutomaticDecompression seems to be set by the default handler as well, but make sure.
+                    c.HttpClientFactory = new FlurlHttpClientFactory();
+                });
         }
 
         return this._flurlClient;
@@ -300,6 +308,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         if (this.HasErrorState(ModuleErrorStateGroup.BACKEND_UNAVAILABLE)) return;
 
+        var isBackendUnavailable = (HttpResponseMessage response) => response is null || response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable;
+
         IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "validate").AllowAnyHttpStatus();
 
         ModuleValidationRequest data = new ModuleValidationRequest { Version = this.Version };
@@ -320,14 +330,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             return;
         }
 
-        if (this.NeedsBackend && (response is null || response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable))
-        {
-            // Backend down
-            return;
-        }
-
-        // Module should not fail if backend down
-        if (response is null || response.StatusCode is HttpStatusCode.BadGateway or HttpStatusCode.ServiceUnavailable) return;
+        if (isBackendUnavailable(response)) return;
 
         // Any unexpected status codes
         if (response.StatusCode != HttpStatusCode.Forbidden)
@@ -531,7 +534,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
             if (configurations.Items.Enabled)
             {
-                this.ItemService = new ItemService(configurations.Items, this.Gw2ApiManager, directoryPath);
+                this.ItemService = new ItemService(configurations.Items, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
                 this._services.Add(this.ItemService);
             }
 
@@ -582,7 +585,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.PointOfInterestService = new PointOfInterestService(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath);
+                this.PointOfInterestService = new PointOfInterestService(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
                 this._services.Add(this.PointOfInterestService);
             }
 
@@ -613,7 +616,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
             if (configurations.Achievements.Enabled)
             {
-                this.AchievementService = new AchievementService(this.Gw2ApiManager, configurations.Achievements, directoryPath);
+                this.AchievementService = new AchievementService(this.Gw2ApiManager, configurations.Achievements, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
                 this._services.Add(this.AchievementService);
             }
 
