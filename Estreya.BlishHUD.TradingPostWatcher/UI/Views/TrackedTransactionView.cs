@@ -128,7 +128,9 @@ public class TrackedTransactionView : BaseView
             StringComparison = StringComparison.InvariantCultureIgnoreCase
         };
 
-        textBoxSuggestions.Suggestions = this._itemService.Items.Where(item => !item.Flags?.Any(flag => flag is ItemFlag.AccountBound or ItemFlag.SoulbindOnAcquire) ?? false).Select(item => item.Name).ToArray();
+        var itemList = this._itemService.Items.Where(item => !item.Flags?.Any(flag => flag is ItemFlag.AccountBound or ItemFlag.SoulbindOnAcquire) ?? false).ToList();
+
+        textBoxSuggestions.Suggestions = itemList.Select(item => item.Name).ToArray();
 
         (Shared.Models.GW2API.Items.Item Item, Texture2D Icon) loadedItem = (null, null);
 
@@ -237,7 +239,7 @@ public class TrackedTransactionView : BaseView
                 throw new Exception("Items are still being loaded.");
             }
 
-            Item item = this._itemService?.GetItemByName(itemName.Text.Trim()) ?? throw new Exception($"The name \"{itemName.Text}\" is not a valid item.");
+            Item item = itemList.FindLast(i => i.Name == itemName.Text.Trim()) ?? throw new Exception($"The name \"{itemName.Text}\" is not a valid item.");
 
             AsyncTexture2D itemIcon = this.IconService?.GetIcon(item.Icon) ?? ContentService.Textures.Error;
             loadedItem = (item, itemIcon);
