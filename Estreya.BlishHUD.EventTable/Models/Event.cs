@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Models;
 
 using Blish_HUD;
+using Gw2Sharp.WebApi.V2.Models;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using Shared.Attributes;
@@ -16,7 +17,7 @@ using System.Linq;
 [Serializable]
 public class Event : IUpdatable
 {
-    [IgnoreCopy] private static readonly Logger Logger = Logger.GetLogger<Event>();
+    [IgnoreCopy] private static readonly Logger Logger = Blish_HUD.Logger.GetLogger<Event>();
 
     [IgnoreCopy] private static TimeSpan _checkForRemindersInterval = TimeSpan.FromMilliseconds(5000);
 
@@ -62,7 +63,7 @@ public class Event : IUpdatable
 
     [JsonProperty("mapIds")] public int[] MapIds { get; set; }
 
-    [JsonProperty("waypoint")] public string Waypoint { get; set; }
+    [JsonProperty("waypoints")] public EventWaypoints Waypoints { get; set; }
 
     [JsonProperty("wiki")] public string Wiki { get; set; }
 
@@ -205,6 +206,21 @@ public class Event : IUpdatable
     {
         this.ReminderTimes = reminderTimes;
         this._remindedFor.Clear();
+    }
+
+    public string GetWaypoint(Account account)
+    {
+        if (account is null)
+        {
+            Logger.Warn("Account is null. Returning EU waypoint.");
+            return this.Waypoints.EU;
+        }
+
+        return account.World.ToString().First() switch
+        {
+            '1' => this.Waypoints.NA,
+            _ => this.Waypoints.EU,
+        };
     }
 
     public override string ToString()

@@ -39,6 +39,7 @@ public class AreaSettingsView : BaseSettingsView
     private readonly Func<IEnumerable<EventAreaConfiguration>> _areaConfigurationFunc;
     private readonly EventStateService _eventStateService;
     private readonly ModuleSettings _moduleSettings;
+    private readonly AccountService _accountService;
     private IEnumerable<EventAreaConfiguration> _areaConfigurations;
     private Panel _areaPanel;
 
@@ -46,11 +47,12 @@ public class AreaSettingsView : BaseSettingsView
     private Dictionary<string, MenuItem> _menuItems;
     private StandardWindow _reorderEventsWindow;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService) : base(apiManager, iconService, translationService, settingEventService)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, AccountService accountService, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
         this._moduleSettings = moduleSettings;
+        this._accountService = accountService;
         this._eventStateService = eventStateService;
     }
 
@@ -768,7 +770,7 @@ public class AreaSettingsView : BaseSettingsView
         {
             { "configuration", configuration },
             { "hiddenEventKeys", this._eventStateService.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventStateService.EventStates.Hidden).Select(x => x.EventKey).ToList() }
-        }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this.APIManager, this.IconService, this.TranslationService);
+        }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this._accountService, this.APIManager, this.IconService, this.TranslationService);
         view.EventChanged += this.ManageView_EventChanged;
 
         this._manageEventsWindow.Show(view);

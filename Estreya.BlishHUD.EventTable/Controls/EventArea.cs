@@ -86,6 +86,7 @@ public class EventArea : RenderTarget2DControl
 
     private List<List<(DateTime Occurence, Event Event)>> _orderedControlEvents;
     private PointOfInterestService _pointOfInterestService;
+    private AccountService _accountService;
     private TimeSpan? _savedDrawInterval;
 
     private int _tempHistorySplit = -1;
@@ -100,7 +101,7 @@ public class EventArea : RenderTarget2DControl
     public EventArea(
         EventAreaConfiguration configuration, IconService iconService, TranslationService translationService,
         EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, 
-        PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
+        PointOfInterestService pointOfInterestService, AccountService accountService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
         Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames,
         Func<List<string>> getDisabledReminderKeys, ContentsManager contentsManager)
     {
@@ -147,6 +148,7 @@ public class EventArea : RenderTarget2DControl
         this._worldbossService = worldbossService;
         this._mapchestService = mapchestService;
         this._pointOfInterestService = pointOfInterestService;
+        this._accountService = accountService;
         this._mapUtil = mapUtil;
         this._flurlClient = flurlClient;
         this._apiRootUrl = apiRootUrl;
@@ -1016,12 +1018,14 @@ public class EventArea : RenderTarget2DControl
             return;
         }
 
+        var waypoint = this._activeEvent?.Model?.GetWaypoint(this._accountService.Account);
+
         switch (this.Configuration.LeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (!string.IsNullOrWhiteSpace(this._activeEvent.Model.Waypoint))
+                if (!string.IsNullOrWhiteSpace(waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(this._activeEvent.Model.Waypoint);
+                    ClipboardUtil.WindowsClipboardService.SetTextAsync(waypoint);
                     ScreenNotification.ShowNotification(new[]
                     {
                         this._activeEvent.Model.Name,
@@ -1031,7 +1035,7 @@ public class EventArea : RenderTarget2DControl
 
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (string.IsNullOrWhiteSpace(this._activeEvent.Model.Waypoint))
+                if (string.IsNullOrWhiteSpace(waypoint))
                 {
                     return;
                 }
@@ -1042,10 +1046,10 @@ public class EventArea : RenderTarget2DControl
                     return;
                 }
 
-                PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(this._activeEvent.Model.Waypoint);
+                PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(waypoint);
                 if (poi == null)
                 {
-                    ScreenNotification.ShowNotification($"{this._activeEvent.Model.Waypoint} not found!", ScreenNotification.NotificationType.Error);
+                    ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
                     return;
                 }
 
@@ -1406,6 +1410,7 @@ public class EventArea : RenderTarget2DControl
         this._translationService = null;
         this._mapUtil = null;
         this._pointOfInterestService = null;
+        this._accountService = null;
         this._contentsManager = null;
 
         this._flurlClient = null;

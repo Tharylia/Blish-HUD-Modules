@@ -226,7 +226,7 @@ public class ContextManager : IDisposable, IUpdatable
                 Offset = eArgsContent.Offset,
                 Repeat = eArgsContent.Repeat,
                 StartingDate = eArgsContent.StartingDate,
-                Waypoint = eArgsContent.Waypoint,
+                Waypoints = eArgsContent.Waypoints,
                 Wiki = eArgsContent.Wiki,
             };
 

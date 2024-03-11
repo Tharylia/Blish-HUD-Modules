@@ -26,7 +26,7 @@ public struct AddEvent
 
     public int[] MapIds { get; set; } = null;
 
-    public string Waypoint { get; set; } = null;
+    public EventWaypoints Waypoints { get; set; } = new EventWaypoints();
 
     public string Wiki { get; set; } = null;
 
