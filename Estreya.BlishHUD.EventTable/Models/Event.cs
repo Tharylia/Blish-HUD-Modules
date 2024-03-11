@@ -81,6 +81,11 @@ public class Event : IUpdatable
 
     [JsonProperty("linkedCompletion")] public bool LinkedCompletion { get; set; }
 
+    /// <summary>
+    ///     Sets the keys to also complete if this one completes. Similar to <see cref="APICode"/>.
+    /// </summary>
+    [JsonProperty("linkedCompletionKeys")] public string[] LinkedCompletionKeys { get; set; }
+
     [JsonProperty("filler")] public bool Filler { get; set; }
 
     [JsonProperty("occurences")] public List<DateTime> Occurences { get; set; } = new List<DateTime>();

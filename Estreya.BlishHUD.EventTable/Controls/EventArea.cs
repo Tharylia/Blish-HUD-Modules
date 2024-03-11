@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Controls;
+﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -392,6 +392,10 @@ public class EventArea : RenderTarget2DControl
         using (this._eventLock.Lock())
         {
             events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).Where(ev => this.Configuration.EnableLinkedCompletion.Value || !ev.LinkedCompletion));
+            if (this.Configuration.EnableLinkedCompletion.Value)
+            {
+                events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => events.Any(ce => ce.LinkedCompletionKeys?.Contains(ev.SettingKey) ?? false)));
+            }
         }
 
         events.ForEach(ev =>
@@ -407,6 +411,10 @@ public class EventArea : RenderTarget2DControl
         using (this._eventLock.Lock())
         {
             events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).Where(ev => this.Configuration.EnableLinkedCompletion.Value || !ev.LinkedCompletion));
+            if (this.Configuration.EnableLinkedCompletion.Value)
+            {
+                events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => events.Any(ce => ce.LinkedCompletionKeys?.Contains(ev.SettingKey) ?? false)));
+            }
         }
 
         events.ForEach(ev =>
@@ -1287,7 +1295,26 @@ public class EventArea : RenderTarget2DControl
     {
         Event ev = sender as Event;
 
-        this.ToggleFinishEvent(ev.Model, this.GetNextReset(ev.Model));
+        List<Models.Event> events = new List<Models.Event>() { ev.Model };
+        using (this._eventLock.Lock())
+        {
+            if (!string.IsNullOrWhiteSpace(ev.Model.APICode))
+            {
+                events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev2 => ev2.SettingKey != ev.Model.SettingKey && ev2.APICode == ev.Model.APICode).Where(ev => this.Configuration.EnableLinkedCompletion.Value || !ev.LinkedCompletion));
+            }
+
+            if (this.Configuration.EnableLinkedCompletion.Value)
+            {
+                events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev2 => ev2.SettingKey != ev.Model.SettingKey && events.Any(ce => ce.LinkedCompletionKeys?.Contains(ev2.SettingKey) ?? false)));
+            }
+        }
+
+        events.ForEach(ev =>
+        {
+            DateTime until = this.GetNextReset(ev);
+            this._logger.Info($"Event \"{ev.SettingKey}\" marked completed manually until: {until.ToUniversalTime()}");
+            this.ToggleFinishEvent(ev, until);
+        });
     }
 
     private void ToggleFinishEvent(Models.Event ev, DateTime until)
