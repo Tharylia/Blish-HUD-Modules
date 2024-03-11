@@ -32,6 +32,7 @@ public class ReminderSettingsView : BaseSettingsView
     private static readonly Event _globalChangeTempEvent = new Event();
     private readonly Func<List<EventCategory>> _getEvents;
     private readonly Func<List<string>> _getAreaNames;
+    private readonly AccountService _accountService;
     private readonly ModuleSettings _moduleSettings;
     private StandardWindow _manageEventsWindow;
     private StandardWindow _manageReminderTimesWindow;
@@ -46,11 +47,12 @@ public class ReminderSettingsView : BaseSettingsView
         });
     }
 
-    public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Func<List<string>> getAreaNames, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
+    public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Func<List<string>> getAreaNames, AccountService accountService, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._moduleSettings = moduleSettings;
         this._getEvents = getEvents;
         this._getAreaNames = getAreaNames;
+        this._accountService = accountService;
         this.CONTROL_WIDTH = 500;
     }
 
@@ -92,7 +94,7 @@ public class ReminderSettingsView : BaseSettingsView
                         }
                     }
                 }
-            }, () => this._moduleSettings.ReminderDisabledForEvents.Value, this._moduleSettings, this.APIManager, this.IconService, this.TranslationService);
+            }, () => this._moduleSettings.ReminderDisabledForEvents.Value, this._moduleSettings, this._accountService, this.APIManager, this.IconService, this.TranslationService);
             view.EventChanged += this.ManageView_EventChanged;
 
             this._manageEventsWindow.Show(view);

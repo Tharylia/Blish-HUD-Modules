@@ -27,14 +27,16 @@ public class ManageEventsView : BaseView
     private readonly Dictionary<string, object> _additionalData;
     private readonly Func<List<string>> _getDisabledEventKeys;
     private readonly ModuleSettings _moduleSettings;
+    private readonly AccountService _accountService;
     private readonly List<EventCategory> allEvents;
 
-    public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, ModuleSettings moduleSettings, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
+    public ManageEventsView(List<EventCategory> allEvents, Dictionary<string, object> additionalData, Func<List<string>> getDisabledEventKeys, ModuleSettings moduleSettings, AccountService accountService, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
         this.allEvents = allEvents;
         this._additionalData = additionalData ?? new Dictionary<string, object>();
         this._getDisabledEventKeys = getDisabledEventKeys;
         this._moduleSettings = moduleSettings;
+        this._accountService = accountService;
     }
 
     public Panel Panel { get; private set; }
@@ -256,7 +258,8 @@ public class ManageEventsView : BaseView
                     //Size = new Point((events.ContentRegion.Size.X - Panel.ControlStandard.Size.X) / 2, events.ContentRegion.Size.X - Panel.ControlStandard.Size.X)
                 };
 
-                if (!string.IsNullOrWhiteSpace(e.Waypoint))
+                var waypoint = e.GetWaypoint(this._accountService.Account);
+                if (!string.IsNullOrWhiteSpace(waypoint))
                 {
                     AsyncTexture2D icon = this.IconService.GetIcon("102348.png");
                     GlowButton waypointButton = new GlowButton
@@ -269,7 +272,7 @@ public class ManageEventsView : BaseView
 
                     waypointButton.Click += (s, eventArgs) =>
                     {
-                        ClipboardUtil.WindowsClipboardService.SetTextAsync(e.Waypoint).ContinueWith(clipboardTask =>
+                        ClipboardUtil.WindowsClipboardService.SetTextAsync(waypoint).ContinueWith(clipboardTask =>
                         {
                             string message = "Copied!";
                             ScreenNotification.NotificationType type = ScreenNotification.NotificationType.Info;

@@ -86,6 +86,7 @@ public class EventArea : RenderTarget2DControl
 
     private List<List<(DateTime Occurence, Event Event)>> _orderedControlEvents;
     private PointOfInterestService _pointOfInterestService;
+    private AccountService _accountService;
     private TimeSpan? _savedDrawInterval;
 
     private int _tempHistorySplit = -1;
@@ -100,7 +101,7 @@ public class EventArea : RenderTarget2DControl
     public EventArea(
         EventAreaConfiguration configuration, IconService iconService, TranslationService translationService,
         EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, 
-        PointOfInterestService pointOfInterestService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
+        PointOfInterestService pointOfInterestService, AccountService accountService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
         Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames,
         Func<List<string>> getDisabledReminderKeys, ContentsManager contentsManager)
     {
@@ -147,6 +148,7 @@ public class EventArea : RenderTarget2DControl
         this._worldbossService = worldbossService;
         this._mapchestService = mapchestService;
         this._pointOfInterestService = pointOfInterestService;
+        this._accountService = accountService;
         this._mapUtil = mapUtil;
         this._flurlClient = flurlClient;
         this._apiRootUrl = apiRootUrl;
@@ -389,7 +391,11 @@ public class EventArea : RenderTarget2DControl
         List<Models.Event> events = new List<Models.Event>();
         using (this._eventLock.Lock())
         {
-            events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode));
+            events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).Where(ev => this.Configuration.EnableLinkedCompletion.Value || !ev.LinkedCompletion));
+            if (this.Configuration.EnableLinkedCompletion.Value)
+            {
+                events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => events.Any(ce => ce.LinkedCompletionKeys?.Contains(ev.SettingKey) ?? false)));
+            }
         }
 
         events.ForEach(ev =>
@@ -405,6 +411,10 @@ public class EventArea : RenderTarget2DControl
         using (this._eventLock.Lock())
         {
             events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).Where(ev => this.Configuration.EnableLinkedCompletion.Value || !ev.LinkedCompletion));
+            if (this.Configuration.EnableLinkedCompletion.Value)
+            {
+                events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => events.Any(ce => ce.LinkedCompletionKeys?.Contains(ev.SettingKey) ?? false)));
+            }
         }
 
         events.ForEach(ev =>
@@ -1016,12 +1026,14 @@ public class EventArea : RenderTarget2DControl
             return;
         }
 
+        var waypoint = this._activeEvent?.Model?.GetWaypoint(this._accountService.Account);
+
         switch (this.Configuration.LeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (!string.IsNullOrWhiteSpace(this._activeEvent.Model.Waypoint))
+                if (!string.IsNullOrWhiteSpace(waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(this._activeEvent.Model.Waypoint);
+                    ClipboardUtil.WindowsClipboardService.SetTextAsync(waypoint);
                     ScreenNotification.ShowNotification(new[]
                     {
                         this._activeEvent.Model.Name,
@@ -1031,7 +1043,7 @@ public class EventArea : RenderTarget2DControl
 
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (string.IsNullOrWhiteSpace(this._activeEvent.Model.Waypoint))
+                if (string.IsNullOrWhiteSpace(waypoint))
                 {
                     return;
                 }
@@ -1042,10 +1054,10 @@ public class EventArea : RenderTarget2DControl
                     return;
                 }
 
-                PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(this._activeEvent.Model.Waypoint);
+                PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(waypoint);
                 if (poi == null)
                 {
-                    ScreenNotification.ShowNotification($"{this._activeEvent.Model.Waypoint} not found!", ScreenNotification.NotificationType.Error);
+                    ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
                     return;
                 }
 
@@ -1283,7 +1295,26 @@ public class EventArea : RenderTarget2DControl
     {
         Event ev = sender as Event;
 
-        this.ToggleFinishEvent(ev.Model, this.GetNextReset(ev.Model));
+        List<Models.Event> events = new List<Models.Event>() { ev.Model };
+        using (this._eventLock.Lock())
+        {
+            if (!string.IsNullOrWhiteSpace(ev.Model.APICode))
+            {
+                events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev2 => ev2.SettingKey != ev.Model.SettingKey && ev2.APICode == ev.Model.APICode).Where(ev => this.Configuration.EnableLinkedCompletion.Value || !ev.LinkedCompletion));
+            }
+
+            if (this.Configuration.EnableLinkedCompletion.Value)
+            {
+                events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev2 => ev2.SettingKey != ev.Model.SettingKey && events.Any(ce => ce.LinkedCompletionKeys?.Contains(ev2.SettingKey) ?? false)));
+            }
+        }
+
+        events.ForEach(ev =>
+        {
+            DateTime until = this.GetNextReset(ev);
+            this._logger.Info($"Event \"{ev.SettingKey}\" marked completed manually until: {until.ToUniversalTime()}");
+            this.ToggleFinishEvent(ev, until);
+        });
     }
 
     private void ToggleFinishEvent(Models.Event ev, DateTime until)
@@ -1406,6 +1437,7 @@ public class EventArea : RenderTarget2DControl
         this._translationService = null;
         this._mapUtil = null;
         this._pointOfInterestService = null;
+        this._accountService = null;
         this._contentsManager = null;
 
         this._flurlClient = null;

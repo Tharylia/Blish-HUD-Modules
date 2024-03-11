@@ -644,12 +644,14 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     private void EventNotification_Click(object sender, MouseEventArgs e)
     {
         var notification = sender as EventNotification;
+        var waypoint = notification?.Model?.GetWaypoint(this.AccountService.Account);
+
         switch (this.ModuleSettings.ReminderLeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (notification is not null && notification.Model is not null && !string.IsNullOrWhiteSpace(notification.Model.Waypoint))
+                if (notification is not null && notification.Model is not null && !string.IsNullOrWhiteSpace(waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(notification.Model.Waypoint);
+                    ClipboardUtil.WindowsClipboardService.SetTextAsync(waypoint);
                     ScreenNotification.ShowNotification(new[]
                     {
                         notification.Model.Name,
@@ -659,7 +661,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (notification is null || notification.Model is null || string.IsNullOrWhiteSpace(notification.Model.Waypoint) || this.PointOfInterestService is null)
+                if (notification is null || notification.Model is null || string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
                 {
                     break;
                 }
@@ -670,10 +672,10 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     break;
                 }
 
-                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this.PointOfInterestService.GetPointOfInterest(notification.Model.Waypoint);
+                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this.PointOfInterestService.GetPointOfInterest(waypoint);
                 if (poi == null)
                 {
-                    ScreenNotification.ShowNotification($"{notification.Model.Waypoint} not found!", ScreenNotification.NotificationType.Error);
+                    ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
                     break;
                 }
 
@@ -751,6 +753,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.WorldbossService,
             this.MapchestService,
             this.PointOfInterestService,
+            this.AccountService,
             this.MapUtil,
             this.GetFlurlClient(),
             this.MODULE_API_URL,
@@ -845,6 +848,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => this._areas.Values.Select(area => area.Configuration),
             () => this._eventCategories,
             this.ModuleSettings,
+            this.AccountService,
             this.Gw2ApiManager,
             this.IconService,
             this.TranslationService,
@@ -897,7 +901,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => areaSettingsView,
             this.TranslationService.GetTranslation("areaSettingsView-title", "Event Areas")));
 
-        var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, () => this._areas.Keys.ToList(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, () => this._areas.Keys.ToList(), this.AccountService, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         reminderSettingsView.SyncEnabledEventsToAreas += (s) =>
         {
             if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");
