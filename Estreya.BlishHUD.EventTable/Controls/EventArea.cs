@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -391,7 +391,7 @@ public class EventArea : RenderTarget2DControl
         List<Models.Event> events = new List<Models.Event>();
         using (this._eventLock.Lock())
         {
-            events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode));
+            events.AddRange(this._allEvents.SelectMany(ec => ec.Events).Where(ev => ev.APICode == apiCode).Where(ev => this.Configuration.EnableLinkedCompletion.Value || !ev.LinkedCompletion));
         }
 
         events.ForEach(ev =>
