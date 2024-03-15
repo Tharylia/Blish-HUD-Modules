@@ -407,9 +407,11 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         sw.Stop();
         this.Logger.Debug($"Checked API backend at \"{request.Url}\". Response: {(response is null ? 999 : (int)response.StatusCode)} - {response?.ReasonPhrase ?? string.Empty} | Duration: {sw.Elapsed.TotalMilliseconds}ms");
 
+        var backendOnline = response is not null && response.IsSuccessStatusCode;
+
         var wasUnavailable = this.HasErrorState(ModuleErrorStateGroup.BACKEND_UNAVAILABLE);
 
-        if (!wasUnavailable && (response is null || !response.IsSuccessStatusCode))
+        if (!wasUnavailable && !backendOnline)
         {
             this.ReportErrorState(ModuleErrorStateGroup.BACKEND_UNAVAILABLE, "Backend unavailable.");
 
@@ -421,7 +423,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
             await (this.BackendConnectionLost?.Invoke(this) ?? Task.CompletedTask);
         }
-        else if (wasUnavailable)
+        else if (wasUnavailable && backendOnline)
         {
             this.ReportErrorState(ModuleErrorStateGroup.BACKEND_UNAVAILABLE, null);
 
