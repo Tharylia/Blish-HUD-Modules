@@ -26,6 +26,7 @@ using static Humanizer.On;
 using Windows.Data.Xml.Dom;
 using Estreya.BlishHUD.Shared.Extensions;
 using System.IO;
+using Blish_HUD.ArcDps.Models;
 
 public class ReminderSettingsView : BaseSettingsView
 {
@@ -38,6 +39,8 @@ public class ReminderSettingsView : BaseSettingsView
     private StandardWindow _manageReminderTimesWindow;
 
     public event AsyncEventHandler SyncEnabledEventsToAreas;
+
+    private SynchronizedCollection<EventNotification> _activeTestNotifications;
 
     static ReminderSettingsView()
     {
@@ -100,7 +103,7 @@ public class ReminderSettingsView : BaseSettingsView
             this._manageEventsWindow.Show(view);
         });
 
-        this.RenderButtonAsync(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-testReminder", "Test Reminder"), async () =>
+        var addTestReminder = async (bool permanentControl) =>
         {
             var title = "Test Event";
             var message = $"Test starts in {TimeSpan.FromHours(5).Add(TimeSpan.FromMinutes(21).Add(TimeSpan.FromSeconds(23))).Humanize(6, minUnit: this._moduleSettings.ReminderMinTimeUnit.Value)}!";
@@ -108,29 +111,38 @@ public class ReminderSettingsView : BaseSettingsView
 
             if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
             {
-                EventNotification reminder = new EventNotification(
-                    null,
-                   title,
-                    message,
-                    icon,
-                    this._moduleSettings.ReminderPosition.X.Value,
-                    this._moduleSettings.ReminderPosition.Y.Value,
-                    this._moduleSettings.ReminderSize.X.Value,
-                    this._moduleSettings.ReminderSize.Y.Value,
-                    this._moduleSettings.ReminderSize.Icon.Value,
-                    this._moduleSettings.ReminderStackDirection.Value,
-                    this._moduleSettings.ReminderOverflowStackDirection.Value,
-                    this._moduleSettings.ReminderFonts.TitleSize.Value,
-                    this._moduleSettings.ReminderFonts.MessageSize.Value,
-                    this.IconService)
-                { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
-
-                reminder.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
+                if (permanentControl)
+                {
+                    EventNotification reminder = EventNotification.ShowAsControlTest(title, message, icon, this.IconService, this._moduleSettings);
+                    this._activeTestNotifications.Add(reminder);
+                }
+                else
+                {
+                    EventNotification.ShowAsControl(title, message, icon, this.IconService, this._moduleSettings);
+                }
             }
 
             if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
             {
                 await EventNotification.ShowAsWindowsNotification(title, message, icon);
+            }
+        };
+
+        this.RenderButtonAsync(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-addTestReminderPermanent", "Add Test Reminder"), async () =>
+        {
+            await addTestReminder(false);
+        });
+
+        this.RenderButtonAsync(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-addTestReminderPermanent", "Add Test Reminder (Permanent)"), async () =>
+        {
+            await addTestReminder(true);
+        });
+
+        this.RenderButton(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-clearTestReminder", "Clear Permanent Test Reminders"), () =>
+        {
+            foreach (var notification in this._activeTestNotifications)
+            {
+                notification.Dispose();
             }
         });
 
@@ -196,7 +208,6 @@ public class ReminderSettingsView : BaseSettingsView
         this.RenderEmptyLine(parent);
 
         this.RenderFloatSetting(parent, this._moduleSettings.ReminderDuration);
-        this.RenderFloatSetting(parent, this._moduleSettings.ReminderOpacity);
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderStackDirection);
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderOverflowStackDirection);
 
@@ -204,6 +215,15 @@ public class ReminderSettingsView : BaseSettingsView
 
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderFonts.TitleSize);
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderFonts.MessageSize);
+
+        this.RenderEmptyLine(parent);
+
+        this.RenderColorSetting(parent, this._moduleSettings.ReminderColors.Background);
+        this.RenderColorSetting(parent, this._moduleSettings.ReminderColors.TitleText);
+        this.RenderColorSetting(parent, this._moduleSettings.ReminderColors.MessageText);
+        this.RenderFloatSetting(parent, this._moduleSettings.ReminderBackgroundOpacity);
+        this.RenderFloatSetting(parent, this._moduleSettings.ReminderTitleOpacity);
+        this.RenderFloatSetting(parent, this._moduleSettings.ReminderMessageOpacity);
 
         this.RenderEmptyLine(parent);
 
@@ -309,12 +329,24 @@ public class ReminderSettingsView : BaseSettingsView
 
     protected override Task<bool> InternalLoad(IProgress<string> progress)
     {
+        this._activeTestNotifications = new SynchronizedCollection<EventNotification>();
         return Task.FromResult(true);
     }
 
     protected override void Unload()
     {
         base.Unload();
+
+        if (this._activeTestNotifications != null)
+        {
+            foreach (var notification in this._activeTestNotifications)
+            {
+                notification.Dispose();
+            }
+
+            this._activeTestNotifications.Clear();
+            this._activeTestNotifications = null;
+        }
 
         if (this._manageEventsWindow?.CurrentView != null)
         {

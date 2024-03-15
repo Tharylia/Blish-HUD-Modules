@@ -15,6 +15,7 @@ using Estreya.BlishHUD.EventTable.Services;
 using Estreya.BlishHUD.EventTable.Controls;
 using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Threading.Events;
+using Gw2Sharp.WebApi.V2.Models;
 
 public class ContextManager : IDisposable, IUpdatable
 {
@@ -140,23 +141,7 @@ public class ContextManager : IDisposable, IUpdatable
 
         if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
         {
-            EventNotification notification = new EventNotification(null,
-                eArgsContent.Title,
-                eArgsContent.Message,
-                icon,
-                this._moduleSettings.ReminderPosition.X.Value,
-                this._moduleSettings.ReminderPosition.Y.Value,
-                this._moduleSettings.ReminderSize.X.Value,
-                this._moduleSettings.ReminderSize.Y.Value,
-                this._moduleSettings.ReminderSize.Icon.Value,
-                this._moduleSettings.ReminderStackDirection.Value,
-                this._moduleSettings.ReminderOverflowStackDirection.Value,
-                this._moduleSettings.ReminderFonts.TitleSize.Value,
-                this._moduleSettings.ReminderFonts.MessageSize.Value,
-                this._iconService,
-                this._moduleSettings.ReminderLeftClickAction.Value != LeftClickAction.None)
-            { BackgroundOpacity = this._moduleSettings.ReminderOpacity.Value };
-            notification.Show(TimeSpan.FromSeconds(this._moduleSettings.ReminderDuration.Value));
+            EventNotification reminder = EventNotification.ShowAsControl(null, eArgsContent.Title, eArgsContent.Message, icon, this._iconService, this._moduleSettings);
         }
 
         if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)

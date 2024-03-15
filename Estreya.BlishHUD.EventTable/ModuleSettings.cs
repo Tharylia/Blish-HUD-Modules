@@ -36,9 +36,14 @@ public class ModuleSettings : BaseModuleSettings
     public EventReminderPosition ReminderPosition { get; private set; }
     public EventReminderSize ReminderSize { get; private set; }
     public EventReminderFonts ReminderFonts { get; private set; }
+    public EventReminderColors ReminderColors { get; private set; }
     public SettingEntry<float> ReminderDuration { get; private set; }
 
-    public SettingEntry<float> ReminderOpacity { get; private set; }
+    public SettingEntry<float> ReminderBackgroundOpacity { get; private set; }
+
+    public SettingEntry<float> ReminderTitleOpacity { get; private set; }
+
+    public SettingEntry<float> ReminderMessageOpacity { get; private set; }
 
     /// <summary>
     ///     Contains a list of event setting keys for which NO reminder should be displayed.
@@ -115,6 +120,13 @@ public class ModuleSettings : BaseModuleSettings
             MessageSize = this.GlobalSettings.DefineSetting("ReminderFontsMessageSize", ContentService.FontSize.Size16, () => "Message Font Size", () => "Defines the size the reminder message font."),
         };
 
+        this.ReminderColors = new EventReminderColors
+        {
+            Background = this.GlobalSettings.DefineSetting("ReminderColorsBackground", this.DefaultGW2Color, () => "Background Color", () => "Defines the color in which the background is drawn."),
+            TitleText = this.GlobalSettings.DefineSetting("ReminderColorsTitleText", this.DefaultGW2Color, () => "Title Text Color", () => "Defines the text color in which the titles are drawn."),
+            MessageText = this.GlobalSettings.DefineSetting("ReminderColorsMessageText", this.DefaultGW2Color, () => "Message Text Color", () => "Defines the text color in which the messages are drawn.")
+    };
+
         int reminderDurationMin = 1;
         int reminderDurationMax = 15;
         this.ReminderDuration = this.GlobalSettings.DefineSetting(nameof(this.ReminderDuration), 5f, () => "Reminder Duration", () => "Defines the reminder duration.");
@@ -124,8 +136,14 @@ public class ModuleSettings : BaseModuleSettings
 
         this.ReminderTimesOverride = this.GlobalSettings.DefineSetting(nameof(this.ReminderTimesOverride), new Dictionary<string, List<TimeSpan>>(), () => "Reminder Times Override", () => "Defines the overridden times for reminders per event.");
 
-        this.ReminderOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderOpacity), 0.5f, () => "Reminder Opacity", () => "Defines the background opacity for reminders.");
-        this.ReminderOpacity.SetRange(0.1f, 1f);
+        this.ReminderBackgroundOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderBackgroundOpacity), 0.5f, () => "Reminder Background Opacity", () => "Defines the background opacity for reminders.");
+        this.ReminderBackgroundOpacity.SetRange(0.1f, 1f);
+
+        this.ReminderTitleOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderTitleOpacity), 1f, () => "Reminder Title Opacity", () => "Defines the title opacity for reminders.");
+        this.ReminderTitleOpacity.SetRange(0.1f, 1f);
+
+        this.ReminderMessageOpacity = this.GlobalSettings.DefineSetting(nameof(this.ReminderMessageOpacity), 1f, () => "Reminder Message Opacity", () => "Defines the message opacity for reminders.");
+        this.ReminderMessageOpacity.SetRange(0.1f, 1f);
 
         this.ReminderLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderLeftClickAction), LeftClickAction.CopyWaypoint, () => "Reminder Left Click Action", () => "Defines the action to execute on a left click.");
         this.ReminderRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderRightClickAction), EventReminderRightClickAction.Dismiss, () => "Reminder Right Click Action", () => "Defines the action to execute on a right click.");
@@ -515,10 +533,10 @@ public class ModuleSettings : BaseModuleSettings
         this.ReminderDuration.GetDisplayNameFunc = () => translationService.GetTranslation("setting-reminderDuration-name", reminderDurationDisplayNameDefault);
         this.ReminderDuration.GetDescriptionFunc = () => translationService.GetTranslation("setting-reminderDuration-description", reminderDurationDescriptionDefault);
 
-        string reminderOpacityDisplayNameDefault = this.ReminderOpacity.DisplayName;
-        string reminderOpacityDescriptionDefault = this.ReminderOpacity.Description;
-        this.ReminderOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-reminderOpacity-name", reminderOpacityDisplayNameDefault);
-        this.ReminderOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-reminderOpacity-description", reminderOpacityDescriptionDefault);
+        string reminderOpacityDisplayNameDefault = this.ReminderBackgroundOpacity.DisplayName;
+        string reminderOpacityDescriptionDefault = this.ReminderBackgroundOpacity.Description;
+        this.ReminderBackgroundOpacity.GetDisplayNameFunc = () => translationService.GetTranslation("setting-reminderOpacity-name", reminderOpacityDisplayNameDefault);
+        this.ReminderBackgroundOpacity.GetDescriptionFunc = () => translationService.GetTranslation("setting-reminderOpacity-description", reminderOpacityDescriptionDefault);
 
         string showDynamicEventsOnMapDisplayNameDefault = this.ShowDynamicEventsOnMap.DisplayName;
         string showDynamicEventsOnMapDescriptionDefault = this.ShowDynamicEventsOnMap.Description;

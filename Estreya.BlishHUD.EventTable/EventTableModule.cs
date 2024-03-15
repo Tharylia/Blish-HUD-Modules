@@ -596,28 +596,11 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
             if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
             {
-                EventNotification notification = new EventNotification(
-                    ev,
-                    title,
-                    message,
-                    icon,
-                    this.ModuleSettings.ReminderPosition.X.Value,
-                    this.ModuleSettings.ReminderPosition.Y.Value,
-                    this.ModuleSettings.ReminderSize.X.Value,
-                    this.ModuleSettings.ReminderSize.Y.Value,
-                    this.ModuleSettings.ReminderSize.Icon.Value,
-                    this.ModuleSettings.ReminderStackDirection.Value,
-                    this.ModuleSettings.ReminderOverflowStackDirection.Value,
-                    this.ModuleSettings.ReminderFonts.TitleSize.Value,
-                    this.ModuleSettings.ReminderFonts.MessageSize.Value,
-                    this.IconService,
-                    this.ModuleSettings.ReminderLeftClickAction.Value != LeftClickAction.None
-                    || this.ModuleSettings.ReminderRightClickAction.Value != Models.Reminders.EventReminderRightClickAction.None)
-                { BackgroundOpacity = this.ModuleSettings.ReminderOpacity.Value };
+                EventNotification notification = EventNotification.ShowAsControl(ev, title, message, icon, this.IconService, this.ModuleSettings);
+
                 notification.Click += this.EventNotification_Click;
                 notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
                 notification.Disposed += this.EventNotification_Disposed;
-                notification.Show(TimeSpan.FromSeconds(this.ModuleSettings.ReminderDuration.Value));
             }
 
             if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)

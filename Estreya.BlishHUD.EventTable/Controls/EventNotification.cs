@@ -1,8 +1,10 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
+using Blish_HUD._Extensions;
 using Blish_HUD.Content;
 using Blish_HUD.Controls;
+using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.EventTable.Models.Reminders;
 using Estreya.BlishHUD.Shared.Extensions;
 using Glide;
@@ -15,7 +17,10 @@ using Shared.Controls;
 using Shared.Services;
 using Shared.Utils;
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Windows.Data.Xml.Dom;
@@ -24,12 +29,15 @@ using static Blish_HUD.ContentService;
 
 public class EventNotification : RenderTarget2DControl
 {
+    private static Logger Logger = Logger.GetLogger<EventNotification>();
+
     private static ToastNotifier _toastNotifier = ToastNotificationManager.CreateToastNotifier("Estreya BlishHUD Event Table");
 
-    private static EventNotification _lastShown;
+    private static SynchronizedCollection <EventNotification> _activeNotifications = new SynchronizedCollection<EventNotification>();
+    private static ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
 
-    private readonly BitmapFont _titleFont;
-    private readonly BitmapFont _messageFont;
+    private BitmapFont _titleFont;
+    private BitmapFont _messageFont;
 
     private Rectangle _fullRect;
     private Rectangle _iconRect;
@@ -37,64 +45,48 @@ public class EventNotification : RenderTarget2DControl
     private Rectangle _messageRect;
     private readonly string _title;
     private readonly string _message;
+    private readonly ModuleSettings _moduleSettings;
     private string _formattedTitle;
     private string _formattedMessage;
 
     public Models.Event Model { get; private set; }
     private AsyncTexture2D _icon;
-    private IconService _iconService;
     private readonly bool _captureMouseClicks;
-    private readonly int _x;
-    private readonly int _y;
-    private readonly int _iconSize;
-    private readonly EventReminderStackDirection _stackDirection;
-    private readonly EventReminderStackDirection _overflowStackDirection;
     private Tween _showAnimation;
 
-    public EventNotification(Models.Event ev, string title, string message, AsyncTexture2D icon, int x, int y, int width, int height, int iconSize, EventReminderStackDirection stackDirection, EventReminderStackDirection overflowStackDirection, FontSize titleFontSize, FontSize messageFontSize, IconService iconService, bool captureMouseClicks = false)
+    private EventNotification(Models.Event model, string title, string message, AsyncTexture2D icon, ModuleSettings moduleSettings)
     {
-        this.Model = ev;
+        this.Model = model;
         this._title = title;
         this._message = message;
-        this._x = x;
-        this._y = y;
-        this._iconSize = iconSize;
-        this._stackDirection = stackDirection;
-        this._overflowStackDirection = overflowStackDirection;
-        this._iconService = iconService;
-        this._captureMouseClicks = captureMouseClicks;
+        this._moduleSettings = moduleSettings;
+        this._captureMouseClicks = moduleSettings.ReminderLeftClickAction.Value != LeftClickAction.None || moduleSettings.ReminderRightClickAction.Value != EventReminderRightClickAction.None;
 
-        if (icon != null)
-        {
-            this._icon = icon;
-        }
-        else if (ev?.Icon != null)
-        {
-            this._icon = ev?.Icon != null ? this._iconService?.GetIcon(ev.Icon) : null;
-        }
+        this._icon = icon;
 
-        this._titleFont = GameService.Content.GetFont(FontFace.Menomonia, titleFontSize, FontStyle.Regular);
-        this._messageFont = GameService.Content.GetFont(FontFace.Menomonia, messageFontSize, FontStyle.Regular);
+        this.UpdateFonts();
 
-        this.Width = width;
-        this.Height = height;
+        this.SetWidthAndHeight();
+        this.SetLocation();
+
         this.Visible = false;
         this.Opacity = 0f;
         this.Parent = GameService.Graphics.SpriteScreen;
 
-        if (this._iconSize > this.Height) throw new ArgumentOutOfRangeException(nameof(iconSize), "The icon size can't be higher than the total height.");
+        this._moduleSettings.ReminderSize.Icon.SettingChanged += this.ReminderIconSize_SettingChanged;
     }
 
-    public EventNotification(Models.Event ev, string message, int x, int y, int width, int height, int iconSize, EventReminderStackDirection stackDirection, EventReminderStackDirection overflowStackDirection, FontSize titleFontSize, FontSize messageFontSize, IconService iconService, bool captureMouseClicks = false) :
-        this(ev, ev?.Name, message, null, x, y, width, height, iconSize, stackDirection, overflowStackDirection, titleFontSize, messageFontSize, iconService, captureMouseClicks)
-    { }
-
-    public float BackgroundOpacity { get; set; } = 1f;
+    private void ReminderIconSize_SettingChanged(object sender, ValueChangedEventArgs<int> e)
+    {
+        this.RecalculateLayout();
+    }
 
     public override void RecalculateLayout()
     {
+        var iconSize = this._moduleSettings.ReminderSize.Icon.Value;
+
         this._fullRect = new Rectangle(0, 0, this.Width, this.Height);
-        this._iconRect = new Rectangle(10, (this.Height / 2) - (this._iconSize / 2), this._iconSize, this._iconSize);
+        this._iconRect = new Rectangle(10, (this.Height / 2) - (iconSize / 2), iconSize, iconSize);
 
         var maxTitleWidth = _fullRect.Width - (_iconRect.Right + 5);
         this._formattedTitle = DrawUtil.WrapText(this._titleFont, this._title, maxTitleWidth - 10);
@@ -110,63 +102,126 @@ public class EventNotification : RenderTarget2DControl
 
     private Point GetOverflowLocation(int spacing)
     {
-        return this.Parent.AbsoluteBounds.Contains(this.AbsoluteBounds)
+        var initialXLocation = this._moduleSettings.ReminderPosition.X.Value;
+        var initialYLocation = this._moduleSettings.ReminderPosition.Y.Value;
+        var stackDirection = this._moduleSettings.ReminderStackDirection.Value;
+        var overflowStackDirection = this._moduleSettings.ReminderOverflowStackDirection.Value;
+
+        var parent = this.Parent;
+
+        if (parent is null) return this.Location;
+
+        return parent.AbsoluteBounds.Contains(this.AbsoluteBounds)
             ? this.Location
-            : this._stackDirection switch
+            : stackDirection switch
             {
-                EventReminderStackDirection.Top => this._overflowStackDirection switch
+                EventReminderStackDirection.Top => overflowStackDirection switch
                 {
                     EventReminderStackDirection.Top => throw new InvalidOperationException("Can't overflow to same direction."),
                     EventReminderStackDirection.Down => throw new InvalidOperationException("Can't overflow to the bottom."),
-                    EventReminderStackDirection.Left => new Point(this.Left - this.Width - spacing, this._y),
-                    EventReminderStackDirection.Right => new Point(this.Right + spacing, this._y),
-                    _ => throw new ArgumentException($"Invalid overflow stack direction: {this._stackDirection}"),
+                    EventReminderStackDirection.Left => new Point(this.Left - this.Width - spacing, initialYLocation),
+                    EventReminderStackDirection.Right => new Point(this.Right + spacing, initialYLocation),
+                    _ => throw new ArgumentException($"Invalid overflow stack direction: {overflowStackDirection}"),
                 },
-                EventReminderStackDirection.Down => this._overflowStackDirection switch
+                EventReminderStackDirection.Down => overflowStackDirection switch
                 {
                     EventReminderStackDirection.Top => throw new InvalidOperationException("Can't overflow to the top."),
                     EventReminderStackDirection.Down => throw new InvalidOperationException("Can't overflow to same direction."),
-                    EventReminderStackDirection.Left => new Point(this.Left - this.Width - spacing, this._y),
-                    EventReminderStackDirection.Right => new Point(this.Right + spacing, this._y),
-                    _ => throw new ArgumentException($"Invalid overflow stack direction: {this._stackDirection}"),
+                    EventReminderStackDirection.Left => new Point(this.Left - this.Width - spacing, initialYLocation),
+                    EventReminderStackDirection.Right => new Point(this.Right + spacing, initialYLocation),
+                    _ => throw new ArgumentException($"Invalid overflow stack direction: {overflowStackDirection}"),
                 },
-                EventReminderStackDirection.Left => this._overflowStackDirection switch
+                EventReminderStackDirection.Left => overflowStackDirection switch
                 {
-                    EventReminderStackDirection.Top => new Point(this._x, this.Top - this.Height - spacing),
-                    EventReminderStackDirection.Down => new Point(this._x, this.Bottom + spacing),
+                    EventReminderStackDirection.Top => new Point(initialXLocation, this.Top - this.Height - spacing),
+                    EventReminderStackDirection.Down => new Point(initialXLocation, this.Bottom + spacing),
                     EventReminderStackDirection.Left => throw new InvalidOperationException("Can't overflow to same direction."),
                     EventReminderStackDirection.Right => throw new InvalidOperationException("Can't overflow to the right."),
-                    _ => throw new ArgumentException($"Invalid overflow stack direction: {this._stackDirection}"),
+                    _ => throw new ArgumentException($"Invalid overflow stack direction: {overflowStackDirection}"),
                 },
-                EventReminderStackDirection.Right => this._overflowStackDirection switch
+                EventReminderStackDirection.Right => overflowStackDirection switch
                 {
-                    EventReminderStackDirection.Top => new Point(this._x, this.Top - this.Height - spacing),
-                    EventReminderStackDirection.Down => new Point(this._x, this.Bottom + spacing),
+                    EventReminderStackDirection.Top => new Point(initialXLocation, this.Top - this.Height - spacing),
+                    EventReminderStackDirection.Down => new Point(initialXLocation, this.Bottom + spacing),
                     EventReminderStackDirection.Left => throw new InvalidOperationException("Can't overflow to the left."),
                     EventReminderStackDirection.Right => throw new InvalidOperationException("Can't overflow to same direction."),
-                    _ => throw new ArgumentException($"Invalid overflow stack direction: {this._stackDirection}"),
+                    _ => throw new ArgumentException($"Invalid overflow stack direction: {overflowStackDirection}"),
                 },
-                _ => throw new ArgumentException($"Invalid stack direction: {this._stackDirection}"),
+                _ => throw new ArgumentException($"Invalid stack direction: {stackDirection}"),
             };
     }
 
-    public void Show(TimeSpan duration)
+    private BitmapFont GetTitleFont()
+    {
+        return _fonts.GetOrAdd(this._moduleSettings.ReminderFonts.TitleSize.Value, (size) => GameService.Content.GetFont(FontFace.Menomonia, size, FontStyle.Regular));
+    }
+
+    private BitmapFont GetMessageFont()
+    {
+        return _fonts.GetOrAdd(this._moduleSettings.ReminderFonts.MessageSize.Value, (size) => GameService.Content.GetFont(FontFace.Menomonia, size, FontStyle.Regular));
+    }
+
+    private void SetWidthAndHeight()
+    {
+        this.Width = this._moduleSettings.ReminderSize.X.Value;
+        this.Height = this._moduleSettings.ReminderSize.Y.Value;
+    }
+
+    private void SetLocation()
     {
         int spacing = 15;
 
-        this.Location = this._stackDirection switch
+        var initialXLocation = this._moduleSettings.ReminderPosition.X.Value;
+        var initialYLocation = this._moduleSettings.ReminderPosition.Y.Value;
+
+        var notifications = _activeNotifications.ToList();
+        var indexInNotifications = notifications.IndexOf(this);
+        var lastShown = indexInNotifications is -1 or 0 ? null : notifications[indexInNotifications - 1];
+
+        this.Location = this._moduleSettings.ReminderStackDirection.Value switch
         {
-            EventReminderStackDirection.Top => new Point(_lastShown != null ? _lastShown.Left : this._x, _lastShown != null ? _lastShown.Top - this.Height - spacing : this._y),
-            EventReminderStackDirection.Down => new Point(_lastShown != null ? _lastShown.Left : this._x, _lastShown != null ? _lastShown.Bottom + spacing : this._y),
-            EventReminderStackDirection.Left => new Point(_lastShown != null ? _lastShown.Left - this.Width - spacing : this._x, _lastShown != null ? _lastShown.Top : this._y),
-            EventReminderStackDirection.Right => new Point(_lastShown != null ? _lastShown.Right + spacing : this._x, _lastShown != null ? _lastShown.Top : this._y),
-            _ => throw new ArgumentException($"Invalid stack direction: {this._stackDirection}"),
+            EventReminderStackDirection.Top => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Top - this.Height - spacing : initialYLocation),
+            EventReminderStackDirection.Down => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Bottom + spacing : initialYLocation),
+            EventReminderStackDirection.Left => new Point(lastShown != null ? lastShown.Left - this.Width - spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
+            EventReminderStackDirection.Right => new Point(lastShown != null ? lastShown.Right + spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
+            _ => throw new ArgumentException($"Invalid stack direction: {this._moduleSettings.ReminderStackDirection.Value}"),
         };
 
         this.Location = this.GetOverflowLocation(spacing);
+    }
 
+    private void UpdateFonts()
+    {
+        var newTitleFont = this.GetTitleFont();
+        var newMessageFont = this.GetMessageFont();
+
+        var recalculate = false;
+        if (newTitleFont != this._titleFont || newMessageFont != this._messageFont)
+        {
+            recalculate = true;
+        }
+
+        this._titleFont = newTitleFont;
+        this._messageFont = newMessageFont;
+
+        if (recalculate)
+        {
+            this.RecalculateLayout();
+        }
+    }
+
+    protected override void InternalUpdate(GameTime gameTime)
+    {
+        this.UpdateFonts();
+        this.SetWidthAndHeight();
+        this.SetLocation();
+
+    }
+
+    private void Show(TimeSpan duration)
+    {
         base.Show();
-        _lastShown = this;
+        _activeNotifications.Add(this);
 
         this._showAnimation?.Cancel();
         this._showAnimation = GameService.Animation.Tweener.Tween(this, new { Opacity = 1f }, 0.2f)
@@ -181,7 +236,9 @@ public class EventNotification : RenderTarget2DControl
 
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
-        spriteBatch.Draw(ContentService.Textures.Pixel, _fullRect, Color.Black * this.BackgroundOpacity);
+        var backgroundColor = this._moduleSettings.ReminderColors.Background.Value.Id == 1 ? Color.Black : this._moduleSettings.ReminderColors.Background.Value.Cloth.ToXnaColor();
+
+        spriteBatch.Draw(ContentService.Textures.Pixel, _fullRect, backgroundColor * this._moduleSettings.ReminderBackgroundOpacity.Value);
 
         if (this._icon != null)
         {
@@ -190,12 +247,14 @@ public class EventNotification : RenderTarget2DControl
 
         if (!string.IsNullOrWhiteSpace(this._formattedTitle))
         {
-            spriteBatch.DrawString(this._formattedTitle, _titleFont, _titleRect, Color.White);
+            var titleColor = this._moduleSettings.ReminderColors.TitleText.Value.Id == 1 ? Color.White : this._moduleSettings.ReminderColors.TitleText.Value.Cloth.ToXnaColor();
+            spriteBatch.DrawString(this._formattedTitle, _titleFont, _titleRect, titleColor * this._moduleSettings.ReminderTitleOpacity.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(this._formattedMessage))
         {
-            spriteBatch.DrawString(this._formattedMessage, _messageFont, _messageRect, Color.White);
+            var messageColor = this._moduleSettings.ReminderColors.MessageText.Value.Id == 1 ? Color.White : this._moduleSettings.ReminderColors.MessageText.Value.Cloth.ToXnaColor();
+            spriteBatch.DrawString(this._formattedMessage, _messageFont, _messageRect, messageColor * this._moduleSettings.ReminderMessageOpacity.Value);
         }
     }
 
@@ -206,17 +265,43 @@ public class EventNotification : RenderTarget2DControl
 
     protected override void InternalDispose()
     {
-        base.Hide(); 
-        if (_lastShown == this)
-        {
-            _lastShown = null;
-        }
+        this._moduleSettings.ReminderSize.Icon.SettingChanged -= this.ReminderIconSize_SettingChanged;
+        base.Hide();
+        _activeNotifications.Remove(this);
 
         this._showAnimation?.Cancel();
         this._showAnimation = null;
         this.Model = null;
-        this._iconService = null;
         this._icon = null;
+    }
+
+    public static EventNotification ShowAsControl(string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings)
+    {
+        return ShowAsControl(null, title, message, icon, iconService, moduleSettings);
+    }
+
+    public static EventNotification ShowAsControl(Models.Event ev, string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings)
+    {
+        return ShowAsControl(ev,title, message,icon,iconService,moduleSettings, TimeSpan.FromSeconds(moduleSettings.ReminderDuration.Value));
+    }
+
+    public static EventNotification ShowAsControl(Models.Event ev, string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings, TimeSpan timeout)
+    {
+        var notification = new EventNotification(
+            ev,
+            title,
+            message,
+            icon ?? (!string.IsNullOrWhiteSpace(ev.Icon) ? iconService.GetIcon(ev.Icon) : null),
+            moduleSettings);
+
+        notification.Show(timeout);
+
+        return notification;
+    }
+
+    public static EventNotification ShowAsControlTest(string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings)
+    {
+        return ShowAsControl(null, title, message, icon,iconService,moduleSettings, TimeSpan.FromHours(1));
     }
 
     public static async Task ShowAsWindowsNotification(string title, string message, AsyncTexture2D icon)
@@ -249,7 +334,7 @@ public class EventNotification : RenderTarget2DControl
                 ExpiresOnReboot = true
             };
 
-            notification.Dismissed += (s,e) =>
+            notification.Dismissed += (s, e) =>
             {
                 File.Delete(tempImagePath);
             };
