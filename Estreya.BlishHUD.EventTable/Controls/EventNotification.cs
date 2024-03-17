@@ -179,16 +179,23 @@ public class EventNotification : RenderTarget2DControl
         var indexInNotifications = notifications.IndexOf(this);
         var lastShown = indexInNotifications is -1 or 0 ? null : notifications[indexInNotifications - 1];
 
-        this.Location = this._moduleSettings.ReminderStackDirection.Value switch
+        try
         {
-            EventReminderStackDirection.Top => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Top - this.Height - spacing : initialYLocation),
-            EventReminderStackDirection.Down => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Bottom + spacing : initialYLocation),
-            EventReminderStackDirection.Left => new Point(lastShown != null ? lastShown.Left - this.Width - spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
-            EventReminderStackDirection.Right => new Point(lastShown != null ? lastShown.Right + spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
-            _ => throw new ArgumentException($"Invalid stack direction: {this._moduleSettings.ReminderStackDirection.Value}"),
-        };
+            this.Location = this._moduleSettings.ReminderStackDirection.Value switch
+            {
+                EventReminderStackDirection.Top => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Top - this.Height - spacing : initialYLocation),
+                EventReminderStackDirection.Down => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Bottom + spacing : initialYLocation),
+                EventReminderStackDirection.Left => new Point(lastShown != null ? lastShown.Left - this.Width - spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
+                EventReminderStackDirection.Right => new Point(lastShown != null ? lastShown.Right + spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
+                _ => throw new ArgumentException($"Invalid stack direction: {this._moduleSettings.ReminderStackDirection.Value}"),
+            };
 
-        this.Location = this.GetOverflowLocation(spacing);
+            this.Location = this.GetOverflowLocation(spacing);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Failed to calculate location from stack directions.");
+        }
     }
 
     private void UpdateFonts()
