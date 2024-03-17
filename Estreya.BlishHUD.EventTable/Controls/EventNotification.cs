@@ -7,6 +7,7 @@ using Blish_HUD.Controls;
 using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.EventTable.Models.Reminders;
 using Estreya.BlishHUD.Shared.Extensions;
+using Estreya.BlishHUD.Shared.Services.Audio;
 using Glide;
 using Humanizer;
 using Humanizer.Localisation;
@@ -33,7 +34,7 @@ public class EventNotification : RenderTarget2DControl
 
     private static ToastNotifier _toastNotifier = ToastNotificationManager.CreateToastNotifier("Estreya BlishHUD Event Table");
 
-    private static SynchronizedCollection <EventNotification> _activeNotifications = new SynchronizedCollection<EventNotification>();
+    private static SynchronizedCollection<EventNotification> _activeNotifications = new SynchronizedCollection<EventNotification>();
     private static ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
 
     private BitmapFont _titleFont;
@@ -282,7 +283,7 @@ public class EventNotification : RenderTarget2DControl
 
     public static EventNotification ShowAsControl(Models.Event ev, string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings)
     {
-        return ShowAsControl(ev,title, message,icon,iconService,moduleSettings, TimeSpan.FromSeconds(moduleSettings.ReminderDuration.Value));
+        return ShowAsControl(ev, title, message, icon, iconService, moduleSettings, TimeSpan.FromSeconds(moduleSettings.ReminderDuration.Value));
     }
 
     public static EventNotification ShowAsControl(Models.Event ev, string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings, TimeSpan timeout)
@@ -301,7 +302,7 @@ public class EventNotification : RenderTarget2DControl
 
     public static EventNotification ShowAsControlTest(string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings)
     {
-        return ShowAsControl(null, title, message, icon,iconService,moduleSettings, TimeSpan.FromHours(1));
+        return ShowAsControl(null, title, message, icon, iconService, moduleSettings, TimeSpan.FromHours(1));
     }
 
     public static async Task ShowAsWindowsNotification(string title, string message, AsyncTexture2D icon)
@@ -341,6 +342,34 @@ public class EventNotification : RenderTarget2DControl
 
             _toastNotifier.Show(notification);
         });
+    }
 
+    public static string GetAudioServiceBaseSubfolder()
+    {
+        return "reminders";
+    }
+
+    public static string GetAudioServiceEventsSubfolder()
+    {
+        return $"{GetAudioServiceBaseSubfolder()}/events";
+    }
+
+    public static string GetSoundFileName()
+    {
+        return "reminder";
+    }
+
+    public static async Task PlaySound(AudioService audioService, Models.Event ev = null)
+    {
+        if (ev is not null)
+        {
+            var result = await audioService.PlaySoundFromFile(ev.SettingKey, GetAudioServiceEventsSubfolder(), true);
+            if (result is AudioService.AudioPlaybackResult.Success)
+            {
+                return;
+            }
+        }
+
+        await audioService.PlaySoundFromFile(GetSoundFileName(), GetAudioServiceBaseSubfolder(), true);
     }
 }
