@@ -51,7 +51,6 @@ public class ScreenNotification : Control
         this.Opacity = 0f;
         this.Size = new Point(NOTIFICATION_WIDTH, NOTIFICATION_HEIGHT);
         this.ZIndex = Screen.TOOLTIP_BASEZINDEX;
-        this.Location = new Point((Graphics.SpriteScreen.Width / 2) - (this.Size.X / 2), (Graphics.SpriteScreen.Height / 4) - (this.Size.Y / 2));
 
         this._targetTop = this.Top;
     }
@@ -82,6 +81,8 @@ public class ScreenNotification : Control
 
     public override void DoUpdate(GameTime gameTime)
     {
+        this.Width = Graphics.SpriteScreen.Width;
+
         // Calculate new top location. Fixes the wrong location before blish finishes resizing.
         int calculatedNewTop = (Graphics.SpriteScreen.Height / 4) - (this.Size.Y / 2);
         if (calculatedNewTop > this._targetTop)
@@ -93,8 +94,6 @@ public class ScreenNotification : Control
             GameService.Animation.Tweener.Update((float)gameTime.ElapsedGameTime.TotalSeconds); // Force above tween to be canceled before next Update loop.
             this.Top = this._targetTop;
         }
-
-        this.Left = (Graphics.SpriteScreen.Width / 2) - (this.Size.X / 2);
     }
 
     protected override CaptureType CapturesInput()
@@ -175,7 +174,8 @@ public class ScreenNotification : Control
             bounds.OffsetBy(1, 1),
             Color.Black,
             false,
-            HorizontalAlignment.Center);
+            HorizontalAlignment.Center,
+            VerticalAlignment.Top);
 
         spriteBatch.DrawStringOnCtrl(this,
             this.Message,
@@ -183,7 +183,8 @@ public class ScreenNotification : Control
             bounds,
             messageColor,
             false,
-            HorizontalAlignment.Center);
+            HorizontalAlignment.Center,
+            VerticalAlignment.Top);
     }
 
     /// <inheritdoc />
@@ -227,7 +228,7 @@ public class ScreenNotification : Control
         base.DisposeControl();
     }
 
-    public static void ShowNotification(string message, NotificationType type = NotificationType.Info, Texture2D icon = null, int duration = DURATION_DEFAULT)
+    public static ScreenNotification ShowNotification(string message, NotificationType type = NotificationType.Info, Texture2D icon = null, int duration = DURATION_DEFAULT)
     {
         ScreenNotification nNot = new ScreenNotification(message, type, icon, duration) { Parent = Graphics.SpriteScreen };
 
@@ -241,6 +242,8 @@ public class ScreenNotification : Control
         _activeScreenNotifications.Add(nNot);
 
         nNot.Show();
+
+        return nNot;
     }
 
     public static void ShowNotification(string[] messages, NotificationType type = NotificationType.Info, Texture2D icon = null, int duration = 4)
