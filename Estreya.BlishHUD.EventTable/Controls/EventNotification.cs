@@ -7,6 +7,7 @@ using Blish_HUD.Controls;
 using Estreya.BlishHUD.EventTable.Models;
 using Estreya.BlishHUD.EventTable.Models.Reminders;
 using Estreya.BlishHUD.Shared.Extensions;
+using Estreya.BlishHUD.Shared.Services.Audio;
 using Glide;
 using Humanizer;
 using Humanizer.Localisation;
@@ -33,7 +34,7 @@ public class EventNotification : RenderTarget2DControl
 
     private static ToastNotifier _toastNotifier = ToastNotificationManager.CreateToastNotifier("Estreya BlishHUD Event Table");
 
-    private static SynchronizedCollection <EventNotification> _activeNotifications = new SynchronizedCollection<EventNotification>();
+    private static SynchronizedCollection<EventNotification> _activeNotifications = new SynchronizedCollection<EventNotification>();
     private static ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
 
     private BitmapFont _titleFont;
@@ -178,16 +179,23 @@ public class EventNotification : RenderTarget2DControl
         var indexInNotifications = notifications.IndexOf(this);
         var lastShown = indexInNotifications is -1 or 0 ? null : notifications[indexInNotifications - 1];
 
-        this.Location = this._moduleSettings.ReminderStackDirection.Value switch
+        try
         {
-            EventReminderStackDirection.Top => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Top - this.Height - spacing : initialYLocation),
-            EventReminderStackDirection.Down => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Bottom + spacing : initialYLocation),
-            EventReminderStackDirection.Left => new Point(lastShown != null ? lastShown.Left - this.Width - spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
-            EventReminderStackDirection.Right => new Point(lastShown != null ? lastShown.Right + spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
-            _ => throw new ArgumentException($"Invalid stack direction: {this._moduleSettings.ReminderStackDirection.Value}"),
-        };
+            this.Location = this._moduleSettings.ReminderStackDirection.Value switch
+            {
+                EventReminderStackDirection.Top => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Top - this.Height - spacing : initialYLocation),
+                EventReminderStackDirection.Down => new Point(lastShown != null ? lastShown.Left : initialXLocation, lastShown != null ? lastShown.Bottom + spacing : initialYLocation),
+                EventReminderStackDirection.Left => new Point(lastShown != null ? lastShown.Left - this.Width - spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
+                EventReminderStackDirection.Right => new Point(lastShown != null ? lastShown.Right + spacing : initialXLocation, lastShown != null ? lastShown.Top : initialYLocation),
+                _ => throw new ArgumentException($"Invalid stack direction: {this._moduleSettings.ReminderStackDirection.Value}"),
+            };
 
-        this.Location = this.GetOverflowLocation(spacing);
+            this.Location = this.GetOverflowLocation(spacing);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Failed to calculate location from stack directions.");
+        }
     }
 
     private void UpdateFonts()
@@ -282,7 +290,7 @@ public class EventNotification : RenderTarget2DControl
 
     public static EventNotification ShowAsControl(Models.Event ev, string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings)
     {
-        return ShowAsControl(ev,title, message,icon,iconService,moduleSettings, TimeSpan.FromSeconds(moduleSettings.ReminderDuration.Value));
+        return ShowAsControl(ev, title, message, icon, iconService, moduleSettings, TimeSpan.FromSeconds(moduleSettings.ReminderDuration.Value));
     }
 
     public static EventNotification ShowAsControl(Models.Event ev, string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings, TimeSpan timeout)
@@ -301,7 +309,7 @@ public class EventNotification : RenderTarget2DControl
 
     public static EventNotification ShowAsControlTest(string title, string message, AsyncTexture2D icon, IconService iconService, ModuleSettings moduleSettings)
     {
-        return ShowAsControl(null, title, message, icon,iconService,moduleSettings, TimeSpan.FromHours(1));
+        return ShowAsControl(null, title, message, icon, iconService, moduleSettings, TimeSpan.FromHours(1));
     }
 
     public static async Task ShowAsWindowsNotification(string title, string message, AsyncTexture2D icon)
@@ -341,6 +349,34 @@ public class EventNotification : RenderTarget2DControl
 
             _toastNotifier.Show(notification);
         });
+    }
 
+    public static string GetAudioServiceBaseSubfolder()
+    {
+        return "reminders";
+    }
+
+    public static string GetAudioServiceEventsSubfolder()
+    {
+        return $"{GetAudioServiceBaseSubfolder()}/events";
+    }
+
+    public static string GetSoundFileName()
+    {
+        return "reminder";
+    }
+
+    public static async Task PlaySound(AudioService audioService, Models.Event ev = null)
+    {
+        if (ev is not null)
+        {
+            var result = await audioService.PlaySoundFromFile(ev.SettingKey, GetAudioServiceEventsSubfolder(), true);
+            if (result is AudioService.AudioPlaybackResult.Success)
+            {
+                return;
+            }
+        }
+
+        await audioService.PlaySoundFromFile(GetSoundFileName(), GetAudioServiceBaseSubfolder(), true);
     }
 }

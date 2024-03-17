@@ -338,9 +338,19 @@ public class ManageEventsView : BaseView
                             BasicTooltipText = customAction.Tooltip
                         };
 
-                        customButton.Click += (s, ea) =>
+                        customButton.Click += async (s, ea) =>
                         {
-                            customAction.Action?.Invoke(e);
+                            var button = s as GlowButton;
+                            var oldEnabled = button.Enabled;
+                            button.Enabled = false;
+                            try
+                            {
+                                await customAction.Action?.Invoke(e);
+                            }
+                            finally
+                            {
+                                button.Enabled = oldEnabled;
+                            }
                         };
                     }
                 }
@@ -401,6 +411,6 @@ public class ManageEventsView : BaseView
         public string Tooltip { get; set; }
         public string Icon { get; set; }
 
-        public Action<Event> Action { get; set; }
+        public Func<Event, Task> Action { get; set; }
     }
 }

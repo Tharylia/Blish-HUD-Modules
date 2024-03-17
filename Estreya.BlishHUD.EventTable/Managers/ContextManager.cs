@@ -16,6 +16,7 @@ using Estreya.BlishHUD.EventTable.Controls;
 using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Threading.Events;
 using Gw2Sharp.WebApi.V2.Models;
+using Estreya.BlishHUD.Shared.Services.Audio;
 
 public class ContextManager : IDisposable, IUpdatable
 {
@@ -29,12 +30,13 @@ public class ContextManager : IDisposable, IUpdatable
     private readonly DynamicEventService _dynamicEventService;
     private readonly IconService _iconService;
     private readonly EventStateService _eventStateService;
+    private readonly AudioService _audioService;
     private readonly Func<Task<IEnumerable<Models.Event>>> _getEvents;
 
     public event AsyncEventHandler ReloadEvents;
 
     public ContextManager(EventTableContext context, ModuleSettings moduleSettings, DynamicEventService dynamicEventService, IconService iconService, EventStateService eventStateService,
-        Func<Task<IEnumerable<Models.Event>>> getEvents)
+        AudioService audioService, Func<Task<IEnumerable<Models.Event>>> getEvents)
     {
         if (context is null) throw new ArgumentNullException(nameof(context));
         if (moduleSettings is null) throw new ArgumentNullException(nameof(moduleSettings));
@@ -46,6 +48,7 @@ public class ContextManager : IDisposable, IUpdatable
         this._dynamicEventService = dynamicEventService;
         this._iconService = iconService;
         this._eventStateService = eventStateService;
+        this._audioService = audioService;
         this._getEvents = getEvents;
         this._context.RequestAddCategory += this.RequestAddCategory;
         this._context.RequestAddEvent += this.RequestAddEvent;
@@ -141,7 +144,8 @@ public class ContextManager : IDisposable, IUpdatable
 
         if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
         {
-            EventNotification reminder = EventNotification.ShowAsControl(null, eArgsContent.Title, eArgsContent.Message, icon, this._iconService, this._moduleSettings);
+            _ = EventNotification.ShowAsControl(null, eArgsContent.Title, eArgsContent.Message, icon, this._iconService, this._moduleSettings);
+            await EventNotification.PlaySound(this._audioService);
         }
 
         if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)

@@ -11,12 +11,17 @@
     "BlishHUD Debug PS": {
       "commandName": "Executable",
       "executablePath": "C:\\Users\\domin\\Documents\\Blish_HUD\\Blish HUD.exe",
-      "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.EventTable/bin/Debug/net48/Estreya.BlishHUD.EventTable.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\"  --process WindowsTerminal --window \"Windows PowerShell\" "
+      "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.EventTable/bin/Debug/net48/Estreya.BlishHUD.EventTable.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\"  --process WindowsTerminal --window \"Windows PowerShell\""
     },
     "BlishHUD Debug PS Release": {
       "commandName": "Executable",
       "executablePath": "C:\\Users\\domin\\Documents\\Blish_HUD\\Blish HUD.exe",
       "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.EventTable/bin/Release/net48/Estreya.BlishHUD.EventTable.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\"  --process WindowsTerminal --window \"Windows PowerShell\" "
+    },
+    "BlishHUD Debug PS Unlimited": {
+      "commandName": "Executable",
+      "executablePath": "C:\\Users\\domin\\Documents\\Blish_HUD\\Blish HUD.exe",
+      "commandLineArgs": "--debug --module \"C:/Workspaces/Visual Studio/Estreya Blish HUD Modules/Estreya.BlishHUD.EventTable/bin/Debug/net48/Estreya.BlishHUD.EventTable.bhm\" --settings \"C:/Users/domin/Documents/Guild Wars 2/addons/blishhud debug\"  --process WindowsTerminal --window \"Windows PowerShell\"  -F"
     }
   }
 }

@@ -151,6 +151,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Services\TranslationService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\WorldbossService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\StandardWindow.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Threading\AsyncFileDialog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Threading\AsyncRef.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Threading\Events\AsyncEventHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\BaseView.cs" />

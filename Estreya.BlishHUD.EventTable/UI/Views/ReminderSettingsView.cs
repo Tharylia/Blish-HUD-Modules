@@ -27,6 +27,10 @@ using Windows.Data.Xml.Dom;
 using Estreya.BlishHUD.Shared.Extensions;
 using System.IO;
 using Blish_HUD.ArcDps.Models;
+using Estreya.BlishHUD.Shared.Services.Audio;
+using System.Threading;
+using Estreya.BlishHUD.Shared.Threading;
+using System.Data.Odbc;
 
 public class ReminderSettingsView : BaseSettingsView
 {
@@ -34,6 +38,7 @@ public class ReminderSettingsView : BaseSettingsView
     private readonly Func<List<EventCategory>> _getEvents;
     private readonly Func<List<string>> _getAreaNames;
     private readonly AccountService _accountService;
+    private readonly AudioService _audioService;
     private readonly ModuleSettings _moduleSettings;
     private StandardWindow _manageEventsWindow;
     private StandardWindow _manageReminderTimesWindow;
@@ -44,18 +49,25 @@ public class ReminderSettingsView : BaseSettingsView
 
     static ReminderSettingsView()
     {
+        _globalChangeTempEvent.Key = "test";
+        _globalChangeTempEvent.Load(new EventCategory()
+        {
+            Key = "reminderSettingsView"
+        }, () => throw new NotImplementedException());
+
         _globalChangeTempEvent.UpdateReminderTimes(new[]
         {
             TimeSpan.Zero
         });
     }
 
-    public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Func<List<string>> getAreaNames, AccountService accountService, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
+    public ReminderSettingsView(ModuleSettings moduleSettings, Func<List<EventCategory>> getEvents, Func<List<string>> getAreaNames, AccountService accountService, AudioService audioService, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._moduleSettings = moduleSettings;
         this._getEvents = getEvents;
         this._getAreaNames = getAreaNames;
         this._accountService = accountService;
+        this._audioService = audioService;
         this.CONTROL_WIDTH = 500;
     }
 
@@ -94,6 +106,13 @@ public class ReminderSettingsView : BaseSettingsView
                             Tooltip = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-tooltip", "Click to change the times at which reminders happen."),
                             Icon = "1466345.png",
                             Action = this.ManageReminderTimes
+                        },
+                        new ManageEventsView.CustomActionDefinition
+                        {
+                            Name= this.TranslationService.GetTranslation("reminderSettingsView-btn-uploadEventSoundFile-title", "Upload Sound File"),
+                            Tooltip = this.TranslationService.GetTranslation("reminderSettingsView-btn-uploadEventSoundFile-tooltip", "Click to upload a specific sound file for this event."),
+                            Icon = "156764.png",
+                            Action = this.UploadEventSoundFile
                         }
                     }
                 }
@@ -103,7 +122,31 @@ public class ReminderSettingsView : BaseSettingsView
             this._manageEventsWindow.Show(view);
         });
 
-        var addTestReminder = async (bool permanentControl) =>
+        this.RenderButtonAsync(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-uploadRemindersSoundFile", "Upload Sound File"), async () =>
+        {
+            var ofd = new AsyncFileDialog<OpenFileDialog>(new OpenFileDialog
+            {
+                Filter = "wav files (*.wav)|*.wav",
+                Multiselect = false,
+                CheckFileExists = true
+            });
+
+            var result = await ofd.ShowAsync();
+            if (result != DialogResult.OK) return;
+
+            await this._audioService.UploadFile(ofd.Dialog.FileName, EventNotification.GetSoundFileName(), EventNotification.GetAudioServiceBaseSubfolder());
+
+        });
+
+        var testRemindersFlowPanel = new FlowPanel()
+        {
+            Parent = parent,
+            WidthSizingMode = SizingMode.AutoSize,
+            HeightSizingMode = SizingMode.AutoSize,
+            FlowDirection = ControlFlowDirection.SingleLeftToRight
+        };
+
+        var addTestReminder = async (bool permanentControl, bool awaitAudio) =>
         {
             var title = "Test Event";
             var message = $"Test starts in {TimeSpan.FromHours(5).Add(TimeSpan.FromMinutes(21).Add(TimeSpan.FromSeconds(23))).Humanize(6, minUnit: this._moduleSettings.ReminderMinTimeUnit.Value)}!";
@@ -120,6 +163,12 @@ public class ReminderSettingsView : BaseSettingsView
                 {
                     EventNotification.ShowAsControl(title, message, icon, this.IconService, this._moduleSettings);
                 }
+
+                var audioTask = EventNotification.PlaySound(this._audioService, _globalChangeTempEvent);
+                if (awaitAudio)
+                {
+                    await audioTask;
+                }
             }
 
             if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
@@ -128,17 +177,17 @@ public class ReminderSettingsView : BaseSettingsView
             }
         };
 
-        this.RenderButtonAsync(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-addTestReminderPermanent", "Add Test Reminder"), async () =>
+        this.RenderButtonAsync(testRemindersFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-addTestReminderPermanent", "Add Test Reminder"), async () =>
         {
-            await addTestReminder(false);
+            await addTestReminder(false, false);
         });
 
-        this.RenderButtonAsync(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-addTestReminderPermanent", "Add Test Reminder (Permanent)"), async () =>
+        this.RenderButtonAsync(testRemindersFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-addTestReminderPermanent", "Add Test Reminder (Permanent)"), async () =>
         {
-            await addTestReminder(true);
+            await addTestReminder(true, false);
         });
 
-        this.RenderButton(manageFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-clearTestReminder", "Clear Permanent Test Reminders"), () =>
+        this.RenderButton(testRemindersFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-clearTestReminder", "Clear Permanent Test Reminders"), () =>
         {
             foreach (var notification in this._activeTestNotifications)
             {
@@ -276,7 +325,29 @@ public class ReminderSettingsView : BaseSettingsView
             : new List<string>(this._moduleSettings.ReminderDisabledForEvents.Value) { e.EventSettingKey };
     }
 
-    private void ManageReminderTimes(Event ev)
+    private async Task UploadEventSoundFile(Event ev)
+    {
+        try
+        {
+            var ofd = new AsyncFileDialog<OpenFileDialog>(new OpenFileDialog
+            {
+                Filter = "wav files (*.wav)|*.wav",
+                Multiselect = false,
+                CheckFileExists = true
+            });
+
+            var result = await ofd.ShowAsync();
+            if (result != DialogResult.OK) return;
+
+            await this._audioService.UploadFile(ofd.Dialog.FileName, ev.SettingKey, EventNotification.GetAudioServiceEventsSubfolder());
+        }
+        catch (Exception ex)
+        {
+            this.ShowError(ex.Message);
+        }
+    }
+
+    private Task ManageReminderTimes(Event ev)
     {
         this._manageReminderTimesWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Reminder Times", this.GetType(), Guid.Parse("930702ac-bf87-416c-b5ba-cdf9e0266bf7"), this.IconService, this.IconService.GetIcon("1466345.png"));
         this._manageReminderTimesWindow.Size = new Point(450, this._manageReminderTimesWindow.Height);
@@ -294,6 +365,8 @@ public class ReminderSettingsView : BaseSettingsView
 
         //this._manageReminderTimesWindow.Subtitle = ev.Name;
         this._manageReminderTimesWindow.Show(view);
+
+        return Task.CompletedTask;
     }
 
     private void ManageReminderTimesView_SaveClicked(object sender, (Event Event, List<TimeSpan> ReminderTimes, bool KeepCustomized) e)

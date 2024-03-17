@@ -118,6 +118,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         Stopwatch sw = Stopwatch.StartNew();
         this.ModuleSettings.ValidateAndTryFixSettings();
         await base.LoadAsync();
+        await this.AudioService.RegisterSubfolder(EventNotification.GetAudioServiceBaseSubfolder());
+        await this.AudioService.RegisterSubfolder(EventNotification.GetAudioServiceEventsSubfolder());
 
         this.BlishHUDAPIService.NewLogin += this.BlishHUDAPIService_NewLogin;
         this.BlishHUDAPIService.RefreshedLogin += this.BlishHUDAPIService_RefreshedLogin;
@@ -198,9 +200,13 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         this._eventTableContext = new EventTableContext();
-        this._contextManager = new ContextManager(this._eventTableContext, this.ModuleSettings, this.DynamicEventService,
+        this._contextManager = new ContextManager(
+            this._eventTableContext, 
+            this.ModuleSettings, 
+            this.DynamicEventService,
             this.IconService,
             this.EventStateService,
+            this.AudioService,
             async () =>
             {
                 using (await this._eventCategoryLock.LockAsync())
@@ -608,7 +614,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 await EventNotification.ShowAsWindowsNotification(title, message, icon);
             }
 
-            this.AudioService.PlaySoundFromFile("reminder", true);
+            await EventNotification.PlaySound(this.AudioService, ev);
         }
         catch (Exception ex)
         {
@@ -884,7 +890,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             () => areaSettingsView,
             this.TranslationService.GetTranslation("areaSettingsView-title", "Event Areas")));
 
-        var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, () => this._areas.Keys.ToList(), this.AccountService, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+        var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, () => this._areas.Keys.ToList(), this.AccountService, this.AudioService, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
         reminderSettingsView.SyncEnabledEventsToAreas += (s) =>
         {
             if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");

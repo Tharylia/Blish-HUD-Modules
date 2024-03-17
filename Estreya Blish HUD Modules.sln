@@ -29,7 +29,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.ValuableIt
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.Automations", "Estreya.BlishHUD.Automations\Estreya.BlishHUD.Automations.csproj", "{DC5B6418-CE6E-4014-B9CF-912D506B2563}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Estreya.BlishHUD.PortalDistance", "Estreya.BlishHUD.PortalDistance\Estreya.BlishHUD.PortalDistance.csproj", "{F1B517F4-7091-49B6-B76F-F48A01CDC5DA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.PortalDistance", "Estreya.BlishHUD.PortalDistance\Estreya.BlishHUD.PortalDistance.csproj", "{F1B517F4-7091-49B6-B76F-F48A01CDC5DA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Estreya.BlishHUD.StartupNotifications", "Estreya.BlishHUD.StartupNotifications\Estreya.BlishHUD.StartupNotifications.csproj", "{796E99E8-0983-4861-8900-27C8B8B44A65}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -143,6 +145,14 @@ Global
 		{F1B517F4-7091-49B6-B76F-F48A01CDC5DA}.Release|Any CPU.Build.0 = Release|Any CPU
 		{F1B517F4-7091-49B6-B76F-F48A01CDC5DA}.Release|x64.ActiveCfg = Release|Any CPU
 		{F1B517F4-7091-49B6-B76F-F48A01CDC5DA}.Release|x64.Build.0 = Release|Any CPU
+		{796E99E8-0983-4861-8900-27C8B8B44A65}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{796E99E8-0983-4861-8900-27C8B8B44A65}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{796E99E8-0983-4861-8900-27C8B8B44A65}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{796E99E8-0983-4861-8900-27C8B8B44A65}.Debug|x64.Build.0 = Debug|Any CPU
+		{796E99E8-0983-4861-8900-27C8B8B44A65}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{796E99E8-0983-4861-8900-27C8B8B44A65}.Release|Any CPU.Build.0 = Release|Any CPU
+		{796E99E8-0983-4861-8900-27C8B8B44A65}.Release|x64.ActiveCfg = Release|Any CPU
+		{796E99E8-0983-4861-8900-27C8B8B44A65}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -158,6 +168,7 @@ Global
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{59fb4d68-f75f-49d1-8231-ba56266bcbe4}*SharedItemsImports = 13
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{761c8939-3381-42c9-b80e-f96fa68ddb96}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{776ae5f6-0902-4bb3-b177-a554d312f4b5}*SharedItemsImports = 5
+		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{796e99e8-0983-4861-8900-27c8b8b44a65}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{94dacfca-b59a-42bd-9166-9975662b70be}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{97516c35-e95e-4494-940a-4023db0c0140}*SharedItemsImports = 5
 		Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems*{a2961446-bc00-43b4-8935-aa93918d6f36}*SharedItemsImports = 5

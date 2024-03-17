@@ -1,0 +1,21 @@
+{
+  "name": "Startup Notifications",
+  "version": "0.1.0",
+  "namespace": "estreya.bh.startupNotifications",
+  "package": "Estreya.BlishHUD.StartupNotifications.dll",
+  "manifest_version": 1,
+  "description": "Configure startup notifications which are shown when you load the module (start blishhud).\n\nPrefix files with a numerical order to show them in a specific order.\nFiles must be txt files.",
+  "dependencies": {
+    "bh.blishhud": "^1.0.0"
+  },
+  "url": "https://github.com/Tharylia/Blish-HUD-Modules",
+  "contributors": [
+    {
+      "name": "Estreya",
+      "username": "Estreya.8675"
+    }
+  ],
+  "directories": ["startup"],
+  "actions": [],
+  "enabled_without_gw2": false
+}
