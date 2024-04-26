@@ -172,8 +172,12 @@ public class ReminderSettingsView : BaseSettingsView
             }
 
             if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
-            {
+        {
+#if !WINE
                 await EventNotification.ShowAsWindowsNotification(title, message, icon);
+#else
+                Shared.Controls.ScreenNotification.ShowNotification("OS Notifications are not supported in WINE", Shared.Controls.ScreenNotification.NotificationType.Error, duration: 5);
+#endif
             }
         };
 
@@ -287,6 +291,9 @@ public class ReminderSettingsView : BaseSettingsView
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderLeftClickAction);
         this.RenderBoolSetting(parent, this._moduleSettings.AcceptWaypointPrompt);
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderRightClickAction);
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderWaypointSendingChannel);
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderWaypointSendingGuild);
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderEventChatFormat);
 
         this.RenderEmptyLine(parent);
 

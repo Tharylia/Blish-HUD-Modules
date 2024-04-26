@@ -402,6 +402,12 @@ public class MapUtil : IDisposable
         }
     }
 
+    public MapEntity AddEntity(MapEntity entity)
+    {
+        this._flatMap.AddEntity(entity);
+        return entity;
+    }
+
     public MapEntity AddCircle(double x, double y, double radius, Color color, float thickness = 1)
     {
         MapCircle circle = new MapCircle((float)x, (float)y, (float)radius, color, thickness);

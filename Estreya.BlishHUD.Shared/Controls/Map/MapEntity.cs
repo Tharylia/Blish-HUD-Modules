@@ -8,7 +8,13 @@ using System;
 
 public abstract class MapEntity : IDisposable
 {
+    protected Logger Logger;
     public string TooltipText { get; set; }
+
+    public MapEntity()
+    {
+         this.Logger = Logger.GetLogger(this.GetType());
+    }
 
     public void Dispose()
     {

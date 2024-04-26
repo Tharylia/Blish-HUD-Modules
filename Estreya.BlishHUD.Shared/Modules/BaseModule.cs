@@ -12,6 +12,7 @@ using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Controls.Input;
 using Estreya.BlishHUD.Shared.Net;
 using Estreya.BlishHUD.Shared.Services.Audio;
+using Estreya.BlishHUD.Shared.Services.GameIntegration;
 using Estreya.BlishHUD.Shared.Services.TradingPost;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Threading.Events;
@@ -197,6 +198,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected MetricsService MetricsService { get; private set; }
 
     protected AudioService AudioService { get; private set; }
+
+    protected ChatService ChatService { get; private set; }
 
     #endregion
 
@@ -401,7 +404,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
         catch (Exception ex)
         {
-            this.Logger.Debug(ex, "Failed to validate backend health.");
+            this.Logger.Warn(ex, "Failed to validate backend health.");
         }
 
         sw.Stop();
@@ -533,6 +536,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 this.AudioService = new AudioService(configurations.Audio, directoryPath);
                 this._services.Add(this.AudioService);
             }
+
+            this.ChatService = new ChatService(new ServiceConfiguration
+            {
+                Enabled = true,
+                AwaitLoading = true,
+            });
+            this._services.Add(this.ChatService);
 
             if (configurations.Items.Enabled)
             {

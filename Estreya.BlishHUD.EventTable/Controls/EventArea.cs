@@ -17,9 +17,12 @@ using Services;
 using Shared.Controls;
 using Shared.Extensions;
 using Shared.Models;
+using Shared.Models.GameIntegration.Chat;
+using Shared.Models.GameIntegration.Guild;
 using Shared.Models.GW2API.PointOfInterest;
 using Shared.MumbleInfo.Map;
 using Shared.Services;
+using Shared.Services.GameIntegration;
 using Shared.Threading;
 using Shared.Utils;
 using SpriteFontPlus;
@@ -87,6 +90,7 @@ public class EventArea : RenderTarget2DControl
     private List<List<(DateTime Occurence, Event Event)>> _orderedControlEvents;
     private PointOfInterestService _pointOfInterestService;
     private AccountService _accountService;
+    private readonly ChatService _chatService;
     private TimeSpan? _savedDrawInterval;
 
     private int _tempHistorySplit = -1;
@@ -100,8 +104,9 @@ public class EventArea : RenderTarget2DControl
 
     public EventArea(
         EventAreaConfiguration configuration, IconService iconService, TranslationService translationService,
-        EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService, 
-        PointOfInterestService pointOfInterestService, AccountService accountService, MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
+        EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService,
+        PointOfInterestService pointOfInterestService, AccountService accountService, ChatService chatService,
+        MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
         Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames,
         Func<List<string>> getDisabledReminderKeys, ContentsManager contentsManager)
     {
@@ -149,6 +154,7 @@ public class EventArea : RenderTarget2DControl
         this._mapchestService = mapchestService;
         this._pointOfInterestService = pointOfInterestService;
         this._accountService = accountService;
+        this._chatService = chatService;
         this._mapUtil = mapUtil;
         this._flurlClient = flurlClient;
         this._apiRootUrl = apiRootUrl;
@@ -1019,26 +1025,46 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
-    private void OnLeftMouseButtonPressed(object sender, MouseEventArgs e)
+    private async void OnLeftMouseButtonPressed(object sender, MouseEventArgs e)
     {
-        if (this._activeEvent == null || this._activeEvent.Model.Filler)
+        var currentEvent = this._activeEvent;
+        if (currentEvent == null || currentEvent.Model.Filler)
         {
             return;
         }
 
-        var waypoint = this._activeEvent?.Model?.GetWaypoint(this._accountService.Account);
+        var waypoint = currentEvent.Model?.GetWaypoint(this._accountService.Account);
 
         switch (this.Configuration.LeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
                 if (!string.IsNullOrWhiteSpace(waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(waypoint);
-                    ScreenNotification.ShowNotification(new[]
+                    var eventChatFormat = currentEvent.Model.GetChatText(this.Configuration.EventChatFormat.Value, currentEvent.StartTime, this._accountService.Account);
+                    if (GameService.Input.Keyboard.ActiveModifiers == Microsoft.Xna.Framework.Input.ModifierKeys.Ctrl)
                     {
-                        this._activeEvent.Model.Name,
-                        "Copied to clipboard!"
-                    });
+                        try
+                        {
+                            await this._chatService.ChangeChannel(ChatChannel.Squad);
+                            await this._chatService.ChangeChannel(this.Configuration.WaypointSendingChannel.Value, guildNumber: this.Configuration.WaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
+                            await this._chatService.Send(eventChatFormat);
+                        }
+                        catch (Exception ex)
+                        {
+                            this._logger.Warn(ex, $"Could not paste waypoint into chat. Event: {currentEvent.Model.SettingKey}");
+                            ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
+                        }
+                    }
+                    else
+                    {
+                        await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
+
+                        ScreenNotification.ShowNotification(new[]
+                        {
+                            currentEvent.Model.Name,
+                            "Copied to clipboard!"
+                        });
+                    }
                 }
 
                 break;

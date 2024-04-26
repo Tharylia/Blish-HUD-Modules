@@ -150,7 +150,11 @@ public class ContextManager : IDisposable, IUpdatable
 
         if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
         {
+#if !WINE
             await EventNotification.ShowAsWindowsNotification(eArgsContent.Title, eArgsContent.Message, icon);
+#else
+            Shared.Controls.ScreenNotification.ShowNotification("OS Notifications are not supported in WINE", Shared.Controls.ScreenNotification.NotificationType.Error, duration: 5);
+#endif
         }
     }
 
@@ -210,7 +214,7 @@ public class ContextManager : IDisposable, IUpdatable
                 Duration = eArgsContent.Duration,
                 Filler = eArgsContent.Filler,
                 Icon = eArgsContent.Icon,
-                Location = eArgsContent.Location,
+                Locations = eArgsContent.Locations,
                 MapIds = eArgsContent.MapIds,
                 Offset = eArgsContent.Offset,
                 Repeat = eArgsContent.Repeat,

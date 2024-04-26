@@ -7,7 +7,6 @@ using MonoGame.Extended;
 
 public class MapCircle : MapEntity
 {
-    private static Logger Logger = Logger.GetLogger<MapCircle>();
     private readonly Color _color;
     private readonly float _radius;
     private readonly float _thickness;

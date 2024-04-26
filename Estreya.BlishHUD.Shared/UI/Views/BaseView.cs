@@ -469,6 +469,25 @@ public abstract class BaseView : View
         return button;
     }
 
+    protected FormattedLabel RenderFormattedLabel(Panel parent, Action<FormattedLabelBuilder> formattedLabelBuilderAction)
+    {
+        Panel panel = this.GetPanel(parent);
+
+        var formattedLabelBuilder = new FormattedLabelBuilder()
+            .SetVerticalAlignment(VerticalAlignment.Top)
+            .SetHorizontalAlignment(HorizontalAlignment.Left)
+            .AutoSizeHeight()
+            .AutoSizeWidth();
+
+        formattedLabelBuilderAction.Invoke(formattedLabelBuilder);
+
+        FormattedLabel fl = formattedLabelBuilder.Build();
+
+        fl.Parent = panel;
+
+        return fl;
+    }
+
     protected (Label TitleLabel, Label ValueLabel) RenderLabel(Panel parent, string title, string value = null, Microsoft.Xna.Framework.Color? textColorTitle = null, Microsoft.Xna.Framework.Color? textColorValue = null, int? valueXLocation = null)
     {
         Panel panel = this.GetPanel(parent);

@@ -20,6 +20,7 @@ using Shared.Utils;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -32,7 +33,9 @@ public class EventNotification : RenderTarget2DControl
 {
     private static Logger Logger = Logger.GetLogger<EventNotification>();
 
+#if !WINE
     private static ToastNotifier _toastNotifier = ToastNotificationManager.CreateToastNotifier("Estreya BlishHUD Event Table");
+#endif
 
     private static SynchronizedCollection<EventNotification> _activeNotifications = new SynchronizedCollection<EventNotification>();
     private static ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
@@ -312,6 +315,7 @@ public class EventNotification : RenderTarget2DControl
         return ShowAsControl(null, title, message, icon, iconService, moduleSettings, TimeSpan.FromHours(1));
     }
 
+#if !WINE
     public static async Task ShowAsWindowsNotification(string title, string message, AsyncTexture2D icon)
     {
         var template = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastImageAndText02);
@@ -350,6 +354,7 @@ public class EventNotification : RenderTarget2DControl
             _toastNotifier.Show(notification);
         });
     }
+#endif
 
     public static string GetAudioServiceBaseSubfolder()
     {

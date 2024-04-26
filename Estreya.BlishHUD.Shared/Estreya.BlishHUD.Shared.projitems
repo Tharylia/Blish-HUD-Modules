@@ -94,6 +94,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerLocation.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\Drawers\DrawerSize.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\FontFace.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GameIntegration\Guild\GuildNumber.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\CurrentTransaction.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\PriceRange.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\GW2API\Commerce\Transaction.cs" />
@@ -128,6 +129,8 @@
     <Compile Include="$(MSBuildThisFileDirectory)Services\AchievementService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\Audio\AudioService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\FilesystemAPIService[T].cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\GameIntegration\Chat\ChatChannel.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Services\GameIntegration\Chat\ChatService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\MetricsService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Services\TradingPost\PlayerTransactionsService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Settings\BaseModuleSettings.cs" />
@@ -179,5 +182,6 @@
     <Compile Include="$(MSBuildThisFileDirectory)Utils\UpdateUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\WindowsUtil.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\WindowUtil.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Windows\API\Input.cs" />
   </ItemGroup>
 </Project>

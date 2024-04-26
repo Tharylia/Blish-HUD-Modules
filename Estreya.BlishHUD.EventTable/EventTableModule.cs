@@ -138,6 +138,18 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         await this.LoadEvents();
 
+        //this.EventTimerHandler = new EventTimerHandler(async () =>
+        //{
+        //    using (await this._eventCategoryLock.LockAsync())
+        //    {
+        //        return this._eventCategories.SelectMany(ec => ec.Events).ToList();
+        //    }
+        //}, () => this.NowUTC, this.MapUtil, this.Gw2ApiManager, this.ModuleSettings, this.TranslationService);
+        //this.EventTimerHandler.FoundLostEntities += this.EventTimerHandler_FoundLostEntities;
+
+        //await this.EventTimerHandler.AddEventTimersToMap();
+        //await this.EventTimerHandler.AddEventTimersToWorld();
+
         sw.Stop();
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
     }
@@ -160,9 +172,23 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.TranslationService.GetTranslation("dynamicEventHandler-foundLostEntities2", "Expect dynamic event boundaries on screen.")
         };
 
-        ScreenNotification.ShowNotification(
-            messages,
-            ScreenNotification.NotificationType.Warning);
+        ScreenNotification.ShowNotification(messages, ScreenNotification.NotificationType.Warning);
+    }
+
+    /// <summary>
+    ///     Handles the event of lost entities of the <see cref="EventTimerHandler"/>.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The event arguments.</param>
+    private void EventTimerHandler_FoundLostEntities(object sender, EventArgs e)
+    {
+        string[] messages = new[]
+        {
+            this.TranslationService.GetTranslation("eventTimerHandler-foundLostEntities1", "GameService.Graphics.World.Entities has lost references."),
+            this.TranslationService.GetTranslation("eventTimerHandler-foundLostEntities2", "Expect event timers on map or in world.")
+        };
+
+        ScreenNotification.ShowNotification(messages, ScreenNotification.NotificationType.Warning);
     }
 
     /// <summary>
@@ -201,8 +227,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this._eventTableContext = new EventTableContext();
         this._contextManager = new ContextManager(
-            this._eventTableContext, 
-            this.ModuleSettings, 
+            this._eventTableContext,
+            this.ModuleSettings,
             this.DynamicEventService,
             this.IconService,
             this.EventStateService,
@@ -611,7 +637,11 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
             if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
             {
+#if !WINE
                 await EventNotification.ShowAsWindowsNotification(title, message, icon);
+#else
+                Shared.Controls.ScreenNotification.ShowNotification("OS Notifications are not supported in WINE", Shared.Controls.ScreenNotification.NotificationType.Error, duration: 5);
+#endif
             }
 
             await EventNotification.PlaySound(this.AudioService, ev);
@@ -630,7 +660,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         notification.Disposed -= this.EventNotification_Disposed;
     }
 
-    private void EventNotification_Click(object sender, MouseEventArgs e)
+    private async void EventNotification_Click(object sender, MouseEventArgs e)
     {
         var notification = sender as EventNotification;
         var waypoint = notification?.Model?.GetWaypoint(this.AccountService.Account);
@@ -640,12 +670,30 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             case LeftClickAction.CopyWaypoint:
                 if (notification is not null && notification.Model is not null && !string.IsNullOrWhiteSpace(waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(waypoint);
-                    ScreenNotification.ShowNotification(new[]
+                    var eventChatFormat = notification.Model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, notification.Model.GetNextOccurence(), this.AccountService.Account);
+                    if (GameService.Input.Keyboard.ActiveModifiers == ModifierKeys.Ctrl)
                     {
-                        notification.Model.Name,
-                        "Copied to clipboard!"
-                    });
+                        try
+                        {
+                            await this.ChatService.ChangeChannel(Shared.Models.GameIntegration.Chat.ChatChannel.Squad);
+                            await this.ChatService.ChangeChannel(this.ModuleSettings.ReminderWaypointSendingChannel.Value, guildNumber: this.ModuleSettings.ReminderWaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
+                            await this.ChatService.Send(eventChatFormat);
+                        }
+                        catch (Exception ex)
+                        {
+                            this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {notification.Model.SettingKey}");
+                            ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
+                        }
+                    }
+                    else
+                    {
+                        await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
+                        ScreenNotification.ShowNotification(new[]
+                        {
+                            notification.Model.Name,
+                            "Copied to clipboard!"
+                        });
+                    }
                 }
 
                 break;
@@ -743,6 +791,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.MapchestService,
             this.PointOfInterestService,
             this.AccountService,
+            this.ChatService,
             this.MapUtil,
             this.GetFlurlClient(),
             this.MODULE_API_URL,
@@ -1063,6 +1112,13 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.DynamicEventHandler = null;
         }
 
+        if (this.EventTimerHandler != null)
+        {
+            this.EventTimerHandler.FoundLostEntities -= this.EventTimerHandler_FoundLostEntities;
+            this.EventTimerHandler.Dispose();
+            this.EventTimerHandler = null;
+        }
+
         if (this.BlishHUDAPIService != null)
         {
             this.BlishHUDAPIService.NewLogin -= this.BlishHUDAPIService_NewLogin;
@@ -1105,6 +1161,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     public EventStateService EventStateService { get; private set; }
     public DynamicEventService DynamicEventService { get; private set; }
+    public EventTimerHandler EventTimerHandler { get; private set; }
 
     #endregion
 }
