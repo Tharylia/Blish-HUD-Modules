@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
@@ -291,6 +291,9 @@ public class ReminderSettingsView : BaseSettingsView
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderLeftClickAction);
         this.RenderBoolSetting(parent, this._moduleSettings.AcceptWaypointPrompt);
         this.RenderEnumSetting(parent, this._moduleSettings.ReminderRightClickAction);
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderWaypointSendingChannel);
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderWaypointSendingGuild);
+        this.RenderEnumSetting(parent, this._moduleSettings.ReminderEventChatFormat);
 
         this.RenderEmptyLine(parent);
 

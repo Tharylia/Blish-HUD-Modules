@@ -198,6 +198,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected AudioService AudioService { get; private set; }
 
+    protected ChatService ChatService { get; private set; }
+
     #endregion
 
     private CancellationTokenSource _cancellationTokenSource;
@@ -533,6 +535,13 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 this.AudioService = new AudioService(configurations.Audio, directoryPath);
                 this._services.Add(this.AudioService);
             }
+
+            this.ChatService = new ChatService(new ServiceConfiguration
+            {
+                Enabled = true,
+                AwaitLoading = true,
+            });
+            this._services.Add(this.ChatService);
 
             if (configurations.Items.Enabled)
             {

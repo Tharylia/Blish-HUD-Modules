@@ -29,7 +29,7 @@ public class Event : IDisposable
     private readonly Func<string> _getAbsoluteTimeFormatStrings;
     private readonly Func<(string DaysFormat, string HoursFormat, string MinutesFormat)> _getTimespanFormatStrings;
     private readonly Func<Color> _getTextColor;
-    private readonly DateTime _startTime;
+    public DateTime StartTime { get; private set; }
 
     private Texture2D _backgroundColorTexture;
     private IconService _iconService;
@@ -51,7 +51,7 @@ public class Event : IDisposable
         this._iconService = iconService;
         this._translationService = translationService;
         this._getNowAction = getNowAction;
-        this._startTime = startTime;
+        this.StartTime = startTime;
         this._endTime = endTime;
         this._getFontAction = getFontAction;
         this._getDrawBorders = getDrawBorders;
@@ -201,20 +201,20 @@ public class Event : IDisposable
         DateTime now = this._getNowAction();
 
         // Relative
-        bool isPrev = this._startTime.AddMinutes(this.Model.Duration) < now;
-        bool isNext = !isPrev && this._startTime > now;
+        bool isPrev = this.StartTime.AddMinutes(this.Model.Duration) < now;
+        bool isNext = !isPrev && this.StartTime > now;
         bool isCurrent = !isPrev && !isNext;
 
-        string description = $"{this.Model.Location}{(!string.IsNullOrWhiteSpace(this.Model.Location) ? "\n" : string.Empty)}\n";
+        string description = $"{this.Model.Locations.Tooltip}{(!string.IsNullOrWhiteSpace(this.Model.Locations.Tooltip) ? "\n" : string.Empty)}\n";
 
         if (isPrev)
         {
-            TimeSpan finishedSince = now - this._startTime.AddMinutes(this.Model.Duration);
+            TimeSpan finishedSince = now - this.StartTime.AddMinutes(this.Model.Duration);
             description += $"{this._translationService.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatTimespan(finishedSince)}";
         }
         else if (isNext)
         {
-            TimeSpan startsIn = this._startTime - now;
+            TimeSpan startsIn = this.StartTime - now;
             description += $"{this._translationService.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatTimespan(startsIn)}";
         }
         else if (isCurrent)
@@ -224,7 +224,7 @@ public class Event : IDisposable
         }
 
         // Absolute
-        description += $" ({this._translationService.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatAbsoluteTime(this._startTime)})";
+        description += $" ({this._translationService.GetTranslation("event-tooltip-startsAt", "Starts at")}: {this.FormatAbsoluteTime(this.StartTime)})";
 
         return new Tooltip(new TooltipView(this.Model.Name, description, this._iconService.GetIcon(this.Model.Icon), this._translationService));
     }
@@ -325,7 +325,7 @@ public class Event : IDisposable
 
     private TimeSpan GetTimeRemaining(DateTime now)
     {
-        return now <= this._startTime || now >= this._endTime ? TimeSpan.Zero : this._startTime.AddMinutes(this.Model.Duration) - now;
+        return now <= this.StartTime || now >= this._endTime ? TimeSpan.Zero : this.StartTime.AddMinutes(this.Model.Duration) - now;
     }
 
     private void DrawCrossout(SpriteBatch spriteBatch, RectangleF bounds)

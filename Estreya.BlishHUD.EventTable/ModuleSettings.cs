@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -23,9 +23,7 @@ public class ModuleSettings : BaseModuleSettings
 
     public const string ANY_AREA_NAME = "Any";
 
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.E))
-    {
-    }
+    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.E)) { }
 
     private SettingCollection EventAreaSettings { get; set; }
     public SettingEntry<List<string>> EventAreaNames { get; private set; }
@@ -59,8 +57,11 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<EventReminderStackDirection> ReminderOverflowStackDirection { get; private set; }
     public SettingEntry<ReminderType> ReminderType { get; private set; }
     public SettingEntry<bool> DisableRemindersWhenEventFinished { get; private set; }
-    public SettingEntry<string> DisableRemindersWhenEventFinishedArea { get; private set; }   
+    public SettingEntry<string> DisableRemindersWhenEventFinishedArea { get; private set; }
     public SettingEntry<bool> AcceptWaypointPrompt { get; private set; }
+    public SettingEntry<Shared.Models.GameIntegration.Chat.ChatChannel> ReminderWaypointSendingChannel { get; private set; }
+    public SettingEntry<Shared.Models.GameIntegration.Guild.GuildNumber> ReminderWaypointSendingGuild { get; private set; }
+    public SettingEntry<EventChatFormat> ReminderEventChatFormat { get; private set; }
     public SettingEntry<bool> ShowEventTimersOnMap { get; private set; }
     public SettingEntry<bool> ShowEventTimersInWorld { get; private set; }
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
@@ -127,7 +128,7 @@ public class ModuleSettings : BaseModuleSettings
             Background = this.GlobalSettings.DefineSetting("ReminderColorsBackground", this.DefaultGW2Color, () => "Background Color", () => "Defines the color in which the background is drawn."),
             TitleText = this.GlobalSettings.DefineSetting("ReminderColorsTitleText", this.DefaultGW2Color, () => "Title Text Color", () => "Defines the text color in which the titles are drawn."),
             MessageText = this.GlobalSettings.DefineSetting("ReminderColorsMessageText", this.DefaultGW2Color, () => "Message Text Color", () => "Defines the text color in which the messages are drawn.")
-    };
+        };
 
         int reminderDurationMin = 1;
         int reminderDurationMax = 15;
@@ -149,7 +150,7 @@ public class ModuleSettings : BaseModuleSettings
 
         this.ReminderLeftClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderLeftClickAction), LeftClickAction.CopyWaypoint, () => "Reminder Left Click Action", () => "Defines the action to execute on a left click.");
         this.ReminderRightClickAction = this.GlobalSettings.DefineSetting(nameof(this.ReminderRightClickAction), EventReminderRightClickAction.Dismiss, () => "Reminder Right Click Action", () => "Defines the action to execute on a right click.");
-        
+
         this.ReminderStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderStackDirection), Models.Reminders.EventReminderStackDirection.Down, () => "Reminder Stack Direction", () => "Defines the direction in which reminders stack.");
         this.ReminderOverflowStackDirection = this.GlobalSettings.DefineSetting(nameof(this.ReminderOverflowStackDirection), Models.Reminders.EventReminderStackDirection.Right, () => "Reminder Overflow Stack Direction", () => "Defines the direction in which reminders stack if they overflow off the screen.");
 
@@ -162,6 +163,10 @@ public class ModuleSettings : BaseModuleSettings
         this.DisableRemindersWhenEventFinishedArea = this.GlobalSettings.DefineSetting(nameof(this.DisableRemindersWhenEventFinishedArea), ANY_AREA_NAME, () => "Check finished Events in Area", () => "Defines the area name which is checked for completed/finished events");
 
         this.AcceptWaypointPrompt = this.GlobalSettings.DefineSetting(nameof(this.AcceptWaypointPrompt), true, () => "Accept Waypoint Prompt", () => "Defines if the waypoint prompt should be auto accepted");
+
+        this.ReminderWaypointSendingChannel = this.GlobalSettings.DefineSetting(nameof(this.ReminderWaypointSendingChannel), Shared.Models.GameIntegration.Chat.ChatChannel.Private, () => "Send Waypoint to Channel", () => "Defines the channel in which waypoints are pasted automatically.");
+        this.ReminderWaypointSendingGuild = this.GlobalSettings.DefineSetting(nameof(this.ReminderWaypointSendingGuild), Shared.Models.GameIntegration.Guild.GuildNumber.Guild_1, () => "Send Waypoint to Guild", () => "Defines the guild in which waypoints are pasted automatically if guild is selected as channel.");
+        this.ReminderEventChatFormat = this.GlobalSettings.DefineSetting(nameof(this.ReminderEventChatFormat), EventChatFormat.OnlyWaypoint, () => "Event Chat Format", () => "Defines the chat format to use when copying events.");
 
         this.ShowEventTimersOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersOnMap), true, () => "Show Event Timers on Map", () => "Whether the event timers should be shown on the map.");
 
@@ -275,10 +280,14 @@ public class ModuleSettings : BaseModuleSettings
 
         SettingEntry<bool> acceptWaypointPrompt = this.DrawerSettings.DefineSetting($"{name}-acceptWaypointPrompt", true, () => "Accept Waypoint Prompt", () => "Whether the waypoint prompt should be accepted automatically when performing an automated teleport.");
 
+        SettingEntry<Shared.Models.GameIntegration.Chat.ChatChannel> waypointSendingChannel = this.DrawerSettings.DefineSetting($"{name}-waypointSendingChannel", Shared.Models.GameIntegration.Chat.ChatChannel.Private, () => "Send Waypoint to Channel", () => "Defines the channel in which the waypoint is pasted automatically.");
+        SettingEntry<Shared.Models.GameIntegration.Guild.GuildNumber> waypointSendingGuild = this.DrawerSettings.DefineSetting($"{name}-waypointSendingGuild", Shared.Models.GameIntegration.Guild.GuildNumber.Guild_1, () => "Send Waypoint to Guild", () => "Defines the guild in which the waypoint is pasted automatically if channel guild is selected.");
+        SettingEntry<EventChatFormat> eventChatFormat = this.DrawerSettings.DefineSetting($"{name}-eventChatFormat", EventChatFormat.OnlyWaypoint, () => "Event Chat Format", () => "Defines the chat format when event waypoints are copied or pasted.");
+
         SettingEntry<EventCompletedAction> completionAction = this.DrawerSettings.DefineSetting($"{name}-completionAction", EventCompletedAction.Crossout, () => "Completion Action", () => "Defines the action to perform if an event has been completed.");
         SettingEntry<bool> enableLinkedCompletion = this.DrawerSettings.DefineSetting($"{name}-enableLinkedCompletion", true, () => "Enable Linked Completion", () => "Enables the completion of events that are linked to the completed event. (e.g. Auric Basin)");
 
-        SettingEntry <List<string>> disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
+        SettingEntry<List<string>> disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
 
         SettingEntry<int> eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
         eventHeight.SetRange(5, 30);
@@ -388,6 +397,9 @@ public class ModuleSettings : BaseModuleSettings
             UseFiller = useFillers,
             FillerTextColor = fillerTextColor,
             AcceptWaypointPrompt = acceptWaypointPrompt,
+            WaypointSendingChannel = waypointSendingChannel,
+            WaypointSendingGuild = waypointSendingGuild,
+            EventChatFormat = eventChatFormat,
             DisabledEventKeys = disabledEventKeys,
             CompletionAction = completionAction,
             EnableLinkedCompletion = enableLinkedCompletion,
@@ -464,6 +476,9 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-useFillers");
         this.DrawerSettings.UndefineSetting($"{name}-fillerTextColor");
         this.DrawerSettings.UndefineSetting($"{name}-acceptWaypointPrompt");
+        this.DrawerSettings.UndefineSetting($"{name}-waypointSendingChannel");
+        this.DrawerSettings.UndefineSetting($"{name}-waypointSendingGuild");
+        this.DrawerSettings.UndefineSetting($"{name}-eventChatFormat");
         this.DrawerSettings.UndefineSetting($"{name}-completionAction");
         this.DrawerSettings.UndefineSetting($"{name}-disabledEventKeys");
         this.DrawerSettings.UndefineSetting($"{name}-eventHeight");

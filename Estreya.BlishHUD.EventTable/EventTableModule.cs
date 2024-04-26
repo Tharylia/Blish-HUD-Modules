@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -227,8 +227,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this._eventTableContext = new EventTableContext();
         this._contextManager = new ContextManager(
-            this._eventTableContext, 
-            this.ModuleSettings, 
+            this._eventTableContext,
+            this.ModuleSettings,
             this.DynamicEventService,
             this.IconService,
             this.EventStateService,
@@ -660,7 +660,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         notification.Disposed -= this.EventNotification_Disposed;
     }
 
-    private void EventNotification_Click(object sender, MouseEventArgs e)
+    private async void EventNotification_Click(object sender, MouseEventArgs e)
     {
         var notification = sender as EventNotification;
         var waypoint = notification?.Model?.GetWaypoint(this.AccountService.Account);
@@ -670,12 +670,30 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             case LeftClickAction.CopyWaypoint:
                 if (notification is not null && notification.Model is not null && !string.IsNullOrWhiteSpace(waypoint))
                 {
-                    ClipboardUtil.WindowsClipboardService.SetTextAsync(waypoint);
-                    ScreenNotification.ShowNotification(new[]
+                    var eventChatFormat = notification.Model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, notification.Model.GetNextOccurence(), this.AccountService.Account);
+                    if (GameService.Input.Keyboard.ActiveModifiers == ModifierKeys.Ctrl)
                     {
-                        notification.Model.Name,
-                        "Copied to clipboard!"
-                    });
+                        try
+                        {
+                            await this.ChatService.ChangeChannel(Shared.Models.GameIntegration.Chat.ChatChannel.Squad);
+                            await this.ChatService.ChangeChannel(this.ModuleSettings.ReminderWaypointSendingChannel.Value, guildNumber: this.ModuleSettings.ReminderWaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
+                            await this.ChatService.Send(eventChatFormat);
+                        }
+                        catch (Exception ex)
+                        {
+                            this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {notification.Model.SettingKey}");
+                            ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
+                        }
+                    }
+                    else
+                    {
+                        await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
+                        ScreenNotification.ShowNotification(new[]
+                        {
+                            notification.Model.Name,
+                            "Copied to clipboard!"
+                        });
+                    }
                 }
 
                 break;
@@ -773,6 +791,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.MapchestService,
             this.PointOfInterestService,
             this.AccountService,
+            this.ChatService,
             this.MapUtil,
             this.GetFlurlClient(),
             this.MODULE_API_URL,

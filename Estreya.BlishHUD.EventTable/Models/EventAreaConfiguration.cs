@@ -14,6 +14,9 @@ public class EventAreaConfiguration : DrawerConfiguration
     public SettingEntry<bool> ShowTooltips { get; set; }
     public SettingEntry<LeftClickAction> LeftClickAction { get; set; }
     public SettingEntry<bool> AcceptWaypointPrompt { get; set; }
+    public SettingEntry<Shared.Models.GameIntegration.Chat.ChatChannel> WaypointSendingChannel { get; set; }
+    public SettingEntry<Shared.Models.GameIntegration.Guild.GuildNumber> WaypointSendingGuild { get; set; }
+    public SettingEntry<Models.EventChatFormat> EventChatFormat { get; set; }
     public SettingEntry<int> TimeSpan { get; set; }
     public SettingEntry<int> HistorySplit { get; set; }
     public SettingEntry<bool> EnableHistorySplitScrolling { get; set; }
@@ -94,6 +97,9 @@ public class EventAreaConfiguration : DrawerConfiguration
         other.ShowTooltips.Value = this.ShowTooltips.Value;
         other.LeftClickAction.Value = this.LeftClickAction.Value;
         other.AcceptWaypointPrompt.Value = this.AcceptWaypointPrompt.Value;
+        other.WaypointSendingChannel.Value = this.WaypointSendingChannel.Value;
+        other.WaypointSendingGuild.Value = this.WaypointSendingGuild.Value;
+        other.EventChatFormat.Value = this.EventChatFormat.Value;
         other.TimeSpan.Value = this.TimeSpan.Value;
         other.HistorySplit.Value = this.HistorySplit.Value;
         other.EnableHistorySplitScrolling.Value = this.EnableHistorySplitScrolling.Value;

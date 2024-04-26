@@ -1,7 +1,8 @@
-namespace Estreya.BlishHUD.EventTable.Models;
+﻿namespace Estreya.BlishHUD.EventTable.Models;
 
 using Blish_HUD;
 using Gw2Sharp.WebApi.V2.Models;
+using Humanizer;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using Shared.Attributes;
@@ -12,6 +13,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 
 [Serializable]
@@ -21,7 +23,8 @@ public class Event : IUpdatable
 
     [IgnoreCopy] private static TimeSpan _checkForRemindersInterval = TimeSpan.FromMilliseconds(5000);
 
-    private Func<DateTime> _getNowAction;
+    [JsonIgnore, IgnoreCopy] private Func<DateTime> _getNowAction;
+    [JsonIgnore, IgnoreCopy] private TranslationService _translationService;
 
     [IgnoreCopy] private double _lastCheckForReminders;
 
@@ -159,8 +162,9 @@ public class Event : IUpdatable
         this.Category = new WeakReference<EventCategory>(ec);
 
         this._getNowAction = getNowAction;
+        this._translationService = translationService;
 
-        if (translationService != null)
+        if (this._translationService != null)
         {
             this.Name = translationService.GetTranslation($"event-{ec.Key}_{this.Key}-name", this.Name);
         }
@@ -213,6 +217,13 @@ public class Event : IUpdatable
         this._remindedFor.Clear();
     }
 
+    public DateTime GetNextOccurence()
+    {
+        var now = this._getNowAction();
+
+        return this.Occurences.OrderBy(x => x).FirstOrDefault(x => x >= now);
+    }
+
     public string GetWaypoint(Account account)
     {
         if (account is null)
@@ -225,6 +236,46 @@ public class Event : IUpdatable
         {
             '1' => this.Waypoints.NA,
             _ => this.Waypoints.EU,
+        };
+    }
+
+    public string GetChatText(EventChatFormat format, DateTime occurence, Account account)
+    {
+        var now = this._getNowAction();
+
+        DateTime occurenceLocal = occurence.ToLocalTime();
+
+        var endTime = occurence.AddMinutes(this.Duration);
+        bool isPrev = endTime < now;
+        bool isNext = !isPrev && occurence > now;
+        bool isCurrent = !isPrev && !isNext;
+
+        string timeString = occurenceLocal.ToString("HH:mm zzz");
+
+        if (isPrev)
+        {
+            TimeSpan finishedSince = now - occurence.AddMinutes(this.Duration);
+            timeString = $"{this._translationService.GetTranslation("event-chatText-finishedXAgo", "finished {0} ago").FormatWith(finishedSince.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second))}";
+        }
+        else if (isNext)
+        {
+            TimeSpan startsIn = occurence - now;
+            timeString = $"{this._translationService.GetTranslation("event-chatText-startsInX", "starts in {0}").FormatWith(startsIn.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second))}";
+        }
+        else if (isCurrent)
+        {
+            TimeSpan remaining = endTime - now;
+            timeString = $"{this._translationService.GetTranslation("event-chatText-hasXRemaining", "has {0} remaining").FormatWith(remaining.Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second))}";
+        }
+
+        var waypoint = this.GetWaypoint(account);
+
+        return format switch
+        {
+            EventChatFormat.Full => this._translationService.GetTranslation("event-chatText-format-full","Event \"{0}\" {1} in \"{2}\": {3}").FormatWith(this.Name, timeString, this.Locations.Tooltip,waypoint),
+            EventChatFormat.WithTime => this._translationService.GetTranslation("event-chatText-format-withTime", "Event \"{0}\" {1}: {2}").FormatWith(this.Name, timeString, waypoint),
+            EventChatFormat.WithLocation => this._translationService.GetTranslation("event-chatText-format-withLocation", "Event \"{0}\" in \"{1}\": {2}").FormatWith(this.Name, this.Locations.Tooltip, waypoint),
+            _ => waypoint,
         };
     }
 
