@@ -23,6 +23,18 @@ public class SettingsView : BaseSettingsView
         this.RenderIntSetting(parent, this._moduleSettings.Duration);
         this.RenderEnumSetting(parent, this._moduleSettings.Type);
         this.RenderBoolSetting(parent, this._moduleSettings.AwaitEach);
+
+        this.RenderEmptyLine(parent);
+
+        this.RenderFormattedLabel(parent, (b) =>
+        {
+            b.SetWidth(parent.ContentRegion.Width - (int)parent.OuterControlPadding.X * 3).SetHorizontalAlignment(HorizontalAlignment.Center).Wrap();
+
+            b.CreatePart("To change the files, use the settings cog at the top right and open the assigned directory.", pb =>
+            {
+                pb.SetFontSize(Blish_HUD.ContentService.FontSize.Size20);
+            });
+        });
     }
 
     protected override Task<bool> InternalLoad(IProgress<string> progress)
