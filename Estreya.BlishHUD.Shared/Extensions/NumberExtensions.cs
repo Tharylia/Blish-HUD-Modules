@@ -23,4 +23,29 @@ public static class NumberExtensions
     {
         return value / METER_TO_INCHES_RATIO;
     }
+
+    public static int Remap(this int from, int fromMin, int fromMax, int toMin, int toMax)
+    {
+        return (int)Remap((float)from, fromMin, fromMax, toMin, toMax);
+    }
+
+    public static float Remap(this float from, float fromMin, float fromMax, float toMin, float toMax)
+    {
+        return (float)Remap((double)from, fromMin, fromMax, toMin, toMax);
+    }
+
+    public static double Remap(this double from, double fromMin, double fromMax, double toMin, double toMax)
+    {
+        var fromAbs = from - fromMin;
+        var fromMaxAbs = fromMax - fromMin;
+
+        var normal = fromAbs / fromMaxAbs;
+
+        var toMaxAbs = toMax - toMin;
+        var toAbs = toMaxAbs * normal;
+
+        var to = toAbs + toMin;
+
+        return to;
+    }
 }

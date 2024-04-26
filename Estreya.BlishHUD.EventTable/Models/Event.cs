@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Models;
+namespace Estreya.BlishHUD.EventTable.Models;
 
 using Blish_HUD;
 using Gw2Sharp.WebApi.V2.Models;
@@ -59,7 +59,7 @@ public class Event : IUpdatable
     [JsonConverter(typeof(DateJsonConverter))]
     public DateTime? StartingDate { get; set; }
 
-    [JsonProperty("location")] public string Location { get; set; }
+    [JsonProperty("locations")] public EventLocations Locations { get; set; }
 
     [JsonProperty("mapIds")] public int[] MapIds { get; set; }
 

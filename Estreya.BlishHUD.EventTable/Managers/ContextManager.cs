@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Managers;
+namespace Estreya.BlishHUD.EventTable.Managers;
 
 using Blish_HUD;
 using Estreya.BlishHUD.EventTable.Contexts;
@@ -210,7 +210,7 @@ public class ContextManager : IDisposable, IUpdatable
                 Duration = eArgsContent.Duration,
                 Filler = eArgsContent.Filler,
                 Icon = eArgsContent.Icon,
-                Location = eArgsContent.Location,
+                Locations = eArgsContent.Locations,
                 MapIds = eArgsContent.MapIds,
                 Offset = eArgsContent.Offset,
                 Repeat = eArgsContent.Repeat,

@@ -138,6 +138,18 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         await this.LoadEvents();
 
+        //this.EventTimerHandler = new EventTimerHandler(async () =>
+        //{
+        //    using (await this._eventCategoryLock.LockAsync())
+        //    {
+        //        return this._eventCategories.SelectMany(ec => ec.Events).ToList();
+        //    }
+        //}, () => this.NowUTC, this.MapUtil, this.Gw2ApiManager, this.ModuleSettings, this.TranslationService);
+        //this.EventTimerHandler.FoundLostEntities += this.EventTimerHandler_FoundLostEntities;
+
+        //await this.EventTimerHandler.AddEventTimersToMap();
+        //await this.EventTimerHandler.AddEventTimersToWorld();
+
         sw.Stop();
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
     }
@@ -160,9 +172,23 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.TranslationService.GetTranslation("dynamicEventHandler-foundLostEntities2", "Expect dynamic event boundaries on screen.")
         };
 
-        ScreenNotification.ShowNotification(
-            messages,
-            ScreenNotification.NotificationType.Warning);
+        ScreenNotification.ShowNotification(messages, ScreenNotification.NotificationType.Warning);
+    }
+
+    /// <summary>
+    ///     Handles the event of lost entities of the <see cref="EventTimerHandler"/>.
+    /// </summary>
+    /// <param name="sender">The sender of the event.</param>
+    /// <param name="e">The event arguments.</param>
+    private void EventTimerHandler_FoundLostEntities(object sender, EventArgs e)
+    {
+        string[] messages = new[]
+        {
+            this.TranslationService.GetTranslation("eventTimerHandler-foundLostEntities1", "GameService.Graphics.World.Entities has lost references."),
+            this.TranslationService.GetTranslation("eventTimerHandler-foundLostEntities2", "Expect event timers on map or in world.")
+        };
+
+        ScreenNotification.ShowNotification(messages, ScreenNotification.NotificationType.Warning);
     }
 
     /// <summary>
@@ -1067,6 +1093,13 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.DynamicEventHandler = null;
         }
 
+        if (this.EventTimerHandler != null)
+        {
+            this.EventTimerHandler.FoundLostEntities -= this.EventTimerHandler_FoundLostEntities;
+            this.EventTimerHandler.Dispose();
+            this.EventTimerHandler = null;
+        }
+
         if (this.BlishHUDAPIService != null)
         {
             this.BlishHUDAPIService.NewLogin -= this.BlishHUDAPIService_NewLogin;
@@ -1109,6 +1142,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     public EventStateService EventStateService { get; private set; }
     public DynamicEventService DynamicEventService { get; private set; }
+    public EventTimerHandler EventTimerHandler { get; private set; }
 
     #endregion
 }

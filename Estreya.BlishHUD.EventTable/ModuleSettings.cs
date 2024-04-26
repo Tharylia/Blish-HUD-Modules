@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -61,6 +61,8 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<bool> DisableRemindersWhenEventFinished { get; private set; }
     public SettingEntry<string> DisableRemindersWhenEventFinishedArea { get; private set; }   
     public SettingEntry<bool> AcceptWaypointPrompt { get; private set; }
+    public SettingEntry<bool> ShowEventTimersOnMap { get; private set; }
+    public SettingEntry<bool> ShowEventTimersInWorld { get; private set; }
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
     public SettingEntry<bool> ShowDynamicEventInWorld { get; private set; }
@@ -160,6 +162,10 @@ public class ModuleSettings : BaseModuleSettings
         this.DisableRemindersWhenEventFinishedArea = this.GlobalSettings.DefineSetting(nameof(this.DisableRemindersWhenEventFinishedArea), ANY_AREA_NAME, () => "Check finished Events in Area", () => "Defines the area name which is checked for completed/finished events");
 
         this.AcceptWaypointPrompt = this.GlobalSettings.DefineSetting(nameof(this.AcceptWaypointPrompt), true, () => "Accept Waypoint Prompt", () => "Defines if the waypoint prompt should be auto accepted");
+
+        this.ShowEventTimersOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersOnMap), true, () => "Show Event Timers on Map", () => "Whether the event timers should be shown on the map.");
+
+        this.ShowEventTimersInWorld = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersInWorld), true, () => "Show Event Timers in World", () => "Whether event timers should be shown inside the world.");
 
         this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 

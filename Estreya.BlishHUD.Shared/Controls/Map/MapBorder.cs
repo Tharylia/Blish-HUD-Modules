@@ -9,7 +9,6 @@ using System.Linq;
 
 public class MapBorder : MapEntity
 {
-    private static Logger Logger = Logger.GetLogger<MapBorder>();
     private readonly Color _color;
     private readonly float[][] _points;
     private readonly float _thickness;
