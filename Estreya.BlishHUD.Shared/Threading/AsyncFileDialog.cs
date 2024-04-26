@@ -1,12 +1,14 @@
 ﻿namespace Estreya.BlishHUD.Shared.Threading
 {
     using Blish_HUD;
+    using Microsoft.Xna.Framework;
     using System;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Forms;
+    using System.Windows.Interop;
 
-    public class AsyncFileDialog<T> /*: IDisposable*/ where T : FileDialog
+    public class AsyncFileDialog<T> where T : FileDialog
     {
         public T Dialog { get; }
 
@@ -23,7 +25,7 @@
             {
                 void abort(object sender, EventArgs e)
                 {
-                    //this.AbortThread();
+                    this.AbortThread();
                 }
 
                 try
@@ -49,27 +51,22 @@
             this._thread.SetApartmentState(ApartmentState.STA);
         }
 
-        //private void AbortThread()
-        //{
-        //    try
-        //    {
-        //        this._thread.Abort();
-        //    }
-        //    catch (ThreadStateException)
-        //    {
-        //    }
-        //}
+        private void AbortThread()
+        {
+            try
+            {
+                // Do not use, crashes blish
+                //this._thread.Abort();
+            }
+            catch (ThreadStateException)
+            {
+            }
+        }
 
         public Task<DialogResult> ShowAsync()
         {
             this._thread.Start();
             return this._result.Task;
         }
-
-        //public void Dispose()
-        //{
-        //    this.AbortThread();
-        //    this.Dialog?.Dispose();
-        //}
     }
 }
