@@ -263,9 +263,18 @@ public class SkillService : FilesystemAPIService<Skill>
 
     private async Task SaveMissingSkills()
     {
+        if (this._missingSkillsFromAPIReportedByArcDPS is null) return;
+
         string missingSkillPath = Path.Combine(this.DirectoryPath, LOCAL_MISSING_SKILL_FILE_NAME);
 
-        await FileUtil.WriteStringAsync(missingSkillPath, JsonConvert.SerializeObject(this._missingSkillsFromAPIReportedByArcDPS.OrderBy(skill => skill.ID), Formatting.Indented));
+        try
+        {
+            await FileUtil.WriteStringAsync(missingSkillPath, JsonConvert.SerializeObject(this._missingSkillsFromAPIReportedByArcDPS.OrderBy(skill => skill.ID), Formatting.Indented));
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, "Could not save missing arc dps skills.");
+        }
     }
 
     private async Task LoadMissingSkills()
