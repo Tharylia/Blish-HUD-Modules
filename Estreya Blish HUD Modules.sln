@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32526.322
@@ -31,7 +31,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.Automation
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.PortalDistance", "Estreya.BlishHUD.PortalDistance\Estreya.BlishHUD.PortalDistance.csproj", "{F1B517F4-7091-49B6-B76F-F48A01CDC5DA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Estreya.BlishHUD.StartupNotifications", "Estreya.BlishHUD.StartupNotifications\Estreya.BlishHUD.StartupNotifications.csproj", "{796E99E8-0983-4861-8900-27C8B8B44A65}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Estreya.BlishHUD.StartupNotifications", "Estreya.BlishHUD.StartupNotifications\Estreya.BlishHUD.StartupNotifications.csproj", "{796E99E8-0983-4861-8900-27C8B8B44A65}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
