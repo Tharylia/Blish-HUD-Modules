@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -611,7 +611,11 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
             if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
             {
+#if !WINE
                 await EventNotification.ShowAsWindowsNotification(title, message, icon);
+#else
+                Shared.Controls.ScreenNotification.ShowNotification("OS Notifications are not supported in WINE", Shared.Controls.ScreenNotification.NotificationType.Error, duration: 5);
+#endif
             }
 
             await EventNotification.PlaySound(this.AudioService, ev);
