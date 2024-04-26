@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Managers;
+﻿namespace Estreya.BlishHUD.EventTable.Managers;
 
 using Blish_HUD;
 using Estreya.BlishHUD.EventTable.Contexts;
@@ -150,7 +150,11 @@ public class ContextManager : IDisposable, IUpdatable
 
         if (this._moduleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
         {
+#if !WINE
             await EventNotification.ShowAsWindowsNotification(eArgsContent.Title, eArgsContent.Message, icon);
+#else
+            Shared.Controls.ScreenNotification.ShowNotification("OS Notifications are not supported in WINE", Shared.Controls.ScreenNotification.NotificationType.Error, duration: 5);
+#endif
         }
     }
 
