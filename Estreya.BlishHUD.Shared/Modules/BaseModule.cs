@@ -12,6 +12,7 @@ using Blish_HUD.Settings;
 using Estreya.BlishHUD.Shared.Controls.Input;
 using Estreya.BlishHUD.Shared.Net;
 using Estreya.BlishHUD.Shared.Services.Audio;
+using Estreya.BlishHUD.Shared.Services.GameIntegration;
 using Estreya.BlishHUD.Shared.Services.TradingPost;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Threading.Events;
@@ -403,7 +404,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         }
         catch (Exception ex)
         {
-            this.Logger.Debug(ex, "Failed to validate backend health.");
+            this.Logger.Warn(ex, "Failed to validate backend health.");
         }
 
         sw.Stop();
