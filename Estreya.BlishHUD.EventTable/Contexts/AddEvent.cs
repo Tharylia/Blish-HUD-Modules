@@ -22,7 +22,7 @@ public struct AddEvent
     public TimeSpan Offset { get; set; } = TimeSpan.Zero;
     public TimeSpan Repeat { get; set; } = TimeSpan.Zero;
     public DateTime? StartingDate { get; set; } = null;
-    public EventLocations Locations { get; set; } = new EventLocations();
+    public string Location { get; set; } = null;
 
     public int[] MapIds { get; set; } = null;
 

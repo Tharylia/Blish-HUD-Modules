@@ -6,6 +6,44 @@ using System.Linq;
 
 public static class IEnumerableExtensions
 {
+    public static IEnumerable<TResult> SelectWithIndex<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, IEnumerable<TSource>, TResult> selector)
+    {
+        return SelectWithIndex(source, (element, index, sourceList, first, last) => selector(element, index, sourceList));
+    }
+
+    public static IEnumerable<TResult> SelectWithIndex<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, IEnumerable<TSource>, bool, bool, TResult> selector)
+    {
+        var newList = new List<TResult>();
+        var sourceList = source.ToList();
+        for (int i = 0; i < sourceList.Count; i++)
+        {
+            var first = i == 0;
+            var last = i == sourceList.Count - 1;
+            newList.Add(selector(sourceList[i], i, source, first, last));
+        }
+
+        return newList.AsEnumerable();
+    }
+
+    public static IEnumerable<TResult> SelectManyWithIndex<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, IEnumerable<TSource>, IEnumerable<TResult>> selector)
+    {
+        return SelectManyWithIndex(source, (element, index, sourceList, first, last) => selector(element, index, sourceList));
+    }
+
+    public static IEnumerable<TResult> SelectManyWithIndex<TSource, TResult>(this IEnumerable<TSource> source, Func<TSource, int, IEnumerable<TSource>, bool, bool, IEnumerable<TResult>> selector)
+    {
+        var newList = new List<TResult>();
+        var sourceList = source.ToList();
+        for (int i = 0; i < sourceList.Count; i++)
+        {
+            var first = i == 0;
+            var last = i == sourceList.Count - 1;
+            newList.AddRange(selector(sourceList[i], i, source, first, last));
+        }
+
+        return newList.AsEnumerable();
+    }
+
     public static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
     {
         HashSet<TKey> known = new HashSet<TKey>();

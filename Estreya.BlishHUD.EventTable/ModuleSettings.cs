@@ -64,6 +64,8 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<EventChatFormat> ReminderEventChatFormat { get; private set; }
     public SettingEntry<bool> ShowEventTimersOnMap { get; private set; }
     public SettingEntry<bool> ShowEventTimersInWorld { get; private set; }
+    public SettingEntry<int> EventTimersRenderDistance { get; private set; }
+    public SettingEntry<List<string>> DisabledEventTimerSettingKeys { get; private set; }
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
     public SettingEntry<bool> ShowDynamicEventInWorld { get; private set; }
@@ -171,6 +173,11 @@ public class ModuleSettings : BaseModuleSettings
         this.ShowEventTimersOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersOnMap), true, () => "Show Event Timers on Map", () => "Whether the event timers should be shown on the map.");
 
         this.ShowEventTimersInWorld = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersInWorld), true, () => "Show Event Timers in World", () => "Whether event timers should be shown inside the world.");
+
+        this.EventTimersRenderDistance = this.GlobalSettings.DefineSetting(nameof(this.EventTimersRenderDistance), 75, () => "Event Timer Render Distance", () => "Defines the max render distance for in-world event timers.");
+        this.EventTimersRenderDistance.SetRange(25, 500);
+
+        this.DisabledEventTimerSettingKeys = this.GlobalSettings.DefineSetting(nameof(this.DisabledEventTimerSettingKeys), new List<string>(), () => "Disabled Event Timers", () => "Defines which event timers are disabled.");
 
         this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 

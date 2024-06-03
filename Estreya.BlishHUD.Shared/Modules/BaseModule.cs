@@ -56,28 +56,31 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected Logger Logger { get; }
 
+    protected const string LIVE_FILE_SERVER_HOSTNAME = "files.estreya.de";
+    protected const string DEV_FILE_SERVER_HOSTNAME = "files.estreya.dev";
+
     /// <summary>
     ///     The file root url for the Estreya file service.
     /// </summary>
-    protected const string FILE_ROOT_URL = "https://files.estreya.de";
+    protected string FILE_ROOT_URL => $"https://{(this.ModuleSettings.UseDevelopmentAPI.Value ? DEV_FILE_SERVER_HOSTNAME : LIVE_FILE_SERVER_HOSTNAME)}";
 
     /// <summary>
     ///     The blish hud sub route from the <see cref="FILE_ROOT_URL" />.
     /// </summary>
-    protected const string FILE_BLISH_ROOT_URL = $"{FILE_ROOT_URL}/blish-hud";
+    protected string FILE_BLISH_ROOT_URL => $"{this.FILE_ROOT_URL}/blish-hud";
 
     /// <summary>
     ///     The module sub route from the <see cref="FILE_BLISH_ROOT_URL" />.
     /// </summary>
-    protected string MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
+    protected string MODULE_FILE_URL => $"{this.FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
 
     protected const string LIVE_API_HOSTNAME = "api.estreya.de";
-    protected const string DEBUG_API_HOSTNAME = "api.estreya.dev";
+    protected const string DEV_API_HOSTNAME = "api.estreya.dev";
 
     /// <summary>
     ///     The api root url for the Estreya BlishHUD api.
     /// </summary>
-    protected string API_ROOT_URL => $"https://{(this.ModuleSettings.UseDebugAPI.Value ? DEBUG_API_HOSTNAME : LIVE_API_HOSTNAME)}/blish-hud";
+    protected string API_ROOT_URL => $"https://{(this.ModuleSettings.UseDevelopmentAPI.Value ? DEV_API_HOSTNAME : LIVE_API_HOSTNAME)}/blish-hud";
 
     private string API_HEALTH_URL => $"{this.API_ROOT_URL}/health";
 
@@ -270,9 +273,10 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected override async Task LoadAsync()
     {
-        if (this.ModuleSettings.UseDebugAPI.Value)
+        if (this.ModuleSettings.UseDevelopmentAPI.Value)
         {
-            this.Logger.Info($"User configured module to use debug api: {this.MODULE_API_URL}");
+            this.Logger.Info($"User configured module to use development api: {this.MODULE_API_URL}");
+            ScreenNotification.ShowNotification("[Event Table] Using DEV API", ScreenNotification.NotificationType.Warning);
         }
 
         await this.CheckBackendHealth();
@@ -546,7 +550,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
             if (configurations.Items.Enabled)
             {
-                this.ItemService = new ItemService(configurations.Items, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
+                this.ItemService = new ItemService(configurations.Items, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), this.FILE_ROOT_URL);
                 this._services.Add(this.ItemService);
             }
 
@@ -597,7 +601,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.PointOfInterestService = new PointOfInterestService(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
+                this.PointOfInterestService = new PointOfInterestService(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), this.FILE_ROOT_URL);
                 this._services.Add(this.PointOfInterestService);
             }
 
@@ -608,7 +612,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.SkillService = new SkillService(configurations.Skills, this.Gw2ApiManager, this.IconService, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
+                this.SkillService = new SkillService(configurations.Skills, this.Gw2ApiManager, this.IconService, directoryPath, this.GetFlurlClient(), this.FILE_ROOT_URL);
                 this._services.Add(this.SkillService);
             }
 
@@ -628,7 +632,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
             if (configurations.Achievements.Enabled)
             {
-                this.AchievementService = new AchievementService(this.Gw2ApiManager, configurations.Achievements, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
+                this.AchievementService = new AchievementService(this.Gw2ApiManager, configurations.Achievements, directoryPath, this.GetFlurlClient(), this.FILE_ROOT_URL);
                 this._services.Add(this.AchievementService);
             }
 
@@ -1034,7 +1038,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected void HandleLoadingSpinner(bool show, string text = null)
     {
-        show &= this.CornerIcon != null;
+        show &= this.CornerIcon != null && this.CornerIcon.Visible;
 
         this._loadingSpinner ??= new LoadingSpinner
         {

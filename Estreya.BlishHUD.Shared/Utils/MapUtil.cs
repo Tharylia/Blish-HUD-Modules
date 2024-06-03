@@ -431,7 +431,14 @@ public class MapUtil : IDisposable
 
     public void RemoveEntity(MapEntity mapEntity)
     {
-        this._flatMap.RemoveEntity(mapEntity);
+        this.RemoveEntities(mapEntity);
+    }
+    public void RemoveEntities(params MapEntity[] mapEntity)
+    {
+        foreach (MapEntity entity in mapEntity)
+        {
+            this._flatMap.RemoveEntity(entity);
+        }
     }
 
     private async Task<NavigationResult> MoveMouse(int x, int y, bool sendToSystem = false)

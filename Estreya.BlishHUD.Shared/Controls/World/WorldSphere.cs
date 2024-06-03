@@ -139,11 +139,7 @@ public class WorldSphere : WorldEntity
 
     protected override void InternalRender(GraphicsDevice graphicsDevice, IWorld world, ICamera camera)
     {
-        Matrix modelMatrix = Matrix.CreateScale(this.Scale);
-
-        Vector3 position = this.Position + new Vector3(0, 0, /*this.HeightOffset*/0);
-
-        modelMatrix *= Matrix.CreateTranslation(position);
+        Matrix modelMatrix = this.GetMatrix(graphicsDevice, world,camera);
 
         this.RenderEffect.View = GameService.Gw2Mumble.PlayerCamera.View;
         this.RenderEffect.Projection = GameService.Gw2Mumble.PlayerCamera.Projection;

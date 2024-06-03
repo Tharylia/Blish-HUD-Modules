@@ -214,7 +214,7 @@ public class ContextManager : IDisposable, IUpdatable
                 Duration = eArgsContent.Duration,
                 Filler = eArgsContent.Filler,
                 Icon = eArgsContent.Icon,
-                Locations = eArgsContent.Locations,
+                Location = eArgsContent.Location,
                 MapIds = eArgsContent.MapIds,
                 Offset = eArgsContent.Offset,
                 Repeat = eArgsContent.Repeat,
