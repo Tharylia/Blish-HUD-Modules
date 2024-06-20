@@ -670,14 +670,15 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     private async void EventNotification_Click(object sender, MouseEventArgs e)
     {
         var notification = sender as EventNotification;
-        var waypoint = notification?.Model?.GetWaypoint(this.AccountService.Account);
+        var model = notification?.Model;
+        var waypoint = model?.GetWaypoint(this.AccountService?.Account);
 
         switch (this.ModuleSettings.ReminderLeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (notification is not null && notification.Model is not null && !string.IsNullOrWhiteSpace(waypoint))
+                if (model is not null && !string.IsNullOrWhiteSpace(waypoint))
                 {
-                    var eventChatFormat = notification.Model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, notification.Model.GetNextOccurrence(), this.AccountService.Account);
+                    var eventChatFormat = model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, model.GetNextOccurrence(), this.AccountService?.Account);
                     if (GameService.Input.Keyboard.ActiveModifiers == ModifierKeys.Ctrl)
                     {
                         try
@@ -688,7 +689,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                         }
                         catch (Exception ex)
                         {
-                            this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {notification.Model.SettingKey}");
+                            this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {model.SettingKey}");
                             ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
                         }
                     }
@@ -697,7 +698,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                         await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
                         ScreenNotification.ShowNotification(new[]
                         {
-                            notification.Model.Name,
+                            model.Name,
                             "Copied to clipboard!"
                         });
                     }
@@ -705,7 +706,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (notification is null || notification.Model is null || string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
+                if (string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
                 {
                     break;
                 }

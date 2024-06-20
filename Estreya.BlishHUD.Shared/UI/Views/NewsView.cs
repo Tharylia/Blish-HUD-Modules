@@ -47,7 +47,7 @@ public class NewsView : BaseView
             CanScroll = true
         };
 
-        List<News> sortedNews = this._newsService.News.OrderByDescending(n => n.Timestamp).ToList();
+        List<News> sortedNews = this._newsService?.News?.OrderByDescending(n => n.Timestamp).ToList() ?? new List<News>();
         if (sortedNews.Count > 0)
         {
             foreach (News news in sortedNews)

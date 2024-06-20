@@ -915,9 +915,12 @@ public class EventArea : RenderTarget2DControl
                     // Check if we got this occurence already added
                     using (this._controlLock.Lock())
                     {
-                        if (this._controlEvents[categoryKey].Any(addedEvent => addedEvent.Occurence == occurence))
+                        if (this._controlEvents.TryGetValue(categoryKey, out var controlEvent))
                         {
-                            continue;
+                            if (controlEvent.Any(addedEvent => addedEvent.Occurence == occurence))
+                            {
+                                continue;
+                            }
                         }
                     }
 
