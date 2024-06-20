@@ -47,7 +47,7 @@ public class EventTimersSettingsView : BaseSettingsView
             ManageEventsView view = new ManageEventsView(allEvents, null, () => this._moduleSettings.DisabledEventTimerSettingKeys.Value, this._moduleSettings, this._accountService, this.APIManager, this.IconService, this.TranslationService);
             view.EventChanged += this.ManageView_EventChanged;
 
-            this._manageEventsWindow.Show(view);
+            await this._manageEventsWindow.Show(view);
         });
 
         this.RenderEmptyLine(parent);

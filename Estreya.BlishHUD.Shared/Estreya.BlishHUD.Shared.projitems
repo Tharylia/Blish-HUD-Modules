@@ -27,6 +27,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ListView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapEntity.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Menu.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\MessageContainer.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\RenderTarget2DControl.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\ScreenNotification.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\SmallInteract.cs" />
@@ -166,6 +167,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Threading\Events\AsyncEventHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\BaseView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\BlishHUDAPIView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\ContainerView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\DonationView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\GitHubCreateIssueView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\ModuleSettingsView.cs" />

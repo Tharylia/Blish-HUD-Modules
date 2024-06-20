@@ -543,12 +543,12 @@ public abstract class Window : Container, IWindow, IViewContainer
         }
     }
 
-    public void SetView(IView view)
+    public async Task SetView(IView view)
     {
-        this.SetView(view, true);
+        await this.SetView(view, true);
     }
 
-    private void SetView(IView view, bool unloadCurrent = true)
+    private async Task SetView(IView view, bool unloadCurrent = true)
     {
         this.ClearView(view == null || unloadCurrent);
         if (view != null)
@@ -559,16 +559,16 @@ public abstract class Window : Container, IWindow, IViewContainer
             {
             });
             view.Loaded += this.OnViewBuilt;
-            view.DoLoad(progress).ContinueWith(this.BuildView);
+            await view.DoLoad(progress).ContinueWith(this.BuildView);
         }
     }
 
     //
     // Summary:
     //     Shows the window with the provided view.
-    public void Show(IView view)
+    public async Task Show(IView view)
     {
-        this.SetView(view);
+        await this.SetView(view);
         this.Show();
     }
 
@@ -718,16 +718,16 @@ public abstract class Window : Container, IWindow, IViewContainer
         try
         {
             await Task.Delay(this.RebuildDelay, cancellationToken);
-            this.Rebuild();
+            await this.Rebuild();
         }
         catch (OperationCanceledException) { }
     }
 
-    private void Rebuild()
+    private async Task Rebuild()
     {
         if (this.RebuildViewAfterResize && this.CurrentView != null)
         {
-            this.SetView(this.CurrentView, this.UnloadOnRebuild);
+            await this.SetView(this.CurrentView, this.UnloadOnRebuild);
         }
     }
 
