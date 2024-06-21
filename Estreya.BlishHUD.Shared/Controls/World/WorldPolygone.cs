@@ -13,27 +13,32 @@ using System.Linq;
 public class WorldPolygone : WorldEntity
 {
     private readonly Color _color;
-    private readonly Func<WorldEntity, bool> _renderCondition;
-    private readonly VertexPositionColor[] _vertexData;
+    private VertexPositionColor[] _vertexData;
 
-    public WorldPolygone(Vector3 position, Vector3[] points, Color color, Func<WorldEntity, bool> renderCondition = null) : base(position, 1)
+    public WorldPolygone(Vector3 position, Vector3[] points, Color color) : base(position, 1)
     {
         if (points.Length < 2 || points.Length % 2 != 0)
         {
             throw new ArgumentOutOfRangeException("points");
         }
 
-        this.Points = points;
         this._color = color;
-        this._renderCondition = renderCondition;
-        this._vertexData = this.BuildVertices();
+        this.Points = points; // This triggers rebuild of vertices
     }
 
     public WorldPolygone(Vector3 position, Vector3[] points) : this(position, points, Color.White)
     {
     }
 
-    public Vector3[] Points { get; }
+    private Vector3[] _points;
+
+    public Vector3[] Points { get => this._points;
+        set
+        {
+            this._points = value;
+            this._vertexData = this.BuildVertices();
+        }
+    }
 
     private VertexPositionColor[] BuildVertices()
     {
@@ -45,7 +50,7 @@ public class WorldPolygone : WorldEntity
         }
 
         using GraphicsDeviceContext ctx = GameService.Graphics.LendGraphicsDeviceContext();
-        VertexBuffer sectionBuffer = new VertexBuffer(ctx.GraphicsDevice, VertexPositionColor.VertexDeclaration, verts.Length, BufferUsage.WriteOnly);
+        using VertexBuffer sectionBuffer = new VertexBuffer(ctx.GraphicsDevice, VertexPositionColor.VertexDeclaration, verts.Length, BufferUsage.WriteOnly);
         sectionBuffer.SetData(verts);
 
         return verts;
@@ -53,16 +58,7 @@ public class WorldPolygone : WorldEntity
 
     protected override void InternalRender(GraphicsDevice graphicsDevice, IWorld world, ICamera camera)
     {
-        if (this._renderCondition != null && !this._renderCondition(this))
-        {
-            return;
-        }
-
-        Matrix modelMatrix = Matrix.CreateScale(this.Scale);
-
-        Vector3 position = this.Position + new Vector3(0, 0, /*this.HeightOffset*/0);
-
-        modelMatrix *= Matrix.CreateTranslation(position);
+        var modelMatrix = this.GetMatrix(graphicsDevice, world, camera);
 
         this.RenderEffect.View = GameService.Gw2Mumble.PlayerCamera.View;
         this.RenderEffect.Projection = GameService.Gw2Mumble.PlayerCamera.Projection;

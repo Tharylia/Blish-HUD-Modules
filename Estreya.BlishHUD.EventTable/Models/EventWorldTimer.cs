@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public struct EventMapLocation
+public class EventWorldTimer
 {
     [JsonProperty("x")]
     public float X;
@@ -15,6 +15,9 @@ public struct EventMapLocation
     [JsonProperty("y")]
     public float Y;
 
-    [JsonProperty("radius")]
-    public float Radius;
+    [JsonProperty("z")]
+    public float Z;
+
+    [JsonProperty("rotation")]
+    public float Rotation;
 }

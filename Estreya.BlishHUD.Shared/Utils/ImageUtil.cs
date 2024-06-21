@@ -1,8 +1,10 @@
 ﻿namespace Estreya.BlishHUD.Shared.Utils;
 
+using Microsoft.Xna.Framework.Graphics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.IO;
 
 public static class ImageUtil
 {
@@ -36,5 +38,15 @@ public static class ImageUtil
         }
 
         return destImage;
+    }
+
+    public static Texture2D ToTexture2D(this Image image, GraphicsDevice graphicsDevice)
+    {
+        using var stream = new MemoryStream();
+
+        image.Save(stream, ImageFormat.Png);
+        stream.Position = 0;
+
+        return Texture2D.FromStream(graphicsDevice, stream);
     }
 }

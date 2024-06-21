@@ -3,6 +3,7 @@
 using Blish_HUD;
 using Blish_HUD.Controls;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Controls.Input;
 using Microsoft.Xna.Framework;
 using MonoGame.Extended.BitmapFonts;
 using Shared.Services;
@@ -82,19 +83,19 @@ public class GeneralSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(parent);
 
-        this.RenderDebugGroup(parent);
+        this.RenderDevelopmentGroup(parent);
 
         this.RenderEmptyLine(parent);
     }
 
-    private void RenderDebugGroup(FlowPanel parent)
+    private void RenderDevelopmentGroup(FlowPanel parent)
     {
         var groupPanel = new FlowPanel()
         {
             Parent = parent,
             OuterControlPadding = new Vector2(20,20),
             ShowBorder = true,
-            Title = "Debug",
+            Title = "Development",
             CanCollapse = true,
             Collapsed = true,
             HeightSizingMode =SizingMode.AutoSize,
@@ -103,13 +104,13 @@ public class GeneralSettingsView : BaseSettingsView
         };
 
         var lblBuilder = new FormattedLabelBuilder().SetWidth(groupPanel.ContentRegion.Width).AutoSizeHeight().SetVerticalAlignment(VerticalAlignment.Top);
-        lblBuilder.CreatePart("Use the Debug API happens on your own risk!", b => { b.MakeBold(); })
-            .CreatePart("\n", b => { })
+        lblBuilder.CreatePart("Using the Development API happens on your own risk!", b => { b.MakeBold().SetFontSize(ContentService.FontSize.Size24); })
+            .CreatePart("\n \n", b => { })
             .CreatePart("The API can be offline or in a broken state for your module version at any given time!", b => { })
             .CreatePart("\n", b => { })
             .CreatePart("This could lead to you not being able to use the module at all to reset this setting via the UI.", b => { })
             .CreatePart("\n \n", b => { })
-            .CreatePart($"In this case open the settings.json file and set the option \"{this._moduleSettings.UseDebugAPI.EntryKey}\" back to false.", b => { })
+            .CreatePart($"In this case open the settings.json file and set the option \"{this._moduleSettings.UseDevelopmentAPI.EntryKey}\" back to false.", b => { })
             .CreatePart("\n \n", b => { })
             .CreatePart("Changing this option needs a complete restart of BlishHUD!", b => { b.MakeItalic(); });
 
@@ -118,7 +119,19 @@ public class GeneralSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(groupPanel);
 
-        this.RenderBoolSetting(groupPanel, this._moduleSettings.UseDebugAPI);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.UseDevelopmentAPI, async (oldVal, newVal) =>
+        {
+            if (!newVal) return true;
+
+            var confirmDialog = new ConfirmDialog(
+                "Activating Development API", 
+                "You are in the process of enabling the development api.\n\nThis API can be offline at any time preventing you from using the module!", 
+                this.IconService);
+
+            var result = await confirmDialog.ShowDialog();
+
+            return result == System.Windows.Forms.DialogResult.OK;
+        });
 
         this.RenderEmptyLine(groupPanel, (int)groupPanel.OuterControlPadding.Y);
     }

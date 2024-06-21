@@ -132,23 +132,20 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         await this.DynamicEventHandler.AddDynamicEventsToMap();
         await this.DynamicEventHandler.AddDynamicEventsToWorld();
 
+        this.EventTimerHandler = new EventTimerHandler(async () =>
+        {
+            using (await this._eventCategoryLock.LockAsync())
+            {
+                return this._eventCategories.SelectMany(ec => ec.Events).ToList();
+            }
+        }, () => this.NowUTC, this.MapUtil, this.Gw2ApiManager, this.ModuleSettings, this.TranslationService, this.IconService);
+        this.EventTimerHandler.FoundLostEntities += this.EventTimerHandler_FoundLostEntities;
+
         this.ModuleSettings.IncludeSelfHostedEvents.SettingChanged += this.IncludeSelfHostedEvents_SettingChanged;
 
         this.AddAllAreas();
 
         await this.LoadEvents();
-
-        //this.EventTimerHandler = new EventTimerHandler(async () =>
-        //{
-        //    using (await this._eventCategoryLock.LockAsync())
-        //    {
-        //        return this._eventCategories.SelectMany(ec => ec.Events).ToList();
-        //    }
-        //}, () => this.NowUTC, this.MapUtil, this.Gw2ApiManager, this.ModuleSettings, this.TranslationService);
-        //this.EventTimerHandler.FoundLostEntities += this.EventTimerHandler_FoundLostEntities;
-
-        //await this.EventTimerHandler.AddEventTimersToMap();
-        //await this.EventTimerHandler.AddEventTimersToWorld();
 
         sw.Stop();
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
@@ -235,10 +232,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.AudioService,
             async () =>
             {
-                using (await this._eventCategoryLock.LockAsync())
-                {
-                    return this._eventCategories.SelectMany(ec => ec.Events);
-                }
+                var categories = await this.GetAllEvents();
+                return categories.SelectMany(ec => ec.Events);
             });
 
         this._contextManager.ReloadEvents += this.ContextManager_ReloadEvents;
@@ -369,6 +364,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 this.ReportErrorState(Models.ModuleErrorStateGroup.LOADING_EVENTS, $"Failed loading events.");
             }
         }
+
+        // Needs to be outside of lock
+        await (this.EventTimerHandler?.NotifyUpdatedEvents() ?? Task.CompletedTask);
     }
 
     private async Task<Dictionary<string, List<SelfHostedEventEntry>>> LoadSelfHostedEvents()
@@ -485,6 +483,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         this.DynamicEventHandler?.Update(gameTime);
+        this.EventTimerHandler?.Update(gameTime);
         this._contextManager?.Update(gameTime);
 
         UpdateUtil.Update(this.CheckDrawerSettings, gameTime, _checkDrawerSettingInterval.TotalMilliseconds, ref this._lastCheckDrawerSettings);
@@ -563,6 +562,14 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }
 
         return show;
+    }
+
+    private async Task<List<Models.EventCategory>> GetAllEvents()
+    {
+        using (await this._eventCategoryLock.LockAsync())
+        {
+            return this._eventCategories.ToArray().ToList();
+        }
     }
 
     /// <summary>
@@ -663,14 +670,15 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     private async void EventNotification_Click(object sender, MouseEventArgs e)
     {
         var notification = sender as EventNotification;
-        var waypoint = notification?.Model?.GetWaypoint(this.AccountService.Account);
+        var model = notification?.Model;
+        var waypoint = model?.GetWaypoint(this.AccountService?.Account);
 
         switch (this.ModuleSettings.ReminderLeftClickAction.Value)
         {
             case LeftClickAction.CopyWaypoint:
-                if (notification is not null && notification.Model is not null && !string.IsNullOrWhiteSpace(waypoint))
+                if (model is not null && !string.IsNullOrWhiteSpace(waypoint))
                 {
-                    var eventChatFormat = notification.Model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, notification.Model.GetNextOccurence(), this.AccountService.Account);
+                    var eventChatFormat = model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, model.GetNextOccurrence(), this.AccountService?.Account);
                     if (GameService.Input.Keyboard.ActiveModifiers == ModifierKeys.Ctrl)
                     {
                         try
@@ -681,7 +689,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                         }
                         catch (Exception ex)
                         {
-                            this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {notification.Model.SettingKey}");
+                            this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {model.SettingKey}");
                             ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
                         }
                     }
@@ -690,7 +698,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                         await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
                         ScreenNotification.ShowNotification(new[]
                         {
-                            notification.Model.Name,
+                            model.Name,
                             "Copied to clipboard!"
                         });
                     }
@@ -698,7 +706,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
                 break;
             case LeftClickAction.NavigateToWaypoint:
-                if (notification is null || notification.Model is null || string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
+                if (string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
                 {
                     break;
                 }
@@ -961,6 +969,11 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.IconService.GetIcon("759448.png"),
             () => new DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             this.TranslationService.GetTranslation("dynamicEventsSettingsView-title", "Dynamic Events")));
+
+        this.SettingsWindow.Tabs.Add(new Tab(
+            this.IconService.GetIcon("759448.png"),
+            () => new EventTimersSettingsView(this.ModuleSettings, this.GetAllEvents, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.AccountService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            this.TranslationService.GetTranslation("eventTimersSettingsView-title", "Event Timers")));
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("156764.png"),

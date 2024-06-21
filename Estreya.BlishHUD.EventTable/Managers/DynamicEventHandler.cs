@@ -70,7 +70,8 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
     public void Update(GameTime gameTime)
     {
-        UpdateUtil.Update(this.CheckLostEntityReferences, gameTime, _checkLostEntitiesInterval.TotalMilliseconds, ref this._lastLostEntitiesCheck);
+        // This does not work in combination with EventTimers
+        //UpdateUtil.Update(this.CheckLostEntityReferences, gameTime, _checkLostEntitiesInterval.TotalMilliseconds, ref this._lastLostEntitiesCheck);
 
         while (this._entityQueue.TryDequeue(out (string Key, bool Add) element))
         {
@@ -434,7 +435,10 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         }
 
         IEnumerable<Vector3> allPoints = points.Concat(connectionPoints);
-        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), ev.GetColorAsXnaColor(), renderCondition);
+        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), ev.GetColorAsXnaColor())
+        {
+            RenderCondition = renderCondition
+        };
     }
 
     private WorldEntity GetCylinder(DynamicEvent ev, Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
@@ -521,7 +525,10 @@ public class DynamicEventHandler : IDisposable, IUpdatable
         IEnumerable<Vector3> allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
 
         
-        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), ev.GetColorAsXnaColor(), renderCondition);
+        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), ev.GetColorAsXnaColor())
+        {
+            RenderCondition = renderCondition
+        };
     }
 
     private WorldEntity GetPolygone(DynamicEvent dynamicEvent, Map map, Vector3 centerAsWorldMeters, Func<WorldEntity, bool> renderCondition)
@@ -589,7 +596,10 @@ public class DynamicEventHandler : IDisposable, IUpdatable
 
         IEnumerable<Vector3> allPoints = perZRangePoints.SelectMany(x => x).Concat(connectPoints);
 
-        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), dynamicEvent.GetColorAsXnaColor(), renderCondition);
+        return new WorldPolygone(centerAsWorldMeters, allPoints.ToArray(), dynamicEvent.GetColorAsXnaColor())
+        {
+            RenderCondition = renderCondition
+        };
     }
 
     private void CheckLostEntityReferences()

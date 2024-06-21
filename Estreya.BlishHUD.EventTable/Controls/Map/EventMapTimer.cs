@@ -19,22 +19,24 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class EventTimer : MapEntity
+public class EventMapTimer : MapEntity
 {
     private readonly Event _ev;
+    private readonly Models.EventMapTimer _mapTimer;
     private readonly Color _color;
     private readonly float _thickness;
     private readonly Func<DateTime> _getNow;
     private readonly TranslationService _translationService;
 
-    private float X => this._ev.Locations.Map.X;
-    private float Y => this._ev.Locations.Map.Y;
+    private float X => this._mapTimer.X;
+    private float Y => this._mapTimer.Y;
 
-    private float Radius => this._ev.Locations.Map.Radius * (1 / 24f);
+    private float Radius => this._mapTimer.Radius * (1 / 24f);
 
-    public EventTimer(Models.Event ev, Color color, Func<DateTime> getNow, TranslationService translationService, float thickness = 1)
+    public EventMapTimer(Models.Event ev, Models.EventMapTimer mapTimer, Color color, Func<DateTime> getNow, TranslationService translationService, float thickness = 1)
     {
         this._ev = ev;
+        this._mapTimer = mapTimer;
         this._color = color;
         this._thickness = thickness;
         this._getNow = getNow;
@@ -64,20 +66,20 @@ public class EventTimer : MapEntity
         var angleX = (radius - this._thickness) * (float)Math.Cos(angle);
         var angleY = (radius - this._thickness)* (float)Math.Sin(angle);
         var angleLineThickness = 3;
-        spriteBatch.DrawAngledLine(ContentService.Textures.Pixel, circle.Center, circle.Center + new Vector2(angleX, angleY), Color.Red, angleLineThickness);
+        //spriteBatch.DrawAngledLine(ContentService.Textures.Pixel, circle.Center, circle.Center + new Vector2(angleX, angleY), Color.Red, angleLineThickness);
 
         // Draw top line
         var topLineThickness = 3;
-        spriteBatch.DrawAngledLine(ContentService.Textures.Pixel, circle.Center, circle.Center + new Vector2(0, - (circle.Radius - this._thickness)), Color.Gray, topLineThickness);
+        //spriteBatch.DrawAngledLine(ContentService.Textures.Pixel, circle.Center, circle.Center + new Vector2(0, - (circle.Radius - this._thickness)), Color.Gray, topLineThickness);
 
-        if (GameService.Gw2Mumble.UI.MapScale <= 0.8f)
+        if (!GameService.Gw2Mumble.UI.IsMapOpen || GameService.Gw2Mumble.UI.MapScale <= 1f)
         {
-            var text = $"{this._ev.Name}: {this.GetEventDescription(now, startTime, endTime)}";
+            var text = $"{this._ev.Name}\n{this.GetEventDescription(now, startTime, endTime)}";
             var font = ContentService.Content.DefaultFont18;
             var textSize = font.MeasureString(text);
             var circleBottomCenter = circle.Center + new Vector2(0, circle.Radius);
-            var textLocation = new RectangleF(circleBottomCenter.X - textSize.Width / 2, circleBottomCenter.Y + 5, textSize.Width, textSize.Height);
-            spriteBatch.DrawString(text, font, textLocation, Color.Red, scale: 1);
+            var textLocation = new RectangleF(circleBottomCenter.X - textSize.Width / 2f, circleBottomCenter.Y + 10, textSize.Width +5, textSize.Height + 5 );
+            spriteBatch.DrawString(text, font, textLocation, Color.Red, scale: 1, horizontalAlignment:Blish_HUD.Controls.HorizontalAlignment.Center, verticalAlignment: Blish_HUD.Controls.VerticalAlignment.Top);
         }
 
         return circle.ToRectangleF();
@@ -116,7 +118,7 @@ public class EventTimer : MapEntity
         bool isNext = !isPrev && startTime > now;
         bool isCurrent = !isPrev && !isNext;
 
-        string description = $"{this._ev.Locations.Tooltip}\n";
+        string description = $"";
 
         if (isPrev)
         {

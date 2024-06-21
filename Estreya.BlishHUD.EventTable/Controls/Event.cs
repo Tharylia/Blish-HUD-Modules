@@ -205,7 +205,7 @@ public class Event : IDisposable
         bool isNext = !isPrev && this.StartTime > now;
         bool isCurrent = !isPrev && !isNext;
 
-        string description = $"{this.Model.Locations.Tooltip}{(!string.IsNullOrWhiteSpace(this.Model.Locations.Tooltip) ? "\n" : string.Empty)}\n";
+        string description = $"{this.Model.Location}{(!string.IsNullOrWhiteSpace(this.Model.Location) ? "\n" : string.Empty)}\n";
 
         if (isPrev)
         {

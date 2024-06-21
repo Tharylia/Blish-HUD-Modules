@@ -7,14 +7,14 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public struct EventLocations
+public class EventTimers
 {
-    [JsonProperty("tooltip")]
-    public string Tooltip;
+    [JsonProperty("mapId")]
+    public int MapID;
 
     [JsonProperty("map")]
-    public EventMapLocation Map;
+    public EventMapTimer[] Map;
 
     [JsonProperty("world")]
-    public float[] World;
+    public EventWorldTimer[] World;
 }

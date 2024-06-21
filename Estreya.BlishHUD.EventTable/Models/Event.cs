@@ -62,7 +62,9 @@ public class Event : IUpdatable
     [JsonConverter(typeof(DateJsonConverter))]
     public DateTime? StartingDate { get; set; }
 
-    [JsonProperty("locations")] public EventLocations Locations { get; set; }
+    [JsonProperty("location")] public string Location { get; set; }
+
+    [JsonProperty("timers")] public EventTimers[] Timers {  get; set; }
 
     [JsonProperty("mapIds")] public int[] MapIds { get; set; }
 
@@ -217,7 +219,14 @@ public class Event : IUpdatable
         this._remindedFor.Clear();
     }
 
-    public DateTime GetNextOccurence()
+    public DateTime GetCurrentOccurrence()
+    {
+        var now = this._getNowAction();
+
+        return this.Occurences.OrderBy(x => x).FirstOrDefault(x => x <= now && x.AddMinutes(this.Duration) >= now);
+    }
+
+    public DateTime GetNextOccurrence()
     {
         var now = this._getNowAction();
 
@@ -272,9 +281,9 @@ public class Event : IUpdatable
 
         return format switch
         {
-            EventChatFormat.Full => this._translationService.GetTranslation("event-chatText-format-full","Event \"{0}\" {1} in \"{2}\": {3}").FormatWith(this.Name, timeString, this.Locations.Tooltip,waypoint),
+            EventChatFormat.Full => this._translationService.GetTranslation("event-chatText-format-full","Event \"{0}\" {1} in \"{2}\": {3}").FormatWith(this.Name, timeString, this.Location,waypoint),
             EventChatFormat.WithTime => this._translationService.GetTranslation("event-chatText-format-withTime", "Event \"{0}\" {1}: {2}").FormatWith(this.Name, timeString, waypoint),
-            EventChatFormat.WithLocation => this._translationService.GetTranslation("event-chatText-format-withLocation", "Event \"{0}\" in \"{1}\": {2}").FormatWith(this.Name, this.Locations.Tooltip, waypoint),
+            EventChatFormat.WithLocation => this._translationService.GetTranslation("event-chatText-format-withLocation", "Event \"{0}\" in \"{1}\": {2}").FormatWith(this.Name, this.Location, waypoint),
             _ => waypoint,
         };
     }

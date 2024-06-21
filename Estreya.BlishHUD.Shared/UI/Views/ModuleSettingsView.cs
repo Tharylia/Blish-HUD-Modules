@@ -14,6 +14,7 @@ public class ModuleSettingsView : BaseView
 
     public event EventHandler OpenClicked;
     public event EventHandler CreateGithubIssueClicked;
+    public event EventHandler OpenMessageLogClicked;
 
     protected override Task<bool> InternalLoad(IProgress<string> progress)
     {
@@ -58,7 +59,7 @@ public class ModuleSettingsView : BaseView
             openSettingsButton.Width = (int)font.MeasureString(buttonText).Width;
         }
 
-        openSettingsButton.Location = new Point(Math.Max((parentPanel.Width / 2) - (openSettingsButton.Width / 2), 20), Math.Max((parentPanel.Height / 2) - openSettingsButton.Height, 20));
+        openSettingsButton.Location = new Point(Math.Max((parentPanel.Width / 2) - (openSettingsButton.Width / 2), 20), Math.Max((parentPanel.Height / 3) - openSettingsButton.Height, 20));
 
         openSettingsButton.Click += (s, e) => this.OpenClicked?.Invoke(this, EventArgs.Empty);
 
@@ -78,5 +79,22 @@ public class ModuleSettingsView : BaseView
         createGithubIssue.Location = new Point(Math.Max((parentPanel.Width / 2) - (createGithubIssue.Width / 2), 20), openSettingsButton.Bottom + 10);
 
         createGithubIssue.Click += (s, e) => this.CreateGithubIssueClicked?.Invoke(this, EventArgs.Empty);
+
+        string openMessageLogText = this.TranslationService.GetTranslation("moduleSettingsView-openMessageLogBtn", "Open Message Log");
+
+        StandardButton openMessageLog = new StandardButton
+        {
+            Parent = settingContainer,
+            Text = openMessageLogText,
+        };
+
+        if (font != null)
+        {
+            openMessageLog.Width = (int)font.MeasureString(openMessageLogText).Width;
+        }
+
+        openMessageLog.Location = new Point(Math.Max((parentPanel.Width / 2) - (openMessageLog.Width / 2), 20), createGithubIssue.Bottom + 10);
+
+        openMessageLog.Click += (s, e) => this.OpenMessageLogClicked?.Invoke(this, EventArgs.Empty);
     }
 }

@@ -9,6 +9,7 @@ using Blish_HUD.Input;
 using Blish_HUD.Modules;
 using Blish_HUD.Modules.Managers;
 using Blish_HUD.Settings;
+using Estreya.BlishHUD.Shared.Controls;
 using Estreya.BlishHUD.Shared.Controls.Input;
 using Estreya.BlishHUD.Shared.Net;
 using Estreya.BlishHUD.Shared.Services.Audio;
@@ -43,7 +44,6 @@ using System.Threading.Tasks;
 using UI.Views;
 using UI.Views.Settings;
 using Utils;
-using ScreenNotification = Controls.ScreenNotification;
 using TabbedWindow = Controls.TabbedWindow;
 
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : BaseModuleSettings where TModule : class
@@ -56,28 +56,31 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected Logger Logger { get; }
 
+    protected const string LIVE_FILE_SERVER_HOSTNAME = "files.estreya.de";
+    protected const string DEV_FILE_SERVER_HOSTNAME = "files.estreya.dev";
+
     /// <summary>
     ///     The file root url for the Estreya file service.
     /// </summary>
-    protected const string FILE_ROOT_URL = "https://files.estreya.de";
+    protected string FILE_ROOT_URL => $"https://{(this.ModuleSettings.UseDevelopmentAPI.Value ? DEV_FILE_SERVER_HOSTNAME : LIVE_FILE_SERVER_HOSTNAME)}";
 
     /// <summary>
     ///     The blish hud sub route from the <see cref="FILE_ROOT_URL" />.
     /// </summary>
-    protected const string FILE_BLISH_ROOT_URL = $"{FILE_ROOT_URL}/blish-hud";
+    protected string FILE_BLISH_ROOT_URL => $"{this.FILE_ROOT_URL}/blish-hud";
 
     /// <summary>
     ///     The module sub route from the <see cref="FILE_BLISH_ROOT_URL" />.
     /// </summary>
-    protected string MODULE_FILE_URL => $"{FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
+    protected string MODULE_FILE_URL => $"{this.FILE_BLISH_ROOT_URL}/{this.UrlModuleName}";
 
     protected const string LIVE_API_HOSTNAME = "api.estreya.de";
-    protected const string DEBUG_API_HOSTNAME = "api.estreya.dev";
+    protected const string DEV_API_HOSTNAME = "api.estreya.dev";
 
     /// <summary>
     ///     The api root url for the Estreya BlishHUD api.
     /// </summary>
-    protected string API_ROOT_URL => $"https://{(this.ModuleSettings.UseDebugAPI.Value ? DEBUG_API_HOSTNAME : LIVE_API_HOSTNAME)}/blish-hud";
+    protected string API_ROOT_URL => $"https://{(this.ModuleSettings.UseDevelopmentAPI.Value ? DEV_API_HOSTNAME : LIVE_API_HOSTNAME)}/blish-hud";
 
     private string API_HEALTH_URL => $"{this.API_ROOT_URL}/health";
 
@@ -167,6 +170,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected CornerIcon CornerIcon { get; set; }
 
     private LoadingSpinner _loadingSpinner;
+
+    protected MessageContainer MessageContainer { get; private set; }
 
     protected TabbedWindow SettingsWindow { get; private set; }
 
@@ -270,9 +275,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected override async Task LoadAsync()
     {
-        if (this.ModuleSettings.UseDebugAPI.Value)
+        await Task.Factory.StartNew(this.InitializeEssentialServices, TaskCreationOptions.LongRunning).Unwrap();
+
+        if (this.ModuleSettings.UseDevelopmentAPI.Value)
         {
-            this.Logger.Info($"User configured module to use debug api: {this.MODULE_API_URL}");
+            this.Logger.Info($"User configured module to use development api: {this.MODULE_API_URL}");
+            await this.MessageContainer.Add(this, MessageContainer.MessageType.Warning, "Using Development API");
         }
 
         await this.CheckBackendHealth();
@@ -305,7 +313,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// <summary>
     ///     Checks if the current module satisfies all api backend criteria.
     /// </summary>
-    /// <param name="showScreenNotification">Whether a failure to satisfy all criteria should be shown via <see cref="Blish_HUD.Controls.ScreenNotification"/>.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task VerifyModuleState()
     {
@@ -339,11 +346,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         if (response.StatusCode != HttpStatusCode.Forbidden)
         {
             var content = await response.Content.ReadAsStringAsync();
-            ScreenNotification.ShowNotification(new string[]
-            {
-                $"The module \"{this.Name}\" could not verify itself.",
-                "Please check the latest log for more information."
-            }, ScreenNotification.NotificationType.Error, duration: 10);
+            await this.MessageContainer.Add(this, MessageContainer.MessageType.Error, $"The module \"{this.Name}\" could not verify itself. Please check the latest log for more information.");
 
             this.Logger.Error($"Module validation failed with unexpected status code {response.StatusCode}: {content}");
             this.ReportErrorState(ModuleErrorStateGroup.MODULE_VALIDATION, $"Module validation failed. Check latest log for more information.");
@@ -360,11 +363,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         catch (Exception)
         {
             var content = await response.Content.ReadAsStringAsync();
-            ScreenNotification.ShowNotification(new string[]
-            {
-                $"The module \"{this.Name}\" could not verify itself.",
-                "Please check the latest log for more information."
-            }, ScreenNotification.NotificationType.Error, duration: 10);
+            await this.MessageContainer.Add(this, MessageContainer.MessageType.Error, $"The module \"{this.Name}\" could not verify itself. Please check the latest log for more information.");
 
             throw new ModuleInvalidException($"Could not read module validation response: {content}");
         }
@@ -380,7 +379,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             messages.Add(validationResponse.Message ?? response.ReasonPhrase);
         }
 
-        ScreenNotification.ShowNotification(messages.ToArray(), ScreenNotification.NotificationType.Error, duration: 10);
+        await this.MessageContainer.Add(this, MessageContainer.MessageType.Error, $"\n{string.Join("\n",messages)}");
 
         throw new ModuleInvalidException(validationResponse.Message);
     }
@@ -418,11 +417,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             this.ReportErrorState(ModuleErrorStateGroup.BACKEND_UNAVAILABLE, "Backend unavailable.");
 
-            ScreenNotification.ShowNotification(new string[]
-            {
-                $"The backend for \"{this.Name}\" is unavailable.",
-                "Check Estreya BlishHUD Discord for news."
-            }, ScreenNotification.NotificationType.Error, duration: 10);
+            await this.MessageContainer.Add(this, MessageContainer.MessageType.Error, $"The backend for \"{this.Name}\" is unavailable. Check Estreya BlishHUD Discord for news.");
 
             await (this.BackendConnectionLost?.Invoke(this) ?? Task.CompletedTask);
         }
@@ -441,7 +436,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 return;
             }
 
-            Blish_HUD.Controls.ScreenNotification.ShowNotification($"The backend for \"{this.Name}\" is back online.", Blish_HUD.Controls.ScreenNotification.NotificationType.Info, duration: 5);
+            await this.MessageContainer.Add(this, MessageContainer.MessageType.Info, $"The backend for \"{this.Name}\" is back online.");
+
             await (this.BackendConnectionRestored?.Invoke(this) ?? Task.CompletedTask);
         }
     }
@@ -458,42 +454,19 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected abstract string GetDirectoryName();
 
-    /// <summary>
-    ///     Initializes all services and starts them.
-    /// </summary>
-    /// <exception cref="ArgumentNullException">Gets thrown if the directory path could not be loaded for depending services.</exception>
-    private async Task InitializeServices()
+    protected virtual Task OnAfterEssentialsServicesInitialized()
     {
-        this.Logger.Debug("Initialize states");
-        string directoryName = this.GetDirectoryName();
+        this.MessageContainer = new MessageContainer(this.Gw2ApiManager, this.ModuleSettings, this.TranslationService, this.IconService);
 
-        string directoryPath = null;
-        if (!string.IsNullOrWhiteSpace(directoryName))
-        {
-            directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
-        }
+        return Task.CompletedTask;
+    }
 
+    private async Task InitializeEssentialServices()
+    {
         using (await this._servicesLock.LockAsync())
         {
             ServiceConfigurations configurations = new ServiceConfigurations();
             this.ConfigureServices(configurations);
-
-            if (configurations.BlishHUDAPI.Enabled)
-            {
-                if (this.PasswordManager == null)
-                {
-                    throw new ArgumentNullException(nameof(this.PasswordManager));
-                }
-
-                this.BlishHUDAPIService = new BlishHudApiService(configurations.BlishHUDAPI, this.ModuleSettings.BlishAPIUsername, this.PasswordManager, this.GetFlurlClient(), this.API_ROOT_URL);
-                this._services.Add(this.BlishHUDAPIService);
-            }
-
-            if (configurations.Account.Enabled)
-            {
-                this.AccountService = new AccountService(configurations.Account, this.Gw2ApiManager);
-                this._services.Add(this.AccountService);
-            }
 
             this.IconService = new IconService(new APIServiceConfiguration
             {
@@ -531,12 +504,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             }, this.GetFlurlClient(), this.API_ROOT_URL, this.Name, this.Namespace, this.ModuleSettings, this.IconService);
             this._services.Add(this.MetricsService);
 
-            if (configurations.Audio.Enabled)
-            {
-                this.AudioService = new AudioService(configurations.Audio, directoryPath);
-                this._services.Add(this.AudioService);
-            }
-
             this.ChatService = new ChatService(new ServiceConfiguration
             {
                 Enabled = true,
@@ -544,9 +511,58 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             });
             this._services.Add(this.ChatService);
 
+            await this.OnAfterEssentialsServicesInitialized();
+        }
+
+        await this.StartServices();
+    }
+
+    /// <summary>
+    ///     Initializes all services and starts them.
+    /// </summary>
+    /// <exception cref="ArgumentNullException">Gets thrown if the directory path could not be loaded for depending services.</exception>
+    private async Task InitializeServices()
+    {
+        this.Logger.Debug("Initialize services");
+        string directoryName = this.GetDirectoryName();
+
+        string directoryPath = null;
+        if (!string.IsNullOrWhiteSpace(directoryName))
+        {
+            directoryPath = this.DirectoriesManager.GetFullDirectoryPath(directoryName);
+        }
+
+        using (await this._servicesLock.LockAsync())
+        {
+            ServiceConfigurations configurations = new ServiceConfigurations();
+            this.ConfigureServices(configurations);
+
+            if (configurations.BlishHUDAPI.Enabled)
+            {
+                if (this.PasswordManager == null)
+                {
+                    throw new ArgumentNullException(nameof(this.PasswordManager));
+                }
+
+                this.BlishHUDAPIService = new BlishHudApiService(configurations.BlishHUDAPI, this.ModuleSettings.BlishAPIUsername, this.PasswordManager, this.GetFlurlClient(), this.API_ROOT_URL);
+                this._services.Add(this.BlishHUDAPIService);
+            }
+
+            if (configurations.Account.Enabled)
+            {
+                this.AccountService = new AccountService(configurations.Account, this.Gw2ApiManager);
+                this._services.Add(this.AccountService);
+            }
+
+            if (configurations.Audio.Enabled)
+            {
+                this.AudioService = new AudioService(configurations.Audio, directoryPath);
+                this._services.Add(this.AudioService);
+            }
+
             if (configurations.Items.Enabled)
             {
-                this.ItemService = new ItemService(configurations.Items, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
+                this.ItemService = new ItemService(configurations.Items, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), this.FILE_ROOT_URL);
                 this._services.Add(this.ItemService);
             }
 
@@ -597,7 +613,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.PointOfInterestService = new PointOfInterestService(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
+                this.PointOfInterestService = new PointOfInterestService(configurations.PointOfInterests, this.Gw2ApiManager, directoryPath, this.GetFlurlClient(), this.FILE_ROOT_URL);
                 this._services.Add(this.PointOfInterestService);
             }
 
@@ -608,7 +624,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                     throw new ArgumentNullException(nameof(directoryPath), "Module directory is not specified.");
                 }
 
-                this.SkillService = new SkillService(configurations.Skills, this.Gw2ApiManager, this.IconService, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
+                this.SkillService = new SkillService(configurations.Skills, this.Gw2ApiManager, this.IconService, directoryPath, this.GetFlurlClient(), this.FILE_ROOT_URL);
                 this._services.Add(this.SkillService);
             }
 
@@ -628,7 +644,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
             if (configurations.Achievements.Enabled)
             {
-                this.AchievementService = new AchievementService(this.Gw2ApiManager, configurations.Achievements, directoryPath, this.GetFlurlClient(), FILE_ROOT_URL);
+                this.AchievementService = new AchievementService(this.Gw2ApiManager, configurations.Achievements, directoryPath, this.GetFlurlClient(), this.FILE_ROOT_URL);
                 this._services.Add(this.AchievementService);
             }
 
@@ -649,7 +665,15 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             }
 
             this.OnBeforeServicesStarted();
+        }
 
+        await this.StartServices();
+    }
+
+    private async Task StartServices()
+    {
+        using (await this._servicesLock.LockAsync())
+        {
             // Only start states not already running
             foreach (ManagedService state in this._services.Where(state => !state.Running))
             {
@@ -787,9 +811,15 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             this._defaultSettingView = new ModuleSettingsView(this.IconService, this.TranslationService);
             this._defaultSettingView.OpenClicked += this.DefaultSettingView_OpenClicked;
             this._defaultSettingView.CreateGithubIssueClicked += this.DefaultSettingView_CreateGithubIssueClicked;
+            this._defaultSettingView.OpenMessageLogClicked += this.DefaultSettingView_OpenMessageLogClicked;
         }
 
         return this._defaultSettingView;
+    }
+
+    private void DefaultSettingView_OpenMessageLogClicked(object sender, EventArgs e)
+    {
+        this.MessageContainer?.Show();
     }
 
     private void DefaultSettingView_CreateGithubIssueClicked(object sender, EventArgs e)
@@ -1034,7 +1064,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected void HandleLoadingSpinner(bool show, string text = null)
     {
-        show &= this.CornerIcon != null;
+        show &= this.CornerIcon != null && this.CornerIcon.Visible;
 
         this._loadingSpinner ??= new LoadingSpinner
         {
@@ -1085,6 +1115,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         {
             this._defaultSettingView.OpenClicked -= this.DefaultSettingView_OpenClicked;
             this._defaultSettingView.CreateGithubIssueClicked -= this.DefaultSettingView_CreateGithubIssueClicked;
+            this._defaultSettingView.OpenMessageLogClicked -= this.DefaultSettingView_OpenMessageLogClicked;
             this._defaultSettingView.DoUnload();
             this._defaultSettingView = null;
         }
@@ -1138,5 +1169,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this._loadingSpinner = null;
 
         this.Logger.Debug("Unloaded corner icon.");
+
+        this.MessageContainer?.Dispose();
+        this.MessageContainer = null;
     }
 }
