@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Managers;
+namespace Estreya.BlishHUD.EventTable.Managers;
 
 using Blish_HUD;
 using Blish_HUD.Entities;
@@ -288,32 +288,32 @@ public class EventTimerHandler : IDisposable, IUpdatable
                 var remainingFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
                 var remainingScale = 0.4f;
                 var remainingScaleWidth = 2.75f;
-                var remainingColor = Color.Red;
+                var remainingColor = this._moduleSettings.EventTimersRemainingTextColor.Value.Cloth.ToXnaColor();
                 var startsInText = () => $"Next in: {(ev.GetNextOccurrence() - this._getNow()).Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}";
                 var startsInFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
                 var startsInScale = 0.4f;
                 var startsInScaleWidth = 2.5f;
-                var startsInColor = Color.Red;
+                var startsInColor = this._moduleSettings.EventTimersStartsInTextColor.Value.Cloth.ToXnaColor();
                 var nextOccurrenceScale = 0.4f;
                 var nextOccurrenceScaleWidth = 2f;
                 var nextOccurrenceText = () => ev.GetNextOccurrence().ToLocalTime().ToString();
-                var nextOccurrenceColor = Color.Red;
+                var nextOccurrenceColor = this._moduleSettings.EventTimersNextOccurenceTextColor.Value.Cloth.ToXnaColor();
                 var nextOccurrenceFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
                 var nameText = () => $"{ev.Name}";
                 var nameFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
                 var nameScale = 0.6f;
                 var nameScaleWidth = width / 1.5f;
-                var nameColor = Color.Red;
+                var nameColor = this._moduleSettings.EventTimersNameTextColor.Value.Cloth.ToXnaColor();
                 var durationText = () => $"Duration: {ev.Duration}min";
                 var durationFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
                 var durationScale = 0.4f;
                 var durationScaleWidth = 2f;
-                var durationColor = Color.Red;
+                var durationColor = this._moduleSettings.EventTimersDurationTextColor.Value.Cloth.ToXnaColor();
                 var repeatText = () => $"Repeats every: {ev.Repeat.Humanize()}";
                 var repeatFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
                 var repeatScale = 0.4f;
                 var repeatScaleWidth = 2f;
-                var repeatColor = Color.Red;
+                var repeatColor = this._moduleSettings.EventTimersRepeatTextColor.Value.Cloth.ToXnaColor();
 
                 var sideIndicatorColor = Color.Red;
                 var sideIndicatorFrontText = () => "FRONT";

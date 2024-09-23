@@ -57,6 +57,15 @@ public class EventTimersSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(parent);
 
+        this.RenderColorSetting(parent, this._moduleSettings.EventTimersRemainingTextColor);
+        this.RenderColorSetting(parent, this._moduleSettings.EventTimersStartsInTextColor);
+        this.RenderColorSetting(parent, this._moduleSettings.EventTimersNameTextColor);
+        this.RenderColorSetting(parent, this._moduleSettings.EventTimersRemainingTextColor);
+        this.RenderColorSetting(parent, this._moduleSettings.EventTimersNextOccurenceTextColor);
+        this.RenderColorSetting(parent, this._moduleSettings.EventTimersRepeatTextColor);
+
+        this.RenderEmptyLine(parent);
+
         this.RenderIntSetting(parent, this._moduleSettings.EventTimersRenderDistance);
     }
 

@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -66,6 +66,13 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<bool> ShowEventTimersInWorld { get; private set; }
     public SettingEntry<int> EventTimersRenderDistance { get; private set; }
     public SettingEntry<List<string>> DisabledEventTimerSettingKeys { get; private set; }
+    public SettingEntry<Color> EventTimersRemainingTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersStartsInTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersNextOccurenceTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersNameTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersDurationTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersRepeatTextColor { get; private set; }
+
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
     public SettingEntry<bool> ShowDynamicEventInWorld { get; private set; }
@@ -178,6 +185,13 @@ public class ModuleSettings : BaseModuleSettings
         this.EventTimersRenderDistance.SetRange(25, 500);
 
         this.DisabledEventTimerSettingKeys = this.GlobalSettings.DefineSetting(nameof(this.DisabledEventTimerSettingKeys), new List<string>(), () => "Disabled Event Timers", () => "Defines which event timers are disabled.");
+
+        this.EventTimersRemainingTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersRemainingTextColor), this.DefaultGW2Color, () => "Remaining Text Color", () => "Defines the text color of the remaining section.");
+        this.EventTimersStartsInTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersStartsInTextColor), this.DefaultGW2Color, () => "Starts in Text Color", () => "Defines the text color of the starts in section.");
+        this.EventTimersRepeatTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersRepeatTextColor), this.DefaultGW2Color, () => "Repeat Text Color", () => "Defines the text color of the repeat section.");
+        this.EventTimersDurationTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersDurationTextColor), this.DefaultGW2Color, () => "Duration Text Color", () => "Defines the text color of the duration section.");
+        this.EventTimersNameTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersNameTextColor), this.DefaultGW2Color, () => "Name Text Color", () => "Defines the text color of the name section.");
+        this.EventTimersNextOccurenceTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersNextOccurenceTextColor), this.DefaultGW2Color, () => "Next Occurence Text Color", () => "Defines the text color of the next occurence section.");
 
         this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 
