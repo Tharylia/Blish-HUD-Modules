@@ -300,6 +300,7 @@ public class ModuleSettings : BaseModuleSettings
         SettingEntry<Color> fillerTextColor = this.DrawerSettings.DefineSetting($"{name}-fillerTextColor", this.DefaultGW2Color, () => "Filler Text Color", () => "Defines the text color used by filler events.");
 
         SettingEntry<bool> acceptWaypointPrompt = this.DrawerSettings.DefineSetting($"{name}-acceptWaypointPrompt", true, () => "Accept Waypoint Prompt", () => "Whether the waypoint prompt should be accepted automatically when performing an automated teleport.");
+        SettingEntry<bool> hideAfterWaypointNavigation = this.DrawerSettings.DefineSetting($"{name}-hideAfterWaypointNavigation", false, () => "Hide after Waypoint Navigation", () => "If the area should be hidden after a successfull waypoint navigation.");
 
         SettingEntry<Shared.Models.GameIntegration.Chat.ChatChannel> waypointSendingChannel = this.DrawerSettings.DefineSetting($"{name}-waypointSendingChannel", Shared.Models.GameIntegration.Chat.ChatChannel.Private, () => "Send Waypoint to Channel", () => "Defines the channel in which the waypoint is pasted automatically.");
         SettingEntry<Shared.Models.GameIntegration.Guild.GuildNumber> waypointSendingGuild = this.DrawerSettings.DefineSetting($"{name}-waypointSendingGuild", Shared.Models.GameIntegration.Guild.GuildNumber.Guild_1, () => "Send Waypoint to Guild", () => "Defines the guild in which the waypoint is pasted automatically if channel guild is selected.");
@@ -418,6 +419,7 @@ public class ModuleSettings : BaseModuleSettings
             UseFiller = useFillers,
             FillerTextColor = fillerTextColor,
             AcceptWaypointPrompt = acceptWaypointPrompt,
+            HideAfterWaypointNavigation = hideAfterWaypointNavigation,
             WaypointSendingChannel = waypointSendingChannel,
             WaypointSendingGuild = waypointSendingGuild,
             EventChatFormat = eventChatFormat,

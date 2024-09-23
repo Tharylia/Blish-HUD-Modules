@@ -559,6 +559,10 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEnumSetting(groupPanel, areaConfiguration.LeftClickAction);
         this.RenderBoolSetting(groupPanel, areaConfiguration.AcceptWaypointPrompt);
+        this.RenderBoolSetting(groupPanel, areaConfiguration.HideAfterWaypointNavigation);
+
+        this.RenderEmptyLine(groupPanel);
+
         this.RenderEnumSetting(groupPanel, areaConfiguration.WaypointSendingChannel);
         this.RenderEnumSetting(groupPanel, areaConfiguration.WaypointSendingGuild);
         this.RenderEnumSetting(groupPanel, areaConfiguration.EventChatFormat);

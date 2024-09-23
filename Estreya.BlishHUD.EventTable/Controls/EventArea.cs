@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.Controls;
+namespace Estreya.BlishHUD.EventTable.Controls;
 
 using Blish_HUD;
 using Blish_HUD._Extensions;
@@ -1093,7 +1093,14 @@ public class EventArea : RenderTarget2DControl
                 _ = Task.Run(async () =>
                 {
                     MapUtil.NavigationResult result = await (this._mapUtil?.NavigateToPosition(poi, this.Configuration.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
-                    if (!result.Success)
+                    if (result.Success)
+                    {
+                        if (this.Configuration.HideAfterWaypointNavigation.Value)
+                        {
+                            this.Configuration.Enabled.Value = false;
+                        }
+                    }
+                    else
                     {
                         ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
                     }
