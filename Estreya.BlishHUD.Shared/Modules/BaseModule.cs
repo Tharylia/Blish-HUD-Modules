@@ -390,7 +390,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             messages.Add(validationResponse.Message ?? response.ReasonPhrase);
         }
 
-        await this.MessageContainer.Add(this, MessageContainer.MessageType.Error, $"\n{string.Join("\n",messages)}");
+        await this.MessageContainer.Add(this, MessageContainer.MessageType.Error, $"\n{string.Join("\n", messages)}");
 
         throw new ModuleInvalidException(validationResponse.Message);
     }
@@ -965,11 +965,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this._errorStates.AddOrUpdate(group, errorText, (key, oldVal) => errorText);
 
         StringBuilder errorStates = new StringBuilder();
+        var hasMultipleErrorStates = this._errorStates.Where(e => e.Value != null).Count() > 1;
         foreach (KeyValuePair<ModuleErrorStateGroup, string> errorState in this._errorStates)
         {
             if (errorState.Value == null) continue;
 
-            if (this._errorStates.Count > 1)
+            if (hasMultipleErrorStates)
             {
                 errorStates.AppendLine($"- {errorState.Value.Trim()}");
             }
