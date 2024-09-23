@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.Managers;
+﻿namespace Estreya.BlishHUD.EventTable.Managers;
 
 using Blish_HUD;
 using Blish_HUD.Entities;
@@ -31,6 +31,9 @@ using MonoGame.Extended;
 using Blish_HUD.ArcDps.Models;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using Blish_HUD.Controls;
+using Blish_HUD._Extensions;
+using static Blish_HUD.ContentService;
+using MonoGame.Extended.BitmapFonts;
 
 public class EventTimerHandler : IDisposable, IUpdatable
 {
@@ -41,6 +44,7 @@ public class EventTimerHandler : IDisposable, IUpdatable
     private static TimeSpan _readdInterval = TimeSpan.FromSeconds(5);
     private AsyncRef<double> _lastReadd = new AsyncRef<double>(0);
     private bool _notifiedLostEntities;
+    private ConcurrentDictionary<FontSize, BitmapFont> _fonts = new ConcurrentDictionary<FontSize, BitmapFont>();
 
     private readonly Gw2ApiManager _apiManager;
     private readonly Func<Task<List<Event>>> _getEvents;
@@ -220,6 +224,11 @@ public class EventTimerHandler : IDisposable, IUpdatable
         }
     }
 
+    private BitmapFont GetFont(FontSize fontSize)
+    {
+        return this._fonts.GetOrAdd(fontSize, size => GameService.Content.GetFont(ContentService.FontFace.Menomonia, size, ContentService.FontStyle.Regular));
+    }
+
     public Task AddEventTimerToWorld(Event ev)
     {
         this.RemoveEventTimerFromWorld(ev);
@@ -239,7 +248,6 @@ public class EventTimerHandler : IDisposable, IUpdatable
             List<WorldEntity> entites = new List<WorldEntity>();
             foreach (var worldTimer in worldTimers)
             {
-
                 Vector3 centerAsWorldMeters = new Vector3(worldTimer.X, worldTimer.Y, worldTimer.Z);
 
                 float width = 5;
@@ -285,12 +293,12 @@ public class EventTimerHandler : IDisposable, IUpdatable
 
                     return $"Current remaining: {remainingTimeText}";
                 };
-                var remainingFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
+                var remainingFont = this.GetFont(FontSize.Size36);
                 var remainingScale = 0.4f;
                 var remainingScaleWidth = 2.75f;
                 var remainingColor = this._moduleSettings.EventTimersRemainingTextColor.Value.Cloth.ToXnaColor();
                 var startsInText = () => $"Next in: {(ev.GetNextOccurrence() - this._getNow()).Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}";
-                var startsInFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
+                var startsInFont = this.GetFont(FontSize.Size36);
                 var startsInScale = 0.4f;
                 var startsInScaleWidth = 2.5f;
                 var startsInColor = this._moduleSettings.EventTimersStartsInTextColor.Value.Cloth.ToXnaColor();
@@ -298,29 +306,31 @@ public class EventTimerHandler : IDisposable, IUpdatable
                 var nextOccurrenceScaleWidth = 2f;
                 var nextOccurrenceText = () => ev.GetNextOccurrence().ToLocalTime().ToString();
                 var nextOccurrenceColor = this._moduleSettings.EventTimersNextOccurenceTextColor.Value.Cloth.ToXnaColor();
-                var nextOccurrenceFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
+                var nextOccurrenceFont = this.GetFont(FontSize.Size36);
                 var nameText = () => $"{ev.Name}";
-                var nameFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
+                var nameFont = this.GetFont(FontSize.Size36);
                 var nameScale = 0.6f;
                 var nameScaleWidth = width / 1.5f;
                 var nameColor = this._moduleSettings.EventTimersNameTextColor.Value.Cloth.ToXnaColor();
                 var durationText = () => $"Duration: {ev.Duration}min";
-                var durationFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
+                var durationFont = this.GetFont(FontSize.Size36);
                 var durationScale = 0.4f;
                 var durationScaleWidth = 2f;
                 var durationColor = this._moduleSettings.EventTimersDurationTextColor.Value.Cloth.ToXnaColor();
                 var repeatText = () => $"Repeats every: {ev.Repeat.Humanize()}";
-                var repeatFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
+                var repeatFont = this.GetFont(FontSize.Size36);
                 var repeatScale = 0.4f;
                 var repeatScaleWidth = 2f;
                 var repeatColor = this._moduleSettings.EventTimersRepeatTextColor.Value.Cloth.ToXnaColor();
 
+#if DEBUG
                 var sideIndicatorColor = Color.Red;
                 var sideIndicatorFrontText = () => "FRONT";
                 var sideIndicatorBackText = () => "BACK";
-                var sideIndicatorFont = GameService.Content.GetFont(ContentService.FontFace.Menomonia, ContentService.FontSize.Size36, ContentService.FontStyle.Regular);
+                var sideIndicatorFont = this.GetFont(FontSize.Size36);
                 var sideIndicatorScale = 0.75f;
                 var sideIndicatorScaleWidth = 2f;
+#endif
 
                 var namePosition = texturePosition + new Vector3(0, 0, -0.75f);
                 var durationPosition = namePosition + new Vector3(0, 0, -(nameScale / 2f + durationScale / 2f));
@@ -338,7 +348,7 @@ public class EventTimerHandler : IDisposable, IUpdatable
                     new WorldPolygone(centerAsWorldMeters, new Vector3[]{ new Vector3(0, 0, 0.25f), new Vector3(0,0, 2.25f) }, Color.DarkMagenta) { RenderCondition = renderCondition } ,
 #endif
                     // Box
-                    new WorldPolygone(centerAsWorldMeters, statuePoints.ToArray()) { 
+                    new WorldPolygone(centerAsWorldMeters, statuePoints.ToArray()) {
                         RotationZ = worldTimer.Rotation,
                         RenderCondition = renderCondition,
                         //InteractionAction = async () => ScreenNotification.ShowNotification("TEST")
@@ -594,5 +604,7 @@ public class EventTimerHandler : IDisposable, IUpdatable
         this._moduleSettings.ShowEventTimersOnMap.SettingChanged -= this.ShowEventTimersOnMap_SettingChanged;
         this._moduleSettings.ShowEventTimersInWorld.SettingChanged -= this.ShowEventTimersInWorld_SettingChanged;
         this._moduleSettings.DisabledEventTimerSettingKeys.SettingChanged -= this.DisabledEventTimerSettingKeys_SettingChanged;
+
+        this._fonts?.Clear();
     }
 }
