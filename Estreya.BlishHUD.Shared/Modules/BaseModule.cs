@@ -142,6 +142,22 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 {
                     // AutomaticDecompression seems to be set by the default handler as well, but make sure.
                     c.HttpClientFactory = new FlurlHttpClientFactory();
+
+                    c.OnErrorAsync = async call =>
+                    {
+                        if (call.Response is null) return;
+
+                        if (call.FlurlRequest.Url.ToUri().AbsoluteUri.StartsWith(this.API_ROOT_URL))
+                        {
+                            // Is estreya api request
+                            call.Response.Headers.TryGetValues("API-TraceId", out var headers);
+                            var apiTraceId = headers?.FirstOrDefault();
+                            if (apiTraceId != null)
+                            {
+                                this.Logger.Warn($"Intercepted estreya api error. Please provide trace id \"{apiTraceId}\" for support.");
+                            }
+                        }
+                    };
                 });
         }
 
