@@ -308,6 +308,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.ModuleSettings.UpdateLocalization(this.TranslationService);
 
         this.ModuleSettings.RegisterCornerIcon.SettingChanged += this.RegisterCornerIcon_SettingChanged;
+
+        this.BackendConnectionRestored += this.BaseModule_BackendConnectionRestored;
+    }
+
+    private async Task BaseModule_BackendConnectionRestored(object sender)
+    {
+        try
+        {
+            await this.BlishHUDAPIService.Reload();
+        }
+        catch (Exception) { }
     }
 
     /// <summary>
@@ -1097,6 +1108,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected override void Unload()
     {
         this._cancellationTokenSource?.Cancel();
+
+        this.BackendConnectionRestored -= this.BaseModule_BackendConnectionRestored;
 
         this.Logger.Debug("Unload settings...");
 

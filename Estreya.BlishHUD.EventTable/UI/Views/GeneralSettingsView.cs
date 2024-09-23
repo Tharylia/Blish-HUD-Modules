@@ -75,10 +75,6 @@ public class GeneralSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(parent);
 
-        this.RenderBoolSetting(parent, this._moduleSettings.IncludeSelfHostedEvents);
-
-        this.RenderEmptyLine(parent);
-
         this.RenderEnumSetting(parent, this._moduleSettings.MenuEventSortMode);
 
         this.RenderEmptyLine(parent);

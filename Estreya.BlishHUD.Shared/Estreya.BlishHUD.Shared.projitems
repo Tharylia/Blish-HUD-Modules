@@ -17,6 +17,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Button.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Dropdown.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Input\ButtonDefinition.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Controls\Input\InputDialog.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapBorder.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Map\MapCircle.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controls\Input\ConfirmDialog.cs" />
@@ -92,6 +93,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\EnterCombatEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\ExitCombatEvent.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\ArcDPS\StateChange\StateChangeCombatEvent.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\APIError.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\ApiJwtPayload.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\APITokens.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Models\BlishHudAPI\KofiStatus.cs" />

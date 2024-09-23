@@ -3,6 +3,7 @@
 using Microsoft.Xna.Framework;
 using MonoGame.Extended;
 using System;
+using System.Numerics;
 
 public static class MathHelper
 {
@@ -38,5 +39,12 @@ public static class MathHelper
         float distance = (float)Math.Sqrt(deltaY + deltaX);
 
         return distance;
+    }
+
+    public static double Scale(double value, double sourceScaleMin, double sourceScaleMax, double destScaleMin, double destScaleMax)
+    {
+        double normalised_value = (value - sourceScaleMin) / (sourceScaleMax - sourceScaleMin);
+        double new_value = (normalised_value * (destScaleMax - destScaleMin)) + destScaleMin;
+        return new_value;
     }
 }
