@@ -24,6 +24,7 @@ public class NewsView : BaseView
 {
     private const string ESTREYA_DISCORD_INVITE = "https://discord.gg/8Yb3jdca3r";
     private const string BLISH_HUD_DISCORD_INVITE = "https://discord.gg/nGbd3kU";
+    private const int DISCORD_SECTION_HEIGHT = 200;
     private static readonly Point _importantIconSize = new Point(32, 32);
     private readonly IFlurlClient _flurlClient;
     private Texture2D _discordLogo;
@@ -42,7 +43,7 @@ public class NewsView : BaseView
             Parent = parent,
             FlowDirection = ControlFlowDirection.SingleTopToBottom,
             Location = new Point(25, 25),
-            Height = (int)(parent.ContentRegion.Height * 0.75),
+            Height = (int)(parent.ContentRegion.Height - DISCORD_SECTION_HEIGHT),
             Width = parent.ContentRegion.Width - (25 * 2),
             CanScroll = true
         };
