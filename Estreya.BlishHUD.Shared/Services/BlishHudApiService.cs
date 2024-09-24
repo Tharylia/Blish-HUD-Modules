@@ -282,6 +282,8 @@ public class BlishHudApiService : ManagedService
 
     public async Task<KofiStatus> GetKofiStatus()
     {
+        if (string.IsNullOrWhiteSpace(this.AccessToken)) throw new ArgumentNullException(nameof(this.AccessToken), "No access token available.");
+
         var status = await this._flurlClient.Request(this._apiRootUrl, $"v{API_VERSION_KOFI}", "ko-fi", "status").WithOAuthBearerToken(this.AccessToken).GetJsonAsync<KofiStatus>();
 
         return status;
@@ -292,5 +294,11 @@ public class BlishHudApiService : ManagedService
         var status = await this.GetKofiStatus();
 
         return status.Active;
+    }
+
+    protected override async Task Clear()
+    {
+        await base.Clear();
+        this.Logout();
     }
 }

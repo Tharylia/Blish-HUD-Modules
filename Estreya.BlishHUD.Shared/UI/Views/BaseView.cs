@@ -23,7 +23,7 @@ using Color = Gw2Sharp.WebApi.V2.Models.Color;
 using KeybindingAssigner = Controls.KeybindingAssigner;
 using Thickness = Blish_HUD.Controls.Thickness;
 
-public abstract class BaseView : View
+public abstract class BaseView : View, IUpdatable
 {
     protected readonly Logger _logger;
 
@@ -324,6 +324,7 @@ public abstract class BaseView : View
 
     protected Controls.Dropdown<T> RenderDropdown<T>(Panel parent, Point location, int width, T[] values, T value, Action<T> onChangeAction = null, Func<T, T, Task<bool>> onBeforeChangeAction = null)
     {
+        bool onBeforeChangeActionSubscribed = onBeforeChangeAction != null;
         onBeforeChangeAction ??= (_, _) => Task.FromResult(true);
 
         Controls.Dropdown<T> dropdown = new Controls.Dropdown<T>
@@ -344,12 +345,22 @@ public abstract class BaseView : View
             dropdown.SelectedItem = value;
         }
 
-        if (onChangeAction != null)
+        if (onChangeAction != null || onBeforeChangeActionSubscribed)
         {
             dropdown.ValueChanged += (s, e) =>
             {
                 Controls.Dropdown<T> scopeDropdown = s as Controls.Dropdown<T>;
-                onChangeAction?.Invoke(scopeDropdown.SelectedItem);
+                onBeforeChangeAction(e.PreviousValue, e.NewValue).ContinueWith(resultTask =>
+                {
+                    if (resultTask.Result)
+                    {
+                        onChangeAction?.Invoke(scopeDropdown.SelectedItem);
+                    }
+                    else
+                    {
+                        scopeDropdown.SelectedItem = e.PreviousValue;
+                    }
+                });
             };
         }
 
@@ -654,4 +665,6 @@ public abstract class BaseView : View
         this.MainPanel?.Dispose();
         this.MainPanel = null;
     }
+
+    public virtual void Update(GameTime gameTime) { }
 }

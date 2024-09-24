@@ -79,6 +79,8 @@ public class Dropdown<TItem> : Control
 
     public BitmapFont Font { get; set; } = GameService.Content.DefaultFont14;
 
+    public bool PreselectOnItemsChange { get; set; } = true;
+
     /// <summary>
     ///     If the Dropdown box items are currently being shown, they are hidden.
     /// </summary>
@@ -114,7 +116,10 @@ public class Dropdown<TItem> : Control
 
     private void ItemsUpdated()
     {
-        this.SelectedItem ??= this.Items.FirstOrDefault();
+        if (this.PreselectOnItemsChange)
+        {
+            this.SelectedItem ??= this.Items.FirstOrDefault();
+        }
     }
 
     protected override void Paint(SpriteBatch spriteBatch, Rectangle bounds)

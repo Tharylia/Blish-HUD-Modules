@@ -95,8 +95,6 @@ public class Event : IUpdatable
 
     [JsonProperty("occurences")] public List<DateTime> Occurences { get; set; } = new List<DateTime>();
 
-    [JsonIgnore] public bool HostedBySystem { get; set; } = true;
-
     [JsonIgnore] public string SettingKey { get; private set; }
 
     [JsonIgnore] public WeakReference<EventCategory> Category { get; private set; }

@@ -45,6 +45,7 @@ using Version = SemVer.Version;
 
 public class EventArea : RenderTarget2DControl
 {
+    private const int MIN_HEIGHT = 1;
     private readonly Logger _logger = Logger.GetLogger<EventArea>();
 
     private static TimeSpan _updateEventOccurencesInterval = TimeSpan.FromMinutes(15);
@@ -77,7 +78,7 @@ public class EventArea : RenderTarget2DControl
     private EventStateService _eventStateService;
     private IFlurlClient _flurlClient;
 
-    private int _heightFromLastDraw = 1; // Blish does not render controls at y 0 with 0 height
+    private int _heightFromLastDraw = MIN_HEIGHT; // Blish does not render controls at y 0 with 0 height
     private IconService _iconService;
 
     private Event _lastActiveEvent;
@@ -824,7 +825,7 @@ public class EventArea : RenderTarget2DControl
             y += this.Configuration.EventHeight.Value;
         }
 
-        this._heightFromLastDraw = y == 0 ? 1 : y;
+        this._heightFromLastDraw = y == 0 ? MIN_HEIGHT : y;
 
         if (this._activeEvent != null && this._lastActiveEvent?.Model?.Key != this._activeEvent.Model.Key)
         {
@@ -1021,7 +1022,11 @@ public class EventArea : RenderTarget2DControl
 
                     using (this._controlLock.Lock())
                     {
-                        this._controlEvents[categoryKey].Add((occurence, newEventControl));
+                        if (this._controlEvents.ContainsKey(categoryKey))
+                        {
+                            // Sometimes the key does not exist anymore. Some race condition.
+                            this._controlEvents[categoryKey].Add((occurence, newEventControl));
+                        }
                     }
                 }
             }
@@ -1093,7 +1098,14 @@ public class EventArea : RenderTarget2DControl
                 _ = Task.Run(async () =>
                 {
                     MapUtil.NavigationResult result = await (this._mapUtil?.NavigateToPosition(poi, this.Configuration.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
-                    if (!result.Success)
+                    if (result.Success)
+                    {
+                        if (this.Configuration.HideAfterWaypointNavigation.Value)
+                        {
+                            this.Configuration.Enabled.Value = false;
+                        }
+                    }
+                    else
                     {
                         ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
                     }
@@ -1186,6 +1198,10 @@ public class EventArea : RenderTarget2DControl
 
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
+//#if WIP 
+//        if (this.Height <= MIN_HEIGHT) return; // Return if nothing will be rendered anyway
+//#endif
+
         if (this.Configuration.TopTimelineLinesInBackground.Value) this.DrawTopTimeLine(spriteBatch);
 
         this.UpdateEventsOnScreen(spriteBatch);

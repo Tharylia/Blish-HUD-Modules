@@ -526,6 +526,11 @@ public abstract class Window : Container, IWindow, IViewContainer
             Point point2 = Input.Mouse.Position - this._dragStart;
             this.Size = this.HandleWindowResize(this._resizeStart + point2);
         }
+
+        if (this.CurrentView is IUpdatable updateView)
+        {
+            updateView.Update(gameTime);
+        }
     }
 
     //

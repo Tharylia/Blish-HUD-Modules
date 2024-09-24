@@ -64,8 +64,17 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<EventChatFormat> ReminderEventChatFormat { get; private set; }
     public SettingEntry<bool> ShowEventTimersOnMap { get; private set; }
     public SettingEntry<bool> ShowEventTimersInWorld { get; private set; }
+    public SettingEntry<KeyBinding> ShowEventTimersOnMapKeybinding { get; private set; }
+    public SettingEntry<KeyBinding> ShowEventTimersInWorldKeybinding { get; private set; }
     public SettingEntry<int> EventTimersRenderDistance { get; private set; }
     public SettingEntry<List<string>> DisabledEventTimerSettingKeys { get; private set; }
+    public SettingEntry<Color> EventTimersRemainingTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersStartsInTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersNextOccurenceTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersNameTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersDurationTextColor { get; private set; }
+    public SettingEntry<Color> EventTimersRepeatTextColor { get; private set; }
+
     public SettingEntry<bool> ShowDynamicEventsOnMap { get; private set; }
 
     public SettingEntry<bool> ShowDynamicEventInWorld { get; private set; }
@@ -78,6 +87,9 @@ public class ModuleSettings : BaseModuleSettings
 
     public SettingEntry<List<string>> DisabledDynamicEventIds { get; private set; }
 
+    public SettingEntry<KeyBinding> ShowDynamicEventsOnMapKeybinding { get; private set; }
+    public SettingEntry<KeyBinding> ShowDynamicEventsInWorldKeybinding { get; private set; }
+
     public SettingEntry<MenuEventSortMode> MenuEventSortMode { get; private set; }
 
     public SettingEntry<bool> HideRemindersOnMissingMumbleTicks { get; private set; }
@@ -87,8 +99,6 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<bool> HideRemindersInPvE_Competetive { get; private set; }
     public SettingEntry<bool> HideRemindersInWvW { get; private set; }
     public SettingEntry<bool> HideRemindersInPvP { get; private set; }
-
-    public SettingEntry<bool> IncludeSelfHostedEvents { get; private set; }
 
     protected override void InitializeAdditionalSettings(SettingCollection settings)
     {
@@ -171,13 +181,29 @@ public class ModuleSettings : BaseModuleSettings
         this.ReminderEventChatFormat = this.GlobalSettings.DefineSetting(nameof(this.ReminderEventChatFormat), EventChatFormat.OnlyWaypoint, () => "Event Chat Format", () => "Defines the chat format to use when copying events.");
 
         this.ShowEventTimersOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersOnMap), true, () => "Show Event Timers on Map", () => "Whether the event timers should be shown on the map.");
-
         this.ShowEventTimersInWorld = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersInWorld), true, () => "Show Event Timers in World", () => "Whether event timers should be shown inside the world.");
+
+        this.ShowEventTimersOnMapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersOnMapKeybinding), new KeyBinding(), () => "Show on Map Keybinding", () => "Defines the key used to toggle the on map event timers.");
+        this.ShowEventTimersOnMapKeybinding.Value.Enabled = true;
+        this.ShowEventTimersOnMapKeybinding.Value.BlockSequenceFromGw2 = true;
+        this.ShowEventTimersOnMapKeybinding.Value.Activated += this.ShowEventTimersOnMapKeybinding_Activated;
+
+        this.ShowEventTimersInWorldKeybinding = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersInWorldKeybinding), new KeyBinding(), () => "Show in World Keybinding", () => "Defines the key used to toggle the in world event timers.");
+        this.ShowEventTimersInWorldKeybinding.Value.Enabled = true;
+        this.ShowEventTimersInWorldKeybinding.Value.BlockSequenceFromGw2 = true;
+        this.ShowEventTimersInWorldKeybinding.Value.Activated += this.ShowEventTimersInWorldKeybinding_Activated;
 
         this.EventTimersRenderDistance = this.GlobalSettings.DefineSetting(nameof(this.EventTimersRenderDistance), 75, () => "Event Timer Render Distance", () => "Defines the max render distance for in-world event timers.");
         this.EventTimersRenderDistance.SetRange(25, 500);
 
         this.DisabledEventTimerSettingKeys = this.GlobalSettings.DefineSetting(nameof(this.DisabledEventTimerSettingKeys), new List<string>(), () => "Disabled Event Timers", () => "Defines which event timers are disabled.");
+
+        this.EventTimersRemainingTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersRemainingTextColor), this.DefaultGW2Color, () => "Remaining Text Color", () => "Defines the text color of the remaining section.");
+        this.EventTimersStartsInTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersStartsInTextColor), this.DefaultGW2Color, () => "Starts in Text Color", () => "Defines the text color of the starts in section.");
+        this.EventTimersRepeatTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersRepeatTextColor), this.DefaultGW2Color, () => "Repeat Text Color", () => "Defines the text color of the repeat section.");
+        this.EventTimersDurationTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersDurationTextColor), this.DefaultGW2Color, () => "Duration Text Color", () => "Defines the text color of the duration section.");
+        this.EventTimersNameTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersNameTextColor), this.DefaultGW2Color, () => "Name Text Color", () => "Defines the text color of the name section.");
+        this.EventTimersNextOccurenceTextColor = this.GlobalSettings.DefineSetting(nameof(this.EventTimersNextOccurenceTextColor), this.DefaultGW2Color, () => "Next Occurence Text Color", () => "Defines the text color of the next occurence section.");
 
         this.ShowDynamicEventsOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMap), false, () => "Show Dynamic Events on Map", () => "Whether the dynamic events of the map should be shown.");
 
@@ -193,6 +219,16 @@ public class ModuleSettings : BaseModuleSettings
         this.DynamicEventsRenderDistance.SetRange(50, 500);
 
         this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
+
+        this.ShowDynamicEventsOnMapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMapKeybinding), new KeyBinding(), () => "Show on Map Keybinding", () => "Defines the key used to toggle the on map dynamic events.");
+        this.ShowDynamicEventsOnMapKeybinding.Value.Enabled = true;
+        this.ShowDynamicEventsOnMapKeybinding.Value.BlockSequenceFromGw2 = true;
+        this.ShowDynamicEventsOnMapKeybinding.Value.Activated += this.ShowDynamicEventsOnMapKeybinding_Activated;
+
+        this.ShowDynamicEventsInWorldKeybinding = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsInWorldKeybinding), new KeyBinding(), () => "Show in World Keybinding", () => "Defines the key used to toggle the in world dynamic events.");
+        this.ShowDynamicEventsInWorldKeybinding.Value.Enabled = true;
+        this.ShowDynamicEventsInWorldKeybinding.Value.BlockSequenceFromGw2 = true;
+        this.ShowDynamicEventsInWorldKeybinding.Value.Activated += this.ShowDynamicEventInWorldKeybinding_Activated;
 
         this.MenuEventSortMode = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMode), Models.MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events in menu views are sorted by.");
 
@@ -210,9 +246,27 @@ public class ModuleSettings : BaseModuleSettings
 
         this.HideRemindersInPvP = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInPvP), false, () => "Hide Reminders in PvP", () => "Whether the reminders should hide when in player vs. player.");
 
-        this.IncludeSelfHostedEvents = this.GlobalSettings.DefineSetting(nameof(this.IncludeSelfHostedEvents), true, () => "Include Self Hosted Events", () => "Whether to include events hosted by other players inside the areas.");
-
         this.HandleEnabledStates();
+    }
+
+    private void ShowEventTimersInWorldKeybinding_Activated(object sender, EventArgs e)
+    {
+        this.ShowEventTimersInWorld.Value = !this.ShowEventTimersInWorld.Value;
+    }
+
+    private void ShowEventTimersOnMapKeybinding_Activated(object sender, EventArgs e)
+    {
+        this.ShowEventTimersOnMap.Value = !this.ShowEventTimersOnMap.Value;
+    }
+
+    private void ShowDynamicEventInWorldKeybinding_Activated(object sender, EventArgs e)
+    {
+        this.ShowDynamicEventInWorld.Value = !this.ShowDynamicEventInWorld.Value;
+    }
+
+    private void ShowDynamicEventsOnMapKeybinding_Activated(object sender, EventArgs e)
+    {
+       this.ShowDynamicEventsOnMap.Value = !this.ShowDynamicEventsOnMap.Value;
     }
 
     private void ShowDynamicEventInWorld_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
@@ -286,6 +340,7 @@ public class ModuleSettings : BaseModuleSettings
         SettingEntry<Color> fillerTextColor = this.DrawerSettings.DefineSetting($"{name}-fillerTextColor", this.DefaultGW2Color, () => "Filler Text Color", () => "Defines the text color used by filler events.");
 
         SettingEntry<bool> acceptWaypointPrompt = this.DrawerSettings.DefineSetting($"{name}-acceptWaypointPrompt", true, () => "Accept Waypoint Prompt", () => "Whether the waypoint prompt should be accepted automatically when performing an automated teleport.");
+        SettingEntry<bool> hideAfterWaypointNavigation = this.DrawerSettings.DefineSetting($"{name}-hideAfterWaypointNavigation", false, () => "Hide after Waypoint Navigation", () => "If the area should be hidden after a successfull waypoint navigation.");
 
         SettingEntry<Shared.Models.GameIntegration.Chat.ChatChannel> waypointSendingChannel = this.DrawerSettings.DefineSetting($"{name}-waypointSendingChannel", Shared.Models.GameIntegration.Chat.ChatChannel.Private, () => "Send Waypoint to Channel", () => "Defines the channel in which the waypoint is pasted automatically.");
         SettingEntry<Shared.Models.GameIntegration.Guild.GuildNumber> waypointSendingGuild = this.DrawerSettings.DefineSetting($"{name}-waypointSendingGuild", Shared.Models.GameIntegration.Guild.GuildNumber.Guild_1, () => "Send Waypoint to Guild", () => "Defines the guild in which the waypoint is pasted automatically if channel guild is selected.");
@@ -404,6 +459,7 @@ public class ModuleSettings : BaseModuleSettings
             UseFiller = useFillers,
             FillerTextColor = fillerTextColor,
             AcceptWaypointPrompt = acceptWaypointPrompt,
+            HideAfterWaypointNavigation = hideAfterWaypointNavigation,
             WaypointSendingChannel = waypointSendingChannel,
             WaypointSendingGuild = waypointSendingGuild,
             EventChatFormat = eventChatFormat,
@@ -848,6 +904,10 @@ public class ModuleSettings : BaseModuleSettings
         base.Unload();
         this.ShowDynamicEventInWorld.SettingChanged -= this.ShowDynamicEventInWorld_SettingChanged;
         this.ShowDynamicEventsInWorldOnlyWhenInside.SettingChanged -= this.ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged;
+        this.ShowDynamicEventsOnMapKeybinding.Value.Activated -= this.ShowDynamicEventsOnMapKeybinding_Activated;
+        this.ShowDynamicEventsInWorldKeybinding.Value.Activated -= this.ShowDynamicEventInWorldKeybinding_Activated;
+        this.ShowEventTimersInWorldKeybinding.Value.Activated -= this.ShowEventTimersInWorldKeybinding_Activated;
+        this.ShowEventTimersOnMapKeybinding.Value.Activated -= this.ShowEventTimersOnMapKeybinding_Activated;
 
         this.EventAreaSettings.RemoveLoggingEvents();
     }

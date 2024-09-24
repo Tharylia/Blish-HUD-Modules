@@ -142,7 +142,7 @@
                 if (!containsIdentification && !this._window.Visible && this.ShouldShowItself(messageType))
                 {
                     this._openedGuids?.Add(identification);
-                    this._window.Show();
+                    // this._window.Show(); // TODO: Disable until backend fixed
                 }
             }
         }

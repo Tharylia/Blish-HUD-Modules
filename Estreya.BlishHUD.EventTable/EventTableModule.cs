@@ -141,19 +141,12 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         }, () => this.NowUTC, this.MapUtil, this.Gw2ApiManager, this.ModuleSettings, this.TranslationService, this.IconService);
         this.EventTimerHandler.FoundLostEntities += this.EventTimerHandler_FoundLostEntities;
 
-        this.ModuleSettings.IncludeSelfHostedEvents.SettingChanged += this.IncludeSelfHostedEvents_SettingChanged;
-
         this.AddAllAreas();
 
         await this.LoadEvents();
 
         sw.Stop();
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
-    }
-
-    private async void IncludeSelfHostedEvents_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
-    {
-        await this.ReloadEvents();
     }
 
     /// <summary>
@@ -299,34 +292,34 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     categories.AddRange(contextEvents);
                 }
 
-                if (this.ModuleSettings.IncludeSelfHostedEvents.Value)
-                {
-                    var selfHostedEvents = await this.LoadSelfHostedEvents();
+                //if (this.ModuleSettings.IncludeSelfHostedEvents.Value)
+                //{
+                //    var selfHostedEvents = await this.LoadSelfHostedEvents();
 
-                    if (selfHostedEvents is not null)
-                    {
-                        foreach (var selfHostedCategory in selfHostedEvents)
-                        {
-                            if (!categories.Any(c => c.Key == selfHostedCategory.Key)) continue;
+                //    if (selfHostedEvents is not null)
+                //    {
+                //        foreach (var selfHostedCategory in selfHostedEvents)
+                //        {
+                //            if (!categories.Any(c => c.Key == selfHostedCategory.Key)) continue;
 
-                            var category = categories.Find(c => c.Key == selfHostedCategory.Key);
-                            foreach (var selfHostedEvent in selfHostedCategory.Value)
-                            {
-                                var ev = new Event()
-                                {
-                                    Key = selfHostedEvent.EventKey,
-                                    Name = selfHostedEvent.EventName ?? selfHostedEvent.EventKey,
-                                    Duration = selfHostedEvent.Duration,
-                                    HostedBySystem = false
-                                };
+                //            var category = categories.Find(c => c.Key == selfHostedCategory.Key);
+                //            foreach (var selfHostedEvent in selfHostedCategory.Value)
+                //            {
+                //                var ev = new Event()
+                //                {
+                //                    Key = selfHostedEvent.EventKey,
+                //                    Name = /*selfHostedEvent.EventName ??*/ selfHostedEvent.EventKey,
+                //                    Duration = selfHostedEvent.Duration,
+                //                    HostedBySystem = false
+                //                };
 
-                                ev.Occurences.Add(selfHostedEvent.StartTime.UtcDateTime);
+                //                ev.Occurences.Add(selfHostedEvent.StartTime.UtcDateTime);
 
-                                category.OriginalEvents.Add(ev);
-                            }
-                        }
-                    }
-                }
+                //                category.OriginalEvents.Add(ev);
+                //            }
+                //        }
+                //    }
+                //}
 
                 categories.ForEach(ec =>
                 {
@@ -369,33 +362,33 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         await (this.EventTimerHandler?.NotifyUpdatedEvents() ?? Task.CompletedTask);
     }
 
-    private async Task<Dictionary<string, List<SelfHostedEventEntry>>> LoadSelfHostedEvents()
-    {
-        try
-        {
-            IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "self-hosting");
+    //private async Task<Dictionary<string, List<SelfHostedEventEntry>>> LoadSelfHostedEvents()
+    //{
+    //    try
+    //    {
+    //        IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "self-hosting");
 
-            var selfhostedEntries = await request.GetJsonAsync<Dictionary<string, List<SelfHostedEventEntry>>>();
+    //        var selfhostedEntries = await request.GetJsonAsync<Dictionary<string, List<SelfHostedEventEntry>>>();
 
-            int eventCategoryCount = selfhostedEntries.Count;
-            int eventCount = selfhostedEntries.Sum(ec => ec.Value.Count);
+    //        int eventCategoryCount = selfhostedEntries.Count;
+    //        int eventCount = selfhostedEntries.Sum(ec => ec.Value.Count);
 
-            this.Logger.Info($"Loaded {eventCategoryCount} self hosted categories with {eventCount} events.");
+    //        this.Logger.Info($"Loaded {eventCategoryCount} self hosted categories with {eventCount} events.");
 
-            return selfhostedEntries;
-        }
-        catch (FlurlHttpException ex)
-        {
-            string message = await ex.GetResponseStringAsync();
-            this.Logger.Warn(ex, $"Failed loading self hosted events: {message}");
-        }
-        catch (Exception ex)
-        {
-            this.Logger.Warn(ex, "Failed loading self hosted events.");
-        }
+    //        return selfhostedEntries;
+    //    }
+    //    catch (FlurlHttpException ex)
+    //    {
+    //        string message = await ex.GetResponseStringAsync();
+    //        this.Logger.Warn(ex, $"Failed loading self hosted events: {message}");
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        this.Logger.Warn(ex, "Failed loading self hosted events.");
+    //    }
 
-        return null;
-    }
+    //    return null;
+    //}
 
     /// <summary>
     ///     Assigns all saved time overrides the to corresponding events.
@@ -971,14 +964,19 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.TranslationService.GetTranslation("dynamicEventsSettingsView-title", "Dynamic Events")));
 
         this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("759448.png"),
+            this.IconService.GetIcon("3126786.png"),
             () => new EventTimersSettingsView(this.ModuleSettings, this.GetAllEvents, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.AccountService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             this.TranslationService.GetTranslation("eventTimersSettingsView-title", "Event Timers")));
 
         this.SettingsWindow.Tabs.Add(new Tab(
+            this.IconService.GetIcon("156680.png"),
+            () => new SelfHostingEventsView(this.ModuleSettings, this.SelfHostingEventService, this.Gw2ApiManager, this.IconService, this.TranslationService, this.AccountService, this.ChatService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            this.TranslationService.GetTranslation("selfHostingEventsSettingsView-title", "Self Hosting Events")));
+
+        this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("156764.png"),
             () => new Shared.UI.Views.BlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            "Estreya BlishHUD API"));
+            "Estreya BlishHUD"));
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("157097.png"),
@@ -1047,8 +1045,17 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             SaveInterval = Timeout.InfiniteTimeSpan
         }, this.Gw2ApiManager, this.GetFlurlClient(), this.API_ROOT_URL, directoryPath);
 
+        this.SelfHostingEventService = new SelfHostingEventService(new APIServiceConfiguration
+        {
+            AwaitLoading = true,
+            Enabled = true,
+            SaveInterval = Timeout.InfiniteTimeSpan,
+            UpdateInterval = TimeSpan.FromMinutes(5)
+        }, this.Gw2ApiManager, this.GetFlurlClient(), this.MODULE_API_URL, this.AccountService, this.BlishHUDAPIService);
+
         additionalServices.Add(this.EventStateService);
         additionalServices.Add(this.DynamicEventService);
+        additionalServices.Add(this.SelfHostingEventService);
 
         return additionalServices;
     }
@@ -1138,8 +1145,6 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.BlishHUDAPIService.LoggedOut -= this.BlishHUDAPIService_LoggedOut;
         }
 
-        this.ModuleSettings.IncludeSelfHostedEvents.SettingChanged -= this.IncludeSelfHostedEvents_SettingChanged;
-
         this.Logger.Debug("Unloaded events.");
 
         this.UnloadContext();
@@ -1175,6 +1180,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     public EventStateService EventStateService { get; private set; }
     public DynamicEventService DynamicEventService { get; private set; }
     public EventTimerHandler EventTimerHandler { get; private set; }
+
+    public SelfHostingEventService SelfHostingEventService { get; private set;}
 
     #endregion
 }

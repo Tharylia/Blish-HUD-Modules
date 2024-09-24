@@ -142,6 +142,22 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                 {
                     // AutomaticDecompression seems to be set by the default handler as well, but make sure.
                     c.HttpClientFactory = new FlurlHttpClientFactory();
+
+                    c.OnErrorAsync = async call =>
+                    {
+                        if (call.Response is null) return;
+
+                        if (call.FlurlRequest.Url.ToUri().AbsoluteUri.StartsWith(this.API_ROOT_URL))
+                        {
+                            // Is estreya api request
+                            call.Response.Headers.TryGetValues("API-TraceId", out var headers);
+                            var apiTraceId = headers?.FirstOrDefault();
+                            if (apiTraceId != null)
+                            {
+                                this.Logger.Warn($"Intercepted estreya api error. Please provide trace id \"{apiTraceId}\" for support.");
+                            }
+                        }
+                    };
                 });
         }
 
@@ -308,6 +324,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.ModuleSettings.UpdateLocalization(this.TranslationService);
 
         this.ModuleSettings.RegisterCornerIcon.SettingChanged += this.RegisterCornerIcon_SettingChanged;
+
+        this.BackendConnectionRestored += this.BaseModule_BackendConnectionRestored;
+    }
+
+    private async Task BaseModule_BackendConnectionRestored(object sender)
+    {
+        try
+        {
+            await this.BlishHUDAPIService.Reload();
+        }
+        catch (Exception) { }
     }
 
     /// <summary>
@@ -379,7 +406,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             messages.Add(validationResponse.Message ?? response.ReasonPhrase);
         }
 
-        await this.MessageContainer.Add(this, MessageContainer.MessageType.Error, $"\n{string.Join("\n",messages)}");
+        await this.MessageContainer.Add(this, MessageContainer.MessageType.Error, $"\n{string.Join("\n", messages)}");
 
         throw new ModuleInvalidException(validationResponse.Message);
     }
@@ -954,11 +981,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this._errorStates.AddOrUpdate(group, errorText, (key, oldVal) => errorText);
 
         StringBuilder errorStates = new StringBuilder();
+        var hasMultipleErrorStates = this._errorStates.Where(e => e.Value != null).Count() > 1;
         foreach (KeyValuePair<ModuleErrorStateGroup, string> errorState in this._errorStates)
         {
             if (errorState.Value == null) continue;
 
-            if (this._errorStates.Count > 1)
+            if (hasMultipleErrorStates)
             {
                 errorStates.AppendLine($"- {errorState.Value.Trim()}");
             }
@@ -1097,6 +1125,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     protected override void Unload()
     {
         this._cancellationTokenSource?.Cancel();
+
+        this.BackendConnectionRestored -= this.BaseModule_BackendConnectionRestored;
 
         this.Logger.Debug("Unload settings...");
 
