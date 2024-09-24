@@ -167,14 +167,6 @@ public class SelfHostingEventService : APIService<SelfHostingEventEntry>
     /// <returns></returns>
     private async Task DeleteEntry(bool reload)
     {
-        var accountServiceTimeoutSec = 5;
-        var accountServiceFinished = await this._accountService.WaitForCompletion(TimeSpan.FromSeconds(accountServiceTimeoutSec));
-        if (!accountServiceFinished) throw new InvalidOperationException($"Account Service did not respond within {accountServiceTimeoutSec} seconds.");
-
-        var accountName = this._accountService.Account?.Name;
-
-        if (string.IsNullOrWhiteSpace(accountName)) throw new InvalidOperationException("Account Service did not return a valid account.");
-
         if (string.IsNullOrWhiteSpace(this._blishHudApiService.AccessToken))
         {
             throw new InvalidOperationException("Not logged in to Estreya BlishHUD.");
