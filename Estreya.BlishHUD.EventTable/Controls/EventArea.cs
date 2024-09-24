@@ -1022,7 +1022,11 @@ public class EventArea : RenderTarget2DControl
 
                     using (this._controlLock.Lock())
                     {
-                        this._controlEvents[categoryKey].Add((occurence, newEventControl));
+                        if (this._controlEvents.ContainsKey(categoryKey))
+                        {
+                            // Sometimes the key does not exist anymore. Some race condition.
+                            this._controlEvents[categoryKey].Add((occurence, newEventControl));
+                        }
                     }
                 }
             }
