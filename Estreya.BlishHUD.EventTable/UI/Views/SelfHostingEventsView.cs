@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
+namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -140,7 +140,19 @@ public class SelfHostingEventsView : BaseView
 
         foreach (var category in categories)
         {
-            menus.Add(category.Key, categoryMenu.AddMenuItem(category.Name));
+            var categoryItem = categoryMenu.AddMenuItem(category.Name);
+
+            foreach (var zone in category.Zones)
+            {
+                var zoneItem = new MenuItem(zone.Name)
+                {
+                    Parent = categoryItem,
+                };
+
+                menus.Add($"{category.Key}-{zone.Key}", zoneItem);
+            }
+
+            menus.Add(category.Key, categoryItem);
         }
 
         menus.ToList().ForEach(menuItemPair => menuItemPair.Value.Click += (s, e) =>
@@ -149,24 +161,29 @@ public class SelfHostingEventsView : BaseView
             {
                 if (s is MenuItem menuItem)
                 {
-                    var category = categories.Where(ec => ec.Key == menuItemPair.Key).FirstOrDefault();
+                    var parts = menuItemPair.Key.Split('-');
+                    var categoryKey = parts.Length >= 1 ? parts[0] : null;
+                    var zoneKey = parts.Length >= 2 ? parts[1] : null;
+
+                    var category = categories.Find(ec => ec.Key == categoryKey);
+                    var zone = category?.Zones.Find(z => z.Key == zoneKey);
 
                     this._activeEventsGroup.FilterChildren<DataDetailsButton<SelfHostingEventEntry>>(detailsButton =>
                     {
-                        if (menuItem == menus[nameof(allEvents)])
-                        {
-                            return true;
-                        }
+                        if (menuItem == menus[nameof(allEvents)]) return true;
+                        if (category == null) return true;
 
                         var entry = detailsButton.Data;
 
-                        if (entry.CategoryKey != category?.Key) return false;
+                        if (entry.CategoryKey != category.Key) return false;
 
-                        var zone = category.Zones.Find(z => z.Key == entry.ZoneKey);
+                        if (zone != null && zone.Key != entry.ZoneKey) return false;
 
-                        if (zone == null) return false;
+                        var catZone = category.Zones.Find(z => z.Key == entry.ZoneKey);
 
-                        return zone.Events.Any(e => e.Key == entry.EventKey);
+                        if (catZone == null) return false;
+
+                        return catZone.Events.Any(e => e.Key == entry.EventKey);
                     });
                 }
             }
@@ -298,7 +315,7 @@ public class SelfHostingEventsView : BaseView
         categoryGroup.RecalculateLayout();
         categoryGroup.Update(GameService.Overlay.CurrentGameTime);
 
-        categoryGroup.Left = this.Panel.ContentRegion.Width /2 - categoryGroup.Width /2;
+        categoryGroup.Left = this.Panel.ContentRegion.Width / 2 - categoryGroup.Width / 2;
 
         var zoneGroup = new FlowPanel
         {
@@ -559,7 +576,8 @@ public class SelfHostingEventsView : BaseView
                 }
             }
 
-            if (!string.IsNullOrWhiteSpace(eventDef?.WikiUrl)) {
+            if (!string.IsNullOrWhiteSpace(eventDef?.WikiUrl))
+            {
                 var openWikiButton = new GlowButton()
                 {
                     Parent = detailsButton,
