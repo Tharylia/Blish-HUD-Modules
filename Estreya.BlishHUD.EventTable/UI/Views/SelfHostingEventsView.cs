@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable.UI.Views;
+﻿namespace Estreya.BlishHUD.EventTable.UI.Views;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -22,6 +22,9 @@ using System.Collections.Concurrent;
 using Estreya.BlishHUD.EventTable.Models.SelfHosting;
 using Flurl.Http;
 using Estreya.BlishHUD.Shared.Models.BlishHudAPI;
+using System.Threading;
+using Blish_HUD.ArcDps.Models;
+using Estreya.BlishHUD.Shared.Utils;
 
 public class SelfHostingEventsView : BaseView
 {
@@ -31,6 +34,9 @@ public class SelfHostingEventsView : BaseView
     private readonly SelfHostingEventService _selfHostingEventService;
     private readonly AccountService _accountService;
     private readonly ChatService _chatService;
+
+    private static TimeSpan _progressCheckInterval = TimeSpan.FromSeconds(1);
+    private double _lastProgressCheck = _progressCheckInterval.TotalMilliseconds;
 
     private FlowPanel _activeEventsGroup;
 
@@ -59,6 +65,32 @@ public class SelfHostingEventsView : BaseView
         };
 
         this.BuildEntriesPanel();
+    }
+
+    public override void Update(GameTime gameTime)
+    {
+        base.Update(gameTime);
+
+        UpdateUtil.Update(this.CheckAndUpdateProgress, gameTime, _progressCheckInterval.TotalMilliseconds, ref this._lastProgressCheck);
+    }
+
+    private void CheckAndUpdateProgress()
+    {
+        var panel = this._activeEventsGroup;
+        if (panel == null) return;
+
+        var childs = panel.GetChildrenOfType<DataDetailsButton<SelfHostingEventEntry>>().ToList();
+
+        foreach (var child in childs)
+        {
+            if (child == null) continue;
+
+            var entry = child.Data;
+
+            var runningDuration = DateTimeOffset.UtcNow - entry.StartTime.ToUniversalTime();
+
+            child.CurrentFill = (int)Shared.Helpers.MathHelper.Scale(runningDuration.TotalMinutes, 0, entry.Duration, 0, child.MaxFill);
+        }
     }
 
     private void BuildEntriesPanel()
