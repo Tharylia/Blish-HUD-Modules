@@ -964,7 +964,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.TranslationService.GetTranslation("dynamicEventsSettingsView-title", "Dynamic Events")));
 
         this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("759448.png"),
+            this.IconService.GetIcon("3126786.png"),
             () => new EventTimersSettingsView(this.ModuleSettings, this.GetAllEvents, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.AccountService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             this.TranslationService.GetTranslation("eventTimersSettingsView-title", "Event Timers")));
 
