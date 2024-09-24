@@ -64,6 +64,8 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<EventChatFormat> ReminderEventChatFormat { get; private set; }
     public SettingEntry<bool> ShowEventTimersOnMap { get; private set; }
     public SettingEntry<bool> ShowEventTimersInWorld { get; private set; }
+    public SettingEntry<KeyBinding> ShowEventTimersOnMapKeybinding { get; private set; }
+    public SettingEntry<KeyBinding> ShowEventTimersInWorldKeybinding { get; private set; }
     public SettingEntry<int> EventTimersRenderDistance { get; private set; }
     public SettingEntry<List<string>> DisabledEventTimerSettingKeys { get; private set; }
     public SettingEntry<Color> EventTimersRemainingTextColor { get; private set; }
@@ -84,6 +86,9 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<int> DynamicEventsRenderDistance { get; private set; }
 
     public SettingEntry<List<string>> DisabledDynamicEventIds { get; private set; }
+
+    public SettingEntry<KeyBinding> ShowDynamicEventsOnMapKeybinding { get; private set; }
+    public SettingEntry<KeyBinding> ShowDynamicEventsInWorldKeybinding { get; private set; }
 
     public SettingEntry<MenuEventSortMode> MenuEventSortMode { get; private set; }
 
@@ -176,8 +181,17 @@ public class ModuleSettings : BaseModuleSettings
         this.ReminderEventChatFormat = this.GlobalSettings.DefineSetting(nameof(this.ReminderEventChatFormat), EventChatFormat.OnlyWaypoint, () => "Event Chat Format", () => "Defines the chat format to use when copying events.");
 
         this.ShowEventTimersOnMap = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersOnMap), true, () => "Show Event Timers on Map", () => "Whether the event timers should be shown on the map.");
-
         this.ShowEventTimersInWorld = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersInWorld), true, () => "Show Event Timers in World", () => "Whether event timers should be shown inside the world.");
+
+        this.ShowEventTimersOnMapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersOnMapKeybinding), new KeyBinding(), () => "Show on Map Keybinding", () => "Defines the key used to toggle the on map event timers.");
+        this.ShowEventTimersOnMapKeybinding.Value.Enabled = true;
+        this.ShowEventTimersOnMapKeybinding.Value.BlockSequenceFromGw2 = true;
+        this.ShowEventTimersOnMapKeybinding.Value.Activated += this.ShowEventTimersOnMapKeybinding_Activated;
+
+        this.ShowEventTimersInWorldKeybinding = this.GlobalSettings.DefineSetting(nameof(this.ShowEventTimersInWorldKeybinding), new KeyBinding(), () => "Show in World Keybinding", () => "Defines the key used to toggle the in world event timers.");
+        this.ShowEventTimersInWorldKeybinding.Value.Enabled = true;
+        this.ShowEventTimersInWorldKeybinding.Value.BlockSequenceFromGw2 = true;
+        this.ShowEventTimersInWorldKeybinding.Value.Activated += this.ShowEventTimersInWorldKeybinding_Activated;
 
         this.EventTimersRenderDistance = this.GlobalSettings.DefineSetting(nameof(this.EventTimersRenderDistance), 75, () => "Event Timer Render Distance", () => "Defines the max render distance for in-world event timers.");
         this.EventTimersRenderDistance.SetRange(25, 500);
@@ -206,6 +220,16 @@ public class ModuleSettings : BaseModuleSettings
 
         this.DisabledDynamicEventIds = this.GlobalSettings.DefineSetting(nameof(this.DisabledDynamicEventIds), new List<string>(), () => "Disabled Dynamic Events", () => "Defines which dynamic events are disabled.");
 
+        this.ShowDynamicEventsOnMapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsOnMapKeybinding), new KeyBinding(), () => "Show on Map Keybinding", () => "Defines the key used to toggle the on map dynamic events.");
+        this.ShowDynamicEventsOnMapKeybinding.Value.Enabled = true;
+        this.ShowDynamicEventsOnMapKeybinding.Value.BlockSequenceFromGw2 = true;
+        this.ShowDynamicEventsOnMapKeybinding.Value.Activated += this.ShowDynamicEventsOnMapKeybinding_Activated;
+
+        this.ShowDynamicEventsInWorldKeybinding = this.GlobalSettings.DefineSetting(nameof(this.ShowDynamicEventsInWorldKeybinding), new KeyBinding(), () => "Show in World Keybinding", () => "Defines the key used to toggle the in world dynamic events.");
+        this.ShowDynamicEventsInWorldKeybinding.Value.Enabled = true;
+        this.ShowDynamicEventsInWorldKeybinding.Value.BlockSequenceFromGw2 = true;
+        this.ShowDynamicEventsInWorldKeybinding.Value.Activated += this.ShowDynamicEventInWorldKeybinding_Activated;
+
         this.MenuEventSortMode = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMode), Models.MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events in menu views are sorted by.");
 
         this.HideRemindersOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersOnOpenMap), false, () => "Hide Reminders on open Map", () => "Whether the reminders should hide when the map is open.");
@@ -223,6 +247,26 @@ public class ModuleSettings : BaseModuleSettings
         this.HideRemindersInPvP = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersInPvP), false, () => "Hide Reminders in PvP", () => "Whether the reminders should hide when in player vs. player.");
 
         this.HandleEnabledStates();
+    }
+
+    private void ShowEventTimersInWorldKeybinding_Activated(object sender, EventArgs e)
+    {
+        this.ShowEventTimersInWorld.Value = !this.ShowEventTimersInWorld.Value;
+    }
+
+    private void ShowEventTimersOnMapKeybinding_Activated(object sender, EventArgs e)
+    {
+        this.ShowEventTimersOnMap.Value = !this.ShowEventTimersOnMap.Value;
+    }
+
+    private void ShowDynamicEventInWorldKeybinding_Activated(object sender, EventArgs e)
+    {
+        this.ShowDynamicEventInWorld.Value = !this.ShowDynamicEventInWorld.Value;
+    }
+
+    private void ShowDynamicEventsOnMapKeybinding_Activated(object sender, EventArgs e)
+    {
+       this.ShowDynamicEventsOnMap.Value = !this.ShowDynamicEventsOnMap.Value;
     }
 
     private void ShowDynamicEventInWorld_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
@@ -860,6 +904,10 @@ public class ModuleSettings : BaseModuleSettings
         base.Unload();
         this.ShowDynamicEventInWorld.SettingChanged -= this.ShowDynamicEventInWorld_SettingChanged;
         this.ShowDynamicEventsInWorldOnlyWhenInside.SettingChanged -= this.ShowDynamicEventsInWorldOnlyWhenInside_SettingChanged;
+        this.ShowDynamicEventsOnMapKeybinding.Value.Activated -= this.ShowDynamicEventsOnMapKeybinding_Activated;
+        this.ShowDynamicEventsInWorldKeybinding.Value.Activated -= this.ShowDynamicEventInWorldKeybinding_Activated;
+        this.ShowEventTimersInWorldKeybinding.Value.Activated -= this.ShowEventTimersInWorldKeybinding_Activated;
+        this.ShowEventTimersOnMapKeybinding.Value.Activated -= this.ShowEventTimersOnMapKeybinding_Activated;
 
         this.EventAreaSettings.RemoveLoggingEvents();
     }

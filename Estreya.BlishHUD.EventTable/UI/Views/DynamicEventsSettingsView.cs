@@ -65,6 +65,11 @@ public class DynamicEventsSettingsView : BaseSettingsView
         this.RenderBoolSetting(parent, this._moduleSettings.IgnoreZAxisOnDynamicEventsInWorld);
         this.RenderIntSetting(parent, this._moduleSettings.DynamicEventsRenderDistance);
 
+        this.RenderEmptyLine(parent);
+
+        this.RenderKeybindingSetting(parent, this._moduleSettings.ShowDynamicEventsOnMapKeybinding);
+        this.RenderKeybindingSetting(parent, this._moduleSettings.ShowDynamicEventsInWorldKeybinding);
+
         this.RenderButton(parent, this.TranslationService.GetTranslation("dynamicEventsSettingsView-btn-manageEvents", "Manage Events"), () =>
         {
             this._manageEventsWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Events", this.GetType(), Guid.Parse("7dc52c82-67ae-4cfb-9fe3-a16a8b30892c"), this.IconService);

@@ -57,6 +57,11 @@ public class EventTimersSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(parent);
 
+        this.RenderKeybindingSetting(parent, this._moduleSettings.ShowEventTimersOnMapKeybinding);
+        this.RenderKeybindingSetting(parent, this._moduleSettings.ShowEventTimersInWorldKeybinding);
+
+        this.RenderEmptyLine(parent);
+
         this.RenderColorSetting(parent, this._moduleSettings.EventTimersRemainingTextColor);
         this.RenderColorSetting(parent, this._moduleSettings.EventTimersStartsInTextColor);
         this.RenderColorSetting(parent, this._moduleSettings.EventTimersNameTextColor);
