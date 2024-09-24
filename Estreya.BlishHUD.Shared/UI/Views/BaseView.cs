@@ -23,7 +23,7 @@ using Color = Gw2Sharp.WebApi.V2.Models.Color;
 using KeybindingAssigner = Controls.KeybindingAssigner;
 using Thickness = Blish_HUD.Controls.Thickness;
 
-public abstract class BaseView : View
+public abstract class BaseView : View, IUpdatable
 {
     protected readonly Logger _logger;
 
@@ -665,4 +665,6 @@ public abstract class BaseView : View
         this.MainPanel?.Dispose();
         this.MainPanel = null;
     }
+
+    public virtual void Update(GameTime gameTime) { }
 }
