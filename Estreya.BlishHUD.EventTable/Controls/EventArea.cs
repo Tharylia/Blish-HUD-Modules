@@ -567,14 +567,15 @@ public class EventArea : RenderTarget2DControl
     private void ReAddEvents()
     {
         this._clearing = true;
-        using IDisposable suspendCtx = this.SuspendLayoutContext();
+        //using IDisposable suspendCtx = this.SuspendLayoutContext();
 
         this.ClearEventControls();
+        this._clearing = false;
 
         this._eventCategoryOrdering = null;
         this._lastEventOccurencesUpdate.Value = _updateEventOccurencesInterval.TotalMilliseconds;
-        this._lastCheckForNewEventsUpdate = _checkForNewEventsInterval.TotalMilliseconds;
-        this._clearing = false;
+        this._lastCheckForNewEventsUpdate = 0;
+        this.CheckForNewEventsForScreen(); // Needed to avoid complete area flashing
     }
 
     private (DateTime Now, DateTime Min, DateTime Max) GetTimes()
@@ -597,6 +598,8 @@ public class EventArea : RenderTarget2DControl
 
     private async Task UpdateEventOccurences()
     {
+        if (this._clearing) return;
+
         (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
 
         List<Task> tasks = new List<Task>();
