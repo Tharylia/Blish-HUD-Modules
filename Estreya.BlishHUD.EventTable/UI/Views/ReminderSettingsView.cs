@@ -240,70 +240,196 @@ public class ReminderSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(parent);
 
-        this.RenderBoolSetting(parent, this._moduleSettings.RemindersEnabled);
-        this.RenderBoolSetting(parent, this._moduleSettings.DisableRemindersWhenEventFinished);
+        this.RenderGeneralSettings(parent);
 
         this.RenderEmptyLine(parent);
 
-        this.RenderDisableRemindersWhenEventFinishedArea(parent);
+        this.RenderLocationAndSizeSettings(parent);
 
         this.RenderEmptyLine(parent);
 
-        this.RenderIntSetting(parent, this._moduleSettings.ReminderPosition.X);
-        this.RenderIntSetting(parent, this._moduleSettings.ReminderPosition.Y);
+        this.RenderLayoutSettings(parent);
 
         this.RenderEmptyLine(parent);
 
-        this.RenderIntSetting(parent, this._moduleSettings.ReminderSize.X);
-        this.RenderIntSetting(parent, this._moduleSettings.ReminderSize.Y);
-        this.RenderIntSetting(parent, this._moduleSettings.ReminderSize.Icon);
+        this.RenderVisibilitySettings(parent);
 
         this.RenderEmptyLine(parent);
 
-        this.RenderFloatSetting(parent, this._moduleSettings.ReminderDuration);
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderStackDirection);
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderOverflowStackDirection);
+        this.RenderTextAndColorSettings(parent);
 
         this.RenderEmptyLine(parent);
 
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderFonts.TitleSize);
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderFonts.MessageSize);
+        this.RenderBehaviorSettings(parent);
+    }
 
-        this.RenderEmptyLine(parent);
+    private void RenderGeneralSettings(FlowPanel parent)
+    {
+        FlowPanel groupPanel = new FlowPanel
+        {
+            Parent = parent,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = parent.ContentRegion.Width - (int)(parent.OuterControlPadding.X * 2),
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = false,
+            Title = this.TranslationService.GetTranslation("reminderSettingsView-group-general", "General")
+        };
 
-        this.RenderColorSetting(parent, this._moduleSettings.ReminderColors.Background);
-        this.RenderColorSetting(parent, this._moduleSettings.ReminderColors.TitleText);
-        this.RenderColorSetting(parent, this._moduleSettings.ReminderColors.MessageText);
-        this.RenderFloatSetting(parent, this._moduleSettings.ReminderBackgroundOpacity);
-        this.RenderFloatSetting(parent, this._moduleSettings.ReminderTitleOpacity);
-        this.RenderFloatSetting(parent, this._moduleSettings.ReminderMessageOpacity);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.RemindersEnabled);
 
-        this.RenderEmptyLine(parent);
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
 
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderMinTimeUnit);
+    private void RenderLocationAndSizeSettings(FlowPanel parent)
+    {
+        FlowPanel groupPanel = new FlowPanel
+        {
+            Parent = parent,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = parent.ContentRegion.Width - (int)(parent.OuterControlPadding.X * 2),
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = this.TranslationService.GetTranslation("reminderSettingsView-group-locationAndSize", "Location & Size")
+        };
 
-        this.RenderEmptyLine(parent);
+        this.RenderIntSetting(groupPanel, this._moduleSettings.ReminderPosition.X);
+        this.RenderIntSetting(groupPanel, this._moduleSettings.ReminderPosition.Y);
 
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderType);
+        this.RenderEmptyLine(groupPanel);
 
-        this.RenderEmptyLine(parent);
+        this.RenderIntSetting(groupPanel, this._moduleSettings.ReminderSize.X);
+        this.RenderIntSetting(groupPanel, this._moduleSettings.ReminderSize.Y);
+        this.RenderIntSetting(groupPanel, this._moduleSettings.ReminderSize.Icon);
 
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderLeftClickAction);
-        this.RenderBoolSetting(parent, this._moduleSettings.AcceptWaypointPrompt);
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderRightClickAction);
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderWaypointSendingChannel);
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderWaypointSendingGuild);
-        this.RenderEnumSetting(parent, this._moduleSettings.ReminderEventChatFormat);
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
 
-        this.RenderEmptyLine(parent);
+    private void RenderLayoutSettings(FlowPanel parent)
+    {
+        FlowPanel groupPanel = new FlowPanel
+        {
+            Parent = parent,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = parent.ContentRegion.Width - (int)(parent.OuterControlPadding.X * 2),
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = this.TranslationService.GetTranslation("reminderSettingsView-group-layout", "Layout")
+        };
 
-        this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersOnMissingMumbleTicks);
-        this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersOnOpenMap);
-        this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersInCombat);
-        this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersInPvE_OpenWorld);
-        this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersInPvE_Competetive);
-        this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersInWvW);
-        this.RenderBoolSetting(parent, this._moduleSettings.HideRemindersInPvP);
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderStackDirection);
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderOverflowStackDirection);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderMinTimeUnit);
+
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+
+    private void RenderVisibilitySettings(FlowPanel parent)
+    {
+        FlowPanel groupPanel = new FlowPanel
+        {
+            Parent = parent,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = parent.ContentRegion.Width - (int)(parent.OuterControlPadding.X * 2),
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = this.TranslationService.GetTranslation("reminderSettingsView-group-visibility", "Visibility")
+        };
+
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.HideRemindersOnMissingMumbleTicks);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.HideRemindersOnOpenMap);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.HideRemindersInCombat);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.HideRemindersInPvE_OpenWorld);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.HideRemindersInPvE_Competetive);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.HideRemindersInWvW);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.HideRemindersInPvP);
+
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+
+    private void RenderTextAndColorSettings(FlowPanel parent)
+    {
+        FlowPanel groupPanel = new FlowPanel
+        {
+            Parent = parent,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = parent.ContentRegion.Width - (int)(parent.OuterControlPadding.X * 2),
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = this.TranslationService.GetTranslation("reminderSettingsView-group-textAndColor", "Text & Color")
+        };
+
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderFonts.TitleSize);
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderFonts.MessageSize);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderColorSetting(groupPanel, this._moduleSettings.ReminderColors.Background);
+        this.RenderColorSetting(groupPanel, this._moduleSettings.ReminderColors.TitleText);
+        this.RenderColorSetting(groupPanel, this._moduleSettings.ReminderColors.MessageText);
+        this.RenderFloatSetting(groupPanel, this._moduleSettings.ReminderBackgroundOpacity);
+        this.RenderFloatSetting(groupPanel, this._moduleSettings.ReminderTitleOpacity);
+        this.RenderFloatSetting(groupPanel, this._moduleSettings.ReminderMessageOpacity);
+
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
+    }
+
+    private void RenderBehaviorSettings(FlowPanel parent)
+    {
+        FlowPanel groupPanel = new FlowPanel
+        {
+            Parent = parent,
+            HeightSizingMode = SizingMode.AutoSize,
+            Width = parent.ContentRegion.Width - (int)(parent.OuterControlPadding.X * 2),
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            OuterControlPadding = new Vector2(20, 20),
+            ShowBorder = true,
+            CanCollapse = true,
+            Collapsed = true,
+            Title = this.TranslationService.GetTranslation("reminderSettingsView-group-behaviors", "Behaviors")
+        };
+
+        this.RenderFloatSetting(groupPanel, this._moduleSettings.ReminderDuration);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderType);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.DisableRemindersWhenEventFinished);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderDisableRemindersWhenEventFinishedArea(groupPanel);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderLeftClickAction);
+        this.RenderBoolSetting(groupPanel, this._moduleSettings.AcceptWaypointPrompt);
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderRightClickAction);
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderWaypointSendingChannel);
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderWaypointSendingGuild);
+        this.RenderEnumSetting(groupPanel, this._moduleSettings.ReminderEventChatFormat);
+
+        this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
 
     private void RenderDisableRemindersWhenEventFinishedArea(FlowPanel parent)
