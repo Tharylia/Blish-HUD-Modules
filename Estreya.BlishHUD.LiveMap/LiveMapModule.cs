@@ -99,6 +99,13 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     {
         await base.LoadAsync();
 
+        this.GlobalSocket.OnConnected += this.GlobalSocket_OnConnected;
+        this.GlobalSocket.OnDisconnected += this.GlobalSocket_OnDisconnected;
+        this.GlobalSocket.OnError += this.GlobalSocket_OnError;
+        this.GlobalSocket.OnReconnectAttempt += this.GlobalSocket_OnReconnectAttempt;
+        this.GlobalSocket.OnReconnectFailed += this.GlobalSocket_OnReconnectFailed;
+        this.GlobalSocket.OnReconnectError += this.GlobalSocket_OnReconnectError;
+
         this.GlobalSocket.On("interval", resp =>
         {
             int interval = resp.GetValue<int>();
@@ -110,6 +117,41 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
         await this.FetchAccountName();
         await this.FetchGuildId();
         await this.FetchWvW();
+    }
+
+    private void GlobalSocket_OnConnected(object sender, EventArgs e)
+    {
+        this.Logger.Info("Connected.");
+    }
+
+    private void GlobalSocket_OnDisconnected(object sender, string e)
+    {
+        this.Logger.Warn("Disconnected: " + e);
+        if (e == DisconnectReason.IOServerDisconnect)
+        {
+            this.Logger.Info($"Trying to reconnect...");
+            _ = this.GlobalSocket.ConnectAsync();
+        }
+    }
+
+    private void GlobalSocket_OnError(object sender, string e)
+    {
+        this.Logger.Warn($"Error: {e}");
+    }
+
+    private void GlobalSocket_OnReconnectAttempt(object sender, int e)
+    {
+        this.Logger.Info($"Attempt reconnect: {e}");
+    }
+
+    private void GlobalSocket_OnReconnectFailed(object sender, EventArgs e)
+    {
+        this.Logger.Warn("Reconnect failed.");
+    }
+
+    private void GlobalSocket_OnReconnectError(object sender, Exception e)
+    {
+        this.Logger.Warn(e, "Could not reconnect");
     }
 
     public static byte[] Compress(byte[] bytes)
@@ -276,6 +318,12 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
         base.Unload();
         this.Gw2ApiManager.SubtokenUpdated -= this.Gw2ApiManager_SubtokenUpdated;
         GameService.Gw2Mumble.PlayerCharacter.NameChanged -= this.PlayerCharacter_NameChanged;
+        this.GlobalSocket.OnConnected -= this.GlobalSocket_OnConnected;
+        this.GlobalSocket.OnDisconnected -= this.GlobalSocket_OnDisconnected;
+        this.GlobalSocket.OnError -= this.GlobalSocket_OnError;
+        this.GlobalSocket.OnReconnectAttempt -= this.GlobalSocket_OnReconnectAttempt;
+        this.GlobalSocket.OnReconnectFailed -= this.GlobalSocket_OnReconnectFailed;
+        this.GlobalSocket.OnReconnectError -= this.GlobalSocket_OnReconnectError;
 
         AsyncHelper.RunSync(this.GlobalSocket.DisconnectAsync);
     }
