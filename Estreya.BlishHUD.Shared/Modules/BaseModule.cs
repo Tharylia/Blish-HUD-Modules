@@ -887,7 +887,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
 
-        _ = this.MetricsService.SendMetricAsync("loaded");
+        //_ = this.MetricsService.SendMetricAsync("loaded");
     }
 
     /// <summary>

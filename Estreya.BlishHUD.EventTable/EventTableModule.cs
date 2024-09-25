@@ -76,7 +76,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     protected override bool NeedsBackend => true;
 
-    protected override bool EnableMetrics => true;
+    protected override bool EnableMetrics => false;
 
     /// <summary>
     ///     Gets the current time in utc.
