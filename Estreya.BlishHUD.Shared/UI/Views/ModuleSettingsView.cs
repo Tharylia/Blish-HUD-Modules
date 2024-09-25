@@ -65,20 +65,20 @@ public class ModuleSettingsView : BaseView
 
         string githubIssueText = this.TranslationService.GetTranslation("moduleSettingsView-createGitHubIssueBtn", "Create Bug/Feature Issue");
 
-        StandardButton createGithubIssue = new StandardButton
-        {
-            Parent = settingContainer,
-            Text = githubIssueText
-        };
+        //StandardButton createGithubIssue = new StandardButton
+        //{
+        //    Parent = settingContainer,
+        //    Text = githubIssueText
+        //};
 
-        if (font != null)
-        {
-            createGithubIssue.Width = (int)font.MeasureString(githubIssueText).Width;
-        }
+        //if (font != null)
+        //{
+        //    createGithubIssue.Width = (int)font.MeasureString(githubIssueText).Width;
+        //}
 
-        createGithubIssue.Location = new Point(Math.Max((parentPanel.Width / 2) - (createGithubIssue.Width / 2), 20), openSettingsButton.Bottom + 10);
+        //createGithubIssue.Location = new Point(Math.Max((parentPanel.Width / 2) - (createGithubIssue.Width / 2), 20), openSettingsButton.Bottom + 10);
 
-        createGithubIssue.Click += (s, e) => this.CreateGithubIssueClicked?.Invoke(this, EventArgs.Empty);
+        //createGithubIssue.Click += (s, e) => this.CreateGithubIssueClicked?.Invoke(this, EventArgs.Empty);
 
         string openMessageLogText = this.TranslationService.GetTranslation("moduleSettingsView-openMessageLogBtn", "Open Message Log");
 
@@ -93,7 +93,7 @@ public class ModuleSettingsView : BaseView
             openMessageLog.Width = (int)font.MeasureString(openMessageLogText).Width;
         }
 
-        openMessageLog.Location = new Point(Math.Max((parentPanel.Width / 2) - (openMessageLog.Width / 2), 20), createGithubIssue.Bottom + 10);
+        openMessageLog.Location = new Point(Math.Max((parentPanel.Width / 2) - (openMessageLog.Width / 2), 20), openSettingsButton.Bottom + 10);
 
         openMessageLog.Click += (s, e) => this.OpenMessageLogClicked?.Invoke(this, EventArgs.Empty);
     }
