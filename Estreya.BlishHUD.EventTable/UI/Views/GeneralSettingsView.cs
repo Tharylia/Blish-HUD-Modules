@@ -34,10 +34,10 @@ public class GeneralSettingsView : BaseSettingsView
         this.RenderEmptyLine(parent);
 
         this.RenderBoolSetting(parent, this._moduleSettings.RegisterContext);
-        this.RenderButtonAsync(parent, "Change Metrics Consent", async () =>
-        {
-            await this._metricsService.AskMetricsConsent(true);
-        });
+        //this.RenderButtonAsync(parent, "Change Metrics Consent", async () =>
+        //{
+        //    await this._metricsService.AskMetricsConsent(true);
+        //});
 
         this.RenderEmptyLine(parent);
 
