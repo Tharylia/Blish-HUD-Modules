@@ -751,12 +751,14 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
         if (this.ModuleSettings.EventAreaNames.Value.Count == 0)
         {
-            this.ModuleSettings.EventAreaNames.Value.Add("Main");
+            this.AddArea("Main", new KeyBinding(ModifierKeys.Alt, Keys.E));
         }
-
-        foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
+        else
         {
-            this.AddArea(areaName);
+            foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
+            {
+                this.AddArea(areaName);
+            }
         }
     }
 
@@ -765,9 +767,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// </summary>
     /// <param name="name">The name of the new area</param>
     /// <returns>The created area configuration.</returns>
-    private EventAreaConfiguration AddArea(string name)
+    private EventAreaConfiguration AddArea(string name, KeyBinding enabledKeybinding = null)
     {
-        EventAreaConfiguration config = this.ModuleSettings.AddDrawer(name, this._eventCategories);
+        EventAreaConfiguration config = this.ModuleSettings.AddDrawer(name, this._eventCategories, enabledKeybinding: enabledKeybinding);
         this.AddArea(config);
 
         return config;

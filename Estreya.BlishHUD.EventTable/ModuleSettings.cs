@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -23,7 +23,7 @@ public class ModuleSettings : BaseModuleSettings
 
     public const string ANY_AREA_NAME = "Any";
 
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.E)) { }
+    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding()) { }
 
     private SettingCollection EventAreaSettings { get; set; }
     public SettingEntry<List<string>> EventAreaNames { get; private set; }
@@ -318,9 +318,9 @@ public class ModuleSettings : BaseModuleSettings
         this.ReminderSize?.Icon.SetRange(0, this.ReminderSize.Y.Value);
     }
 
-    public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories)
+    public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories, KeyBinding enabledKeybinding = null)
     {
-        DrawerConfiguration drawer = base.AddDrawer(name);
+        DrawerConfiguration drawer = base.AddDrawer(name, enabledKeybindingDefault: enabledKeybinding);
 
         SettingEntry<LeftClickAction> leftClickAction = this.DrawerSettings.DefineSetting($"{name}-leftClickAction", LeftClickAction.CopyWaypoint, () => "Left Click Action", () => "Defines the action which is executed when left clicking.");
         SettingEntry<bool> showTooltips = this.DrawerSettings.DefineSetting($"{name}-showTooltips", true, () => "Show Tooltips", () => "Whether a tooltip should be displayed when hovering.");

@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.Shared.Settings;
+namespace Estreya.BlishHUD.Shared.Settings;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -253,13 +253,13 @@ public abstract class BaseModuleSettings
     /// <param name="name">The name of the new drawer.</param>
     /// <param name="defaultBuildDirection">The default build direction of the drawer.</param>
     /// <returns>The newly created configuration.</returns>
-    public DrawerConfiguration AddDrawer(string name, BuildDirection defaultBuildDirection = BuildDirection.Top)
+    public DrawerConfiguration AddDrawer(string name, BuildDirection defaultBuildDirection = BuildDirection.Top, KeyBinding enabledKeybindingDefault = null)
     {
         int maxHeight = 1080;
         int maxWidth = 1920;
 
         SettingEntry<bool> enabled = this.DrawerSettings.DefineSetting($"{name}-enabled", true, () => "Enabled", () => "Whether the drawer is enabled.");
-        SettingEntry<KeyBinding> enabledKeybinding = this.DrawerSettings.DefineSetting($"{name}-enabledKeybinding", new KeyBinding(), () => "Enabled Keybinding", () => "Defines the keybinding to toggle this drawer on and off.");
+        SettingEntry<KeyBinding> enabledKeybinding = this.DrawerSettings.DefineSetting($"{name}-enabledKeybinding", enabledKeybindingDefault ?? new KeyBinding(), () => "Enabled Keybinding", () => "Defines the keybinding to toggle this drawer on and off.");
         enabledKeybinding.Value.Enabled = true;
         enabledKeybinding.Value.IgnoreWhenInTextField = true;
         enabledKeybinding.Value.BlockSequenceFromGw2 = true;
