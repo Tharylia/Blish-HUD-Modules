@@ -66,6 +66,7 @@ public class EventTimersSettingsView : BaseSettingsView
         this.RenderColorSetting(parent, this._moduleSettings.EventTimersStartsInTextColor);
         this.RenderColorSetting(parent, this._moduleSettings.EventTimersNameTextColor);
         this.RenderColorSetting(parent, this._moduleSettings.EventTimersRemainingTextColor);
+        this.RenderColorSetting(parent, this._moduleSettings.EventTimersDurationTextColor);
         this.RenderColorSetting(parent, this._moduleSettings.EventTimersNextOccurenceTextColor);
         this.RenderColorSetting(parent, this._moduleSettings.EventTimersRepeatTextColor);
 
