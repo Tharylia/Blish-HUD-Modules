@@ -28,11 +28,13 @@ public class BlishHUDAPIView : BaseView
     private readonly IFlurlClient _flurlClient;
 
     protected BlishHudApiService BlishHUDAPIService { get; }
-    private KofiStatus _kofiStatus;
+    protected KofiStatus _kofiStatus;
 
     private FlowPanel _mainParent;
     private FlowPanel _kofiStatusGroup;
     private Texture2D _kofiLogo;
+
+    protected virtual bool DrawKofiStatus => false;
 
     public BlishHUDAPIView(Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, BlishHudApiService blishHudApiService, IFlurlClient flurlClient) : base(apiManager, iconService, translationService)
     {
@@ -54,16 +56,29 @@ public class BlishHUDAPIView : BaseView
 
         this.BuildLoginSection(this._mainParent);
 
-        //this.RenderEmptyLine(this._mainParent);
-        //this.RenderKofiStatus(this._mainParent);
+        var description = this.GetDescriptionBuilder();
+        if (description != null)
+        {
+            this.RenderEmptyLine(this._mainParent);
+            var descriptionLbl = description.SetWidth(this._mainParent.ContentRegion.Width - (int)this._mainParent.OuterControlPadding.X * 2).Wrap().AutoSizeHeight().Build();
+            descriptionLbl.Parent = this._mainParent;
+        }
 
-        //if (this.BlishHUDAPIService != null)
-        //{
-        //    this.BlishHUDAPIService.NewLogin += this.RedrawKofiStatusGroup;
-        //    this.BlishHUDAPIService.RefreshedLogin += this.RedrawKofiStatusGroup;
-        //    this.BlishHUDAPIService.LoggedOut += this.RedrawKofiStatusGroup;
-        //}
+        if (this.DrawKofiStatus)
+        {
+            this.RenderEmptyLine(this._mainParent);
+            this.RenderKofiStatus(this._mainParent);
+
+            if (this.BlishHUDAPIService != null)
+            {
+                this.BlishHUDAPIService.NewLogin += this.RedrawKofiStatusGroup;
+                this.BlishHUDAPIService.RefreshedLogin += this.RedrawKofiStatusGroup;
+                this.BlishHUDAPIService.LoggedOut += this.RedrawKofiStatusGroup;
+            }
+        }
     }
+
+    protected virtual FormattedLabelBuilder GetDescriptionBuilder() => null;
 
     private void RenderKofiStatus(FlowPanel flowPanel)
     {
@@ -72,7 +87,9 @@ public class BlishHUDAPIView : BaseView
             Parent = flowPanel,
             Width = flowPanel.ContentRegion.Width - (int)flowPanel.OuterControlPadding.X * 2,
             HeightSizingMode = SizingMode.AutoSize,
-            FlowDirection = ControlFlowDirection.SingleTopToBottom
+            FlowDirection = ControlFlowDirection.SingleTopToBottom,
+            ShowBorder = true,
+            OuterControlPadding = new Vector2(20,20)
         };
 
         var subscriptionActive = this._kofiStatus?.Active ?? false;
@@ -120,6 +137,8 @@ public class BlishHUDAPIView : BaseView
 
         var whatCountsAsSubscribtionLabel = whatCountsAsSubscribtionLabelBuilder.Build();
         whatCountsAsSubscribtionLabel.Parent = this._kofiStatusGroup;
+
+        this.RenderEmptyLine(this._kofiStatusGroup, 20);
     }
 
     private async void RedrawKofiStatusGroup(object sender, EventArgs e)
@@ -202,8 +221,11 @@ public class BlishHUDAPIView : BaseView
 
     protected override async Task<bool> InternalLoad(IProgress<string> progress)
     {
-        await this.LoadKofiStatus();
-        await this.LoadKofiLogo();
+        if (this.DrawKofiStatus)
+        {
+            await this.LoadKofiStatus();
+            await this.LoadKofiLogo();
+        }
 
         return true;
     }
