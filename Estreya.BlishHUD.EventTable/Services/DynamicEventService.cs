@@ -16,20 +16,20 @@ using Estreya.BlishHUD.EventTable.Models;
 
 public partial class DynamicEventService : APIService<DynamicEvent>
 {
-    private readonly string _apiBaseUrl;
+    private readonly string _moduleApiUrl;
     private readonly string _directoryBasePath;
     private readonly IFlurlClient _flurlClient;
 
     public event AsyncEventHandler CustomEventsUpdated;
 
-    public DynamicEventService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, IFlurlClient flurlClient, string apiBaseUrl, string directoryBasePath) : base(apiManager, configuration)
+    public DynamicEventService(APIServiceConfiguration configuration, Gw2ApiManager apiManager, IFlurlClient flurlClient, string moduleApiUrl, string directoryBasePath) : base(apiManager, configuration)
     {
         this._flurlClient = flurlClient;
-        this._apiBaseUrl = apiBaseUrl;
+        this._moduleApiUrl = moduleApiUrl;
         this._directoryBasePath = directoryBasePath;
     }
 
-    private string API_URL => $"{this._apiBaseUrl.TrimEnd('/')}/v1/gw2/dynamicEvents";
+    private string API_URL => $"{this._moduleApiUrl.TrimEnd('/')}/dynamic-events";
 
     private List<DynamicEvent> _customEvents = new List<DynamicEvent>();
     private bool _loadedFiles;

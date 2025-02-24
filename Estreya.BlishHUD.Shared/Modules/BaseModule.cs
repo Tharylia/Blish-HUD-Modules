@@ -82,7 +82,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected string API_ROOT_URL => $"https://{(this.ModuleSettings.UseDevelopmentAPI.Value ? DEV_API_HOSTNAME : LIVE_API_HOSTNAME)}/blish-hud";
 
-    private string API_HEALTH_URL => $"{this.API_ROOT_URL}/health";
+    private string API_HEALTH_URL => $"{this.API_ROOT_URL}/_health";
 
     /// <summary>
     ///     The module sub route from the <see cref="API_ROOT_URL" /> including the specified api version from
@@ -258,7 +258,22 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected override void Initialize()
     {
+#if DEBUG
+        this.Logger.Info("Running in debug mode.");
+#endif
+#if !DEBUG
+        this.Logger.Info("Running in normal mode.");
+#endif
+#if WINE
+        this.Logger.Info("Running in WINE mode.");
+#endif
+
         this._cancellationTokenSource = new CancellationTokenSource();
+
+        JsonConvert.DefaultSettings = () =>
+        {
+            return new JsonSerializerSettings().ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+        };
 
         this.TEMP_FIX_SetTacOAsActive();
 

@@ -6,9 +6,9 @@ public class PlayerMap
 {
     [JsonPropertyName("continent")] public int Continent { get; set; }
 
-    [JsonPropertyName("id")] public int ID { get; set; }
+    //[JsonPropertyName("id")] public int ID { get; set; }
 
-    [JsonPropertyName("name")] public string Name { get; set; }
+    //[JsonPropertyName("name")] public string Name { get; set; }
 
     [JsonPropertyName("position")] public PlayerPosition Position { get; set; }
 
@@ -22,8 +22,8 @@ public class PlayerMap
         bool equals = true;
 
         equals &= this.Continent.Equals(playerMap.Continent);
-        equals &= this.ID.Equals(playerMap.ID);
-        equals &= this.Name?.Equals(playerMap.Name) ?? (this.Name is null && playerMap.Name is null);
+        //equals &= this.ID.Equals(playerMap.ID);
+        //equals &= this.Name?.Equals(playerMap.Name) ?? (this.Name is null && playerMap.Name is null);
         equals &= this.Position?.Equals(playerMap.Position) ?? (this.Position is null && playerMap.Position is null);
 
         return equals;

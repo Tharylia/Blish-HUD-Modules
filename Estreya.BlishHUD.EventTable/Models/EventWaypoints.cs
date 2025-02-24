@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public struct EventWaypoints
+public class EventWaypoints
 {
     [JsonProperty("EU")]
     public string EU;

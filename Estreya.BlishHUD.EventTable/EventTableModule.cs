@@ -95,7 +95,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// </summary>
     private DynamicEventHandler DynamicEventHandler { get; set; }
 
-    protected override string API_VERSION_NO => "1";
+    protected override string API_VERSION_NO => "2";
 
     protected override void Initialize()
     {
@@ -271,7 +271,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     return;
                 }
 
-                IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "events");
+                IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL);
 
                 if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIService.AccessToken))
                 {
@@ -1046,7 +1046,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             AwaitLoading = false,
             Enabled = true,
             SaveInterval = Timeout.InfiniteTimeSpan
-        }, this.Gw2ApiManager, this.GetFlurlClient(), this.API_ROOT_URL, directoryPath);
+        }, this.Gw2ApiManager, this.GetFlurlClient(), this.MODULE_API_URL, directoryPath);
 
         this.SelfHostingEventService = new SelfHostingEventService(new APIServiceConfiguration
         {

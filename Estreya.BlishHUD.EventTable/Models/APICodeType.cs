@@ -2,6 +2,7 @@
 
 public enum APICodeType
 {
-    Worldboss,
-    Mapchest
+    None = 0,
+    Worldboss = 1,
+    Mapchest = 2
 }
