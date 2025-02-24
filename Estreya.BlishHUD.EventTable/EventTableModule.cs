@@ -1,4 +1,4 @@
-﻿namespace Estreya.BlishHUD.EventTable;
+namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -45,6 +45,8 @@ using Estreya.BlishHUD.Shared.Contexts;
 using Estreya.BlishHUD.EventTable.Contexts;
 using Windows.UI.WindowManagement;
 using Microsoft.Xna.Framework.Audio;
+using NodaTime;
+using NodaTime.Extensions;
 
 /// <summary>
 /// The event table module class.
@@ -81,7 +83,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <summary>
     ///     Gets the current time in utc.
     /// </summary>
-    private DateTime NowUTC => DateTime.UtcNow;
+    private Instant NowUTC => SystemClock.Instance.GetCurrentInstant();
 
     /// <summary>
     ///     Gets or sets the map util used to interact with the in-game (mini-)map.
@@ -401,7 +403,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         {
             if (!this.ModuleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey)) continue;
 
-            List<TimeSpan> times = this.ModuleSettings.ReminderTimesOverride.Value[ev.SettingKey];
+            // TODO: Change setting to duration
+            List<Duration> times = this.ModuleSettings.ReminderTimesOverride.Value[ev.SettingKey].Select(x => x.ToDuration()).ToList();
             ev.UpdateReminderTimes(times.ToArray());
         }
     }
@@ -587,8 +590,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     ///     Handles the event of an event reminder.
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
-    /// <param name="e">The timespan until the event start.</param>
-    private async void Ev_Reminder(object sender, TimeSpan e)
+    /// <param name="e">The duration until the event start.</param>
+    private async void Ev_Reminder(object sender, Duration e)
     {
         Event ev = sender as Event;
 
@@ -623,7 +626,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         {
             string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
             var title = ev.Name;
-            var message = $"{startsInTranslation} {e.Humanize(6, minUnit: this.ModuleSettings.ReminderMinTimeUnit.Value)}!";
+            var message = $"{startsInTranslation} {e.ToTimeSpan().Humanize(6, minUnit: this.ModuleSettings.ReminderMinTimeUnit.Value)}!";
             var icon = string.IsNullOrWhiteSpace(ev.Icon) ? new AsyncTexture2D() : this.IconService.GetIcon(ev.Icon);
 
             if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
@@ -1091,6 +1094,16 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
             return this._defaultFont;
         }
+    }
+
+    protected override List<WizardView> GetWizardViews()
+    {
+        return new List<WizardView>
+        {
+            new WizardWelcomeView(this.Gw2ApiManager, this.IconService, this.TranslationService),
+            new WizardAreasView(this._areas.Values.Select(area => area.Configuration).ToList(), this.Gw2ApiManager, this.IconService, this.TranslationService),
+            new WizardRemindersView(this.ModuleSettings, this.AudioService,  this.Gw2ApiManager, this.IconService, this.TranslationService)
+        };
     }
 
     private void UnloadContext()

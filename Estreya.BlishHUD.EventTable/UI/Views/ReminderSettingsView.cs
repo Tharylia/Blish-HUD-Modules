@@ -31,6 +31,7 @@ using Estreya.BlishHUD.Shared.Services.Audio;
 using System.Threading;
 using Estreya.BlishHUD.Shared.Threading;
 using System.Data.Odbc;
+using NodaTime;
 
 public class ReminderSettingsView : BaseSettingsView
 {
@@ -57,7 +58,7 @@ public class ReminderSettingsView : BaseSettingsView
 
         _globalChangeTempEvent.UpdateReminderTimes(new[]
         {
-            TimeSpan.Zero
+            Duration.Zero
         });
     }
 
@@ -207,16 +208,16 @@ public class ReminderSettingsView : BaseSettingsView
             FlowDirection = ControlFlowDirection.SingleLeftToRight
         };
 
-        this.RenderButton(changeTimesFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-changeAllTimes", "Change all Reminder Times"), () =>
+        this.RenderButtonAsync(changeTimesFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-changeAllTimes", "Change all Reminder Times"), async () =>
         {
-            this.ManageReminderTimes(_globalChangeTempEvent);
+            await this.ManageReminderTimes(_globalChangeTempEvent);
         });
 
         this.RenderButton(changeTimesFlowPanel, this.TranslationService.GetTranslation("reminderSettingsView-btn-resetAllTimes", "Reset all Reminder Times"), () =>
         {
-            this.ManageReminderTimesView_SaveClicked(this, (_globalChangeTempEvent, new List<TimeSpan>()
+            this.ManageReminderTimesView_SaveClicked(this, (_globalChangeTempEvent, new List<Duration>()
             {
-                TimeSpan.FromMinutes(10)
+                Duration.FromMinutes(10)
             }, false));
         });
 
@@ -480,7 +481,7 @@ public class ReminderSettingsView : BaseSettingsView
         }
     }
 
-    private Task ManageReminderTimes(Event ev)
+    private async Task ManageReminderTimes(Event ev)
     {
         this._manageReminderTimesWindow ??= WindowUtil.CreateStandardWindow(this._moduleSettings, "Manage Reminder Times", this.GetType(), Guid.Parse("930702ac-bf87-416c-b5ba-cdf9e0266bf7"), this.IconService, this.IconService.GetIcon("1466345.png"));
         this._manageReminderTimesWindow.Size = new Point(450, this._manageReminderTimesWindow.Height);
@@ -497,12 +498,10 @@ public class ReminderSettingsView : BaseSettingsView
         view.SaveClicked += this.ManageReminderTimesView_SaveClicked;
 
         //this._manageReminderTimesWindow.Subtitle = ev.Name;
-        this._manageReminderTimesWindow.Show(view);
-
-        return Task.CompletedTask;
+        await this._manageReminderTimesWindow.Show(view);
     }
 
-    private void ManageReminderTimesView_SaveClicked(object sender, (Event Event, List<TimeSpan> ReminderTimes, bool KeepCustomized) e)
+    private void ManageReminderTimesView_SaveClicked(object sender, (Event Event, List<Duration> ReminderTimes, bool KeepCustomized) e)
     {
         if (e.Event == _globalChangeTempEvent)
         {
@@ -511,7 +510,7 @@ public class ReminderSettingsView : BaseSettingsView
             {
                 if (this._moduleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey) && e.KeepCustomized) continue;
 
-                this._moduleSettings.ReminderTimesOverride.Value[ev.SettingKey] = e.ReminderTimes;
+                this._moduleSettings.ReminderTimesOverride.Value[ev.SettingKey] = e.ReminderTimes.Select(x => x.ToTimeSpan()).ToList();
                 ev.UpdateReminderTimes(e.ReminderTimes.ToArray());
             }
 
@@ -520,7 +519,7 @@ public class ReminderSettingsView : BaseSettingsView
         }
         else
         {
-            this._moduleSettings.ReminderTimesOverride.Value[e.Event.SettingKey] = e.ReminderTimes;
+            this._moduleSettings.ReminderTimesOverride.Value[e.Event.SettingKey] = e.ReminderTimes.Select(x => x.ToTimeSpan()).ToList();
             this._moduleSettings.ReminderTimesOverride.Value = new Dictionary<string, List<TimeSpan>>(this._moduleSettings.ReminderTimesOverride.Value);
             e.Event.UpdateReminderTimes(e.ReminderTimes.ToArray());
         }

@@ -888,6 +888,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
 
         //_ = this.MetricsService.SendMetricAsync("loaded");
+        _ = Task.Factory.StartNew(this.ExecuteWizard, TaskCreationOptions.LongRunning).Unwrap();
     }
 
     /// <summary>
@@ -911,6 +912,80 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     /// <param name="settingWindow">The settings window.</param>
     protected virtual void OnSettingWindowBuild(TabbedWindow settingWindow) { }
+
+    protected virtual List<WizardView> GetWizardViews() => null;
+
+    private async Task ExecuteWizard()
+    {
+        var isFirstRun = true;
+        if (!isFirstRun) return;
+
+        var views = this.GetWizardViews();
+        if (views == null || views.Count == 0) return;
+
+        var window = WindowUtil.CreateStandardWindow(this.ModuleSettings, $"{this.Name} - Setup Wizard", this.GetType(), Guid.Parse("0f4654eb-2853-4299-85f4-bacf2ae2d8e6"), this.IconService);
+        window.CanClose = false;
+        window.CanCloseWithEscape = false;
+        window.CanResize = false;
+
+        var viewIndex = 0;
+
+        var view = views[0];
+
+        await this.ShowWizardView(window, view, viewIndex, views);
+    }
+
+    private async Task ShowWizardView(Controls.StandardWindow window, WizardView wizardView, int viewIndex, List<WizardView> allViews)
+    {
+        wizardView.NextClicked += async (s) =>
+        {
+            viewIndex++;
+            if (viewIndex > allViews.Count - 1) throw new ArgumentOutOfRangeException(nameof(viewIndex), "No next view available.");
+
+            var nextView = allViews[viewIndex];
+            //nextView.PreviousAvailable = viewIndex - 1 >= 0;
+            //nextView.NextAvailable = viewIndex + 1 <= allViews.Count - 1;
+
+            await this.ShowWizardView(window, nextView, viewIndex, allViews);
+        };
+
+        wizardView.PreviousClicked += async (s) =>
+        {
+            viewIndex--;
+            if (viewIndex < 0) throw new ArgumentOutOfRangeException(nameof(viewIndex), "No previous view available.");
+
+            var prevView = allViews[viewIndex];
+            //prevView.PreviousAvailable = viewIndex - 1 >= 0;
+            //prevView.NextAvailable = viewIndex + 1 <= allViews.Count - 1;
+
+            await this.ShowWizardView(window, prevView, viewIndex, allViews);
+        };
+
+        wizardView.CancelClicked += (s) =>
+        {
+            window?.Hide();
+            window?.Dispose();
+
+            this.Logger.Info("Cancelled setup wizard.");
+
+            return Task.CompletedTask;
+        };
+
+        wizardView.FinishClicked += s =>
+        {
+            window?.Hide();
+            window?.Dispose();
+
+            this.Logger.Info("Completed setup wizard.");
+
+            return Task.CompletedTask;
+        };
+
+        wizardView.PreviousAvailable = viewIndex - 1 >= 0;
+        wizardView.NextIsFinish = viewIndex == allViews.Count - 1;
+        wizardView.NextAvailable = wizardView.NextIsFinish || viewIndex + 1 <= allViews.Count - 1;
+        await window.Show(wizardView);
+    }
 
     /// <inheritdoc />
     protected override void Update(GameTime gameTime)

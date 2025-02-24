@@ -6,6 +6,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
 using MonoGame.Extended.BitmapFonts;
+using NodaTime;
 using Shared.Services;
 using Shared.UI.Views;
 using Shared.Utils;
@@ -18,25 +19,25 @@ public class Event : IDisposable
 {
     private static Logger logger = Logger.GetLogger<Event>();
 
-    private readonly DateTime _endTime;
+    private readonly Instant _endTime;
     private readonly Func<Color[]> _getColorAction;
     private readonly Func<bool> _getDrawBorders;
     private readonly Func<bool> _getDrawCrossout;
     private readonly Func<bool> _getDrawShadowAction;
     private readonly Func<BitmapFont> _getFontAction;
-    private readonly Func<DateTime> _getNowAction;
+    private readonly Func<Instant> _getNowAction;
     private readonly Func<Color> _getShadowColor;
     private readonly Func<string> _getAbsoluteTimeFormatStrings;
     private readonly Func<(string DaysFormat, string HoursFormat, string MinutesFormat)> _getTimespanFormatStrings;
     private readonly Func<Color> _getTextColor;
-    public DateTime StartTime { get; private set; }
+    public Instant StartTime { get; private set; }
 
     private Texture2D _backgroundColorTexture;
     private IconService _iconService;
     private TranslationService _translationService;
 
     public Event(Models.Event ev, IconService iconService, TranslationService translationService,
-        Func<DateTime> getNowAction, DateTime startTime, DateTime endTime,
+        Func<Instant> getNowAction, Instant startTime, Instant endTime,
         Func<BitmapFont> getFontAction,
         Func<bool> getDrawBorders,
         Func<bool> getDrawCrossout,
@@ -198,10 +199,10 @@ public class Event : IDisposable
 
     public Tooltip BuildTooltip()
     {
-        DateTime now = this._getNowAction();
+        Instant now = this._getNowAction();
 
         // Relative
-        bool isPrev = this.StartTime.AddMinutes(this.Model.Duration) < now;
+        bool isPrev = this.StartTime.Plus(this.Model.Duration) < now;
         bool isNext = !isPrev && this.StartTime > now;
         bool isCurrent = !isPrev && !isNext;
 
@@ -209,18 +210,18 @@ public class Event : IDisposable
 
         if (isPrev)
         {
-            TimeSpan finishedSince = now - this.StartTime.AddMinutes(this.Model.Duration);
-            description += $"{this._translationService.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatTimespan(finishedSince)}";
+            Duration finishedSince = now - this.StartTime.Plus(this.Model.Duration);
+            description += $"{this._translationService.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatDuration(finishedSince)}";
         }
         else if (isNext)
         {
-            TimeSpan startsIn = this.StartTime - now;
-            description += $"{this._translationService.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatTimespan(startsIn)}";
+            Duration startsIn = this.StartTime - now;
+            description += $"{this._translationService.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatDuration(startsIn)}";
         }
         else if (isCurrent)
         {
-            TimeSpan remaining = this.GetTimeRemaining(now);
-            description += $"{this._translationService.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatTimespan(remaining)}";
+            Duration remaining = this.GetTimeRemaining(now);
+            description += $"{this._translationService.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatDuration(remaining)}";
         }
 
         // Absolute
@@ -296,13 +297,13 @@ public class Event : IDisposable
             return;
         }
 
-        TimeSpan remainingTime = this.GetTimeRemaining(this._getNowAction());
-        if (remainingTime == TimeSpan.Zero)
+        Duration remainingTime = this.GetTimeRemaining(this._getNowAction());
+        if (remainingTime == Duration.Zero)
         {
             return;
         }
 
-        string remainingTimeString = this.FormatTimespan(remainingTime);
+        string remainingTimeString = this.FormatDuration(remainingTime);
         float timeWidth = (float)Math.Ceiling(font.MeasureString(remainingTimeString).Width);
         float maxWidth = bounds.Width - nameWidth;
         float centerX = (maxWidth / 2) - (timeWidth / 2);
@@ -323,9 +324,9 @@ public class Event : IDisposable
         spriteBatch.DrawString(remainingTimeString, font, timeRect, textColor, false, this._getDrawShadowAction(), 1, this._getShadowColor());
     }
 
-    private TimeSpan GetTimeRemaining(DateTime now)
+    private Duration GetTimeRemaining(Instant now)
     {
-        return now <= this.StartTime || now >= this._endTime ? TimeSpan.Zero : this.StartTime.AddMinutes(this.Model.Duration) - now;
+        return now <= this.StartTime || now >= this._endTime ? Duration.Zero : this.StartTime.Plus(this.Model.Duration) - now;
     }
 
     private void DrawCrossout(SpriteBatch spriteBatch, RectangleF bounds)
@@ -338,7 +339,7 @@ public class Event : IDisposable
         spriteBatch.DrawCrossOut(ContentService.Textures.Pixel, bounds, Color.Red);
     }
 
-    private string FormatTimespan(TimeSpan ts)
+    private string FormatDuration(Duration ts)
     {
         var formatStrings = this._getTimespanFormatStrings();
 
@@ -363,11 +364,11 @@ public class Event : IDisposable
         }
     }
 
-    private string FormatAbsoluteTime(DateTime dt)
+    private string FormatAbsoluteTime(Instant dt)
     {
         try
         {
-            return dt.ToLocalTime().ToString(this._getAbsoluteTimeFormatStrings(), CultureInfo.InvariantCulture);
+            return dt.ToString(this._getAbsoluteTimeFormatStrings(), CultureInfo.InvariantCulture);
         }
         catch (Exception ex)
         {

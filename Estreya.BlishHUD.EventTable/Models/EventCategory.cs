@@ -2,6 +2,7 @@
 
 using Blish_HUD;
 using Newtonsoft.Json;
+using NodaTime;
 using Shared.Attributes;
 using Shared.Services;
 using Shared.Utils;
@@ -65,7 +66,7 @@ public class EventCategory
         }
     }
 
-    public void Load(Func<DateTime> getNowAction, TranslationService translationService = null)
+    public void Load(Func<Instant> getNowAction, TranslationService translationService = null)
     {
         if (translationService != null)
         {

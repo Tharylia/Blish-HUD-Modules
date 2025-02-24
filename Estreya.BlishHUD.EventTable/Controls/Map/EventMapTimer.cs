@@ -11,6 +11,7 @@ using Humanizer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MonoGame.Extended;
+using NodaTime;
 using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
@@ -25,7 +26,7 @@ public class EventMapTimer : MapEntity
     private readonly Models.EventMapTimer _mapTimer;
     private readonly Color _color;
     private readonly float _thickness;
-    private readonly Func<DateTime> _getNow;
+    private readonly Func<Instant> _getNow;
     private readonly TranslationService _translationService;
 
     private float X => this._mapTimer.X;
@@ -33,7 +34,7 @@ public class EventMapTimer : MapEntity
 
     private float Radius => this._mapTimer.Radius * (1 / 24f);
 
-    public EventMapTimer(Models.Event ev, Models.EventMapTimer mapTimer, Color color, Func<DateTime> getNow, TranslationService translationService, float thickness = 1)
+    public EventMapTimer(Models.Event ev, Models.EventMapTimer mapTimer, Color color, Func<Instant> getNow, TranslationService translationService, float thickness = 1)
     {
         this._ev = ev;
         this._mapTimer = mapTimer;
@@ -55,8 +56,8 @@ public class EventMapTimer : MapEntity
         spriteBatch.DrawCircle(circle, 50, this._color * opacity, this._thickness);
 
         var now = this._getNow();
-        var startTime = this._ev.Occurences.Where(o => o >= now || o.AddMinutes(this._ev.Duration) >= now).OrderBy(x => x).First();
-        var endTime = startTime.AddMinutes(this._ev.Duration);
+        var startTime = this._ev.Occurences.Where(o => o >= now || o.Plus(this._ev.Duration) >= now).OrderBy(x => x).First();
+        var endTime = startTime.Plus(this._ev.Duration);
 
         var occurenceIndex = this._ev.Occurences.IndexOf(startTime);
         var remainingTime = this.GetTime(now, startTime, endTime, occurenceIndex is -1 or 0 ? null : this._ev.Occurences[occurenceIndex - 1]);
@@ -85,7 +86,7 @@ public class EventMapTimer : MapEntity
         return circle.ToRectangleF();
     }
 
-    private (TimeSpan maxTime, TimeSpan calculatedTime) GetTime(DateTime now,DateTime startTime, DateTime endTime, DateTime? prevEndTime)
+    private (Duration maxTime, Duration calculatedTime) GetTime(Instant now,Instant startTime, Instant endTime, Instant? prevEndTime)
     {
         // Relative
         bool isPrev = endTime < now;
@@ -94,24 +95,24 @@ public class EventMapTimer : MapEntity
 
         if (isPrev)
         {
-            TimeSpan finishedSince = now - endTime;
+            Duration finishedSince = now - endTime;
             return (endTime - startTime, finishedSince);
         }
         else if (isNext)
         {
-            TimeSpan startsIn = startTime - now;
+            Duration startsIn = startTime - now;
             return (prevEndTime != null ? startTime - prevEndTime.Value : startsIn, startsIn);
         }
         else if (isCurrent)
         {
-            TimeSpan remaining = this.GetTimeRemaining(now, startTime, endTime);
-            return (TimeSpan.FromMinutes( this._ev.Duration), remaining);
+            Duration remaining = this.GetTimeRemaining(now, startTime, endTime);
+            return (this._ev.Duration, remaining);
         }
 
-        return (TimeSpan.Zero, TimeSpan.Zero);
+        return (Duration.Zero, Duration.Zero);
     }
 
-    private string GetEventDescription(DateTime now, DateTime startTime, DateTime endTime)
+    private string GetEventDescription(Instant now, Instant startTime, Instant endTime)
     {
         // Relative
         bool isPrev = endTime < now;
@@ -122,18 +123,18 @@ public class EventMapTimer : MapEntity
 
         if (isPrev)
         {
-            TimeSpan finishedSince = now - endTime;
-            description += $"{this._translationService.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatTimespan(finishedSince)}";
+            Duration finishedSince = now - endTime;
+            description += $"{this._translationService.GetTranslation("event-tooltip-finishedSince", "Finished since")}: {this.FormatDuration(finishedSince)}";
         }
         else if (isNext)
         {
-            TimeSpan startsIn = startTime - now;
-            description += $"{this._translationService.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatTimespan(startsIn)}";
+            Duration startsIn = startTime - now;
+            description += $"{this._translationService.GetTranslation("event-tooltip-startsIn", "Starts in")}: {this.FormatDuration(startsIn)}";
         }
         else if (isCurrent)
         {
-            TimeSpan remaining = this.GetTimeRemaining(now, startTime, endTime);
-            description += $"{this._translationService.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatTimespan(remaining)}";
+            Duration remaining = this.GetTimeRemaining(now, startTime, endTime);
+            description += $"{this._translationService.GetTranslation("event-tooltip-remaining", "Remaining")}: {this.FormatDuration(remaining)}";
         }
 
         // Absolute
@@ -142,7 +143,7 @@ public class EventMapTimer : MapEntity
         return description;
     }
 
-    private string FormatTimespan(TimeSpan ts)
+    private string FormatDuration(Duration ts)
     {
         var formatStrings = (DaysFormat: "dd\\.hh\\:mm\\:ss", HoursFormat: "hh\\:mm\\:ss", MinutesFormat: "mm\\:ss");
 
@@ -167,11 +168,11 @@ public class EventMapTimer : MapEntity
         }
     }
 
-    private string FormatAbsoluteTime(DateTime dt)
+    private string FormatAbsoluteTime(Instant dt)
     {
         try
         {
-            return dt.ToLocalTime().ToString("HH\\:mm", CultureInfo.InvariantCulture);
+            return dt.InZone(DateTimeZoneProviders.Tzdb.GetSystemDefault()).ToString("HH\\:mm", CultureInfo.InvariantCulture);
         }
         catch (Exception ex)
         {
@@ -180,8 +181,8 @@ public class EventMapTimer : MapEntity
         }
     }
 
-    private TimeSpan GetTimeRemaining(DateTime now, DateTime startTime, DateTime endTime)
+    private Duration GetTimeRemaining(Instant now, Instant startTime, Instant endTime)
     {
-        return now <= startTime || now >= endTime ? TimeSpan.Zero : startTime.AddMinutes(this._ev.Duration) - now;
+        return now <= startTime || now >= endTime ? Duration.Zero : startTime.Plus(this._ev.Duration) - now;
     }
 }

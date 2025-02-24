@@ -4,11 +4,13 @@ using Blish_HUD;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using NodaTime;
 using Shared.Helpers;
 using Shared.Services;
 using Shared.Utils;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -25,12 +27,12 @@ public class EventStateService : ManagedService
 
     private const string FILE_NAME = "event_states.json";
 
-    private readonly Func<DateTime> _getNowAction;
+    private readonly Func<Instant> _getNowAction;
 
     private string _path;
     private bool dirty;
 
-    public EventStateService(ServiceConfiguration configuration, string basePath, Func<DateTime> getNowAction) : base(configuration)
+    public EventStateService(ServiceConfiguration configuration, string basePath, Func<Instant> getNowAction) : base(configuration)
     {
         this._basePath = basePath;
         this._getNowAction = getNowAction;
@@ -60,7 +62,7 @@ public class EventStateService : ManagedService
 
     protected override void InternalUpdate(GameTime gameTime)
     {
-        DateTime now = this._getNowAction().ToUniversalTime();
+        Instant now = this._getNowAction();
         lock (this.Instances)
         {
             for (int i = this.Instances.Count - 1; i >= 0; i--)
@@ -77,17 +79,15 @@ public class EventStateService : ManagedService
         }
     }
 
-    public void Add(string areaName, string eventKey, DateTime until, EventStates state)
+    public void Add(string areaName, string eventKey, Instant until, EventStates state)
     {
         lock (this.Instances)
         {
             this.Remove(areaName, eventKey);
 
-            until = until.ToUniversalTime();
-
             string name = this.GetName(areaName, eventKey);
 
-            this.Logger.Info($"Add event state for \"{name}\" with \"{state}\" until \"{until.ToString(DATE_TIME_FORMAT)}\" UTC.");
+            this.Logger.Info($"Add event state for \"{name}\" with \"{state}\" until \"{until.ToString(DATE_TIME_FORMAT, CultureInfo.InvariantCulture)}\" UTC.");
 
             VisibleStateInfo newInstance = new VisibleStateInfo
             {
@@ -323,6 +323,6 @@ public class EventStateService : ManagedService
         [JsonConverter(typeof(StringEnumConverter))]
         public EventStates State;
 
-        public DateTime Until;
+        public Instant Until;
     }
 }

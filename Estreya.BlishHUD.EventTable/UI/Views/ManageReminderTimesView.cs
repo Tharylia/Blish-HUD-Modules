@@ -5,6 +5,8 @@ using Blish_HUD.Modules.Managers;
 using Microsoft.Xna.Framework;
 using Models;
 using MonoGame.Extended.BitmapFonts;
+using NodaTime;
+using NodaTime.Extensions;
 using Shared.Controls;
 using Shared.Services;
 using Shared.UI.Views;
@@ -17,7 +19,7 @@ public class ManageReminderTimesView : BaseView
 {
     private Event _ev;
     private readonly bool _showKeepCustomizedQuestion;
-    private readonly List<TimeSpan> _reminderTimes = new List<TimeSpan>();
+    private readonly List<Duration> _reminderTimes = new List<Duration>();
 
     public ManageReminderTimesView(Event ev, bool showKeepCustomizedQuestion, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService) : base(apiManager, iconService, translationService)
     {
@@ -29,7 +31,7 @@ public class ManageReminderTimesView : BaseView
         }
     }
 
-    public event EventHandler<(Event Event, List<TimeSpan> ReminderTimes, bool KeepCustomized)> SaveClicked;
+    public event EventHandler<(Event Event, List<Duration> ReminderTimes, bool KeepCustomized)> SaveClicked;
     public event EventHandler CancelClicked;
 
     protected override void InternalBuild(Panel parent)
@@ -90,7 +92,7 @@ public class ManageReminderTimesView : BaseView
         parent.ClearChildren();
 
         Panel lastTimeSection = null;
-        foreach (TimeSpan reminderTime in this._reminderTimes)
+        foreach (Duration reminderTime in this._reminderTimes)
         {
             lastTimeSection = this.AddTimeSection(parent, reminderTime, this._reminderTimes.Count == 1);
         }
@@ -106,7 +108,7 @@ public class ManageReminderTimesView : BaseView
 
         Button addButton = this.RenderButton(addButtonPanel, this.TranslationService.GetTranslation("manageReminderTimesView-btn-add", "Add"), () =>
         {
-            this._reminderTimes.Add(TimeSpan.Zero);
+            this._reminderTimes.Add(Duration.Zero);
             this.RenderTimes(parent);
         });
         addButton.Left = x;
@@ -115,7 +117,7 @@ public class ManageReminderTimesView : BaseView
         addButton.ResizeIcon = false;
     }
 
-    private Panel AddTimeSection(Panel parent, TimeSpan time, bool disableRemove)
+    private Panel AddTimeSection(Panel parent, Duration time, bool disableRemove)
     {
         Panel timeSectionPanel = new Panel
         {
@@ -143,7 +145,7 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                TimeSpan newTime = new TimeSpan(int.Parse(e.NewValue), time.Minutes, time.Seconds);
+                Duration newTime = new TimeSpan(int.Parse(e.NewValue), time.Minutes, time.Seconds).ToDuration();
                 int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;
@@ -173,7 +175,7 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                TimeSpan newTime = new TimeSpan(time.Hours, int.Parse(e.NewValue), time.Seconds);
+                Duration newTime = new TimeSpan(time.Hours, int.Parse(e.NewValue), time.Seconds).ToDuration();
                 int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;
@@ -203,7 +205,7 @@ public class ManageReminderTimesView : BaseView
         {
             try
             {
-                TimeSpan newTime = new TimeSpan(time.Hours, time.Minutes, int.Parse(e.NewValue));
+                Duration newTime = new TimeSpan(time.Hours, time.Minutes, int.Parse(e.NewValue)).ToDuration();
                 int index = this._reminderTimes.IndexOf(time);
                 this._reminderTimes[index] = newTime;
                 time = newTime;

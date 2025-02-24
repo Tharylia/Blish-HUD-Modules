@@ -9,35 +9,46 @@
         <PlatformTarget>x64</PlatformTarget>
         <SignAssembly>False</SignAssembly>
         <AssemblyOriginatorKeyFile>C:\Workspaces\Visual Studio\Signing Key\key.snk</AssemblyOriginatorKeyFile>
+        <Configurations>Debug;Release;Release - WINE</Configurations>
     </PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<Optimize>False</Optimize>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release - WINE|AnyCPU'">
+		<DefineConstants>$(DefineConstants);WINE</DefineConstants>
+	</PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="BlishHUD" Version="1.0.0">
             <ExcludeAssets>runtime;contentFiles</ExcludeAssets>
         </PackageReference>
-        <PackageReference Include="Flurl.Http" Version="2.4.2"/>
-        <PackageReference Include="Octokit" Version="3.0.0"/>
-        <PackageReference Include="jose-jwt" Version="4.1.0"/>
+        <PackageReference Include="Flurl.Http" Version="2.4.2" />
+        <PackageReference Include="Octokit" Version="3.0.0" />
+		<PackageReference Include="NodaTime" Version="3.2.0" />
+		<PackageReference Include="NodaTime.Serialization.JsonNet" Version="3.0.1" />
+        <PackageReference Include="jose-jwt" Version="4.1.0" />
         <PackageReference Include="SemanticVersioning" Version="1.2.2">
             <ExcludeAssets>runtime</ExcludeAssets>
         </PackageReference>
-        <PackageReference Include="Handlebars.Net" Version="2.1.2"/>
-        <PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all"/>
-        <PackageReference Include="Humanizer.Core.es" Version="2.6.2" PrivateAssets="all"/>
-        <PackageReference Include="Humanizer.Core.fr" Version="2.6.2" PrivateAssets="all"/>
+        <PackageReference Include="Handlebars.Net" Version="2.1.2" />
+        <PackageReference Include="Humanizer.Core.de" Version="2.6.2" PrivateAssets="all" />
+        <PackageReference Include="Humanizer.Core.es" Version="2.6.2" PrivateAssets="all" />
+        <PackageReference Include="Humanizer.Core.fr" Version="2.6.2" PrivateAssets="all" />
 		<PackageReference Include="SpriteFontPlus" Version="0.9.2" />
 		<PackageReference Include="SpriteFontPlus.MonoGame" Version="0.7.0.22" />
 		<PackageReference Include="System.IO.Compression" Version="4.3.0" />
     </ItemGroup>
 
     <ItemGroup>
-        <Reference Include="PresentationCore"/>
-        <Reference Include="PresentationFramework"/>
-        <Reference Include="System.ComponentModel.Composition"/>
-        <Reference Include="System.Security"/>
-        <Reference Include="System.ServiceModel"/>
-        <Reference Include="System.Windows.Forms"/>
-        <Reference Include="WindowsBase"/>
+        <Reference Include="PresentationCore" />
+        <Reference Include="PresentationFramework" />
+        <Reference Include="System.ComponentModel.Composition" />
+        <Reference Include="System.Security" />
+        <Reference Include="System.ServiceModel" />
+        <Reference Include="System.Windows.Forms" />
+        <Reference Include="WindowsBase" />
     </ItemGroup>
 
 
@@ -48,6 +59,6 @@
     </ItemGroup>
 
 
-    <Import Project="..\Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems" Label="Shared"/>
+    <Import Project="..\Estreya.BlishHUD.Shared\Estreya.BlishHUD.Shared.projitems" Label="Shared" />
 
 </Project>

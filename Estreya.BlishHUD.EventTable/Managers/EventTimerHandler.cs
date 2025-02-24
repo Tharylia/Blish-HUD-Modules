@@ -34,6 +34,7 @@ using Blish_HUD.Controls;
 using Blish_HUD._Extensions;
 using static Blish_HUD.ContentService;
 using MonoGame.Extended.BitmapFonts;
+using NodaTime;
 
 public class EventTimerHandler : IDisposable, IUpdatable
 {
@@ -48,7 +49,7 @@ public class EventTimerHandler : IDisposable, IUpdatable
 
     private readonly Gw2ApiManager _apiManager;
     private readonly Func<Task<List<Event>>> _getEvents;
-    private readonly Func<DateTime> _getNow;
+    private readonly Func<Instant> _getNow;
     private readonly MapUtil _mapUtil;
     private readonly ModuleSettings _moduleSettings;
     private readonly TranslationService _translationService;
@@ -60,7 +61,7 @@ public class EventTimerHandler : IDisposable, IUpdatable
 
     public event EventHandler FoundLostEntities;
 
-    public EventTimerHandler(Func<Task<List<Event>>> getEvents, Func<DateTime> getNow, MapUtil mapUtil, Gw2ApiManager apiManager, ModuleSettings moduleSettings, TranslationService translationService, IconService iconService)
+    public EventTimerHandler(Func<Task<List<Event>>> getEvents, Func<Instant> getNow, MapUtil mapUtil, Gw2ApiManager apiManager, ModuleSettings moduleSettings, TranslationService translationService, IconService iconService)
     {
         this._getEvents = getEvents;
         this._getNow = getNow;
@@ -288,7 +289,7 @@ public class EventTimerHandler : IDisposable, IUpdatable
 
                     if (current != default)
                     {
-                        remainingTimeText = (current.AddMinutes(ev.Duration) - this._getNow()).Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second);
+                        remainingTimeText = (current.Plus(ev.Duration) - this._getNow()).ToTimeSpan().Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second);
                     }
 
                     return $"Current remaining: {remainingTimeText}";
@@ -297,14 +298,14 @@ public class EventTimerHandler : IDisposable, IUpdatable
                 var remainingScale = 0.4f;
                 var remainingScaleWidth = 2.75f;
                 var remainingColor = this._moduleSettings.EventTimersRemainingTextColor.Value.Cloth.ToXnaColor();
-                var startsInText = () => $"Next in: {(ev.GetNextOccurrence() - this._getNow()).Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}";
+                var startsInText = () => $"Next in: {(ev.GetNextOccurrence() - this._getNow()).ToTimeSpan().Humanize(2, minUnit: Humanizer.Localisation.TimeUnit.Second)}";
                 var startsInFont = this.GetFont(FontSize.Size36);
                 var startsInScale = 0.4f;
                 var startsInScaleWidth = 2.5f;
                 var startsInColor = this._moduleSettings.EventTimersStartsInTextColor.Value.Cloth.ToXnaColor();
                 var nextOccurrenceScale = 0.4f;
                 var nextOccurrenceScaleWidth = 2f;
-                var nextOccurrenceText = () => ev.GetNextOccurrence().ToLocalTime().ToString();
+                var nextOccurrenceText = () => ev.GetNextOccurrence().InZone(DateTimeZoneProviders.Tzdb.GetSystemDefault()).ToString();
                 var nextOccurrenceColor = this._moduleSettings.EventTimersNextOccurenceTextColor.Value.Cloth.ToXnaColor();
                 var nextOccurrenceFont = this.GetFont(FontSize.Size36);
                 var nameText = () => $"{ev.Name}";
@@ -317,7 +318,7 @@ public class EventTimerHandler : IDisposable, IUpdatable
                 var durationScale = 0.4f;
                 var durationScaleWidth = 2f;
                 var durationColor = this._moduleSettings.EventTimersDurationTextColor.Value.Cloth.ToXnaColor();
-                var repeatText = () => $"Repeats every: {ev.Repeat.Humanize()}";
+                var repeatText = () => $"Repeats every: {ev.Repeat.ToTimeSpan().Humanize()}";
                 var repeatFont = this.GetFont(FontSize.Size36);
                 var repeatScale = 0.4f;
                 var repeatScaleWidth = 2f;
