@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Input;
@@ -111,6 +111,9 @@ public class ModuleSettings : BaseModuleSettings
 
     protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
     {
+        this.RegisterContext.GetDisplayNameFunc = () => "Allow Cross Module Interaction";
+        this.RegisterContext.GetDescriptionFunc = () => "Allow other BlishHUD modules to add certain elements to this module (events, reminders, ...). Requires a restart.";
+
         this.MapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.MapKeybinding), new KeyBinding(Keys.M), () => "Open Map Hotkey", () => "Defines the key used to open the fullscreen map.");
         this.MapKeybinding.Value.Enabled = true;
         this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
@@ -143,7 +146,7 @@ public class ModuleSettings : BaseModuleSettings
         };
 
         int reminderDurationMin = 1;
-        int reminderDurationMax = 15;
+        int reminderDurationMax = 30;
         this.ReminderDuration = this.GlobalSettings.DefineSetting(nameof(this.ReminderDuration), 5f, () => "Reminder Duration", () => "Defines the reminder duration.");
         this.ReminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
 
@@ -230,7 +233,7 @@ public class ModuleSettings : BaseModuleSettings
         this.ShowDynamicEventsInWorldKeybinding.Value.BlockSequenceFromGw2 = true;
         this.ShowDynamicEventsInWorldKeybinding.Value.Activated += this.ShowDynamicEventInWorldKeybinding_Activated;
 
-        this.MenuEventSortMode = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMode), Models.MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events in menu views are sorted by.");
+        this.MenuEventSortMode = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMode), Models.MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events are sorted by when displayed inside different settings windows/tabs. (e.g. Event Areas -> Manage Events)");
 
         this.HideRemindersOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersOnOpenMap), false, () => "Hide Reminders on open Map", () => "Whether the reminders should hide when the map is open.");
 
@@ -352,7 +355,7 @@ public class ModuleSettings : BaseModuleSettings
         SettingEntry<List<string>> disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
 
         SettingEntry<int> eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
-        eventHeight.SetRange(5, 30);
+        eventHeight.SetRange(5, 70);
 
         SettingEntry<List<string>> eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
 
