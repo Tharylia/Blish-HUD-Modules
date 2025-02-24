@@ -1,4 +1,4 @@
-namespace Estreya.BlishHUD.EventTable;
+﻿namespace Estreya.BlishHUD.EventTable;
 
 using Blish_HUD;
 using Blish_HUD.Content;
@@ -45,6 +45,8 @@ using Estreya.BlishHUD.Shared.Contexts;
 using Estreya.BlishHUD.EventTable.Contexts;
 using Windows.UI.WindowManagement;
 using Microsoft.Xna.Framework.Audio;
+using Estreya.BlishHUD.Shared.UI.Views;
+using Estreya.BlishHUD.EventTable.UI.Views.Wizard;
 using NodaTime;
 using NodaTime.Extensions;
 
@@ -980,7 +982,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("156764.png"),
-            () => new Shared.UI.Views.BlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            () => new UI.Views.EventTableBlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             "Estreya BlishHUD"));
 
         this.SettingsWindow.Tabs.Add(new Tab(
@@ -1196,7 +1198,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     public DynamicEventService DynamicEventService { get; private set; }
     public EventTimerHandler EventTimerHandler { get; private set; }
 
-    public SelfHostingEventService SelfHostingEventService { get; private set;}
+    public SelfHostingEventService SelfHostingEventService { get; private set; }
 
     #endregion
 }

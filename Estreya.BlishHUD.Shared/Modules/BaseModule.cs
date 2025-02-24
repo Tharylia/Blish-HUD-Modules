@@ -26,6 +26,7 @@ using Microsoft.Xna.Framework;
 using Models;
 using MonoGame.Extended.BitmapFonts;
 using MumbleInfo.Map;
+using Newtonsoft.Json;
 using Security;
 using Services;
 using Settings;
@@ -45,6 +46,8 @@ using UI.Views;
 using UI.Views.Settings;
 using Utils;
 using TabbedWindow = Controls.TabbedWindow;
+using NodaTime.Serialization.JsonNet;
+using NodaTime;
 
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : BaseModuleSettings where TModule : class
 {
@@ -119,6 +122,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
 
     private ModuleSettingsView _defaultSettingView;
+
+    private Controls.StandardWindow _wizardWindow;
 
     private FlurlClient _flurlClient;
 
@@ -903,7 +908,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
 
         //_ = this.MetricsService.SendMetricAsync("loaded");
-        _ = Task.Factory.StartNew(this.ExecuteWizard, TaskCreationOptions.LongRunning).Unwrap();
+        //_ = Task.Factory.StartNew(this.ExecuteWizard, TaskCreationOptions.LongRunning).Unwrap();
     }
 
     /// <summary>
@@ -938,16 +943,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         var views = this.GetWizardViews();
         if (views == null || views.Count == 0) return;
 
-        var window = WindowUtil.CreateStandardWindow(this.ModuleSettings, $"{this.Name} - Setup Wizard", this.GetType(), Guid.Parse("0f4654eb-2853-4299-85f4-bacf2ae2d8e6"), this.IconService);
-        window.CanClose = false;
-        window.CanCloseWithEscape = false;
-        window.CanResize = false;
+        this._wizardWindow?.Dispose();
+        this._wizardWindow = WindowUtil.CreateStandardWindow(this.ModuleSettings, $"{this.Name} - Setup Wizard", this.GetType(), Guid.Parse("0f4654eb-2853-4299-85f4-bacf2ae2d8e6"), this.IconService);
+        this._wizardWindow.CanClose = false;
+        this._wizardWindow.CanCloseWithEscape = false;
+        this._wizardWindow.CanResize = false;
 
         var viewIndex = 0;
 
         var view = views[0];
 
-        await this.ShowWizardView(window, view, viewIndex, views);
+        await this.ShowWizardView(this._wizardWindow, view, viewIndex, views);
     }
 
     private async Task ShowWizardView(Controls.StandardWindow window, WizardView wizardView, int viewIndex, List<WizardView> allViews)
@@ -1242,13 +1248,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Unloaded default settings view.");
 
-        this.Logger.Debug("Unload settings window...");
+        this.Logger.Debug("Unload windows...");
 
         this.SettingsWindow?.Hide();
         this.SettingsWindow?.Dispose();
         this.SettingsWindow = null;
 
-        this.Logger.Debug("Unloaded settings window.");
+        this._wizardWindow?.Hide();
+        this._wizardWindow?.Dispose();
+        this._wizardWindow = null;
+
+        this.Logger.Debug("Unloaded windows.");
 
         this.Logger.Debug("Unloading states...");
 
