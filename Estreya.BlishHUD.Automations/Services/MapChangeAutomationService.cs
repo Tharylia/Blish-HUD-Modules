@@ -33,7 +33,7 @@ public class MapChangeAutomationService : AutomationService<MapChangeAutomationE
 
     private async void Mumble_MapChanged(object sender, ValueEventArgs<int> e)
     {
-        var mapChangeEntries = this.GetAutomations().Where(mapChangeAutomationEntry =>
+        var mapChangeEntries = this.GetEntries().Where(mapChangeAutomationEntry =>
             //a.Type == AutomationType.MAP_CHANGE
             //&& a is MapChangeAutomationEntry mapChangeAutomationEntry
             (mapChangeAutomationEntry.ToMapId == -1 || mapChangeAutomationEntry.ToMapId == e.Value) 
@@ -48,7 +48,7 @@ public class MapChangeAutomationService : AutomationService<MapChangeAutomationE
             foreach (var entry in mapChangeEntries)
             {
 
-                this.EnqueueAutomation(entry, new MapChangeActionInput()
+                this.EnqueueEntry(entry, new MapChangeActionInput()
                 {
                     From = fromMap,
                     To = toMap

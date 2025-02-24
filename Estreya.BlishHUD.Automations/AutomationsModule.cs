@@ -64,7 +64,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
             ScreenNotification.ShowNotification(template.Invoke(input));
         });
 
-        this.MapChangeAutomationService.AddAutomation(mapChangeToQueensdale);
+        this.MapChangeAutomationService.AddEntry(mapChangeToQueensdale);
 
         PositionChangeAutomationEntry positionChange = new PositionChangeAutomationEntry("position change");
 
@@ -74,7 +74,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
             Shared.Controls.ScreenNotification.ShowNotification(template.Invoke(input));
         });
 
-        this.PositionChangeAutomationService.AddAutomation(positionChange);
+        this.PositionChangeAutomationService.AddEntry(positionChange);
 
         IntervalChangeAutomationEntry intervalChange = new IntervalChangeAutomationEntry("interval change");
 
@@ -84,7 +84,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
             Shared.Controls.ScreenNotification.ShowNotification(template.Invoke(input));
         });
 
-        this.IntervalChangeAutomationService.AddAutomation(intervalChange);
+        this.IntervalChangeAutomationService.AddEntry(intervalChange);
     }
 
     private void BuildHandlebarContext()

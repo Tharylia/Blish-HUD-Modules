@@ -1,5 +1,6 @@
 ﻿namespace Estreya.BlishHUD.Automations.Models.Automations;
 
+using Blish_HUD;
 using Blish_HUD.Modules.Managers;
 using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 
 public abstract class AutomationEntry<TActionInput> : AutomationEntry
 {
+    private Logger Logger = Logger.GetLogger<AutomationEntry<TActionInput>>();
     protected AsyncLock _actionLock = new AsyncLock();
 
     protected List<Func<TActionInput, Task>> Actions { get; set; }
@@ -27,7 +29,10 @@ public abstract class AutomationEntry<TActionInput> : AutomationEntry
     {
         using (this._actionLock.Lock())
         {
-            var tasks = this.Actions.Select(a => a.Invoke(actionInput));
+            var tasks = this.Actions.Select(async a =>
+            {
+                await a.Invoke(actionInput);
+            });
             await Task.WhenAll(tasks);
         }
     }

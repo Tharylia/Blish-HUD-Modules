@@ -2,7 +2,9 @@
 
 using Blish_HUD;
 using Blish_HUD.Modules.Managers;
-using Estreya.BlishHUD.Automations.Models.Automations.IntervalChange;
+using Estreya.BlishHUD.Automations.Models.Automations;
+using Estreya.BlishHUD.Automations.Models.Automations.MumbleStateChange;
+using Estreya.BlishHUD.Automations.Models.Automations.PositionChange;
 using Estreya.BlishHUD.Shared.Services;
 using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
@@ -17,13 +19,13 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class IntervalChangeAutomationService : AutomationService<IntervalChangeAutomationEntry, IntervalChangeActionInput>
+public class MumbleStateChangeAutomationService : AutomationService<MumbleStateChangeAutomationEntry, MumbleStateChangeActionInput>
 {
     private static TimeSpan _checkInterval = TimeSpan.FromMilliseconds(500);
     private double _lastCheck = 0;
-    private TimeSpan _lastGameTime;
+    private Vector3 _lastPosition = Vector3.Zero;
 
-    public IntervalChangeAutomationService(ServiceConfiguration configuration, IFlurlClient flurlClient, Gw2ApiManager apiManager, IHandlebars handlebarsContext) : base(configuration, flurlClient, apiManager, handlebarsContext) { }
+    public MumbleStateChangeAutomationService(ServiceConfiguration configuration, IFlurlClient flurlClient, Gw2ApiManager apiManager, IHandlebars handlebarsContext) : base(configuration, flurlClient, apiManager, handlebarsContext) { }
 
     protected override Task Initialize()
     {
@@ -31,11 +33,11 @@ public class IntervalChangeAutomationService : AutomationService<IntervalChangeA
         return Task.CompletedTask;
     }
 
-    private void CheckIntervalChange()
+    private void CheckPositionChange()
     {
-        var currentGameTime = GameService.Overlay.CurrentGameTime.TotalGameTime;
+        var currentPosition = GameService.Gw2Mumble.PlayerCharacter.Position;
 
-        if (currentGameTime == this._lastGameTime) return;
+        if (currentPosition == this._lastPosition) return;
 
         var mapChangeEntries = this.GetEntries().Where(entry => true).ToList();
 
@@ -44,11 +46,11 @@ public class IntervalChangeAutomationService : AutomationService<IntervalChangeA
             foreach (var entry in mapChangeEntries)
             {
 
-                this.EnqueueEntry(entry, new IntervalChangeActionInput()
-                {
-                    From = this._lastGameTime,
-                    To = currentGameTime
-                });
+                //this.EnqueueEntry(entry, new PositionChangeActionInput()
+                //{
+                //    From = this._lastPosition,
+                //    To = currentPosition
+                //});
             }
         }
         catch (Exception ex)
@@ -56,14 +58,14 @@ public class IntervalChangeAutomationService : AutomationService<IntervalChangeA
             this.Logger.Warn(ex, "Could not enqueue automation entry.");
         }
 
-        this._lastGameTime = currentGameTime;
+        this._lastPosition = currentPosition;
     }
 
     protected override void InternalUpdate(GameTime gameTime)
     {
         base.InternalUpdate(gameTime);
 
-        UpdateUtil.Update(this.CheckIntervalChange, gameTime, _checkInterval.TotalMilliseconds, ref _lastCheck);
+        UpdateUtil.Update(this.CheckPositionChange, gameTime, _checkInterval.TotalMilliseconds, ref _lastCheck);
     }
 
     protected override void InternalUnload()
