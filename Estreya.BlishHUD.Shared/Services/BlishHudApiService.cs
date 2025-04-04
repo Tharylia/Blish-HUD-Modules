@@ -154,7 +154,7 @@ public class BlishHudApiService : ManagedService
 
             HttpResponseMessage response = await this._flurlClient.Request(this._apiRootUrl, $"v{API_VERSION_AUTH}", "auth", "login").PostJsonAsync(new
             {
-                username,
+                name = username,
                 password
             });
 
