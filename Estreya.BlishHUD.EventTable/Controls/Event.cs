@@ -368,7 +368,7 @@ public class Event : IDisposable
     {
         try
         {
-            return dt.ToString(this._getAbsoluteTimeFormatStrings(), CultureInfo.InvariantCulture);
+            return dt.ToDateTimeUtc().ToLocalTime().ToString(this._getAbsoluteTimeFormatStrings(), CultureInfo.InvariantCulture);
         }
         catch (Exception ex)
         {
