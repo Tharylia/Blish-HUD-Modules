@@ -871,7 +871,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         this.ModuleSettings.RemoveDrawer(configuration.Name);
     }
 
-    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings);
+    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings, this.Version);
 
     protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
     {

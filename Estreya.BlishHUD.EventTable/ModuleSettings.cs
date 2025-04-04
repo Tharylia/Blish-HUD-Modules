@@ -23,7 +23,7 @@ public class ModuleSettings : BaseModuleSettings
 
     public const string ANY_AREA_NAME = "Any";
 
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding()) { }
+    public ModuleSettings(SettingCollection settings, SemVer.Version moduleVersion) : base(settings, moduleVersion, new KeyBinding()) { }
 
     private SettingCollection EventAreaSettings { get; set; }
     public SettingEntry<List<string>> EventAreaNames { get; private set; }
@@ -419,7 +419,7 @@ public class ModuleSettings : BaseModuleSettings
 
         SettingEntry<bool> enableColorGradients = this.DrawerSettings.DefineSetting($"{name}-enableColorGradients", false, () => "Enable Color Gradients", () => "Defines if supported events should have a smoother color gradient from and to the next event.");
 
-        SettingEntry<string> eventTimespanDaysFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanDaysFormatString", "dd\\.hh\\:mm\\:ss", () => "Days Format String", () => "Defines the format strings for timespans over 1 day.");
+        SettingEntry<string> eventTimespanDaysFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanDaysFormatString", "DD\\.hh\\:mm\\:ss", () => "Days Format String", () => "Defines the format strings for timespans over 1 day.");
         SettingEntry<string> eventTimespanHoursFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanHoursFormatString", "hh\\:mm\\:ss", () => "Hours Format String", () => "Defines the format strings for timespans over 1 hours.");
         SettingEntry<string> eventTimespanMinutesFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanMinutesFormatString", "mm\\:ss", () => "Minutes Format String", () => "Defines the fallback format strings for timespans.");
 
@@ -899,6 +899,24 @@ public class ModuleSettings : BaseModuleSettings
         {
             this.Logger.Warn($"Setting \"{nameof(this.DisableRemindersWhenEventFinishedArea)}\" has the invalid area \"{disableRemindersWhenEventFinishedArea}\" set and will be reset to \"{ANY_AREA_NAME}\".");
             this.DisableRemindersWhenEventFinishedArea.Value = ANY_AREA_NAME;
+        }
+    }
+
+    protected override void PerformMigration(SemVer.Version? lastModuleVersion, SemVer.Version currentModuleVersion)
+    {
+        if (lastModuleVersion == null || lastModuleVersion <= new SemVer.Version("3.15.0"))
+        {
+            foreach (var areaName in this.EventAreaNames.Value)
+            {
+                var entryKey = $"{areaName}-eventTimespanDaysFormatString";
+                if (this.DrawerSettings[entryKey] is SettingEntry<string> daysFormatStringSetting && daysFormatStringSetting.Value == "dd\\.hh\\:mm\\:ss")
+                {
+                    daysFormatStringSetting.Value = "DD\\.hh\\:mm\\:ss";
+                    this.Logger.Info($"Performed migration of {entryKey}");
+                }
+            }
+
+            //if ("dd\\.hh\\:mm\\:ss")
         }
     }
 
