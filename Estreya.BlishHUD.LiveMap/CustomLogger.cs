@@ -23,6 +23,26 @@ internal class CustomLogger : ILogger
 
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
     {
-        _logger.Info(formatter(state, exception));
+        string message = formatter(state, exception);
+        switch (logLevel)
+        {
+            case LogLevel.Critical:
+            case LogLevel.Error:
+                _logger.Error(message);
+                break;
+            case LogLevel.Warning:
+                _logger.Warn(message);
+                break;
+            case LogLevel.Information:
+                _logger.Info(message);
+                break;
+            case LogLevel.Debug:
+            case LogLevel.Trace:
+                _logger.Debug(message);
+                break;
+            default:
+                _logger.Info(message);
+                break;
+        }
     }
 }
