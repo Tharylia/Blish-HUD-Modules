@@ -15,6 +15,7 @@ using Services;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Windows.Controls;
 using static Blish_HUD.ContentService;
 
 /// <summary>
@@ -35,7 +36,7 @@ public abstract class BaseModuleSettings
     /// </summary>
     /// <param name="settings">The base settings passed by blish hud core.</param>
     /// <param name="globalEnabledKeybinding">The global keybinding used to trigger ui visibility.</param>
-    protected BaseModuleSettings(SettingCollection settings, KeyBinding globalEnabledKeybinding)
+    protected BaseModuleSettings(SettingCollection settings, SemVer.Version moduleVersion, KeyBinding globalEnabledKeybinding)
     {
         this.Logger = Logger.GetLogger(this.GetType());
 
@@ -43,12 +44,41 @@ public abstract class BaseModuleSettings
         this._globalEnabledKeybinding = globalEnabledKeybinding;
         this.BuildDefaultColor();
 
+        var initMigrationResult = this.InitalizeMigrationSettings(this._settings, moduleVersion);
+
         this.InitializeGlobalSettings(this._settings);
 
         this.InitializeDrawerSettings(this._settings);
 
         this.InitializeAdditionalSettings(this._settings);
+
+        if (initMigrationResult.PerformMigration)
+        {
+            this.InternalPerformMigration(initMigrationResult.LastMigrationVersion, moduleVersion);
+        }
     }
+
+    private (bool PerformMigration, SemVer.Version? LastMigrationVersion)  InitalizeMigrationSettings(SettingCollection settings, SemVer.Version moduleVersion)
+    {
+        this.MigrationSettings = settings.AddSubCollection(MIGRATION_SETTINGS);
+
+        var lastMigrationKey = "last-migration-version";
+        var existed = this.MigrationSettings.TryGetSetting(lastMigrationKey, out _);
+        this.LastMigrationVersion = this.MigrationSettings.DefineSetting(lastMigrationKey, moduleVersion);
+
+        this.MigrationSettings.AddLoggingEvents();
+
+        return (!existed || this.LastMigrationVersion.Value < moduleVersion, existed ? this.LastMigrationVersion.Value : null);
+    }
+
+    private void InternalPerformMigration(SemVer.Version? lastModuleVersion, SemVer.Version currentModuleVersion)
+    {
+        this.PerformMigration(lastModuleVersion, currentModuleVersion);
+
+        this.LastMigrationVersion.Value = currentModuleVersion;
+    }
+
+    protected virtual void PerformMigration(SemVer.Version? lastModuleVersion, SemVer.Version currentModuleVersion) { }
 
     /// <summary>
     ///     Gets the default gw2 color (dye remover).
@@ -253,13 +283,13 @@ public abstract class BaseModuleSettings
     /// <param name="name">The name of the new drawer.</param>
     /// <param name="defaultBuildDirection">The default build direction of the drawer.</param>
     /// <returns>The newly created configuration.</returns>
-    public DrawerConfiguration AddDrawer(string name, BuildDirection defaultBuildDirection = BuildDirection.Top)
+    public DrawerConfiguration AddDrawer(string name, BuildDirection defaultBuildDirection = BuildDirection.Top, KeyBinding enabledKeybindingDefault = null)
     {
         int maxHeight = 1080;
         int maxWidth = 1920;
 
         SettingEntry<bool> enabled = this.DrawerSettings.DefineSetting($"{name}-enabled", true, () => "Enabled", () => "Whether the drawer is enabled.");
-        SettingEntry<KeyBinding> enabledKeybinding = this.DrawerSettings.DefineSetting($"{name}-enabledKeybinding", new KeyBinding(), () => "Enabled Keybinding", () => "Defines the keybinding to toggle this drawer on and off.");
+        SettingEntry<KeyBinding> enabledKeybinding = this.DrawerSettings.DefineSetting($"{name}-enabledKeybinding", enabledKeybindingDefault ?? new KeyBinding(), () => "Enabled Keybinding", () => "Defines the keybinding to toggle this drawer on and off.");
         enabledKeybinding.Value.Enabled = true;
         enabledKeybinding.Value.IgnoreWhenInTextField = true;
         enabledKeybinding.Value.BlockSequenceFromGw2 = true;
@@ -515,8 +545,14 @@ public abstract class BaseModuleSettings
     public virtual void Unload()
     {
         this.GlobalSettings.RemoveLoggingEvents();
+        this.MigrationSettings.RemoveLoggingEvents();
         this.DrawerSettings.RemoveLoggingEvents();
     }
+
+    private const string MIGRATION_SETTINGS = "migration-settings";
+    public SettingCollection MigrationSettings { get; private set; }
+
+    public SettingEntry<SemVer.Version> LastMigrationVersion { get; private set; }
 
     #region Global Settings
 

@@ -306,7 +306,7 @@ public class LookingForGroupModule : BaseModule<LookingForGroupModule, ModuleSet
     }
 
 
-    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings);
+    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings, this.Version);
 
     protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
     {

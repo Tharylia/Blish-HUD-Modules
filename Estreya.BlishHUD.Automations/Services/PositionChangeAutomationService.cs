@@ -38,14 +38,14 @@ public class PositionChangeAutomationService : AutomationService<PositionChangeA
 
         if (currentPosition == this._lastPosition) return;
 
-        var mapChangeEntries = this.GetAutomations().Where(entry => true).ToList();
+        var mapChangeEntries = this.GetEntries().Where(entry => true).ToList();
 
         try
         {
             foreach (var entry in mapChangeEntries)
             {
 
-                this.EnqueueAutomation(entry, new PositionChangeActionInput()
+                this.EnqueueEntry(entry, new PositionChangeActionInput()
                 {
                     From = this._lastPosition,
                     To = currentPosition

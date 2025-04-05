@@ -178,6 +178,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\Settings\StateSettingsView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\StringTooltipView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI\Views\TooltipView.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)UI\Views\WizardView.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\AsyncLock.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\BlishHUDUtils.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Utils\ColorUtil.cs" />

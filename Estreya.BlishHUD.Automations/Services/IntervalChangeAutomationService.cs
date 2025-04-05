@@ -37,14 +37,14 @@ public class IntervalChangeAutomationService : AutomationService<IntervalChangeA
 
         if (currentGameTime == this._lastGameTime) return;
 
-        var mapChangeEntries = this.GetAutomations().Where(entry => true).ToList();
+        var mapChangeEntries = this.GetEntries().Where(entry => true).ToList();
 
         try
         {
             foreach (var entry in mapChangeEntries)
             {
 
-                this.EnqueueAutomation(entry, new IntervalChangeActionInput()
+                this.EnqueueEntry(entry, new IntervalChangeActionInput()
                 {
                     From = this._lastGameTime,
                     To = currentGameTime

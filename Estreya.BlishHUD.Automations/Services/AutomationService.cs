@@ -17,21 +17,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public abstract class AutomationService<TAutomation, TActionInput> : ManagedService where TAutomation : AutomationEntry<TActionInput>
+public abstract class AutomationService<TAutomationEntry, TActionInput> : ManagedService where TAutomationEntry : AutomationEntry<TActionInput>
 {
     private static TimeSpan _processingInterval = TimeSpan.FromSeconds(0.5);
     private AsyncRef<double> _lastProcessed = new AsyncRef<double>(0);
 
-    private List<TAutomation> _automations;
+    private List<TAutomationEntry> _entries;
 
-    private ConcurrentQueue<(TAutomation Automation, TActionInput Input)> _automationsQueue;
+    private ConcurrentQueue<(TAutomationEntry Automation, TActionInput Input)> _entryQueue;
     protected readonly IFlurlClient _flurlClient;
     protected readonly Gw2ApiManager _apiManager;
     protected readonly IHandlebars _handlebarsContext;
 
     public AutomationService(ServiceConfiguration configuration, IFlurlClient flurlClient, Gw2ApiManager apiManager, IHandlebars handlebarsContext) : base(configuration)
     {
-        this._automations = new List<TAutomation>();
+        this._entries = new List<TAutomationEntry>();
         this._flurlClient = flurlClient;
         this._apiManager = apiManager;
         this._handlebarsContext = handlebarsContext;
@@ -39,85 +39,85 @@ public abstract class AutomationService<TAutomation, TActionInput> : ManagedServ
 
     protected override Task Initialize()
     {
-        this._automationsQueue = new ConcurrentQueue<(TAutomation Automation, TActionInput Input)>();
+        this._entryQueue = new ConcurrentQueue<(TAutomationEntry Automation, TActionInput Input)>();
 
         return Task.CompletedTask;
     }
 
     protected override Task Clear()
     {
-        this._automationsQueue = null;
+        this._entryQueue = null;
         return Task.CompletedTask;
     }
 
     protected override void InternalUnload()
     {
-        this._automations?.Clear();
-        this._automations = null;
-        this._automationsQueue = null;
+        this._entries?.Clear();
+        this._entries = null;
+        this._entryQueue = null;
     }
 
-    protected List<TAutomation> GetAutomations()
+    protected List<TAutomationEntry> GetEntries()
     {
-        return this._automations;
+        return this._entries;
     }
 
-    protected void EnqueueAutomation(TAutomation automation, TActionInput input)
+    protected void EnqueueEntry(TAutomationEntry automation, TActionInput input)
     {
-        this._automationsQueue.Enqueue((automation, input));
+        this._entryQueue.Enqueue((automation, input));
     }
 
-    public void AddAutomation(TAutomation entry)
+    public void AddEntry(TAutomationEntry entry)
     {
         if (entry == null) throw new ArgumentNullException(nameof(entry));
 
-        if (this._automations.Any(a => a.Name == entry.Name)) throw new ArgumentException($"An automation with the name \"{entry.Name}\" already exists.");
+        if (this._entries.Any(a => a.Name == entry.Name)) throw new ArgumentException($"An entry with the name \"{entry.Name}\" already exists.");
 
-        this._automations.Add(entry);
+        this._entries.Add(entry);
     }
 
-    public void RemoveAutomation(string name)
+    public void RemoveEntry(string name)
     {
-        if (!this._automations.Any(a => a.Name == name)) throw new ArgumentException($"An automation with the name \"{name}\" does not exist.");
+        if (!this._entries.Any(a => a.Name == name)) throw new ArgumentException($"An entry with the name \"{name}\" does not exist.");
 
-        _ = this._automations.RemoveAll(a => a.Name == name);
+        _ = this._entries.RemoveAll(a => a.Name == name);
     }
 
-    private async Task ProcessAutomations()
+    private async Task ProcessEntries()
     {
         const int maxEntries = 10;
         int processEntries = 0;
-        while (processEntries <= maxEntries && this._automationsQueue.TryDequeue(out var queueEntry))
+        while (processEntries <= maxEntries && this._entryQueue.TryDequeue(out var queueEntry))
         {
             try
             {
-                await this.ProcessAutomation(queueEntry.Automation, queueEntry.Input);
-                this.Logger.Debug(message: $"Executed automation \"{queueEntry.Automation.Name}\".");
+                await this.ProcessEntry(queueEntry.Automation, queueEntry.Input);
+                this.Logger.Debug(message: $"Executed entry \"{queueEntry.Automation.Name}\".");
 
                 if (queueEntry.Automation.ExecutionCount != -1)
                 {
                     queueEntry.Automation.ExecutionCount--;
                     if (queueEntry.Automation.ExecutionCount <= 0)
                     {
-                        this.RemoveAutomation(queueEntry.Automation.Name);
+                        this.RemoveEntry(queueEntry.Automation.Name);
                     }
                 }
             }
             catch (Exception ex)
             {
-                this.Logger.Warn(ex, $"Failed to execute automation \"{queueEntry.Automation.Name}\".");
+                this.Logger.Warn(ex, $"Failed to execute entry \"{queueEntry.Automation.Name}\".");
             }
         }
     }
 
-    protected virtual async Task ProcessAutomation(TAutomation automation, TActionInput input)
+    protected virtual async Task ProcessEntry(TAutomationEntry entry, TActionInput input)
     {
-        await automation.Execute(input, this._flurlClient, this._apiManager);
+        await entry.Execute(input, this._flurlClient, this._apiManager);
     }
 
     protected override void InternalUpdate(GameTime gameTime)
     {
-        _ = UpdateUtil.UpdateAsync(this.ProcessAutomations, gameTime, _processingInterval.TotalMilliseconds, _lastProcessed, false);
+        _ = UpdateUtil.UpdateAsync(this.ProcessEntries, gameTime, _processingInterval.TotalMilliseconds, _lastProcessed, false);
     }
 
     protected override Task Load()

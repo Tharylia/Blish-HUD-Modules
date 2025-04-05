@@ -17,8 +17,8 @@ using Utils;
 public class BlishHudApiService : ManagedService
 {
     private const string API_PASSWORD_KEY = "estreyaBlishHudAPI";
-    private const int API_VERSION_AUTH = 1;
-    private const int API_VERSION_KOFI = 1;
+    private const int API_VERSION_AUTH = 2;
+    private const int API_VERSION_KOFI = 2;
 
     private static TimeSpan _checkAPITokenInterval = TimeSpan.FromMinutes(5);
     private readonly string _apiRootUrl;
@@ -154,7 +154,7 @@ public class BlishHudApiService : ManagedService
 
             HttpResponseMessage response = await this._flurlClient.Request(this._apiRootUrl, $"v{API_VERSION_AUTH}", "auth", "login").PostJsonAsync(new
             {
-                username,
+                name = username,
                 password
             });
 

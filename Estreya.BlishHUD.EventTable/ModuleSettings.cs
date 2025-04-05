@@ -23,7 +23,7 @@ public class ModuleSettings : BaseModuleSettings
 
     public const string ANY_AREA_NAME = "Any";
 
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.E)) { }
+    public ModuleSettings(SettingCollection settings, SemVer.Version moduleVersion) : base(settings, moduleVersion, new KeyBinding()) { }
 
     private SettingCollection EventAreaSettings { get; set; }
     public SettingEntry<List<string>> EventAreaNames { get; private set; }
@@ -111,6 +111,9 @@ public class ModuleSettings : BaseModuleSettings
 
     protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
     {
+        this.RegisterContext.GetDisplayNameFunc = () => "Allow Cross Module Interaction";
+        this.RegisterContext.GetDescriptionFunc = () => "Allow other BlishHUD modules to add certain elements to this module (events, reminders, ...). Requires a restart.";
+
         this.MapKeybinding = this.GlobalSettings.DefineSetting(nameof(this.MapKeybinding), new KeyBinding(Keys.M), () => "Open Map Hotkey", () => "Defines the key used to open the fullscreen map.");
         this.MapKeybinding.Value.Enabled = true;
         this.MapKeybinding.Value.BlockSequenceFromGw2 = false;
@@ -143,7 +146,7 @@ public class ModuleSettings : BaseModuleSettings
         };
 
         int reminderDurationMin = 1;
-        int reminderDurationMax = 15;
+        int reminderDurationMax = 30;
         this.ReminderDuration = this.GlobalSettings.DefineSetting(nameof(this.ReminderDuration), 5f, () => "Reminder Duration", () => "Defines the reminder duration.");
         this.ReminderDuration.SetRange(reminderDurationMin, reminderDurationMax);
 
@@ -230,7 +233,7 @@ public class ModuleSettings : BaseModuleSettings
         this.ShowDynamicEventsInWorldKeybinding.Value.BlockSequenceFromGw2 = true;
         this.ShowDynamicEventsInWorldKeybinding.Value.Activated += this.ShowDynamicEventInWorldKeybinding_Activated;
 
-        this.MenuEventSortMode = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMode), Models.MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events in menu views are sorted by.");
+        this.MenuEventSortMode = this.GlobalSettings.DefineSetting(nameof(this.MenuEventSortMode), Models.MenuEventSortMode.Default, () => "Menu Event Sort Mode", () => "Defines the mode by which the events are sorted by when displayed inside different settings windows/tabs. (e.g. Event Areas -> Manage Events)");
 
         this.HideRemindersOnOpenMap = this.GlobalSettings.DefineSetting(nameof(this.HideRemindersOnOpenMap), false, () => "Hide Reminders on open Map", () => "Whether the reminders should hide when the map is open.");
 
@@ -318,9 +321,9 @@ public class ModuleSettings : BaseModuleSettings
         this.ReminderSize?.Icon.SetRange(0, this.ReminderSize.Y.Value);
     }
 
-    public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories)
+    public EventAreaConfiguration AddDrawer(string name, List<EventCategory> eventCategories, KeyBinding enabledKeybinding = null)
     {
-        DrawerConfiguration drawer = base.AddDrawer(name);
+        DrawerConfiguration drawer = base.AddDrawer(name, enabledKeybindingDefault: enabledKeybinding);
 
         SettingEntry<LeftClickAction> leftClickAction = this.DrawerSettings.DefineSetting($"{name}-leftClickAction", LeftClickAction.CopyWaypoint, () => "Left Click Action", () => "Defines the action which is executed when left clicking.");
         SettingEntry<bool> showTooltips = this.DrawerSettings.DefineSetting($"{name}-showTooltips", true, () => "Show Tooltips", () => "Whether a tooltip should be displayed when hovering.");
@@ -352,7 +355,7 @@ public class ModuleSettings : BaseModuleSettings
         SettingEntry<List<string>> disabledEventKeys = this.DrawerSettings.DefineSetting($"{name}-disabledEventKeys", new List<string>(), () => "Active Event Keys", () => "Defines the active event keys.");
 
         SettingEntry<int> eventHeight = this.DrawerSettings.DefineSetting($"{name}-eventHeight", 30, () => "Event Height", () => "Defines the height of the individual event rows.");
-        eventHeight.SetRange(5, 30);
+        eventHeight.SetRange(5, 70);
 
         SettingEntry<List<string>> eventOrder = this.DrawerSettings.DefineSetting($"{name}-eventOrder", new List<string>(eventCategories.Select(x => x.Key)), () => "Event Order", () => "Defines the order of events.");
 
@@ -416,7 +419,7 @@ public class ModuleSettings : BaseModuleSettings
 
         SettingEntry<bool> enableColorGradients = this.DrawerSettings.DefineSetting($"{name}-enableColorGradients", false, () => "Enable Color Gradients", () => "Defines if supported events should have a smoother color gradient from and to the next event.");
 
-        SettingEntry<string> eventTimespanDaysFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanDaysFormatString", "dd\\.hh\\:mm\\:ss", () => "Days Format String", () => "Defines the format strings for timespans over 1 day.");
+        SettingEntry<string> eventTimespanDaysFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanDaysFormatString", "DD\\.hh\\:mm\\:ss", () => "Days Format String", () => "Defines the format strings for timespans over 1 day.");
         SettingEntry<string> eventTimespanHoursFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanHoursFormatString", "hh\\:mm\\:ss", () => "Hours Format String", () => "Defines the format strings for timespans over 1 hours.");
         SettingEntry<string> eventTimespanMinutesFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanMinutesFormatString", "mm\\:ss", () => "Minutes Format String", () => "Defines the fallback format strings for timespans.");
 
@@ -896,6 +899,24 @@ public class ModuleSettings : BaseModuleSettings
         {
             this.Logger.Warn($"Setting \"{nameof(this.DisableRemindersWhenEventFinishedArea)}\" has the invalid area \"{disableRemindersWhenEventFinishedArea}\" set and will be reset to \"{ANY_AREA_NAME}\".");
             this.DisableRemindersWhenEventFinishedArea.Value = ANY_AREA_NAME;
+        }
+    }
+
+    protected override void PerformMigration(SemVer.Version? lastModuleVersion, SemVer.Version currentModuleVersion)
+    {
+        if (lastModuleVersion == null || lastModuleVersion <= new SemVer.Version("3.15.0"))
+        {
+            foreach (var areaName in this.EventAreaNames.Value)
+            {
+                var entryKey = $"{areaName}-eventTimespanDaysFormatString";
+                if (this.DrawerSettings[entryKey] is SettingEntry<string> daysFormatStringSetting && daysFormatStringSetting.Value == "dd\\.hh\\:mm\\:ss")
+                {
+                    daysFormatStringSetting.Value = "DD\\.hh\\:mm\\:ss";
+                    this.Logger.Info($"Performed migration of {entryKey}");
+                }
+            }
+
+            //if ("dd\\.hh\\:mm\\:ss")
         }
     }
 

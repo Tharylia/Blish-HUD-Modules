@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Models;
 
 using Newtonsoft.Json;
+using NodaTime;
 using System;
 
 internal class OnlineFillerEvent
@@ -9,7 +10,7 @@ internal class OnlineFillerEvent
 
     [JsonProperty("name")] public string Name { get; set; }
 
-    [JsonProperty("duration")] public int Duration { get; set; }
+    [JsonProperty("duration")] public Duration Duration { get; set; }
 
-    [JsonProperty("occurences")] public DateTimeOffset[] Occurences { get; set; }
+    [JsonProperty("occurrences")] public Instant[] Occurences { get; set; }
 }

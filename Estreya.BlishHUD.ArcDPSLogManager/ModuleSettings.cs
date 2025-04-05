@@ -15,7 +15,7 @@ public class ModuleSettings : BaseModuleSettings
     public SettingEntry<int> TooShortLimit { get; private set; }
     public SettingEntry<bool> DetailedWvW {  get; private set; }
 
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding())
+    public ModuleSettings(SettingCollection settings, SemVer.Version moduleVersion) : base(settings, moduleVersion, new KeyBinding())
     {
     }
 

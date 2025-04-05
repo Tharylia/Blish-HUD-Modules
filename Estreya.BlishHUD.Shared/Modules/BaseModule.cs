@@ -26,6 +26,7 @@ using Microsoft.Xna.Framework;
 using Models;
 using MonoGame.Extended.BitmapFonts;
 using MumbleInfo.Map;
+using Newtonsoft.Json;
 using Security;
 using Services;
 using Settings;
@@ -45,6 +46,8 @@ using UI.Views;
 using UI.Views.Settings;
 using Utils;
 using TabbedWindow = Controls.TabbedWindow;
+using NodaTime.Serialization.JsonNet;
+using NodaTime;
 
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : BaseModuleSettings where TModule : class
 {
@@ -82,7 +85,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected string API_ROOT_URL => $"https://{(this.ModuleSettings.UseDevelopmentAPI.Value ? DEV_API_HOSTNAME : LIVE_API_HOSTNAME)}/blish-hud";
 
-    private string API_HEALTH_URL => $"{this.API_ROOT_URL}/health";
+    private string API_HEALTH_URL => $"{this.API_ROOT_URL}/_health";
 
     /// <summary>
     ///     The module sub route from the <see cref="API_ROOT_URL" /> including the specified api version from
@@ -119,6 +122,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     public bool IsPrerelease => !string.IsNullOrWhiteSpace(this.Version?.PreRelease);
 
     private ModuleSettingsView _defaultSettingView;
+
+    private Controls.StandardWindow _wizardWindow;
 
     private FlurlClient _flurlClient;
 
@@ -258,7 +263,22 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     protected override void Initialize()
     {
+#if DEBUG
+        this.Logger.Info("Running in debug mode.");
+#endif
+#if !DEBUG
+        this.Logger.Info("Running in normal mode.");
+#endif
+#if WINE
+        this.Logger.Info("Running in WINE mode.");
+#endif
+
         this._cancellationTokenSource = new CancellationTokenSource();
+
+        JsonConvert.DefaultSettings = () =>
+        {
+            return new JsonSerializerSettings().ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+        };
 
         this.TEMP_FIX_SetTacOAsActive();
 
@@ -888,6 +908,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
 
         //_ = this.MetricsService.SendMetricAsync("loaded");
+        //_ = Task.Factory.StartNew(this.ExecuteWizard, TaskCreationOptions.LongRunning).Unwrap();
     }
 
     /// <summary>
@@ -911,6 +932,81 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     /// </summary>
     /// <param name="settingWindow">The settings window.</param>
     protected virtual void OnSettingWindowBuild(TabbedWindow settingWindow) { }
+
+    protected virtual List<WizardView> GetWizardViews() => null;
+
+    private async Task ExecuteWizard()
+    {
+        var isFirstRun = true;
+        if (!isFirstRun) return;
+
+        var views = this.GetWizardViews();
+        if (views == null || views.Count == 0) return;
+
+        this._wizardWindow?.Dispose();
+        this._wizardWindow = WindowUtil.CreateStandardWindow(this.ModuleSettings, $"{this.Name} - Setup Wizard", this.GetType(), Guid.Parse("0f4654eb-2853-4299-85f4-bacf2ae2d8e6"), this.IconService);
+        this._wizardWindow.CanClose = false;
+        this._wizardWindow.CanCloseWithEscape = false;
+        this._wizardWindow.CanResize = false;
+
+        var viewIndex = 0;
+
+        var view = views[0];
+
+        await this.ShowWizardView(this._wizardWindow, view, viewIndex, views);
+    }
+
+    private async Task ShowWizardView(Controls.StandardWindow window, WizardView wizardView, int viewIndex, List<WizardView> allViews)
+    {
+        wizardView.NextClicked += async (s) =>
+        {
+            viewIndex++;
+            if (viewIndex > allViews.Count - 1) throw new ArgumentOutOfRangeException(nameof(viewIndex), "No next view available.");
+
+            var nextView = allViews[viewIndex];
+            //nextView.PreviousAvailable = viewIndex - 1 >= 0;
+            //nextView.NextAvailable = viewIndex + 1 <= allViews.Count - 1;
+
+            await this.ShowWizardView(window, nextView, viewIndex, allViews);
+        };
+
+        wizardView.PreviousClicked += async (s) =>
+        {
+            viewIndex--;
+            if (viewIndex < 0) throw new ArgumentOutOfRangeException(nameof(viewIndex), "No previous view available.");
+
+            var prevView = allViews[viewIndex];
+            //prevView.PreviousAvailable = viewIndex - 1 >= 0;
+            //prevView.NextAvailable = viewIndex + 1 <= allViews.Count - 1;
+
+            await this.ShowWizardView(window, prevView, viewIndex, allViews);
+        };
+
+        wizardView.CancelClicked += (s) =>
+        {
+            window?.Hide();
+            window?.Dispose();
+
+            this.Logger.Info("Cancelled setup wizard.");
+
+            return Task.CompletedTask;
+        };
+
+        wizardView.FinishClicked += s =>
+        {
+            window?.Hide();
+            window?.Dispose();
+
+            this.Logger.Info("Completed setup wizard.");
+
+            return Task.CompletedTask;
+        };
+
+        wizardView.PreviousAvailable = viewIndex - 1 >= 0;
+        wizardView.NextIsFinish = viewIndex == allViews.Count - 1;
+        wizardView.NextAvailable = wizardView.NextIsFinish || viewIndex + 1 <= allViews.Count - 1;
+        await window.Show(wizardView);
+    }
 
     /// <inheritdoc />
     protected override void Update(GameTime gameTime)
@@ -1152,13 +1248,17 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this.Logger.Debug("Unloaded default settings view.");
 
-        this.Logger.Debug("Unload settings window...");
+        this.Logger.Debug("Unload windows...");
 
         this.SettingsWindow?.Hide();
         this.SettingsWindow?.Dispose();
         this.SettingsWindow = null;
 
-        this.Logger.Debug("Unloaded settings window.");
+        this._wizardWindow?.Hide();
+        this._wizardWindow?.Dispose();
+        this._wizardWindow = null;
+
+        this.Logger.Debug("Unloaded windows.");
 
         this.Logger.Debug("Unloading states...");
 

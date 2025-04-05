@@ -395,7 +395,7 @@ public class ArcDPSLogManagerModule : BaseModule<ArcDPSLogManagerModule, ModuleS
 
     protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
     {
-        return new ModuleSettings(settings);
+        return new ModuleSettings(settings, this.Version);
     }
 
     protected override string GetDirectoryName()

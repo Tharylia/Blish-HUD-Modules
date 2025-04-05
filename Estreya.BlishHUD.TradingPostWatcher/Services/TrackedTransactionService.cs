@@ -75,6 +75,13 @@ public class TrackedTransactionService : APIService<TrackedTransaction>
     {
         if (!this._loadedFiles)
         {
+            var itemServiceLoaded = await this._itemService.WaitForCompletion(TimeSpan.FromMinutes(10));
+            if (!itemServiceLoaded)
+            {
+                this.Logger.Warn("Item Service did not finish loading in the given timespan. Abort loading tracked transaction file.");
+                return;
+            }
+
             List<string> trackedTransactionLines = new List<string>();
             if (File.Exists(Path.Combine(this.FullFolderPath, FILE_NAME)))
             {

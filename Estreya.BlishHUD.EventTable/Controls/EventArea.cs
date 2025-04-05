@@ -13,6 +13,7 @@ using Microsoft.Xna.Framework.Graphics;
 using Models;
 using MonoGame.Extended.BitmapFonts;
 using Newtonsoft.Json;
+using NodaTime;
 using Services;
 using Shared.Controls;
 using Shared.Extensions;
@@ -30,6 +31,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -58,14 +60,14 @@ public class EventArea : RenderTarget2DControl
     private readonly Func<List<string>> _getAreaNames;
     private readonly Func<List<string>> _getDisabledReminderKeys;
     private ContentsManager _contentsManager;
-    private readonly Func<DateTime> _getNowAction;
+    private readonly Func<Instant> _getNowAction;
     private readonly Func<Version> _getVersion;
     private Event _activeEvent;
     private List<EventCategory> _allEvents = new List<EventCategory>();
     private string _apiRootUrl;
 
     private bool _clearing;
-    private readonly ConcurrentDictionary<string, List<(DateTime Occurence, Event Event)>> _controlEvents = new ConcurrentDictionary<string, List<(DateTime Occurence, Event Event)>>();
+    private readonly ConcurrentDictionary<string, List<(Instant Occurence, Event Event)>> _controlEvents = new ConcurrentDictionary<string, List<(Instant Occurence, Event Event)>>();
 
     private readonly AsyncLock _controlLock = new AsyncLock();
 
@@ -88,7 +90,7 @@ public class EventArea : RenderTarget2DControl
     private MapchestService _mapchestService;
     private MapUtil _mapUtil;
 
-    private List<List<(DateTime Occurence, Event Event)>> _orderedControlEvents;
+    private List<List<(Instant Occurence, Event Event)>> _orderedControlEvents;
     private PointOfInterestService _pointOfInterestService;
     private AccountService _accountService;
     private readonly ChatService _chatService;
@@ -108,7 +110,7 @@ public class EventArea : RenderTarget2DControl
         EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService,
         PointOfInterestService pointOfInterestService, AccountService accountService, ChatService chatService,
         MapUtil mapUtil, IFlurlClient flurlClient, string apiRootUrl,
-        Func<DateTime> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames,
+        Func<Instant> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames,
         Func<List<string>> getDisabledReminderKeys, ContentsManager contentsManager)
     {
         this.Configuration = configuration;
@@ -210,7 +212,7 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
-    private List<List<(DateTime Occurence, Event Event)>> OrderedControlEvents
+    private List<List<(Instant Occurence, Event Event)>> OrderedControlEvents
     {
         get
         {
@@ -426,8 +428,8 @@ public class EventArea : RenderTarget2DControl
 
         events.ForEach(ev =>
         {
-            DateTime until = this.GetNextReset(ev);
-            this._logger.Info($"Event \"{ev.SettingKey}\" marked completed via api until: {until.ToUniversalTime()}");
+            Instant until = this.GetNextReset(ev);
+            this._logger.Info($"Event \"{ev.SettingKey}\" marked completed via api until: {until}");
             this.FinishEvent(ev, until);
         });
     }
@@ -578,12 +580,12 @@ public class EventArea : RenderTarget2DControl
         this.CheckForNewEventsForScreen(); // Needed to avoid complete area flashing
     }
 
-    private (DateTime Now, DateTime Min, DateTime Max) GetTimes()
+    private (Instant Now, Instant Min, Instant Max) GetTimes()
     {
-        DateTime now = this._getNowAction();
+        Instant now = this._getNowAction();
 
-        DateTime min = now.Subtract(TimeSpan.FromMinutes(this.Configuration.TimeSpan.Value * this.GetTimeSpanRatio()));
-        DateTime max = now.Add(TimeSpan.FromMinutes(this.Configuration.TimeSpan.Value * (1f - this.GetTimeSpanRatio())));
+        Instant min = now.Minus(Duration.FromMinutes(this.Configuration.TimeSpan.Value * this.GetTimeSpanRatio()));
+        Instant max = now.Plus(Duration.FromMinutes(this.Configuration.TimeSpan.Value * (1f - this.GetTimeSpanRatio())));
 
         return (now, min, max);
     }
@@ -600,7 +602,7 @@ public class EventArea : RenderTarget2DControl
     {
         if (this._clearing) return;
 
-        (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
+        (Instant Now, Instant Min, Instant Max) times = this.GetTimes();
 
         List<Task> tasks = new List<Task>();
 
@@ -622,7 +624,7 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
-    private async Task<ConcurrentDictionary<string, List<Models.Event>>> GetFillers(DateTime now, DateTime min, DateTime max, List<string> activeEventKeys)
+    private async Task<ConcurrentDictionary<string, List<Models.Event>>> GetFillers(Instant now, Instant min, Instant max, List<string> activeEventKeys)
     {
         try
         {
@@ -659,16 +661,16 @@ public class EventArea : RenderTarget2DControl
                 Module = new OnlineFillerRequest.OnlineFillerRequestModule { Version = this._getVersion().ToString() },
                 Times = new OnlineFillerRequest.OnlineFillerRequestTimes
                 {
-                    Now_UTC_ISO = now.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
-                    Min_UTC_ISO = min.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'"),
-                    Max_UTC_ISO = max.ToUniversalTime().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'")
+                    Now_UTC_ISO = now.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture),
+                    Min_UTC_ISO = min.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture),
+                    Max_UTC_ISO = max.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture)
                 },
                 EventKeys = activeEvents.Select(a => a.SettingKey).ToArray()
             });
 
-            OnlineFillerCategory[] fillers = await response.GetJsonAsync<OnlineFillerCategory[]>();
+            var fillers = await response.GetJsonAsync<Dictionary<string, OnlineFillerEvent[]>>();
 
-            List<OnlineFillerCategory> fillerList = fillers.ToList();
+            var fillerList = fillers.ToList();
             // Keep filler events from contexts
             ConcurrentDictionary<string, List<Models.Event>> parsedFillers = new ConcurrentDictionary<string, List<Models.Event>>(activeEvents.Where(ev => ev.Filler).GroupBy(ev =>
             {
@@ -678,9 +680,9 @@ public class EventArea : RenderTarget2DControl
 
             for (int i = 0; i < fillerList.Count; i++)
             {
-                OnlineFillerCategory currentCategory = fillerList[i];
+                var currentCategory = fillerList[i];
 
-                foreach (OnlineFillerEvent fillerItem in currentCategory.Fillers)
+                foreach (OnlineFillerEvent fillerItem in currentCategory.Value)
                 {
                     Models.Event filler = new Models.Event
                     {
@@ -689,7 +691,7 @@ public class EventArea : RenderTarget2DControl
                         Filler = true
                     };
 
-                    fillerItem.Occurences.ToList().ForEach(o => filler.Occurences.Add( /*DateTime.SpecifyKind(o.DateTime, DateTimeKind.Utc).ToLocalTime()*/ o.UtcDateTime));
+                    fillerItem.Occurences.ToList().ForEach(o => filler.Occurences.Add( /*DateTime.SpecifyKind(o.DateTime, DateTimeKind.Utc).ToLocalTime()*/ o));
 
                     List<Models.Event> prevFillers = parsedFillers.GetOrAdd(currentCategory.Key, key => new List<Models.Event> { filler });
                     prevFillers.Add(filler);
@@ -751,18 +753,18 @@ public class EventArea : RenderTarget2DControl
             return;
         }
 
-        (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
+        (Instant Now, Instant Min, Instant Max) times = this.GetTimes();
 
         // Update and delete existing
         this._activeEvent = null;
 
         int y = this.DrawYOffset;
         this._drawXOffset = 0;
-        List<List<(DateTime Occurence, Event Event)>> orderedControlEvents = this.OrderedControlEvents;
+        List<List<(Instant Occurence, Event Event)>> orderedControlEvents = this.OrderedControlEvents;
 
         if (this.Configuration.ShowCategoryNames.Value)
         {
-            foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in orderedControlEvents)
+            foreach (List<(Instant Occurence, Event Event)> controlEventPairs in orderedControlEvents)
             {
                 if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Model.Category.TryGetTarget(out EventCategory eventCategory))
                 {
@@ -771,7 +773,7 @@ public class EventArea : RenderTarget2DControl
             }
         }
 
-        foreach (List<(DateTime Occurence, Event Event)> controlEventPairs in orderedControlEvents)
+        foreach (List<(Instant Occurence, Event Event)> controlEventPairs in orderedControlEvents)
         {
             if (controlEventPairs.Count == 0)
             {
@@ -784,9 +786,9 @@ public class EventArea : RenderTarget2DControl
                 spriteBatch.DrawString(this.GetFont(), eventCategory.Name, new Vector2(0, y), color);
             }
 
-            List<(DateTime Occurence, Event Event)> toDelete = new List<(DateTime Occurence, Event Event)>();
+            List<(Instant Occurence, Event Event)> toDelete = new List<(Instant Occurence, Event Event)>();
 
-            foreach ((DateTime Occurence, Event Event) controlEvent in controlEventPairs)
+            foreach ((Instant Occurence, Event Event) controlEvent in controlEventPairs)
             {
                 bool disabled = this.EventDisabled(controlEvent.Event.Model);
                 if (disabled)
@@ -817,7 +819,7 @@ public class EventArea : RenderTarget2DControl
                 }
             }
 
-            foreach ((DateTime Occurence, Event Event) delete in toDelete)
+            foreach ((Instant Occurence, Event Event) delete in toDelete)
             {
                 _logger.Debug($"Deleted event {delete.Event.Model.Name}");
                 this.RemoveEventHooks(delete.Event);
@@ -870,7 +872,7 @@ public class EventArea : RenderTarget2DControl
             return;
         }
 
-        (DateTime Now, DateTime Min, DateTime Max) times = this.GetTimes();
+        (Instant Now, Instant Min, Instant Max) times = this.GetTimes();
         foreach (IGrouping<string, string> activeEventGroup in this.GetActiveEventKeysGroupedByCategory())
         {
             string categoryKey = activeEventGroup.Key;
@@ -897,14 +899,14 @@ public class EventArea : RenderTarget2DControl
 
             using (this._controlLock.Lock())
             {
-                bool added = this._controlEvents.TryAdd(categoryKey, new List<(DateTime Occurence, Event Event)>());
+                bool added = this._controlEvents.TryAdd(categoryKey, new List<(Instant Occurence, Event Event)>());
                 if (added)
                 {
                     this._orderedControlEvents = null; // Refresh cache
                 }
             }
 
-            IEnumerable<Models.Event> validEvents = events.Where(ev => ev.Occurences.Any(oc => oc.AddMinutes(ev.Duration) >= times.Min && oc <= times.Max));
+            IEnumerable<Models.Event> validEvents = events.Where(ev => ev.Occurences.Any(oc => oc.Plus(ev.Duration) >= times.Min && oc <= times.Max));
 
             foreach (Models.Event ev in validEvents)
             {
@@ -913,8 +915,8 @@ public class EventArea : RenderTarget2DControl
                     continue;
                 }
 
-                IEnumerable<DateTime> validOccurences = ev.Occurences.Where(oc => oc.AddMinutes(ev.Duration) >= times.Min && oc <= times.Max);
-                foreach (DateTime occurence in validOccurences)
+                IEnumerable<Instant> validOccurences = ev.Occurences.Where(oc => oc.Plus(ev.Duration) >= times.Min && oc <= times.Max);
+                foreach (Instant occurence in validOccurences)
                 {
                     // Check if we got this occurence already added
                     using (this._controlLock.Lock())
@@ -941,7 +943,7 @@ public class EventArea : RenderTarget2DControl
                         this._translationService,
                         this._getNowAction,
                         occurence,
-                        occurence.AddMinutes(ev.Duration),
+                        occurence.Plus(ev.Duration),
                         this.GetFont,
                         () => !ev.Filler && this.Configuration.DrawBorders.Value,
                         () => this.Configuration.CompletionAction.Value is EventCompletedAction.Crossout or EventCompletedAction.CrossoutAndChangeOpacity && this._eventStateService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed),
@@ -1247,7 +1249,7 @@ public class EventArea : RenderTarget2DControl
         {
             var x = ((float)this.PixelPerMinute * timeInterval * i) + this.DrawXOffset;
             var timeStepRect = new RectangleF(x, 0, 2, timeStepLineHeight);
-            var time = times.Min.AddMinutes(timeInterval * i).ToLocalTime();
+            var time = times.Min.Plus(Duration.FromMinutes(timeInterval * i)).InZone(DateTimeZoneProviders.Tzdb.GetSystemDefault());
 
             spriteBatch.DrawLine(Textures.Pixel, timeStepRect, lineColor);
 
@@ -1255,7 +1257,7 @@ public class EventArea : RenderTarget2DControl
 
             try
             {
-                formattedString = time.ToString(this.Configuration.TopTimelineTimeFormatString.Value);
+                formattedString = time.ToString(this.Configuration.TopTimelineTimeFormatString.Value, CultureInfo.InvariantCulture);
             }
             catch { }
 
@@ -1359,13 +1361,13 @@ public class EventArea : RenderTarget2DControl
 
         events.ForEach(ev =>
         {
-            DateTime until = this.GetNextReset(ev);
-            this._logger.Info($"Event \"{ev.SettingKey}\" marked completed manually until: {until.ToUniversalTime()}");
+            Instant until = this.GetNextReset(ev);
+            this._logger.Info($"Event \"{ev.SettingKey}\" marked completed manually until: {until}");
             this.ToggleFinishEvent(ev, until);
         });
     }
 
-    private void ToggleFinishEvent(Models.Event ev, DateTime until)
+    private void ToggleFinishEvent(Models.Event ev, Instant until)
     {
         switch (this.Configuration.CompletionAction.Value)
         {
@@ -1388,7 +1390,7 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
-    private void FinishEvent(Models.Event ev, DateTime until)
+    private void FinishEvent(Models.Event ev, Instant until)
     {
         switch (this.Configuration.CompletionAction.Value)
         {
@@ -1403,7 +1405,7 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
-    private void HideEvent(Models.Event ev, DateTime until)
+    private void HideEvent(Models.Event ev, Instant until)
     {
         this._eventStateService.Add(this.Configuration.Name, ev.SettingKey, until, EventStateService.EventStates.Hidden);
     }
@@ -1436,18 +1438,18 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
-    private DateTime GetNextReset(Models.Event ev)
+    private Instant GetNextReset(Models.Event ev)
     {
-        DateTime nowUTC = this._getNowAction().ToUniversalTime();
+        ZonedDateTime nowUTC = this._getNowAction().InUtc();
 
         var addDuration = TimeSpan.FromDays(1);
 
-        if (ev.Duration >= addDuration.TotalMinutes)
+        if (ev.Duration.TotalMinutes >= addDuration.TotalMinutes)
         {
             // No idea yet
         }
 
-        return new DateTime(nowUTC.Year, nowUTC.Month, nowUTC.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(Math.Ceiling(addDuration.TotalDays));
+        return Instant.FromUtc(nowUTC.Year, nowUTC.Month, nowUTC.Day, 0, 0, 0).Plus(Duration.FromDays(Math.Ceiling(addDuration.TotalDays)));
     }
 
     protected override void InternalDispose()

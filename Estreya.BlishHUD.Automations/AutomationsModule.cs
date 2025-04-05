@@ -64,7 +64,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
             ScreenNotification.ShowNotification(template.Invoke(input));
         });
 
-        this.MapChangeAutomationService.AddAutomation(mapChangeToQueensdale);
+        this.MapChangeAutomationService.AddEntry(mapChangeToQueensdale);
 
         PositionChangeAutomationEntry positionChange = new PositionChangeAutomationEntry("position change");
 
@@ -74,7 +74,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
             Shared.Controls.ScreenNotification.ShowNotification(template.Invoke(input));
         });
 
-        this.PositionChangeAutomationService.AddAutomation(positionChange);
+        this.PositionChangeAutomationService.AddEntry(positionChange);
 
         IntervalChangeAutomationEntry intervalChange = new IntervalChangeAutomationEntry("interval change");
 
@@ -84,7 +84,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
             Shared.Controls.ScreenNotification.ShowNotification(template.Invoke(input));
         });
 
-        this.IntervalChangeAutomationService.AddAutomation(intervalChange);
+        this.IntervalChangeAutomationService.AddEntry(intervalChange);
     }
 
     private void BuildHandlebarContext()
@@ -203,7 +203,7 @@ public class AutomationsModule : BaseModule<AutomationsModule, ModuleSettings>
 
     protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
     {
-        return new ModuleSettings(settings);
+        return new ModuleSettings(settings, this.Version);
     }
 
     protected override Collection<ManagedService> GetAdditionalServices(string directoryPath)

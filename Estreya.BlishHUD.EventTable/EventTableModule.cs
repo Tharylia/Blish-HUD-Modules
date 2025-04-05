@@ -45,6 +45,10 @@ using Estreya.BlishHUD.Shared.Contexts;
 using Estreya.BlishHUD.EventTable.Contexts;
 using Windows.UI.WindowManagement;
 using Microsoft.Xna.Framework.Audio;
+using Estreya.BlishHUD.Shared.UI.Views;
+using Estreya.BlishHUD.EventTable.UI.Views.Wizard;
+using NodaTime;
+using NodaTime.Extensions;
 
 /// <summary>
 /// The event table module class.
@@ -81,7 +85,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <summary>
     ///     Gets the current time in utc.
     /// </summary>
-    private DateTime NowUTC => DateTime.UtcNow;
+    private Instant NowUTC => SystemClock.Instance.GetCurrentInstant();
 
     /// <summary>
     ///     Gets or sets the map util used to interact with the in-game (mini-)map.
@@ -93,7 +97,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// </summary>
     private DynamicEventHandler DynamicEventHandler { get; set; }
 
-    protected override string API_VERSION_NO => "1";
+    protected override string API_VERSION_NO => "2";
 
     protected override void Initialize()
     {
@@ -269,7 +273,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                     return;
                 }
 
-                IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL, "events");
+                IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL);
 
                 if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIService.AccessToken))
                 {
@@ -401,7 +405,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         {
             if (!this.ModuleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey)) continue;
 
-            List<TimeSpan> times = this.ModuleSettings.ReminderTimesOverride.Value[ev.SettingKey];
+            // TODO: Change setting to duration
+            List<Duration> times = this.ModuleSettings.ReminderTimesOverride.Value[ev.SettingKey].Select(x => x.ToDuration()).ToList();
             ev.UpdateReminderTimes(times.ToArray());
         }
     }
@@ -587,8 +592,8 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     ///     Handles the event of an event reminder.
     /// </summary>
     /// <param name="sender">The sender of the event.</param>
-    /// <param name="e">The timespan until the event start.</param>
-    private async void Ev_Reminder(object sender, TimeSpan e)
+    /// <param name="e">The duration until the event start.</param>
+    private async void Ev_Reminder(object sender, Duration e)
     {
         Event ev = sender as Event;
 
@@ -623,7 +628,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         {
             string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
             var title = ev.Name;
-            var message = $"{startsInTranslation} {e.Humanize(6, minUnit: this.ModuleSettings.ReminderMinTimeUnit.Value)}!";
+            var message = $"{startsInTranslation} {e.ToTimeSpan().Humanize(6, minUnit: this.ModuleSettings.ReminderMinTimeUnit.Value)}!";
             var icon = string.IsNullOrWhiteSpace(ev.Icon) ? new AsyncTexture2D() : this.IconService.GetIcon(ev.Icon);
 
             if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
@@ -748,12 +753,14 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     {
         if (this.ModuleSettings.EventAreaNames.Value.Count == 0)
         {
-            this.ModuleSettings.EventAreaNames.Value.Add("Main");
+            this.AddArea("Main", new KeyBinding(ModifierKeys.Alt, Keys.E));
         }
-
-        foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
+        else
         {
-            this.AddArea(areaName);
+            foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
+            {
+                this.AddArea(areaName);
+            }
         }
     }
 
@@ -762,9 +769,9 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// </summary>
     /// <param name="name">The name of the new area</param>
     /// <returns>The created area configuration.</returns>
-    private EventAreaConfiguration AddArea(string name)
+    private EventAreaConfiguration AddArea(string name, KeyBinding enabledKeybinding = null)
     {
-        EventAreaConfiguration config = this.ModuleSettings.AddDrawer(name, this._eventCategories);
+        EventAreaConfiguration config = this.ModuleSettings.AddDrawer(name, this._eventCategories, enabledKeybinding: enabledKeybinding);
         this.AddArea(config);
 
         return config;
@@ -864,7 +871,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
         this.ModuleSettings.RemoveDrawer(configuration.Name);
     }
 
-    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings);
+    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings, this.Version);
 
     protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
     {
@@ -975,7 +982,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.SettingsWindow.Tabs.Add(new Tab(
             this.IconService.GetIcon("156764.png"),
-            () => new Shared.UI.Views.BlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+            () => new UI.Views.EventTableBlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
             "Estreya BlishHUD"));
 
         this.SettingsWindow.Tabs.Add(new Tab(
@@ -1043,7 +1050,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             AwaitLoading = false,
             Enabled = true,
             SaveInterval = Timeout.InfiniteTimeSpan
-        }, this.Gw2ApiManager, this.GetFlurlClient(), this.API_ROOT_URL, directoryPath);
+        }, this.Gw2ApiManager, this.GetFlurlClient(), this.MODULE_API_URL, directoryPath);
 
         this.SelfHostingEventService = new SelfHostingEventService(new APIServiceConfiguration
         {
@@ -1091,6 +1098,16 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
             return this._defaultFont;
         }
+    }
+
+    protected override List<WizardView> GetWizardViews()
+    {
+        return new List<WizardView>
+        {
+            new WizardWelcomeView(this.Gw2ApiManager, this.IconService, this.TranslationService),
+            new WizardAreasView(this._areas.Values.Select(area => area.Configuration).ToList(), this.Gw2ApiManager, this.IconService, this.TranslationService),
+            new WizardRemindersView(this.ModuleSettings, this.AudioService,  this.Gw2ApiManager, this.IconService, this.TranslationService)
+        };
     }
 
     private void UnloadContext()
@@ -1181,7 +1198,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     public DynamicEventService DynamicEventService { get; private set; }
     public EventTimerHandler EventTimerHandler { get; private set; }
 
-    public SelfHostingEventService SelfHostingEventService { get; private set;}
+    public SelfHostingEventService SelfHostingEventService { get; private set; }
 
     #endregion
 }
