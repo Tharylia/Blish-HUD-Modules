@@ -280,7 +280,7 @@ public class ScrollingCombatTextModule : BaseModule<ScrollingCombatTextModule, M
 
     protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
     {
-        ModuleSettings moduleSettings = new ModuleSettings(settings);
+        ModuleSettings moduleSettings = new ModuleSettings(settings, this.Version);
 
         return moduleSettings;
     }

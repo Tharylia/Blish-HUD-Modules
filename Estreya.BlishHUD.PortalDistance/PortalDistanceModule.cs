@@ -189,7 +189,7 @@ public class PortalDistanceModule : BaseModule<PortalDistanceModule, ModuleSetti
 
     protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
     {
-        return new ModuleSettings(settings);
+        return new ModuleSettings(settings, this.Version);
     }
 
     protected override void ConfigureServices(ServiceConfigurations configurations)

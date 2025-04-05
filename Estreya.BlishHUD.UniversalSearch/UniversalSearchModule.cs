@@ -47,7 +47,7 @@ public class UniversalSearchModule : BaseModule<UniversalSearchModule, ModuleSet
 
     protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
     {
-        return new ModuleSettings(settings);
+        return new ModuleSettings(settings, this.Version);
     }
 
     protected override AsyncTexture2D GetCornerIcon()

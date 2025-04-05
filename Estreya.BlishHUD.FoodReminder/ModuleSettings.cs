@@ -10,7 +10,7 @@ using System.Collections.Generic;
 
 public class ModuleSettings : BaseModuleSettings
 {
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.F))
+    public ModuleSettings(SettingCollection settings, SemVer.Version moduleVersion) : base(settings, moduleVersion, new KeyBinding(ModifierKeys.Alt, Keys.F))
     {
     }
 

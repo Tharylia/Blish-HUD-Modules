@@ -20,7 +20,7 @@ public class ModuleSettings : BaseModuleSettings
 
     public const string ANY_AREA_NAME = "Any";
 
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.B)) { }
+    public ModuleSettings(SettingCollection settings, SemVer.Version moduleVersion) : base(settings, moduleVersion, new KeyBinding(ModifierKeys.Alt, Keys.B)) { }
 
     private SettingCollection AreaSettings { get; set; }
     public SettingEntry<List<string>> AreaNames { get; private set; }

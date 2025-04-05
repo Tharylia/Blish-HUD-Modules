@@ -12,7 +12,7 @@ public class ModuleSettings : BaseModuleSettings
 {
     private SettingCollection _webhookSettings;
 
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.W)) { }
+    public ModuleSettings(SettingCollection settings, SemVer.Version moduleVersion) : base(settings, moduleVersion, new KeyBinding(ModifierKeys.Alt, Keys.W)) { }
     public SettingEntry<List<string>> WebhookNames { get; private set; }
 
     protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)

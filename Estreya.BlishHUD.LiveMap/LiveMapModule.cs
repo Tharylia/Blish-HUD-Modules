@@ -519,7 +519,7 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
 
     protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings)
     {
-        return new ModuleSettings(settings);
+        return new ModuleSettings(settings, this.Version);
     }
 
     protected override string GetDirectoryName()

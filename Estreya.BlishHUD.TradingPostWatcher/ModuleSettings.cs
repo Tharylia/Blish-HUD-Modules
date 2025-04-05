@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 public class ModuleSettings : BaseModuleSettings
 {
-    public ModuleSettings(SettingCollection settings) : base(settings, new KeyBinding(ModifierKeys.Alt, Keys.T)) { }
+    public ModuleSettings(SettingCollection settings, SemVer.Version moduleVersion) : base(settings, moduleVersion, new KeyBinding(ModifierKeys.Alt, Keys.T)) { }
     public SettingEntry<List<string>> AreaNames { get; private set; }
 
     protected override void DoInitializeGlobalSettings(SettingCollection globalSettingCollection)
