@@ -54,6 +54,14 @@
             await (this.CancelClicked?.Invoke(this) ?? Task.CompletedTask);
         }
 
+        internal void ClearEventHandlers()
+        {
+            this.NextClicked = null;
+            this.PreviousClicked = null;
+            this.CancelClicked = null;
+            this.FinishClicked = null;
+        }
+
         public FlowPanel GetButtonPanel(Panel parent)
         {
             var panel =  new FlowPanel
@@ -81,6 +89,7 @@
                 var testConfigurationsButton = this.RenderButtonAsync(panel, "Test Configurations", async () =>
                 {
                     await this.ApplyConfigurations();
+                    this.ShowInfo("Applied configurations.");
                 });
                 testConfigurationsButton.BasicTooltipText = "Applies all options on the current page to the module.";
             }

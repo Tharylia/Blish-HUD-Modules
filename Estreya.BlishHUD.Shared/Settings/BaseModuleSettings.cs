@@ -232,6 +232,8 @@ public abstract class BaseModuleSettings
 
         this.MetricsConsentGivenVersion = this.GlobalSettings.DefineSetting(nameof(this.MetricsConsentGivenVersion), new SemVer.Version("0.0.0"), () => "Metrics Consent Version", () => "Defines the version at which point a metric consent was given.");
 
+        this.WizardCompleted = this.GlobalSettings.DefineSetting(nameof(this.WizardCompleted), false, () => "Wizard completed", () => "Whether the setup wizard has been finished before.");
+
         //this.NotifiedNews = this.GlobalSettings.DefineSetting(nameof(this.NotifiedNews), new List<string>(), () => "Notified News", () => "The news already notified about.");
         //this.NotifyOnUnreadNews = this.GlobalSettings.DefineSetting(nameof(this.NotifyOnUnreadNews), true, () => "Notify on unread News", () => "Whether the module should notify you when new news arrive.");
 
@@ -580,6 +582,7 @@ public abstract class BaseModuleSettings
     public SettingEntry<bool> AskedMetricsConsent { get; private set; }
     public SettingEntry<SemVer.Version> MetricsConsentGivenVersion { get; private set; }
 
+    public SettingEntry<bool> WizardCompleted { get; private set; }
 
 
     //public SettingEntry<bool> NotifyOnUnreadNews { get; private set; }

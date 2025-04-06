@@ -908,7 +908,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
         this.HandleCornerIcon(this.ModuleSettings.RegisterCornerIcon.Value);
 
         //_ = this.MetricsService.SendMetricAsync("loaded");
-        //_ = Task.Factory.StartNew(this.ExecuteWizard, TaskCreationOptions.LongRunning).Unwrap();
+        _ = Task.Factory.StartNew(this.ExecuteWizard, TaskCreationOptions.LongRunning).Unwrap();
     }
 
     /// <summary>
@@ -937,8 +937,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     private async Task ExecuteWizard()
     {
-        var isFirstRun = true;
-        if (!isFirstRun) return;
+        var isFirstRun = !this.ModuleSettings.WizardCompleted.Value;
+        if (!isFirstRun)
+        {
+            this.Logger.Debug("Wizard already completed before. Skipping.");
+            return;
+        }
 
         var views = this.GetWizardViews();
         if (views == null || views.Count == 0) return;
@@ -960,24 +964,26 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     {
         wizardView.NextClicked += async (s) =>
         {
+            var currView = allViews[viewIndex];
+            currView.ClearEventHandlers();
+
             viewIndex++;
             if (viewIndex > allViews.Count - 1) throw new ArgumentOutOfRangeException(nameof(viewIndex), "No next view available.");
 
             var nextView = allViews[viewIndex];
-            //nextView.PreviousAvailable = viewIndex - 1 >= 0;
-            //nextView.NextAvailable = viewIndex + 1 <= allViews.Count - 1;
 
             await this.ShowWizardView(window, nextView, viewIndex, allViews);
-        };
+        }; ;
 
         wizardView.PreviousClicked += async (s) =>
         {
+            var currView = allViews[viewIndex];
+            currView.ClearEventHandlers();
+
             viewIndex--;
             if (viewIndex < 0) throw new ArgumentOutOfRangeException(nameof(viewIndex), "No previous view available.");
 
             var prevView = allViews[viewIndex];
-            //prevView.PreviousAvailable = viewIndex - 1 >= 0;
-            //prevView.NextAvailable = viewIndex + 1 <= allViews.Count - 1;
 
             await this.ShowWizardView(window, prevView, viewIndex, allViews);
         };
@@ -997,6 +1003,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             window?.Hide();
             window?.Dispose();
 
+            this.ModuleSettings.WizardCompleted.Value = true;
             this.Logger.Info("Completed setup wizard.");
 
             return Task.CompletedTask;

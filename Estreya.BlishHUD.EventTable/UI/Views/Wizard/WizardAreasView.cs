@@ -45,9 +45,14 @@ public class WizardAreasView : WizardView
         useAreasLbl.Left = 150;
 
         this._useAreas = this._allAreas.Any(a => a.Enabled.Value);
+        Checkbox useFillersCheckbox = null;
         var useAreasCheckbox = this.RenderCheckbox(parent, new Microsoft.Xna.Framework.Point(useAreasLbl.Right + 20, useAreasLbl.Top), this._useAreas, onChangeAction: val =>
         {
             this._useAreas = val;
+            if (useFillersCheckbox != null)
+            {
+                useFillersCheckbox.Enabled = this._useAreas;
+            }
         });
         useAreasCheckbox.BasicTooltipText = "Check this option if you would like to keep the already created area.\nUncheck this option, if you only want to use the reminder feature of this module.";
 
@@ -59,7 +64,7 @@ public class WizardAreasView : WizardView
         useFillersLbl.Left = 150;
 
         this._useFillers = this._allAreas.Any(a => a.UseFiller.Value);
-        var useFillersCheckbox = this.RenderCheckbox(parent, new Microsoft.Xna.Framework.Point(useFillersLbl.Right + 20, useFillersLbl.Top), this._useFillers, onChangeAction: val =>
+        useFillersCheckbox = this.RenderCheckbox(parent, new Microsoft.Xna.Framework.Point(useFillersLbl.Right + 20, useFillersLbl.Top), this._useFillers, onChangeAction: val =>
         {
             this._useFillers = val;
         });
