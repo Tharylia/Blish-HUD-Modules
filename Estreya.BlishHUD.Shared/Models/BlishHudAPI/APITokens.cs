@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 public struct APITokens
 {
-    [JsonProperty("accessToken")] public string AccessToken { get; set; }
+    [JsonProperty("access_token")] public string AccessToken { get; set; }
 
-    [JsonProperty("refreshToken")] public string RefreshToken { get; set; }
+    [JsonProperty("refresh_token")] public string RefreshToken { get; set; }
 }
