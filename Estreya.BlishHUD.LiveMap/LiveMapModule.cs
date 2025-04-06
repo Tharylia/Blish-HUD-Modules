@@ -62,7 +62,7 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
 
     protected override string UrlModuleName => "live-map";
 
-    protected override string API_VERSION_NO => "1";
+    protected override string API_VERSION_NO => "2";
 
     protected override bool NeedsBackend => true;
 
