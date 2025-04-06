@@ -13,6 +13,8 @@
     {
         public static Task WaitUntilSwappedAsync(this AsyncTexture2D texture, TimeSpan timeout)
         {
+            if (texture.HasSwapped) return Task.CompletedTask;
+
             TaskCompletionSource<object> tcs = new TaskCompletionSource<object>();
             var ct = new CancellationTokenSource((int)timeout.TotalMilliseconds);
             var cancelAction = ct.Token.Register(() => tcs.TrySetCanceled(), useSynchronizationContext: false);
