@@ -234,6 +234,8 @@ public class Event : IUpdatable
 
     public string GetWaypoint(Account account)
     {
+        if (this.Waypoints == null) return null;
+
         if (account is null)
         {
             Logger.Warn("Account is null. Returning EU waypoint.");
