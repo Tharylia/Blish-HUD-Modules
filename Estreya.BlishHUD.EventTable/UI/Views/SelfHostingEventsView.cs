@@ -25,6 +25,7 @@ using Estreya.BlishHUD.Shared.Models.BlishHudAPI;
 using System.Threading;
 using Blish_HUD.ArcDps.Models;
 using Estreya.BlishHUD.Shared.Utils;
+using NodaTime;
 
 public class SelfHostingEventsView : BaseView
 {
@@ -40,8 +41,8 @@ public class SelfHostingEventsView : BaseView
 
     private FlowPanel _activeEventsGroup;
 
-    private TimeSpan _maxHostingDuration;
-    private List<SelfHostingCategoryDefinition> _definitions;
+    private Duration _maxHostingDuration;
+    private List<SelfHostingCategoryDefinition> _categories;
 
     public SelfHostingEventsView(ModuleSettings moduleSettings, SelfHostingEventService selfHostingEventService, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, AccountService accountService, ChatService chatService) : base(apiManager, iconService, translationService)
     {
@@ -99,7 +100,7 @@ public class SelfHostingEventsView : BaseView
 
         Rectangle contentRegion = this.Panel.ContentRegion;
 
-        var categories = this._definitions ?? new List<SelfHostingCategoryDefinition>();
+        var categories = this._categories ?? new List<SelfHostingCategoryDefinition>();
 
         TextBox searchBox = new TextBox
         {
@@ -296,7 +297,7 @@ public class SelfHostingEventsView : BaseView
             Height = this.Panel.ContentRegion.Height,
         };
 
-        var parsedCategories = this._definitions?.Select(c => new AddCategoryDropdown
+        var parsedCategories = this._categories?.Select(c => new AddCategoryDropdown
         {
             Key = c.Key,
             Name = c.Name
@@ -332,7 +333,7 @@ public class SelfHostingEventsView : BaseView
                     {
                         CategoryKey = newVal.Key,
                         Key = z.Key,
-                        Name = z.Name
+                        Name = z.Value
                     });
                 }
 
@@ -369,14 +370,14 @@ public class SelfHostingEventsView : BaseView
                 var events = await this._selfHostingEventService.GetCategoryZoneEvents(newVal.CategoryKey, newVal.Key);
                 eventDropdown.Items.Clear();
                 //eventDropdown.SelectedItem = null;
-                foreach (var e in events.OrderBy(e => e.Name))
+                foreach (var e in events.OrderBy(e => e.Value))
                 {
                     eventDropdown.Items.Add(new AddEventDropdown
                     {
                         CategoryKey = newVal.CategoryKey,
                         ZoneKey = newVal.Key,
                         Key = e.Key,
-                        Name = e.Name
+                        Name = e.Value
                     });
                 }
 
@@ -525,7 +526,7 @@ public class SelfHostingEventsView : BaseView
 
             var runningDuration = DateTimeOffset.UtcNow - ev.StartTime;
 
-            var categoryDef = this._definitions?.FirstOrDefault(c => c.Key == ev.CategoryKey);
+            var categoryDef = this._categories?.FirstOrDefault(c => c.Key == ev.CategoryKey);
             var categoryName = categoryDef?.Name ?? ev.CategoryKey;
             var zoneDef = categoryDef?.Zones?.FirstOrDefault(z => z.Key == ev.ZoneKey);
             var zoneName = zoneDef?.Name ?? ev.ZoneKey;
@@ -725,11 +726,11 @@ public class SelfHostingEventsView : BaseView
         {
             var definitions = await this._selfHostingEventService.GetDefinitions();
 
-            this._definitions = definitions;
+            this._categories = definitions;
         }
         catch (Exception ex)
         {
-            this._logger.Warn(ex, "Failed to load definitions.");
+            this._logger.Warn(ex, "Failed to load categories.");
         }
     }
 
@@ -737,9 +738,9 @@ public class SelfHostingEventsView : BaseView
     {
         try
         {
-            var durationSec = await this._selfHostingEventService.GetMaxHostingDuration();
+            var duration = await this._selfHostingEventService.GetMaxHostingDuration();
 
-            this._maxHostingDuration = TimeSpan.FromSeconds(durationSec);
+            this._maxHostingDuration = duration;
         }
         catch (Exception ex)
         {

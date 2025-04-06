@@ -10,6 +10,7 @@ using Estreya.BlishHUD.Shared.Threading;
 using Estreya.BlishHUD.Shared.Utils;
 using Flurl.Http;
 using Microsoft.Xna.Framework;
+using NodaTime;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -92,13 +93,13 @@ public class SelfHostingEventService : APIService<SelfHostingEventEntry>
         return selfHostingEntries;
     }
 
-    public async Task<double> GetMaxHostingDuration()
+    public async Task<Duration> GetMaxHostingDuration()
     {
         var request = this._flurlClient.Request(this._apiBaseUrl, $"/self-hosting/duration");
 
-        var response = await request.GetJsonAsync();
+        var response = await request.GetJsonAsync<Duration>();
 
-        return (double)response.duration;
+        return response;
     }
 
     public async Task<List<SelfHostingCategoryDefinition>> GetDefinitions()
@@ -110,37 +111,37 @@ public class SelfHostingEventService : APIService<SelfHostingEventEntry>
         return definitions;
     }
 
-    public async Task<List<SelfHostingCategoryDefinition>> GetCategories()
+    public async Task<List<KeyValuePair<string, string>>> GetCategories()
     {
         var request = this._flurlClient.Request(this._apiBaseUrl, $"/self-hosting/categories");
 
-        var categories = await request.GetJsonAsync<List<SelfHostingCategoryDefinition>>();
+        var categories = await request.GetJsonAsync<List<KeyValuePair<string,string>>>();
 
         return categories;
     }
 
-    public async Task<SelfHostingCategoryDefinition> GetCategory(string categoryKey)
+    public async Task<KeyValuePair<string, string>> GetCategory(string categoryKey)
     {
         var request = this._flurlClient.Request(this._apiBaseUrl, $"/self-hosting/categories/{categoryKey}");
 
-        var categoryEvents = await request.GetJsonAsync<SelfHostingCategoryDefinition>();
+        var categoryEvents = await request.GetJsonAsync<KeyValuePair<string, string>>();
 
         return categoryEvents;
     }
-    public async Task<List<SelfHostingZoneDefinition>> GetCategoryZones(string categoryKey)
+    public async Task<List<KeyValuePair<string, string>>> GetCategoryZones(string categoryKey)
     {
         var request = this._flurlClient.Request(this._apiBaseUrl, $"/self-hosting/categories/{categoryKey}/zones");
 
-        var zones = await request.GetJsonAsync<List<SelfHostingZoneDefinition>>();
+        var zones = await request.GetJsonAsync<List<KeyValuePair<string, string>>>();
 
         return zones;
     }
 
-    public async Task<List<SelfHostingEventDefinition>> GetCategoryZoneEvents(string categoryKey, string zoneKey)
+    public async Task<List<KeyValuePair<string, string>>> GetCategoryZoneEvents(string categoryKey, string zoneKey)
     {
         var request = this._flurlClient.Request(this._apiBaseUrl, $"/self-hosting/categories/{categoryKey}/zones/{zoneKey}/events");
 
-        var categoryEvents = await request.GetJsonAsync<List<SelfHostingEventDefinition>>();
+        var categoryEvents = await request.GetJsonAsync<List<KeyValuePair<string, string>>>();
 
         return categoryEvents;
     }
