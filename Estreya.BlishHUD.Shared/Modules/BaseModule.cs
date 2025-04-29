@@ -973,7 +973,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             var nextView = allViews[viewIndex];
 
             await this.ShowWizardView(window, nextView, viewIndex, allViews);
-        }; ;
+        };
 
         wizardView.PreviousClicked += async (s) =>
         {
@@ -993,6 +993,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
             window?.Hide();
             window?.Dispose();
 
+            this.ModuleSettings.WizardCompleted.Value = true;
             this.Logger.Info("Cancelled setup wizard.");
 
             return Task.CompletedTask;

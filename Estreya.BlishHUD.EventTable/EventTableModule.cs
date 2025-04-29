@@ -667,82 +667,96 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     private async void EventNotification_Click(object sender, MouseEventArgs e)
     {
-        var notification = sender as EventNotification;
-        var model = notification?.Model;
-        var waypoint = model?.GetWaypoint(this.AccountService?.Account);
-
-        switch (this.ModuleSettings.ReminderLeftClickAction.Value)
+        try
         {
-            case LeftClickAction.CopyWaypoint:
-                if (model is not null && !string.IsNullOrWhiteSpace(waypoint))
-                {
-                    var eventChatFormat = model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, model.GetNextOccurrence(), this.AccountService?.Account);
-                    if (GameService.Input.Keyboard.ActiveModifiers == ModifierKeys.Ctrl)
+            var notification = sender as EventNotification;
+            var model = notification?.Model;
+            var waypoint = model?.GetWaypoint(this.AccountService?.Account);
+
+            switch (this.ModuleSettings.ReminderLeftClickAction.Value)
+            {
+                case LeftClickAction.CopyWaypoint:
+                    if (model is not null && !string.IsNullOrWhiteSpace(waypoint))
                     {
-                        try
+                        var eventChatFormat = model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, model.GetNextOccurrence(), this.AccountService?.Account);
+                        if (GameService.Input.Keyboard.ActiveModifiers == ModifierKeys.Ctrl)
                         {
-                            await this.ChatService.ChangeChannel(Shared.Models.GameIntegration.Chat.ChatChannel.Squad);
-                            await this.ChatService.ChangeChannel(this.ModuleSettings.ReminderWaypointSendingChannel.Value, guildNumber: this.ModuleSettings.ReminderWaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
-                            await this.ChatService.Send(eventChatFormat);
+                            try
+                            {
+                                await this.ChatService.ChangeChannel(Shared.Models.GameIntegration.Chat.ChatChannel.Squad);
+                                await this.ChatService.ChangeChannel(this.ModuleSettings.ReminderWaypointSendingChannel.Value, guildNumber: this.ModuleSettings.ReminderWaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
+                                await this.ChatService.Send(eventChatFormat);
+                            }
+                            catch (Exception ex)
+                            {
+                                this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {model.SettingKey}");
+                                ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
+                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {model.SettingKey}");
-                            ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
-                        }
-                    }
-                    else
-                    {
-                        await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
-                        ScreenNotification.ShowNotification(new[]
-                        {
+                            await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
+                            ScreenNotification.ShowNotification(new[]
+                            {
                             model.Name,
                             "Copied to clipboard!"
                         });
+                        }
                     }
-                }
 
-                break;
-            case LeftClickAction.NavigateToWaypoint:
-                if (string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
-                {
                     break;
-                }
-
-                if (this.PointOfInterestService.Loading)
-                {
-                    ScreenNotification.ShowNotification($"{nameof(this.PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
-                    break;
-                }
-
-                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this.PointOfInterestService.GetPointOfInterest(waypoint);
-                if (poi == null)
-                {
-                    ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
-                    break;
-                }
-
-                _ = Task.Run(async () =>
-                {
-                    MapUtil.NavigationResult result = await (this.MapUtil?.NavigateToPosition(poi, this.ModuleSettings.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
-                    if (!result.Success)
+                case LeftClickAction.NavigateToWaypoint:
+                    if (string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
                     {
-                        ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
+                        break;
                     }
-                });
 
-                break;
+                    if (this.PointOfInterestService.Loading)
+                    {
+                        ScreenNotification.ShowNotification($"{nameof(this.PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
+                        break;
+                    }
+
+                    Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this.PointOfInterestService.GetPointOfInterest(waypoint);
+                    if (poi == null)
+                    {
+                        ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
+                        break;
+                    }
+
+                    _ = Task.Run(async () =>
+                    {
+                        MapUtil.NavigationResult result = await (this.MapUtil?.NavigateToPosition(poi, this.ModuleSettings.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
+                        if (!result.Success)
+                        {
+                            ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
+                        }
+                    });
+
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, "Could not handle reminder left click.");
         }
     }
 
     private void EventNotification_RightMouseButtonPressed(object sender, MouseEventArgs e)
     {
-        var notification = sender as EventNotification;
-        switch (this.ModuleSettings.ReminderRightClickAction.Value)
+        try
         {
-            case Models.Reminders.EventReminderRightClickAction.Dismiss:
-                notification?.Dispose();
-                break;
+            var notification = sender as EventNotification;
+            switch (this.ModuleSettings.ReminderRightClickAction.Value)
+            {
+                case Models.Reminders.EventReminderRightClickAction.Dismiss:
+                    notification?.Dispose();
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            this.Logger.Warn(ex, "Could not handle reminder right click.");
         }
     }
 
