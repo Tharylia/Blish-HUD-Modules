@@ -1040,83 +1040,90 @@ public class EventArea : RenderTarget2DControl
 
     private async void OnLeftMouseButtonPressed(object sender, MouseEventArgs e)
     {
-        var currentEvent = this._activeEvent;
-        if (currentEvent == null || currentEvent.Model.Filler)
+        try
         {
-            return;
-        }
+            var currentEvent = this._activeEvent;
+            if (currentEvent == null || currentEvent.Model.Filler)
+            {
+                return;
+            }
 
-        var waypoint = currentEvent.Model?.GetWaypoint(this._accountService.Account);
+            var waypoint = currentEvent.Model?.GetWaypoint(this._accountService.Account);
 
-        switch (this.Configuration.LeftClickAction.Value)
-        {
-            case LeftClickAction.CopyWaypoint:
-                if (!string.IsNullOrWhiteSpace(waypoint))
-                {
-                    var eventChatFormat = currentEvent.Model.GetChatText(this.Configuration.EventChatFormat.Value, currentEvent.StartTime, this._accountService.Account);
-                    if (GameService.Input.Keyboard.ActiveModifiers == Microsoft.Xna.Framework.Input.ModifierKeys.Ctrl)
+            switch (this.Configuration.LeftClickAction.Value)
+            {
+                case LeftClickAction.CopyWaypoint:
+                    if (!string.IsNullOrWhiteSpace(waypoint))
                     {
-                        try
+                        var eventChatFormat = currentEvent.Model.GetChatText(this.Configuration.EventChatFormat.Value, currentEvent.StartTime, this._accountService.Account);
+                        if (GameService.Input.Keyboard.ActiveModifiers == Microsoft.Xna.Framework.Input.ModifierKeys.Ctrl)
                         {
-                            await this._chatService.ChangeChannel(ChatChannel.Squad);
-                            await this._chatService.ChangeChannel(this.Configuration.WaypointSendingChannel.Value, guildNumber: this.Configuration.WaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
-                            await this._chatService.Send(eventChatFormat);
+                            try
+                            {
+                                await this._chatService.ChangeChannel(ChatChannel.Squad);
+                                await this._chatService.ChangeChannel(this.Configuration.WaypointSendingChannel.Value, guildNumber: this.Configuration.WaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
+                                await this._chatService.Send(eventChatFormat);
+                            }
+                            catch (Exception ex)
+                            {
+                                this._logger.Warn(ex, $"Could not paste waypoint into chat. Event: {currentEvent.Model.SettingKey}");
+                                ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
+                            }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            this._logger.Warn(ex, $"Could not paste waypoint into chat. Event: {currentEvent.Model.SettingKey}");
-                            ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
-                        }
-                    }
-                    else
-                    {
-                        await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
+                            await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
 
-                        ScreenNotification.ShowNotification(new[]
-                        {
+                            ScreenNotification.ShowNotification(new[]
+                            {
                             currentEvent.Model.Name,
                             "Copied to clipboard!"
                         });
-                    }
-                }
-
-                break;
-            case LeftClickAction.NavigateToWaypoint:
-                if (string.IsNullOrWhiteSpace(waypoint))
-                {
-                    return;
-                }
-
-                if (this._pointOfInterestService.Loading)
-                {
-                    ScreenNotification.ShowNotification($"{nameof(PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
-                    return;
-                }
-
-                PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(waypoint);
-                if (poi == null)
-                {
-                    ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
-                    return;
-                }
-
-                _ = Task.Run(async () =>
-                {
-                    MapUtil.NavigationResult result = await (this._mapUtil?.NavigateToPosition(poi, this.Configuration.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
-                    if (result.Success)
-                    {
-                        if (this.Configuration.HideAfterWaypointNavigation.Value)
-                        {
-                            this.Configuration.Enabled.Value = false;
                         }
                     }
-                    else
-                    {
-                        ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
-                    }
-                });
 
-                break;
+                    break;
+                case LeftClickAction.NavigateToWaypoint:
+                    if (string.IsNullOrWhiteSpace(waypoint))
+                    {
+                        return;
+                    }
+
+                    if (this._pointOfInterestService.Loading)
+                    {
+                        ScreenNotification.ShowNotification($"{nameof(PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
+                        return;
+                    }
+
+                    PointOfInterest poi = this._pointOfInterestService.GetPointOfInterest(waypoint);
+                    if (poi == null)
+                    {
+                        ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
+                        return;
+                    }
+
+                    _ = Task.Run(async () =>
+                    {
+                        MapUtil.NavigationResult result = await (this._mapUtil?.NavigateToPosition(poi, this.Configuration.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
+                        if (result.Success)
+                        {
+                            if (this.Configuration.HideAfterWaypointNavigation.Value)
+                            {
+                                this.Configuration.Enabled.Value = false;
+                            }
+                        }
+                        else
+                        {
+                            ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
+                        }
+                    });
+
+                    break;
+            }
+        }
+        catch (Exception ex)
+        {
+            this._logger.Warn(ex, "Could not handle left mouse click.");
         }
     }
 
@@ -1203,10 +1210,9 @@ public class EventArea : RenderTarget2DControl
 
     protected override void DoPaint(SpriteBatch spriteBatch, Rectangle bounds)
     {
-//#if WIP 
-//        if (this.Height <= MIN_HEIGHT) return; // Return if nothing will be rendered anyway
-//#endif
-
+        //#if WIP 
+        //        if (this.Height <= MIN_HEIGHT) return; // Return if nothing will be rendered anyway
+        //#endif
         if (this.Configuration.TopTimelineLinesInBackground.Value) this.DrawTopTimeLine(spriteBatch);
 
         this.UpdateEventsOnScreen(spriteBatch);

@@ -71,12 +71,11 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
         base.Initialize();
 
         this._hubConnection = new HubConnectionBuilder()
-            .WithUrl(LIVE_MAP_API_URL)
+            .WithUrl(this.LIVE_MAP_API_URL)
             .ConfigureLogging(options =>
             {
                 options.SetMinimumLevel(LogLevel.Debug);
                 options.AddProvider(new LoggerProvider());
-                //options.ClearProviders();
             })
             .WithAutomaticReconnect(new UnlimitedRetryPolicy(TimeSpan.FromSeconds(5)))
             .AddJsonProtocol(options =>
@@ -85,11 +84,6 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
             })
             .Build();
 
-        //this.GlobalSocket = new SocketIO(this.LIVE_MAP_API_URL, new SocketIOOptions {  
-        //    Path= "/blish-hud/socket.io",
-        //    Transport = TransportProtocol.WebSocket
-        //});
-        
         this.Gw2ApiManager.SubtokenUpdated += this.Gw2ApiManager_SubtokenUpdated;
         GameService.Gw2Mumble.PlayerCharacter.NameChanged += this.PlayerCharacter_NameChanged;
         GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
@@ -151,21 +145,6 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
 
         await this.ConnectWithRetryAsync(new CancellationToken());
 
-        //this.GlobalSocket.OnConnected += this.GlobalSocket_OnConnected;
-        //this.GlobalSocket.OnDisconnected += this.GlobalSocket_OnDisconnected;
-        //this.GlobalSocket.OnError += this.GlobalSocket_OnError;
-        //this.GlobalSocket.OnReconnectAttempt += this.GlobalSocket_OnReconnectAttempt;
-        //this.GlobalSocket.OnReconnectFailed += this.GlobalSocket_OnReconnectFailed;
-        //this.GlobalSocket.OnReconnectError += this.GlobalSocket_OnReconnectError;
-
-        //this.GlobalSocket.On("interval", resp =>
-        //{
-        //    int interval = resp.GetValue<int>();
-        //    this._sendInterval = TimeSpan.FromMilliseconds(interval);
-        //});
-
-        //_ = Task.Run(this.GlobalSocket.ConnectAsync);
-
         await this.FetchAccountName();
         await this.FetchGuildId();
         await this.FetchWvW();
@@ -188,41 +167,6 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
     {
         this.Logger.Warn("Disconnected: " + ex.Message);
         return Task.CompletedTask;
-    }
-
-    private void GlobalSocket_OnConnected(object sender, EventArgs e)
-    {
-        this.Logger.Info("Connected.");
-    }
-
-    private void GlobalSocket_OnDisconnected(object sender, string e)
-    {
-        this.Logger.Warn("Disconnected: " + e);
-        if (e == DisconnectReason.IOServerDisconnect)
-        {
-            this.Logger.Info($"Trying to reconnect...");
-            //_ = this.GlobalSocket.ConnectAsync();
-        }
-    }
-
-    private void GlobalSocket_OnError(object sender, string e)
-    {
-        this.Logger.Warn($"Error: {e}");
-    }
-
-    private void GlobalSocket_OnReconnectAttempt(object sender, int e)
-    {
-        this.Logger.Info($"Attempt reconnect: {e}");
-    }
-
-    private void GlobalSocket_OnReconnectFailed(object sender, EventArgs e)
-    {
-        this.Logger.Warn("Reconnect failed.");
-    }
-
-    private void GlobalSocket_OnReconnectError(object sender, Exception e)
-    {
-        this.Logger.Warn(e, "Could not reconnect");
     }
 
     public static byte[] Compress(byte[] bytes)
@@ -355,9 +299,6 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
 
         try
         {
-            //byte[] orig = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(player));
-            //byte[] compressed = Compress(orig);
-
             await this.PublishToGlobal(player);
             this._lastSendPlayer = player;
         }
@@ -373,10 +314,6 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
         {
             await this._hubConnection.InvokeAsync("UpdatePlayer", player);
         }
-        //if (this.GlobalSocket.Connected)
-        //{
-        //    await this.GlobalSocket.EmitAsync("update", data);
-        //}
     }
 
     protected override void Update(GameTime gameTime)
@@ -392,22 +329,19 @@ public class LiveMapModule : BaseModule<LiveMapModule, ModuleSettings>
         base.Unload();
         this.Gw2ApiManager.SubtokenUpdated -= this.Gw2ApiManager_SubtokenUpdated;
         GameService.Gw2Mumble.PlayerCharacter.NameChanged -= this.PlayerCharacter_NameChanged;
-        //this.GlobalSocket.OnConnected -= this.GlobalSocket_OnConnected;
-        //this.GlobalSocket.OnDisconnected -= this.GlobalSocket_OnDisconnected;
-        //this.GlobalSocket.OnError -= this.GlobalSocket_OnError;
-        //this.GlobalSocket.OnReconnectAttempt -= this.GlobalSocket_OnReconnectAttempt;
-        //this.GlobalSocket.OnReconnectFailed -= this.GlobalSocket_OnReconnectFailed;
-        //this.GlobalSocket.OnReconnectError -= this.GlobalSocket_OnReconnectError;
-        this._hubConnection.Closed -= this.HubConnection_Closed;
-        this._hubConnection.Reconnecting -= this.HubConnection_Reconnecting;
-        this._hubConnection.Reconnected -= this.HubConnection_Reconnected;
 
-        //AsyncHelper.RunSync(this.GlobalSocket.DisconnectAsync);
-        AsyncHelper.RunSync(async () =>
+        if (this._hubConnection != null)
         {
-            await this._hubConnection.StopAsync();
-            await this._hubConnection.DisposeAsync();
-        });
+            this._hubConnection.Closed -= this.HubConnection_Closed;
+            this._hubConnection.Reconnecting -= this.HubConnection_Reconnecting;
+            this._hubConnection.Reconnected -= this.HubConnection_Reconnected;
+
+            AsyncHelper.RunSync(async () =>
+            {
+                await this._hubConnection.StopAsync();
+                await this._hubConnection.DisposeAsync();
+            });
+        }
     }
 
     public Player GetPlayer()

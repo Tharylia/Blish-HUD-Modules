@@ -260,7 +260,7 @@ public class Event : IUpdatable
         bool isNext = !isPrev && occurence > now;
         bool isCurrent = !isPrev && !isNext;
 
-        string timeString = occurence.InZone(DateTimeZoneProviders.Tzdb.GetSystemDefault()).ToString("HH:mm zzz", CultureInfo.CurrentUICulture);
+        string timeString = occurence.InZone(DateTimeZoneProviders.Tzdb.GetSystemDefault()).ToString("HH:mm", CultureInfo.CurrentUICulture);
 
         if (isPrev)
         {
