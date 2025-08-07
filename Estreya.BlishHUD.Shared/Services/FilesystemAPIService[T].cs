@@ -45,6 +45,8 @@ public abstract class FilesystemAPIService<T> : APIService<T>
 
     protected virtual bool ForceAPI => false;
 
+    protected virtual TimeSpan MaxCacheAge => TimeSpan.FromDays(5);
+
     private void CreateJsonSettings()
     {
         this._serializerSettings = new JsonSerializerSettings
@@ -283,7 +285,7 @@ public abstract class FilesystemAPIService<T> : APIService<T>
                 return false;
             }
 
-            return true;
+            return DateTime.UtcNow - lastUpdated < this.MaxCacheAge;
         }
 
         return false;
