@@ -66,7 +66,7 @@ public class EventArea : RenderTarget2DControl
     private Event _activeEvent;
     private List<EventCategory> _allEvents = new List<EventCategory>();
     private string _apiRootUrl;
-    private JsonSerializer _serializer;
+    private readonly Func<JsonSerializer> _getSerializer;
 
     private bool _clearing;
     private readonly ConcurrentDictionary<string, List<(Instant Occurence, Event Event)>> _controlEvents = new ConcurrentDictionary<string, List<(Instant Occurence, Event Event)>>();
@@ -111,7 +111,7 @@ public class EventArea : RenderTarget2DControl
         EventAreaConfiguration configuration, IconService iconService, TranslationService translationService,
         EventStateService eventService, WorldbossService worldbossService, MapchestService mapchestService,
         PointOfInterestService pointOfInterestService, AccountService accountService, ChatService chatService,
-        MapUtil mapUtil, IFlurlClient flurlClient, JsonSerializer serializer, string apiRootUrl,
+        MapUtil mapUtil, IFlurlClient flurlClient, Func<JsonSerializer> getSerializer, string apiRootUrl,
         Func<Instant> getNowAction, Func<Version> getVersion, Func<string> getAccessToken, Func<List<string>> getAreaNames,
         Func<List<string>> getDisabledReminderKeys, ContentsManager contentsManager)
     {
@@ -162,7 +162,7 @@ public class EventArea : RenderTarget2DControl
         this._chatService = chatService;
         this._mapUtil = mapUtil;
         this._flurlClient = flurlClient;
-        this._serializer = serializer;
+        this._getSerializer = getSerializer;
         this._apiRootUrl = apiRootUrl;
 
         using var defaultFontStream = this._contentsManager.GetFileStream("fonts\\Menomonia.ttf") ?? throw new FileNotFoundException("Memonia Font is not included in module ref folder.");
@@ -388,7 +388,9 @@ public class EventArea : RenderTarget2DControl
         {
             this._allEvents.Clear();
 
-            var copy = this._serializer.DeserializeObject<List<EventCategory>>(this._serializer.SerializeObject (allEvents));
+            var serializer = this._getSerializer();
+
+            var copy = serializer.DeserializeObject<List<EventCategory>>(serializer.SerializeObject (allEvents));
 
             this._allEvents.AddRange(copy);
 

@@ -127,7 +127,6 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     private Controls.StandardWindow _wizardWindow;
 
     private FlurlClient _flurlClient;
-    private JsonSerializer _jsonSerializer;
 
     private readonly ConcurrentDictionary<string, string> _loadingTexts = new ConcurrentDictionary<string, string>();
 
@@ -175,10 +174,8 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
     protected JsonSerializer GetJsonSerializer()
     {
-        this._jsonSerializer ??= JsonSerializer.CreateDefault()
+        return JsonSerializer.CreateDefault()
             .ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-
-        return this._jsonSerializer;
     }
 
     #region Service Managers
