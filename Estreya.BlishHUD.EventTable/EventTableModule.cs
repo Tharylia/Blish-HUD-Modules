@@ -816,6 +816,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             this.ChatService,
             this.MapUtil,
             this.GetFlurlClient(),
+            this.GetJsonSerializer(),
             this.MODULE_API_URL,
             () => this.NowUTC,
             () => this.Version,

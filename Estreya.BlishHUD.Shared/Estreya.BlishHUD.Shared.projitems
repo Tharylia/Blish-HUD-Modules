@@ -55,6 +55,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\GW2APIExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\HttpExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\IEnumerableExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Extensions\JsonExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\MapExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\NumberExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extensions\ObjectExtensions.cs" />

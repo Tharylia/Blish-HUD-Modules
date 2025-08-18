@@ -48,6 +48,7 @@ using Utils;
 using TabbedWindow = Controls.TabbedWindow;
 using NodaTime.Serialization.JsonNet;
 using NodaTime;
+using Flurl.Http.Configuration;
 
 public abstract class BaseModule<TModule, TSettings> : Module where TSettings : BaseModuleSettings where TModule : class
 {
@@ -126,6 +127,7 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
     private Controls.StandardWindow _wizardWindow;
 
     private FlurlClient _flurlClient;
+    private JsonSerializer _jsonSerializer;
 
     private readonly ConcurrentDictionary<string, string> _loadingTexts = new ConcurrentDictionary<string, string>();
 
@@ -163,10 +165,20 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
                             }
                         }
                     };
+
+                    c.JsonSerializer = new NewtonsoftJsonSerializer(this.GetJsonSerializer().ToSettings());
                 });
         }
 
         return this._flurlClient;
+    }
+
+    protected JsonSerializer GetJsonSerializer()
+    {
+        this._jsonSerializer ??= JsonSerializer.CreateDefault()
+            .ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
+
+        return this._jsonSerializer;
     }
 
     #region Service Managers
@@ -275,10 +287,12 @@ public abstract class BaseModule<TModule, TSettings> : Module where TSettings : 
 
         this._cancellationTokenSource = new CancellationTokenSource();
 
-        JsonConvert.DefaultSettings = () =>
-        {
-            return new JsonSerializerSettings().ConfigureForNodaTime(DateTimeZoneProviders.Tzdb);
-        };
+        //this.Logger.Info("Applying OpenTelemetry Exporter.");
+        //var target = new Shared.Logging.OpenTelemetry.OpenTelemetryTarget()
+        //{
+            
+        //};
+        //LogManager.LogFactory.Configuration.LoggingRules.Add(new NLog.Config.LoggingRule("Estreya.BlishHUD.Shared.*", LogLevel.Debug, target));
 
         this.TEMP_FIX_SetTacOAsActive();
 
