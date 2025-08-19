@@ -675,7 +675,7 @@ public class EventArea : RenderTarget2DControl
                 EventKeys = activeEvents.Select(a => a.SettingKey).ToArray()
             });
 
-            var fillers = await response.GetJsonAsync<Dictionary<string, OnlineFillerEvent[]>>();
+            var fillers = await response.GetJsonAsync<Dictionary<string, OnlineFillerEvent[]>>(this._getSerializer());
 
             var fillerList = fillers.ToList();
             // Keep filler events from contexts
