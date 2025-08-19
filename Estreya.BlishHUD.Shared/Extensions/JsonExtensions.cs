@@ -43,7 +43,7 @@
             {
                 jsonWriter.Formatting = serializer.Formatting;
 
-                serializer.Serialize(jsonWriter, obj, obj.GetType());
+                serializer.Serialize(jsonWriter, obj);
             }
 
             return sw.ToString();
