@@ -1,6 +1,7 @@
 ﻿namespace Estreya.BlishHUD.EventTable.Services;
 
 using Blish_HUD;
+using Estreya.BlishHUD.Shared.Extensions;
 using Microsoft.Xna.Framework;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
@@ -28,14 +29,15 @@ public class EventStateService : ManagedService
     private const string FILE_NAME = "event_states.json";
 
     private readonly Func<Instant> _getNowAction;
-
+    private readonly Func<JsonSerializer> _getSerializerAction;
     private string _path;
     private bool dirty;
 
-    public EventStateService(ServiceConfiguration configuration, string basePath, Func<Instant> getNowAction) : base(configuration)
+    public EventStateService(ServiceConfiguration configuration, string basePath, Func<Instant> getNowAction, Func<JsonSerializer> getSerializerAction) : base(configuration)
     {
         this._basePath = basePath;
         this._getNowAction = getNowAction;
+        this._getSerializerAction = getSerializerAction;
     }
 
     private string _basePath { get; }
@@ -234,7 +236,9 @@ public class EventStateService : ManagedService
                 return;
             }
 
-            List<VisibleStateInfo> instances = JsonConvert.DeserializeObject<List<VisibleStateInfo>>(json);
+            var serializer = this._getSerializerAction();
+
+            List<VisibleStateInfo> instances = serializer.DeserializeObject<List<VisibleStateInfo>>(json);
 
             foreach (VisibleStateInfo instance in instances)
             {
@@ -291,9 +295,12 @@ public class EventStateService : ManagedService
 
         string json = null;
 
+        var serializer = this._getSerializerAction();
+        serializer.Formatting = Formatting.Indented;
+
         lock (this.Instances)
         {
-            json = JsonConvert.SerializeObject(this.Instances, Formatting.Indented);
+            json = serializer.SerializeObject(this.Instances);
 
             //foreach (var instance in this.Instances)
             //{

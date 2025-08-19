@@ -675,7 +675,7 @@ public class EventArea : RenderTarget2DControl
                 EventKeys = activeEvents.Select(a => a.SettingKey).ToArray()
             });
 
-            var fillers = await response.GetJsonAsync<Dictionary<string, OnlineFillerEvent[]>>();
+            var fillers = await response.GetJsonAsync<Dictionary<string, OnlineFillerEvent[]>>(this._getSerializer());
 
             var fillerList = fillers.ToList();
             // Keep filler events from contexts
@@ -700,7 +700,7 @@ public class EventArea : RenderTarget2DControl
 
                     fillerItem.Occurences.ToList().ForEach(o => filler.Occurences.Add( /*DateTime.SpecifyKind(o.DateTime, DateTimeKind.Utc).ToLocalTime()*/ o));
 
-                    List<Models.Event> prevFillers = parsedFillers.GetOrAdd(currentCategory.Key, key => new List<Models.Event> { filler });
+                    List<Models.Event> prevFillers = parsedFillers.GetOrAdd(currentCategory.Key, _ => new List<Models.Event>());
                     prevFillers.Add(filler);
                 }
             }

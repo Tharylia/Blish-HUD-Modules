@@ -38,12 +38,12 @@
         public static string SerializeObject<T>(this JsonSerializer serializer, T obj)
         {
             StringBuilder sb = new StringBuilder(256);
-            StringWriter sw = new StringWriter(sb, CultureInfo.InvariantCulture);
+            using StringWriter sw = new StringWriter(sb, CultureInfo.InvariantCulture);
             using (JsonTextWriter jsonWriter = new JsonTextWriter(sw))
             {
                 jsonWriter.Formatting = serializer.Formatting;
 
-                serializer.Serialize(jsonWriter, obj, obj.GetType());
+                serializer.Serialize(jsonWriter, obj);
             }
 
             return sw.ToString();
@@ -51,7 +51,8 @@
 
         public static T DeserializeObject<T>(this JsonSerializer serializer, string value)
         {
-            using JsonTextReader reader = new JsonTextReader(new StringReader(value));
+            using var sr = new StringReader(value);
+            using JsonTextReader reader = new JsonTextReader(sr);
             return (T)serializer.Deserialize(reader, typeof(T));
         }
     }

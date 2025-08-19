@@ -9,9 +9,12 @@ public static class HttpExtensions
 {
     public static async Task<T> GetJsonAsync<T>(this HttpResponseMessage responseMessage)
     {
-        using Stream stream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false);
+        return await GetJsonAsync<T>(responseMessage, JsonSerializer.Create(JsonConvert.DefaultSettings?.Invoke() ?? null));
+    }
 
-        JsonSerializer serializer = JsonSerializer.Create(JsonConvert.DefaultSettings?.Invoke() ?? null);
+    public static async Task<T> GetJsonAsync<T>(this HttpResponseMessage responseMessage, JsonSerializer serializer)
+    {
+        using Stream stream = await responseMessage.Content.ReadAsStreamAsync().ConfigureAwait(false);
 
         using StreamReader sr = new StreamReader(stream);
         using JsonTextReader jsonTextReader = new JsonTextReader(sr);

@@ -1058,7 +1058,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
             AwaitLoading = false,
             Enabled = true,
             SaveInterval = TimeSpan.FromSeconds(30)
-        }, directoryPath, () => this.NowUTC);
+        }, directoryPath, () => this.NowUTC, () => this.GetJsonSerializer());
 
         this.DynamicEventService = new DynamicEventService(new APIServiceConfiguration
         {
