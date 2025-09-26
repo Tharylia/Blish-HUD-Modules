@@ -776,7 +776,40 @@ public class AreaSettingsView : BaseSettingsView
         ManageEventsView view = new ManageEventsView(this._allEvents(), new Dictionary<string, object>
         {
             { "configuration", configuration },
-            { "hiddenEventKeys", this._eventStateService.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventStateService.EventStates.Hidden).Select(x => x.EventKey).ToList() }
+            { "hiddenEventKeys", this._eventStateService.Instances
+                .Where(x => x.AreaName == configuration.Name && x.State == EventStateService.EventStates.Hidden)
+                .Select(x => x.EventKey)
+                .ToList()
+            },
+            { "customActions", new List<ManageEventsView.CustomActionDefinition>
+                {
+                    new ManageEventsView.CustomActionDefinition
+                    {
+                        Name = "Enable/Disable Completion Action",
+                        Tooltip = "Toggles the tracking for the completion action of this event.",
+                        InitialChecked= (ev) => !configuration.DisabledCompletionActionForEvents.Value.Contains(ev.SettingKey),
+                        Icon = (ev) =>!configuration.DisabledCompletionActionForEvents.Value.Contains(ev.SettingKey) ? "156881.png" : "156882.png",
+                        ReloadIconAfterAction = true,
+                        Action = (ev, button) =>
+                        {
+                            var add = button.Checked;
+
+                            if (add)
+                            {
+                                configuration.DisabledCompletionActionForEvents.Value = new List<string>(configuration.DisabledCompletionActionForEvents.Value.Where(x => x != ev.SettingKey)) { ev.SettingKey };
+                                //button.Icon = this.IconService.GetIcon("156882.png");
+                            }
+                            else
+                            {
+                                configuration.DisabledCompletionActionForEvents.Value = new List<string>(configuration.DisabledCompletionActionForEvents.Value.Where(x => x != ev.SettingKey));
+                                //button.Icon = this.IconService.GetIcon("156881.png");
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    }
+                }
+            }
         }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this._accountService, this.APIManager, this.IconService, this.TranslationService);
         view.EventChanged += this.ManageView_EventChanged;
 

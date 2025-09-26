@@ -14,6 +14,7 @@ using Models;
 using MonoGame.Extended.BitmapFonts;
 using Newtonsoft.Json;
 using NodaTime;
+using NodaTime.Extensions;
 using Services;
 using Shared.Controls;
 using Shared.Extensions;
@@ -390,7 +391,7 @@ public class EventArea : RenderTarget2DControl
 
             var serializer = this._getSerializer();
 
-            var copy = serializer.DeserializeObject<List<EventCategory>>(serializer.SerializeObject (allEvents));
+            var copy = serializer.DeserializeObject<List<EventCategory>>(serializer.SerializeObject(allEvents));
 
             this._allEvents.AddRange(copy);
 
@@ -437,6 +438,13 @@ public class EventArea : RenderTarget2DControl
         {
             Instant until = this.GetNextReset(ev);
             this._logger.Info($"Event \"{ev.SettingKey}\" marked completed via api until: {until}");
+
+            if (this.Configuration.DisabledCompletionActionForEvents.Value.Contains(ev.SettingKey))
+            {
+                this._logger.Info($"Event \"{ev.SettingKey}\" completion action is disabled. Abort.");
+                return;
+            }
+
             this.FinishEvent(ev, until);
         });
     }

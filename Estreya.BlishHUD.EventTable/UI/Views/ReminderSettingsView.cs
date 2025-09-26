@@ -105,15 +105,15 @@ public class ReminderSettingsView : BaseSettingsView
                         {
                             Name = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-title", "Change Times"),
                             Tooltip = this.TranslationService.GetTranslation("reminderSettingsView-btn-changeTimes-tooltip", "Click to change the times at which reminders happen."),
-                            Icon = "1466345.png",
-                            Action = this.ManageReminderTimes
+                            Icon = (ev) => "1466345.png",
+                            Action = (ev, _) => this.ManageReminderTimes(ev)
                         },
                         new ManageEventsView.CustomActionDefinition
                         {
                             Name= this.TranslationService.GetTranslation("reminderSettingsView-btn-uploadEventSoundFile-title", "Upload Sound File"),
                             Tooltip = this.TranslationService.GetTranslation("reminderSettingsView-btn-uploadEventSoundFile-tooltip", "Click to upload a specific sound file for this event."),
-                            Icon = "156764.png",
-                            Action = this.UploadEventSoundFile
+                            Icon = (ev) => "156764.png",
+                            Action = (ev, _) => this.UploadEventSoundFile(ev)
                         }
                     }
                 }

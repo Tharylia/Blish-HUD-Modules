@@ -86,6 +86,7 @@ public class EventAreaConfiguration : DrawerConfiguration
 
     public SettingEntry<bool> TopTimelineLinesOverWholeHeight { get; set; }
     public SettingEntry<bool> TopTimelineLinesInBackground { get; set; }
+    public SettingEntry<List<string>> DisabledCompletionActionForEvents { get; set; }
 
     public void CopyTo(EventAreaConfiguration other)
     {
@@ -149,5 +150,6 @@ public class EventAreaConfiguration : DrawerConfiguration
         other.TopTimelineTimeOpacity.Value = this.TopTimelineTimeOpacity.Value;
         other.TopTimelineLinesOverWholeHeight.Value = this.TopTimelineLinesOverWholeHeight.Value;
         other.TopTimelineLinesInBackground.Value = this.TopTimelineLinesInBackground.Value;
+        other.DisabledCompletionActionForEvents.Value = this.DisabledCompletionActionForEvents.Value;
     }
 }

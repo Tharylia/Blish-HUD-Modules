@@ -436,6 +436,8 @@ public class ModuleSettings : BaseModuleSettings
         var topTimelineLinesOverWholeHeight = this.DrawerSettings.DefineSetting($"{name}-topTimelineLinesOverWholeHeight", false, () => "Top Timeline Lines Over Whole Height", () => "Defines if the top timeline lines should cover the whole event area height.");
         var topTimelineLinesInBackground = this.DrawerSettings.DefineSetting($"{name}-topTimelineLinesInBackground", true, () => "Top Timeline Lines in Background", () => "Defines if the top timeline lines should be in the background or foreground.");
 
+        var disabledComplectionActionForEvents = this.DrawerSettings.DefineSetting($"{name}-disabledCompletionActionForEvents", new List<string>());
+
         this.DrawerSettings.AddLoggingEvents();
 
         return new EventAreaConfiguration
@@ -510,7 +512,8 @@ public class ModuleSettings : BaseModuleSettings
             TopTimelineLineOpacity = topTimelineLineOpacity,
             TopTimelineTimeOpacity = topTimelineTimeOpacity,
             TopTimelineLinesOverWholeHeight = topTimelineLinesOverWholeHeight,
-            TopTimelineLinesInBackground = topTimelineLinesInBackground
+            TopTimelineLinesInBackground = topTimelineLinesInBackground,
+            DisabledCompletionActionForEvents = disabledComplectionActionForEvents,
         };
     }
 
@@ -589,6 +592,7 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineTimeOpacity");
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineLinesOverWholeHeight");
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineLinesInBackground");
+        this.DrawerSettings.UndefineSetting($"{name}-disabledCompletionActionForEvents");
     }
 
     public override void UpdateLocalization(TranslationService translationService)
