@@ -919,8 +919,22 @@ public class ModuleSettings : BaseModuleSettings
                     this.Logger.Info($"Performed migration of {entryKey}");
                 }
             }
+        }
 
-            //if ("dd\\.hh\\:mm\\:ss")
+        if (lastModuleVersion == null || lastModuleVersion <= new SemVer.Version("3.16.5"))
+        {
+            // Migrate completion action because entry "None" got added as index 0.
+            foreach (var areaName in this.EventAreaNames.Value)
+            {
+                var entryKey = $"{areaName}-completionAction";
+                if (this.DrawerSettings[entryKey] is SettingEntry<EventCompletedAction> completionAction)
+                {
+                    var oldValue = completionAction.Value;
+                    var newValue = (EventCompletedAction)(((int)completionAction.Value) + 1);
+                    completionAction.Value = newValue;
+                    this.Logger.Info($"Performed migration of {entryKey}. {oldValue} -> {newValue}");
+                }
+            }
         }
     }
 
