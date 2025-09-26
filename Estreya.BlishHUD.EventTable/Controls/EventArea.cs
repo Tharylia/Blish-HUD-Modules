@@ -1258,11 +1258,25 @@ public class EventArea : RenderTarget2DControl
         var timeColor = (this.Configuration.TopTimelineTimeColor.Value.Id == 1
             ? Microsoft.Xna.Framework.Color.Red
             : this.Configuration.TopTimelineTimeColor.Value.Cloth.ToXnaColor()) * this.Configuration.TopTimelineTimeOpacity.Value;
+
+        List<Duration> stepTimes = new List<Duration>();
+
+        // Round up to next step
+        var minUtc = times.Min.ToDateTimeUtc();
+        int minutes = (int)Math.Ceiling(minUtc.Minute / (double)timeInterval) * timeInterval;
+        DateTime first = new DateTime(minUtc.Year, minUtc.Month, minUtc.Day, minUtc.Hour, 0, 0, DateTimeKind.Utc).AddMinutes(minutes);
+
         for (int i = 0; i < timeSteps; i++)
         {
-            var x = ((float)this.PixelPerMinute * timeInterval * i) + this.DrawXOffset;
+            stepTimes.Add(first.AddMinutes(i * timeInterval).ToInstant().Minus(times.Min));
+        }
+
+        for (int i = 0; i < stepTimes.Count; i++)
+        {
+            var stepTime = stepTimes[i];
+            var x = (float)((this.PixelPerMinute * stepTime.TotalMinutes) + this.DrawXOffset);
             var timeStepRect = new RectangleF(x, 0, 2, timeStepLineHeight);
-            var time = times.Min.Plus(Duration.FromMinutes(timeInterval * i)).InZone(DateTimeZoneProviders.Tzdb.GetSystemDefault());
+            var time = times.Min.Plus(stepTime).InZone(DateTimeZoneProviders.Tzdb.GetSystemDefault());
 
             spriteBatch.DrawLine(Textures.Pixel, timeStepRect, lineColor);
 
