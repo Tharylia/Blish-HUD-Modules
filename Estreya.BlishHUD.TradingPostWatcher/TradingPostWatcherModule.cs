@@ -295,8 +295,7 @@ public class TradingPostWatcherModule : BaseModule<TradingPostWatcherModule, Mod
             this.IconService,
             this.TranslationService)
         {
-            Parent = GameService.Graphics.SpriteScreen,
-            DrawInterval = TimeSpan.FromMilliseconds(1)
+            Parent = GameService.Graphics.SpriteScreen
         };
 
         area.RequestedNewData += this.Area_RequestedNewData;

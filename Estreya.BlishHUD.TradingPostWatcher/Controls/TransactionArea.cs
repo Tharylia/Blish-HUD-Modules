@@ -41,6 +41,7 @@ public class TransactionArea : RenderTarget2DControl, IVisibilityChanging
 
     public TransactionArea(TransactionAreaConfiguration configuration, IconService iconService, TranslationService translationService)
     {
+        this.DrawInterval = TimeSpan.FromMilliseconds(1);
         this.Configuration = configuration;
         this._iconService = iconService;
         this._translationService = translationService;
