@@ -196,7 +196,7 @@ public abstract class BaseSettingsView : BaseView
         return (panel, label.TitleLabel, trackbar);
     }
 
-    protected (Panel Panel, Label label, Checkbox checkbox) RenderBoolSetting(Panel parent, SettingEntry<bool> settingEntry, Func<bool, bool, Task<bool>> onBeforeChangeAction = null)
+    protected (Panel Panel, Label label, Checkbox checkbox) RenderBoolSetting(Panel parent, SettingEntry<bool> settingEntry, Func<bool, bool, Task<bool>> onBeforeChangeAction = null, Func<bool, bool, Task> onAfterChangeAction = null)
     {
         Panel panel = this.GetPanel(parent);
 
@@ -207,6 +207,7 @@ public abstract class BaseSettingsView : BaseView
             try
             {
                 settingEntry.Value = newValue;
+                onAfterChangeAction?.Invoke(!settingEntry.Value, settingEntry.Value);
             }
             catch (Exception ex)
             {

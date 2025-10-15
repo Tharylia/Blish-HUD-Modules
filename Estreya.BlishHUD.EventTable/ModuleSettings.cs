@@ -436,6 +436,9 @@ public class ModuleSettings : BaseModuleSettings
         var topTimelineLinesOverWholeHeight = this.DrawerSettings.DefineSetting($"{name}-topTimelineLinesOverWholeHeight", false, () => "Top Timeline Lines Over Whole Height", () => "Defines if the top timeline lines should cover the whole event area height.");
         var topTimelineLinesInBackground = this.DrawerSettings.DefineSetting($"{name}-topTimelineLinesInBackground", true, () => "Top Timeline Lines in Background", () => "Defines if the top timeline lines should be in the background or foreground.");
 
+        var disabledComplectionActionForEvents = this.DrawerSettings.DefineSetting($"{name}-disabledCompletionActionForEvents", new List<string>());
+        var compactMode = this.DrawerSettings.DefineSetting($"{name}-compactMode", false, () => "Compact Mode", () => "Defines if the area should be displayed in a compact format.");
+
         this.DrawerSettings.AddLoggingEvents();
 
         return new EventAreaConfiguration
@@ -510,7 +513,9 @@ public class ModuleSettings : BaseModuleSettings
             TopTimelineLineOpacity = topTimelineLineOpacity,
             TopTimelineTimeOpacity = topTimelineTimeOpacity,
             TopTimelineLinesOverWholeHeight = topTimelineLinesOverWholeHeight,
-            TopTimelineLinesInBackground = topTimelineLinesInBackground
+            TopTimelineLinesInBackground = topTimelineLinesInBackground,
+            DisabledCompletionActionForEvents = disabledComplectionActionForEvents,
+            CompactMode = compactMode,
         };
     }
 
@@ -589,6 +594,8 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineTimeOpacity");
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineLinesOverWholeHeight");
         this.DrawerSettings.UndefineSetting($"{name}-topTimelineLinesInBackground");
+        this.DrawerSettings.UndefineSetting($"{name}-disabledCompletionActionForEvents");
+        this.DrawerSettings.UndefineSetting($"{name}-compactMode");
     }
 
     public override void UpdateLocalization(TranslationService translationService)
@@ -915,8 +922,22 @@ public class ModuleSettings : BaseModuleSettings
                     this.Logger.Info($"Performed migration of {entryKey}");
                 }
             }
+        }
 
-            //if ("dd\\.hh\\:mm\\:ss")
+        if (lastModuleVersion == null || lastModuleVersion <= new SemVer.Version("3.16.5"))
+        {
+            // Migrate completion action because entry "None" got added as index 0.
+            foreach (var areaName in this.EventAreaNames.Value)
+            {
+                var entryKey = $"{areaName}-completionAction";
+                if (this.DrawerSettings[entryKey] is SettingEntry<EventCompletedAction> completionAction)
+                {
+                    var oldValue = completionAction.Value;
+                    var newValue = (EventCompletedAction)(((int)completionAction.Value) + 1);
+                    completionAction.Value = newValue;
+                    this.Logger.Info($"Performed migration of {entryKey}. {oldValue} -> {newValue}");
+                }
+            }
         }
     }
 

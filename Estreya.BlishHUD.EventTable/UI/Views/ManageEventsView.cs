@@ -334,8 +334,9 @@ public class ManageEventsView : BaseView
                         {
                             Parent = button,
                             ToggleGlow = false,
-                            Icon = customAction.Icon != null ? this.IconService.GetIcon(customAction.Icon) : null,
-                            BasicTooltipText = customAction.Tooltip
+                            BasicTooltipText = customAction.Tooltip,
+                            Icon = customAction.Icon != null ? this.IconService.GetIcon(customAction.Icon.Invoke(e)) : null,
+                            Checked = customAction.InitialChecked?.Invoke(e) ?? false
                         };
 
                         customButton.Click += async (s, ea) =>
@@ -345,7 +346,13 @@ public class ManageEventsView : BaseView
                             button.Enabled = false;
                             try
                             {
-                                await customAction.Action?.Invoke(e);
+                                await customAction.Action?.Invoke(e, button);
+                                button.Checked = !button.Checked;
+
+                                if (customAction.ReloadIconAfterAction)
+                                {
+                                    button.Icon = customAction.Icon != null ? this.IconService.GetIcon(customAction.Icon.Invoke(e)) : null;
+                                }
                             }
                             finally
                             {
@@ -409,8 +416,11 @@ public class ManageEventsView : BaseView
     {
         public string Name { get; set; }
         public string Tooltip { get; set; }
-        public string Icon { get; set; }
+        public Func<Event, string> Icon { get; set; }
 
-        public Func<Event, Task> Action { get; set; }
+        public Func<Event, bool> InitialChecked { get; set; }
+
+        public Func<Event, GlowButton, Task> Action { get; set; }
+        public bool ReloadIconAfterAction {  get; set; }
     }
 }

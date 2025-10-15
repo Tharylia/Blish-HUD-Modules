@@ -4,15 +4,18 @@ using Shared.Attributes;
 
 public enum EventCompletedAction
 {
+    [Translation("eventCompletedAction-none", "None")]
+    None = 0,
+
     [Translation("eventCompletedAction-crossout", "Crossout")]
-    Crossout,
+    Crossout = 1,
 
     [Translation("eventCompletedAction-hide", "Hide")]
-    Hide,
+    Hide = 2,
 
     [Translation("eventCompletedAction-changeOpacity", "Change Opacity")]
-    ChangeOpacity,
+    ChangeOpacity = 3,
 
     [Translation("eventCompletedAction-crossoutAndChangeOpacity", "Crossout & Change Opacity")]
-    CrossoutAndChangeOpacity
+    CrossoutAndChangeOpacity = 4
 }

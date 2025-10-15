@@ -34,7 +34,7 @@ public class AreaSettingsView : BaseSettingsView
 {
     private const int PADDING_X = 20;
     private const int PADDING_Y = 20;
-    private readonly Func<List<EventCategory>> _allEvents;
+    private readonly Func<EventAreaConfiguration, List<EventCategory>> _allEvents;
 
     private readonly Func<IEnumerable<EventAreaConfiguration>> _areaConfigurationFunc;
     private readonly EventStateService _eventStateService;
@@ -47,7 +47,7 @@ public class AreaSettingsView : BaseSettingsView
     private Dictionary<string, MenuItem> _menuItems;
     private StandardWindow _reorderEventsWindow;
 
-    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<List<EventCategory>> allEvents, ModuleSettings moduleSettings, AccountService accountService, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService) : base(apiManager, iconService, translationService, settingEventService)
+    public AreaSettingsView(Func<IEnumerable<EventAreaConfiguration>> areaConfiguration, Func<EventAreaConfiguration, List<EventCategory>> allEvents, ModuleSettings moduleSettings, AccountService accountService, Gw2ApiManager apiManager, IconService iconService, TranslationService translationService, SettingEventService settingEventService, EventStateService eventStateService) : base(apiManager, iconService, translationService, settingEventService)
     {
         this._areaConfigurationFunc = areaConfiguration;
         this._allEvents = allEvents;
@@ -286,7 +286,10 @@ public class AreaSettingsView : BaseSettingsView
 
         this.RenderEmptyLine(settingsPanel);
 
-        this.RenderLayoutSettings(settingsPanel, areaConfiguration);
+        this.RenderLayoutSettings(settingsPanel, areaConfiguration, () =>
+        {
+            this.BuildEditPanel(parent, bounds, menuItem, areaConfiguration);
+        });
 
         this.RenderEmptyLine(settingsPanel);
 
@@ -409,7 +412,7 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
 
-    private void RenderLayoutSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration)
+    private void RenderLayoutSettings(FlowPanel settingsPanel, EventAreaConfiguration areaConfiguration, Action rebuildAction)
     {
         FlowPanel groupPanel = new FlowPanel
         {
@@ -438,6 +441,29 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderBoolSetting(groupPanel, areaConfiguration.ShowTopTimeline);
         this.RenderBoolSetting(groupPanel, areaConfiguration.TopTimelineLinesOverWholeHeight);
         this.RenderBoolSetting(groupPanel, areaConfiguration.TopTimelineLinesInBackground);
+
+        this.RenderEmptyLine(groupPanel);
+
+        this.RenderBoolSetting(groupPanel, areaConfiguration.CompactMode, onBeforeChangeAction: async (oldVal, newVal) =>
+        {
+            if (!newVal) return true;
+
+            var confirmDialog = new ConfirmDialog(
+                    "Compact Mode",
+                    "You are in the process of enabling compact mode.\n\nThis will reset some of the incompatible settings as the category names will change.\n\nA RESTART OF BLISHHUD IS NEEDED FOR THIS TO TAKE EFFECT!",
+                    this.IconService)
+            {
+                SelectedButtonIndex = 1 // Preselect cancel
+            };
+
+            var confirmResult = await confirmDialog.ShowDialog();
+            var change = confirmResult == DialogResult.OK;
+
+            return change;
+        }, onAfterChangeAction: async (oldVal, newVal) =>
+        {
+            rebuildAction.Invoke();
+        });
 
         this.RenderEmptyLine(groupPanel, 20); // Fake bottom padding
     }
@@ -678,26 +704,27 @@ public class AreaSettingsView : BaseSettingsView
             Title = this.TranslationService.GetTranslation("areaSettingsView-group-synchronization", "Synchronization")
         };
 
-        this.RenderButtonAsync(groupPanel, "Sync enabled Events to Reminders",
-            async () =>
-            {
-                var confirmDialog = new ConfirmDialog(
-                    "Synchronizing",
-                    "You are in the process of synchronizing the enabled events of this area to the reminders.\n\nThis will override all previously configured enabled/disabled reminder settings.",
-                    this.IconService)
-                {
-                    SelectedButtonIndex = 1 // Preselect cancel
-                };
+        var syncEnabledToRemindersButton = this.RenderButtonAsync(groupPanel, "Sync enabled Events to Reminders",
+             async () =>
+             {
+                 var confirmDialog = new ConfirmDialog(
+                     "Synchronizing",
+                     "You are in the process of synchronizing the enabled events of this area to the reminders.\n\nThis will override all previously configured enabled/disabled reminder settings.",
+                     this.IconService)
+                 {
+                     SelectedButtonIndex = 1 // Preselect cancel
+                 };
 
-                var confirmResult = await confirmDialog.ShowDialog();
-                if (confirmResult != DialogResult.OK) return;
+                 var confirmResult = await confirmDialog.ShowDialog();
+                 if (confirmResult != DialogResult.OK) return;
 
-                await (this.SyncEnabledEventsToReminders?.Invoke(this, areaConfiguration) ?? Task.FromException(new NotImplementedException()));
+                 await (this.SyncEnabledEventsToReminders?.Invoke(this, areaConfiguration) ?? Task.FromException(new NotImplementedException()));
 
-                Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
-            });
+                 Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
+             });
+        syncEnabledToRemindersButton.Enabled = !areaConfiguration.CompactMode.Value;
 
-        this.RenderButtonAsync(groupPanel, "Sync enabled Events from Reminders",
+        var syncEnabledFromRemindersButton = this.RenderButtonAsync(groupPanel, "Sync enabled Events from Reminders",
             async () =>
             {
                 var confirmDialog = new ConfirmDialog(
@@ -715,8 +742,9 @@ public class AreaSettingsView : BaseSettingsView
 
                 Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
             });
+        syncEnabledFromRemindersButton.Enabled = !areaConfiguration.CompactMode.Value;
 
-        this.RenderButtonAsync(groupPanel, "Sync enabled Events to other Areas",
+        var syncEnabledEventsToOtherAreasButton = this.RenderButtonAsync(groupPanel, "Sync enabled Events to other Areas",
             async () =>
             {
                 var confirmDialog = new ConfirmDialog(
@@ -734,6 +762,15 @@ public class AreaSettingsView : BaseSettingsView
 
                 Blish_HUD.Controls.ScreenNotification.ShowNotification("Synchronization complete!");
             });
+        syncEnabledEventsToOtherAreasButton.Enabled = !areaConfiguration.CompactMode.Value;
+
+        if (areaConfiguration.CompactMode.Value)
+        {
+            var message = "Not available in compact mode.";
+            syncEnabledToRemindersButton.BasicTooltipText = message;
+            syncEnabledFromRemindersButton.BasicTooltipText = message;
+            syncEnabledEventsToOtherAreasButton.BasicTooltipText = message;
+        }
 
         this.RenderEmptyLine(groupPanel, (int)groupPanel.OuterControlPadding.Y); // Fake bottom padding
     }
@@ -748,7 +785,7 @@ public class AreaSettingsView : BaseSettingsView
             reorderEventView.SaveClicked -= this.ReorderView_SaveClicked;
         }
 
-        ReorderEventsView view = new ReorderEventsView(this._allEvents(), configuration.EventOrder.Value, configuration, this.APIManager, this.IconService, this.TranslationService);
+        ReorderEventsView view = new ReorderEventsView(this._allEvents(configuration), configuration.EventOrder.Value, configuration, this.APIManager, this.IconService, this.TranslationService);
         view.SaveClicked += this.ReorderView_SaveClicked;
 
         this._reorderEventsWindow.Show(view);
@@ -773,10 +810,43 @@ public class AreaSettingsView : BaseSettingsView
             manageEventView.EventChanged -= this.ManageView_EventChanged;
         }
 
-        ManageEventsView view = new ManageEventsView(this._allEvents(), new Dictionary<string, object>
+        ManageEventsView view = new ManageEventsView(this._allEvents(configuration), new Dictionary<string, object>
         {
             { "configuration", configuration },
-            { "hiddenEventKeys", this._eventStateService.Instances.Where(x => x.AreaName == configuration.Name && x.State == EventStateService.EventStates.Hidden).Select(x => x.EventKey).ToList() }
+            { "hiddenEventKeys", this._eventStateService.Instances
+                .Where(x => x.AreaName == configuration.Name && x.State == EventStateService.EventStates.Hidden)
+                .Select(x => x.EventKey)
+                .ToList()
+            },
+            { "customActions", new List<ManageEventsView.CustomActionDefinition>
+                {
+                    new ManageEventsView.CustomActionDefinition
+                    {
+                        Name = "Enable/Disable Completion Action",
+                        Tooltip = "Toggles the tracking for the completion action of this event.",
+                        InitialChecked= (ev) => !configuration.DisabledCompletionActionForEvents.Value.Contains(ev.SettingKey),
+                        Icon = (ev) =>!configuration.DisabledCompletionActionForEvents.Value.Contains(ev.SettingKey) ? "156881.png" : "156882.png",
+                        ReloadIconAfterAction = true,
+                        Action = (ev, button) =>
+                        {
+                            var add = button.Checked;
+
+                            if (add)
+                            {
+                                configuration.DisabledCompletionActionForEvents.Value = new List<string>(configuration.DisabledCompletionActionForEvents.Value.Where(x => x != ev.SettingKey)) { ev.SettingKey };
+                                //button.Icon = this.IconService.GetIcon("156882.png");
+                            }
+                            else
+                            {
+                                configuration.DisabledCompletionActionForEvents.Value = new List<string>(configuration.DisabledCompletionActionForEvents.Value.Where(x => x != ev.SettingKey));
+                                //button.Icon = this.IconService.GetIcon("156881.png");
+                            }
+
+                            return Task.CompletedTask;
+                        }
+                    }
+                }
+            }
         }, () => configuration.DisabledEventKeys.Value, this._moduleSettings, this._accountService, this.APIManager, this.IconService, this.TranslationService);
         view.EventChanged += this.ManageView_EventChanged;
 
