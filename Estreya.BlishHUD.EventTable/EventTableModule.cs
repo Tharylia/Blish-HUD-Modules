@@ -62,6 +62,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
     private ConcurrentDictionary<string, EventArea> _areas;
     private List<EventCategory> _eventCategories;
+    private List<EventCategory> _eventCategoriesCompact;
 
     private readonly AsyncLock _eventCategoryLock = new AsyncLock();
     private double _lastCheckDrawerSettings;
@@ -105,6 +106,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this._areas = new ConcurrentDictionary<string, EventArea>();
         this._eventCategories = new List<EventCategory>();
+        this._eventCategoriesCompact = new List<EventCategory>();
 
         this._lastEventUpdate = new AsyncRef<double>(0);
         this._lastCheckDrawerSettings = 0;
@@ -147,7 +149,7 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         this.AddAllAreas();
 
-        await this.LoadEvents();
+        await this.LoadEventsAsync();
 
         sw.Stop();
         this.Logger.Debug($"Loaded in {sw.Elapsed.TotalMilliseconds.ToString(CultureInfo.InvariantCulture)}ms");
@@ -188,21 +190,26 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// <summary>
     ///     Updates the events in all registered areas.
     /// </summary>
-    private void SetAreaEvents()
+    private async Task SetAreaEventsAsync()
     {
-        foreach (EventArea area in this._areas.Values)
-        {
-            this.SetAreaEvents(area);
-        }
+        var tasks = this._areas.Values.Select(this.SetAreaEventsAsync);
+        await Task.WhenAll(tasks);
     }
 
     /// <summary>
     ///     Updates the events for a given area.
     /// </summary>
     /// <param name="area">The area which should receive the current loaded events.</param>
-    private void SetAreaEvents(EventArea area)
+    private async Task SetAreaEventsAsync(EventArea area)
     {
-        area.UpdateAllEvents(this._eventCategories);
+        if (!area.Configuration.CompactMode.Value)
+        {
+            await area.UpdateAllEventsAsync(this._eventCategories);
+        }
+        else
+        {
+            await area.UpdateAllEventsAsync(this._eventCategoriesCompact);
+        }
     }
 
     protected override void OnModuleLoaded(EventArgs e)
@@ -255,95 +262,52 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     ///     Reloads all events.
     /// </summary>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    private async Task LoadEvents()
+    private async Task LoadEventsAsync()
     {
-        this.Logger.Info("Load events...");
+        this.Logger.Info("Load all events...");
         using (await this._eventCategoryLock.LockAsync())
         {
             this.Logger.Debug("Acquired lock.");
             try
             {
                 this._eventCategories?.SelectMany(ec => ec.Events).ToList().ForEach(this.RemoveEventHooks);
+                this._eventCategoriesCompact?.SelectMany(ec => ec.Events).ToList().ForEach(this.RemoveEventHooks);
                 this._eventCategories?.Clear();
+                this._eventCategoriesCompact?.Clear();
 
                 if (this.HasErrorState(Shared.Modules.ModuleErrorStateGroup.BACKEND_UNAVAILABLE))
                 {
                     this.Logger.Warn($"Abort event loading due to error state \"{Shared.Modules.ModuleErrorStateGroup.BACKEND_UNAVAILABLE}\".");
-                    this.SetAreaEvents(); // Clear events in all areas
+                    this.SetAreaEventsAsync(); // Clear events in all areas
                     return;
                 }
 
-                IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL);
+                var defaultEventsTask = this.LoadDefaultEventsAsync();
+                var compactEventsTask = this.LoadCompactEventsAsync();
 
-                if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIService.AccessToken))
-                {
-                    this.Logger.Info("Include custom events...");
-                    request.WithOAuthBearerToken(this.BlishHUDAPIService.AccessToken);
-                }
+                await Task.WhenAll(defaultEventsTask, compactEventsTask);
 
-                List<EventCategory> categories = await request.GetJsonAsync<List<EventCategory>>();
+                var defaultEvents = defaultEventsTask.Result;
+                var compactEvents = compactEventsTask.Result;  
 
-                int eventCategoryCount = categories.Count;
-                int eventCount = categories.Sum(ec => ec.Events.Count);
+                this.AssignEventReminderTimes(defaultEvents);
 
-                this.Logger.Info($"Loaded {eventCategoryCount} Categories with {eventCount} Events.");
-
-                var contextEvents = this._contextManager?.GetContextCategories();
-                if (contextEvents is not null && contextEvents.Count > 0)
-                {
-                    this.Logger.Info($"Include {contextEvents.Count} context categories with {contextEvents.Sum(ec => ec.Events?.Count ?? 0)} events.");
-
-                    categories.AddRange(contextEvents);
-                }
-
-                //if (this.ModuleSettings.IncludeSelfHostedEvents.Value)
-                //{
-                //    var selfHostedEvents = await this.LoadSelfHostedEvents();
-
-                //    if (selfHostedEvents is not null)
-                //    {
-                //        foreach (var selfHostedCategory in selfHostedEvents)
-                //        {
-                //            if (!categories.Any(c => c.Key == selfHostedCategory.Key)) continue;
-
-                //            var category = categories.Find(c => c.Key == selfHostedCategory.Key);
-                //            foreach (var selfHostedEvent in selfHostedCategory.Value)
-                //            {
-                //                var ev = new Event()
-                //                {
-                //                    Key = selfHostedEvent.EventKey,
-                //                    Name = /*selfHostedEvent.EventName ??*/ selfHostedEvent.EventKey,
-                //                    Duration = selfHostedEvent.Duration,
-                //                    HostedBySystem = false
-                //                };
-
-                //                ev.Occurences.Add(selfHostedEvent.StartTime.UtcDateTime);
-
-                //                category.OriginalEvents.Add(ev);
-                //            }
-                //        }
-                //    }
-                //}
-
-                categories.ForEach(ec =>
-                {
-                    ec.Load(() => this.NowUTC, this.TranslationService);
-                });
-
-                this.Logger.Debug("Loaded all event categories.");
-
-                this.AssignEventReminderTimes(categories);
-
-                this._eventCategories = categories;
+                this._eventCategories = defaultEvents;
+                this._eventCategoriesCompact = compactEvents;
 
                 foreach (Event ev in this._eventCategories.SelectMany(ec => ec.Events))
                 {
                     this.AddEventHooks(ev);
                 }
-
+                // Don't do that for compact
+                //foreach (Event ev in this._eventCategoriesCompact.SelectMany(ec => ec.Events))
+                //{
+                //    this.AddEventHooks(ev);
+                //}
+                
                 this._lastCheckDrawerSettings = _checkDrawerSettingInterval.TotalMilliseconds;
 
-                this.SetAreaEvents();
+                await this.SetAreaEventsAsync();
 
                 this.Logger.Debug("Updated events in all areas.");
 
@@ -364,6 +328,89 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
 
         // Needs to be outside of lock
         await (this.EventTimerHandler?.NotifyUpdatedEvents() ?? Task.CompletedTask);
+    }
+
+    private async Task<List<EventCategory>> LoadDefaultEventsAsync()
+    {
+        this.Logger.Info("Load default events...");
+        if (this.HasErrorState(Shared.Modules.ModuleErrorStateGroup.BACKEND_UNAVAILABLE))
+        {
+            return new List<EventCategory>();
+        }
+
+        IFlurlRequest request = this.GetFlurlClient().Request(this.MODULE_API_URL);
+
+        if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIService.AccessToken))
+        {
+            this.Logger.Info("Include custom events in default...");
+            request.WithOAuthBearerToken(this.BlishHUDAPIService.AccessToken);
+        }
+
+        List<EventCategory> categories = await request.GetJsonAsync<List<EventCategory>>();
+
+        int eventCategoryCount = categories.Count;
+        int eventCount = categories.Sum(ec => ec.Events.Count);
+
+        this.Logger.Info($"Loaded  {eventCategoryCount} default categories with {eventCount} Events.");
+
+        var contextEvents = this._contextManager?.GetContextCategories();
+        if (contextEvents is not null && contextEvents.Count > 0)
+        {
+            this.Logger.Info($"Include {contextEvents.Count} context categories with {contextEvents.Sum(ec => ec.Events?.Count ?? 0)} events in default.");
+
+            categories.AddRange(contextEvents);
+        }
+
+        categories.ForEach(ec =>
+        {
+            ec.Load(() => this.NowUTC, this.TranslationService);
+        });
+
+        this.Logger.Debug("Loaded all default event categories.");
+
+        return categories;
+    }
+
+    private async Task<List<EventCategory>> LoadCompactEventsAsync()
+    {
+        this.Logger.Info("Load compact events...");
+
+        if (this.HasErrorState(Shared.Modules.ModuleErrorStateGroup.BACKEND_UNAVAILABLE))
+        {
+            return new List<EventCategory>();
+        }
+
+        IFlurlRequest requestCompact = this.GetFlurlClient().Request(this.MODULE_API_URL, "compact");
+
+        if (!string.IsNullOrWhiteSpace(this.BlishHUDAPIService.AccessToken))
+        {
+            this.Logger.Info("Include custom events in compact...");
+            requestCompact.WithOAuthBearerToken(this.BlishHUDAPIService.AccessToken);
+        }
+
+        List<EventCategory> categoriesCompact = await requestCompact.GetJsonAsync<List<EventCategory>>();
+
+        int eventCategoryCompactCount = categoriesCompact.Count;
+        int eventCompactCount = categoriesCompact.Sum(ec => ec.Events.Count);
+
+        this.Logger.Info($"Loaded {eventCategoryCompactCount} compact categories with {eventCompactCount} events.");
+
+        var contextEvents = this._contextManager?.GetContextCategories();
+        if (contextEvents is not null && contextEvents.Count > 0)
+        {
+            this.Logger.Info($"Include {contextEvents.Count} context categories with {contextEvents.Sum(ec => ec.Events?.Count ?? 0)} events for compact.");
+
+            categoriesCompact.AddRange(contextEvents);
+        }
+
+        categoriesCompact.ForEach(ec =>
+        {
+            ec.Load(() => this.NowUTC, this.TranslationService);
+        });
+
+        this.Logger.Debug("Loaded all compact event categories.");
+
+        return categoriesCompact;
     }
 
     //private async Task<Dictionary<string, List<SelfHostedEventEntry>>> LoadSelfHostedEvents()
@@ -399,145 +446,147 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
     /// </summary>
     /// <param name="categories"></param>
     private void AssignEventReminderTimes(List<EventCategory> categories)
+{
+    IEnumerable<Event> events = categories.SelectMany(ec => ec.Events).Where(ev => !ev.Filler);
+    foreach (Event ev in events)
     {
-        IEnumerable<Event> events = categories.SelectMany(ec => ec.Events).Where(ev => !ev.Filler);
-        foreach (Event ev in events)
-        {
-            if (!this.ModuleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey)) continue;
+        if (!this.ModuleSettings.ReminderTimesOverride.Value.ContainsKey(ev.SettingKey)) continue;
 
-            // TODO: Change setting to duration
-            List<Duration> times = this.ModuleSettings.ReminderTimesOverride.Value[ev.SettingKey].Select(x => x.ToDuration()).ToList();
-            ev.UpdateReminderTimes(times.ToArray());
+        // TODO: Change setting to duration
+        List<Duration> times = this.ModuleSettings.ReminderTimesOverride.Value[ev.SettingKey].Select(x => x.ToDuration()).ToList();
+        ev.UpdateReminderTimes(times.ToArray());
+    }
+}
+
+private void CheckDrawerSettings()
+{
+    // Don't lock when it would freeze
+    if (this._eventCategoryLock.IsFree())
+    {
+        using (this._eventCategoryLock.Lock())
+        {
+            foreach (KeyValuePair<string, EventArea> area in this._areas)
+            {
+                if (area.Value.IsTogglingCompactMode) continue;
+
+                this.ModuleSettings.CheckDrawerSettings(area.Value.Configuration, area.Value.Configuration.CompactMode.Value ? this._eventCategoriesCompact : this._eventCategories);
+            }
         }
     }
+}
 
-    private void CheckDrawerSettings()
+/// <summary>
+///     Toggles all areas based on ui visibility calculations.
+/// </summary>
+private void ToggleContainers()
+{
+    bool show = this.ShowUI && this.ModuleSettings.GlobalDrawerVisible.Value;
+
+    foreach (var area in this._areas.Values)
     {
-        // Don't lock when it would freeze
-        if (this._eventCategoryLock.IsFree())
+        // Don't show if disabled.
+        bool showArea = show && area.Enabled && area.CalculateUIVisibility();
+
+        if (showArea)
         {
-            using (this._eventCategoryLock.Lock())
+            if (!area.Visible)
             {
-                foreach (KeyValuePair<string, EventArea> area in this._areas)
-                {
-                    this.ModuleSettings.CheckDrawerSettings(area.Value.Configuration, this._eventCategories);
-                }
+                area.Show();
+            }
+        }
+        else
+        {
+            if (area.Visible)
+            {
+                area.Hide();
+            }
+        }
+    }
+}
+
+protected override void Update(GameTime gameTime)
+{
+    base.Update(gameTime);
+
+    this.ToggleContainers();
+
+    this.ModuleSettings.CheckGlobalSizeAndPosition();
+
+    foreach (EventArea area in this._areas.Values)
+    {
+        this.ModuleSettings.CheckDrawerSizeAndPosition(area.Configuration);
+    }
+
+    // Dont block update when we need to wait, can cause slight delays when skipping update
+    if (this._eventCategoryLock.IsFree())
+    {
+        using (this._eventCategoryLock.Lock())
+        {
+            foreach (Event ev in this._eventCategories.SelectMany(ec => ec.Events))
+            {
+                ev.Update(gameTime);
             }
         }
     }
 
-    /// <summary>
-    ///     Toggles all areas based on ui visibility calculations.
-    /// </summary>
-    private void ToggleContainers()
+    this.DynamicEventHandler?.Update(gameTime);
+    this.EventTimerHandler?.Update(gameTime);
+    this._contextManager?.Update(gameTime);
+
+    UpdateUtil.Update(this.CheckDrawerSettings, gameTime, _checkDrawerSettingInterval.TotalMilliseconds, ref this._lastCheckDrawerSettings);
+    _ = UpdateUtil.UpdateAsync(this.LoadEventsAsync, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
+}
+
+/// <summary>
+///     Calculates the ui visibility of reminders based on settings or mumble parameters.
+/// </summary>
+/// <returns>The newly calculated ui visibility.</returns>
+private bool CalculateReminderUIVisibility()
+{
+    bool show = true;
+    if (this.ModuleSettings.HideRemindersOnOpenMap.Value)
     {
-        bool show = this.ShowUI && this.ModuleSettings.GlobalDrawerVisible.Value;
-
-        foreach (var area in this._areas.Values)
-        {
-            // Don't show if disabled.
-            bool showArea = show && area.Enabled && area.CalculateUIVisibility();
-
-            if (showArea)
-            {
-                if (!area.Visible)
-                {
-                    area.Show();
-                }
-            }
-            else
-            {
-                if (area.Visible)
-                {
-                    area.Hide();
-                }
-            }
-        }
+        show &= !GameService.Gw2Mumble.UI.IsMapOpen;
     }
 
-    protected override void Update(GameTime gameTime)
+    if (this.ModuleSettings.HideRemindersOnMissingMumbleTicks.Value)
     {
-        base.Update(gameTime);
-
-        this.ToggleContainers();
-
-        this.ModuleSettings.CheckGlobalSizeAndPosition();
-
-        foreach (EventArea area in this._areas.Values)
-        {
-            this.ModuleSettings.CheckDrawerSizeAndPosition(area.Configuration);
-        }
-
-        // Dont block update when we need to wait, can cause slight delays when skipping update
-        if (this._eventCategoryLock.IsFree())
-        {
-            using (this._eventCategoryLock.Lock())
-            {
-                foreach (Event ev in this._eventCategories.SelectMany(ec => ec.Events))
-                {
-                    ev.Update(gameTime);
-                }
-            }
-        }
-
-        this.DynamicEventHandler?.Update(gameTime);
-        this.EventTimerHandler?.Update(gameTime);
-        this._contextManager?.Update(gameTime);
-
-        UpdateUtil.Update(this.CheckDrawerSettings, gameTime, _checkDrawerSettingInterval.TotalMilliseconds, ref this._lastCheckDrawerSettings);
-        _ = UpdateUtil.UpdateAsync(this.LoadEvents, gameTime, _updateEventsInterval.TotalMilliseconds, this._lastEventUpdate);
+        show &= GameService.Gw2Mumble.TimeSinceTick.TotalSeconds < 0.5;
     }
 
-    /// <summary>
-    ///     Calculates the ui visibility of reminders based on settings or mumble parameters.
-    /// </summary>
-    /// <returns>The newly calculated ui visibility.</returns>
-    private bool CalculateReminderUIVisibility()
+    if (this.ModuleSettings.HideRemindersInCombat.Value)
     {
-        bool show = true;
-        if (this.ModuleSettings.HideRemindersOnOpenMap.Value)
-        {
-            show &= !GameService.Gw2Mumble.UI.IsMapOpen;
-        }
+        show &= !GameService.Gw2Mumble.PlayerCharacter.IsInCombat;
+    }
 
-        if (this.ModuleSettings.HideRemindersOnMissingMumbleTicks.Value)
+    // All maps not specified as competetive will be treated as open world
+    if (this.ModuleSettings.HideRemindersInPvE_OpenWorld.Value)
+    {
+        MapType[] pveOpenWorldMapTypes =
         {
-            show &= GameService.Gw2Mumble.TimeSinceTick.TotalSeconds < 0.5;
-        }
-
-        if (this.ModuleSettings.HideRemindersInCombat.Value)
-        {
-            show &= !GameService.Gw2Mumble.PlayerCharacter.IsInCombat;
-        }
-
-        // All maps not specified as competetive will be treated as open world
-        if (this.ModuleSettings.HideRemindersInPvE_OpenWorld.Value)
-        {
-            MapType[] pveOpenWorldMapTypes =
-            {
                 MapType.Public,
                 MapType.Instance,
                 MapType.Tutorial,
                 MapType.PublicMini
             };
 
-            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
-        }
+        show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveOpenWorldMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && !MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+    }
 
-        if (this.ModuleSettings.HideRemindersInPvE_Competetive.Value)
+    if (this.ModuleSettings.HideRemindersInPvE_Competetive.Value)
+    {
+        MapType[] pveCompetetiveMapTypes =
         {
-            MapType[] pveCompetetiveMapTypes =
-            {
                 MapType.Instance
             };
 
-            show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
-        }
+        show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
+    }
 
-        if (this.ModuleSettings.HideRemindersInWvW.Value)
+    if (this.ModuleSettings.HideRemindersInWvW.Value)
+    {
+        MapType[] wvwMapTypes =
         {
-            MapType[] wvwMapTypes =
-            {
                 MapType.EternalBattlegrounds,
                 MapType.GreenBorderlands,
                 MapType.RedBorderlands,
@@ -545,675 +594,702 @@ public class EventTableModule : BaseModule<EventTableModule, ModuleSettings>
                 MapType.EdgeOfTheMists
             };
 
-            show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && wvwMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
-        }
+        show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && wvwMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
+    }
 
-        if (this.ModuleSettings.HideRemindersInPvP.Value)
+    if (this.ModuleSettings.HideRemindersInPvP.Value)
+    {
+        MapType[] pvpMapTypes =
         {
-            MapType[] pvpMapTypes =
-            {
                 MapType.Pvp,
                 MapType.Tournament
             };
 
-            show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pvpMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
-        }
-
-        return show;
+        show &= !(GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pvpMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type));
     }
 
-    private async Task<List<Models.EventCategory>> GetAllEvents()
+    return show;
+}
+
+private async Task<List<Models.EventCategory>> GetAllEvents()
+{
+    using (await this._eventCategoryLock.LockAsync())
     {
-        using (await this._eventCategoryLock.LockAsync())
+        return this._eventCategories.ToArray().ToList();
+    }
+}
+
+/// <summary>
+///     Adds all event hooks to the specified event.
+/// </summary>
+/// <param name="ev">The event to which the event hooks should be added.</param>
+private void AddEventHooks(Event ev)
+{
+    ev.Reminder += this.Ev_Reminder;
+}
+
+/// <summary>
+///     Removes all event hooks from the specified event.
+/// </summary>
+/// <param name="ev">The event from which the event hooks should be removed.</param>
+private void RemoveEventHooks(Event ev)
+{
+    ev.Reminder -= this.Ev_Reminder;
+}
+
+/// <summary>
+///     Handles the event of an event reminder.
+/// </summary>
+/// <param name="sender">The sender of the event.</param>
+/// <param name="e">The duration until the event start.</param>
+private async void Ev_Reminder(object sender, Duration e)
+{
+    Event ev = sender as Event;
+
+    if (!this.ModuleSettings.RemindersEnabled.Value || this.ModuleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey))
+    {
+        return;
+    }
+
+    if (!this.CalculateReminderUIVisibility())
+    {
+        this.Logger.Debug($"Reminder {ev.SettingKey} was not displayed due to UI Visibility settings.");
+        return;
+    }
+
+    if (this.ModuleSettings.DisableRemindersWhenEventFinished.Value)
+    {
+        var areaName = this.ModuleSettings.DisableRemindersWhenEventFinishedArea.Value;
+        var completed = areaName switch
         {
-            return this._eventCategories.ToArray().ToList();
-        }
-    }
+            ModuleSettings.ANY_AREA_NAME => this.EventStateService.Contains(ev.SettingKey),
+            _ => this.EventStateService.Contains(areaName, ev.SettingKey),
+        };
 
-    /// <summary>
-    ///     Adds all event hooks to the specified event.
-    /// </summary>
-    /// <param name="ev">The event to which the event hooks should be added.</param>
-    private void AddEventHooks(Event ev)
-    {
-        ev.Reminder += this.Ev_Reminder;
-    }
-
-    /// <summary>
-    ///     Removes all event hooks from the specified event.
-    /// </summary>
-    /// <param name="ev">The event from which the event hooks should be removed.</param>
-    private void RemoveEventHooks(Event ev)
-    {
-        ev.Reminder -= this.Ev_Reminder;
-    }
-
-    /// <summary>
-    ///     Handles the event of an event reminder.
-    /// </summary>
-    /// <param name="sender">The sender of the event.</param>
-    /// <param name="e">The duration until the event start.</param>
-    private async void Ev_Reminder(object sender, Duration e)
-    {
-        Event ev = sender as Event;
-
-        if (!this.ModuleSettings.RemindersEnabled.Value || this.ModuleSettings.ReminderDisabledForEvents.Value.Contains(ev.SettingKey))
+        if (completed)
         {
+            this.Logger.Debug($"Reminder {ev.SettingKey} was not displayed due to being completed/hidden in the area \"{areaName}\".");
             return;
         }
+    }
 
-        if (!this.CalculateReminderUIVisibility())
+    try
+    {
+        string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
+        var title = ev.Name;
+        var message = $"{startsInTranslation} {e.ToTimeSpan().Humanize(6, minUnit: this.ModuleSettings.ReminderMinTimeUnit.Value)}!";
+        var icon = string.IsNullOrWhiteSpace(ev.Icon) ? new AsyncTexture2D() : this.IconService.GetIcon(ev.Icon);
+
+        if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
         {
-            this.Logger.Debug($"Reminder {ev.SettingKey} was not displayed due to UI Visibility settings.");
-            return;
+            EventNotification notification = EventNotification.ShowAsControl(ev, title, message, icon, this.IconService, this.ModuleSettings);
+
+            notification.Click += this.EventNotification_Click;
+            notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
+            notification.Disposed += this.EventNotification_Disposed;
         }
 
-        if (this.ModuleSettings.DisableRemindersWhenEventFinished.Value)
+        if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
         {
-            var areaName = this.ModuleSettings.DisableRemindersWhenEventFinishedArea.Value;
-            var completed = areaName switch
-            {
-                ModuleSettings.ANY_AREA_NAME => this.EventStateService.Contains(ev.SettingKey),
-                _ => this.EventStateService.Contains(areaName, ev.SettingKey),
-            };
-
-            if (completed)
-            {
-                this.Logger.Debug($"Reminder {ev.SettingKey} was not displayed due to being completed/hidden in the area \"{areaName}\".");
-                return;
-            }
-        }
-
-        try
-        {
-            string startsInTranslation = this.TranslationService.GetTranslation("reminder-startsIn", "Starts in");
-            var title = ev.Name;
-            var message = $"{startsInTranslation} {e.ToTimeSpan().Humanize(6, minUnit: this.ModuleSettings.ReminderMinTimeUnit.Value)}!";
-            var icon = string.IsNullOrWhiteSpace(ev.Icon) ? new AsyncTexture2D() : this.IconService.GetIcon(ev.Icon);
-
-            if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Control or Models.Reminders.ReminderType.Both)
-            {
-                EventNotification notification = EventNotification.ShowAsControl(ev, title, message, icon, this.IconService, this.ModuleSettings);
-
-                notification.Click += this.EventNotification_Click;
-                notification.RightMouseButtonPressed += this.EventNotification_RightMouseButtonPressed;
-                notification.Disposed += this.EventNotification_Disposed;
-            }
-
-            if (this.ModuleSettings.ReminderType.Value is Models.Reminders.ReminderType.Windows or Models.Reminders.ReminderType.Both)
-            {
 #if !WINE
-                await EventNotification.ShowAsWindowsNotification(title, message, icon);
+            await EventNotification.ShowAsWindowsNotification(title, message, icon);
 #else
                 Shared.Controls.ScreenNotification.ShowNotification("OS Notifications are not supported in WINE", Shared.Controls.ScreenNotification.NotificationType.Error, duration: 5);
 #endif
-            }
+        }
 
-            await EventNotification.PlaySound(this.AudioService, ev);
-        }
-        catch (Exception ex)
-        {
-            this.Logger.Warn(ex, $"Failed to show reminder for event \"{ev.SettingKey}\"");
-        }
+        await EventNotification.PlaySound(this.AudioService, ev);
     }
+    catch (Exception ex)
+    {
+        this.Logger.Warn(ex, $"Failed to show reminder for event \"{ev.SettingKey}\"");
+    }
+}
 
-    private void EventNotification_Disposed(object sender, EventArgs e)
+private void EventNotification_Disposed(object sender, EventArgs e)
+{
+    var notification = sender as EventNotification;
+    notification.Click -= this.EventNotification_Click;
+    notification.RightMouseButtonPressed -= this.EventNotification_RightMouseButtonPressed;
+    notification.Disposed -= this.EventNotification_Disposed;
+}
+
+private async void EventNotification_Click(object sender, MouseEventArgs e)
+{
+    try
     {
         var notification = sender as EventNotification;
-        notification.Click -= this.EventNotification_Click;
-        notification.RightMouseButtonPressed -= this.EventNotification_RightMouseButtonPressed;
-        notification.Disposed -= this.EventNotification_Disposed;
-    }
+        var model = notification?.Model;
+        var waypoint = model?.GetWaypoint(this.AccountService?.Account);
 
-    private async void EventNotification_Click(object sender, MouseEventArgs e)
-    {
-        try
+        switch (this.ModuleSettings.ReminderLeftClickAction.Value)
         {
-            var notification = sender as EventNotification;
-            var model = notification?.Model;
-            var waypoint = model?.GetWaypoint(this.AccountService?.Account);
-
-            switch (this.ModuleSettings.ReminderLeftClickAction.Value)
-            {
-                case LeftClickAction.CopyWaypoint:
-                    if (model is not null && !string.IsNullOrWhiteSpace(waypoint))
+            case LeftClickAction.CopyWaypoint:
+                if (model is not null && !string.IsNullOrWhiteSpace(waypoint))
+                {
+                    var eventChatFormat = model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, model.GetNextOccurrence(), this.AccountService?.Account);
+                    if (GameService.Input.Keyboard.ActiveModifiers == ModifierKeys.Ctrl)
                     {
-                        var eventChatFormat = model.GetChatText(this.ModuleSettings.ReminderEventChatFormat.Value, model.GetNextOccurrence(), this.AccountService?.Account);
-                        if (GameService.Input.Keyboard.ActiveModifiers == ModifierKeys.Ctrl)
+                        try
                         {
-                            try
-                            {
-                                await this.ChatService.ChangeChannel(Shared.Models.GameIntegration.Chat.ChatChannel.Squad);
-                                await this.ChatService.ChangeChannel(this.ModuleSettings.ReminderWaypointSendingChannel.Value, guildNumber: this.ModuleSettings.ReminderWaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
-                                await this.ChatService.Send(eventChatFormat);
-                            }
-                            catch (Exception ex)
-                            {
-                                this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {model.SettingKey}");
-                                ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
-                            }
+                            await this.ChatService.ChangeChannel(Shared.Models.GameIntegration.Chat.ChatChannel.Squad);
+                            await this.ChatService.ChangeChannel(this.ModuleSettings.ReminderWaypointSendingChannel.Value, guildNumber: this.ModuleSettings.ReminderWaypointSendingGuild.Value, wispherRecipient: GameService.Gw2Mumble.PlayerCharacter.Name);
+                            await this.ChatService.Send(eventChatFormat);
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
-                            ScreenNotification.ShowNotification(new[]
-                            {
+                            this.Logger.Warn(ex, $"Could not paste waypoint into chat. Event: {model.SettingKey}");
+                            ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
+                        }
+                    }
+                    else
+                    {
+                        await ClipboardUtil.WindowsClipboardService.SetTextAsync(eventChatFormat);
+                        ScreenNotification.ShowNotification(new[]
+                        {
                             model.Name,
                             "Copied to clipboard!"
                         });
-                        }
                     }
+                }
 
+                break;
+            case LeftClickAction.NavigateToWaypoint:
+                if (string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
+                {
                     break;
-                case LeftClickAction.NavigateToWaypoint:
-                    if (string.IsNullOrWhiteSpace(waypoint) || this.PointOfInterestService is null)
-                    {
-                        break;
-                    }
+                }
 
-                    if (this.PointOfInterestService.Loading)
-                    {
-                        ScreenNotification.ShowNotification($"{nameof(this.PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
-                        break;
-                    }
-
-                    Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this.PointOfInterestService.GetPointOfInterest(waypoint);
-                    if (poi == null)
-                    {
-                        ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
-                        break;
-                    }
-
-                    _ = Task.Run(async () =>
-                    {
-                        MapUtil.NavigationResult result = await (this.MapUtil?.NavigateToPosition(poi, this.ModuleSettings.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
-                        if (!result.Success)
-                        {
-                            ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
-                        }
-                    });
-
+                if (this.PointOfInterestService.Loading)
+                {
+                    ScreenNotification.ShowNotification($"{nameof(this.PointOfInterestService)} is still loading!", ScreenNotification.NotificationType.Error);
                     break;
-            }
-        }
-        catch (Exception ex)
-        {
-            this.Logger.Warn(ex, "Could not handle reminder left click.");
-        }
-    }
+                }
 
-    private void EventNotification_RightMouseButtonPressed(object sender, MouseEventArgs e)
-    {
-        try
-        {
-            var notification = sender as EventNotification;
-            switch (this.ModuleSettings.ReminderRightClickAction.Value)
-            {
-                case Models.Reminders.EventReminderRightClickAction.Dismiss:
-                    notification?.Dispose();
+                Shared.Models.GW2API.PointOfInterest.PointOfInterest poi = this.PointOfInterestService.GetPointOfInterest(waypoint);
+                if (poi == null)
+                {
+                    ScreenNotification.ShowNotification($"{waypoint} not found!", ScreenNotification.NotificationType.Error);
                     break;
-            }
-        }
-        catch (Exception ex)
-        {
-            this.Logger.Warn(ex, "Could not handle reminder right click.");
-        }
-    }
+                }
 
-    /// <summary>
-    ///     Adds all saved areas.
-    /// </summary>
-    private void AddAllAreas()
-    {
-        if (this.ModuleSettings.EventAreaNames.Value.Count == 0)
-        {
-            this.AddArea("Main", new KeyBinding(ModifierKeys.Alt, Keys.E));
-        }
-        else
-        {
-            foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
-            {
-                this.AddArea(areaName);
-            }
+                _ = Task.Run(async () =>
+                {
+                    MapUtil.NavigationResult result = await (this.MapUtil?.NavigateToPosition(poi, this.ModuleSettings.AcceptWaypointPrompt.Value) ?? Task.FromResult(new MapUtil.NavigationResult(false, "Variable null.")));
+                    if (!result.Success)
+                    {
+                        ScreenNotification.ShowNotification($"Navigation failed: {result.Message ?? "Unknown"}", ScreenNotification.NotificationType.Error);
+                    }
+                });
+
+                break;
         }
     }
-
-    /// <summary>
-    ///     Adds a new area
-    /// </summary>
-    /// <param name="name">The name of the new area</param>
-    /// <returns>The created area configuration.</returns>
-    private EventAreaConfiguration AddArea(string name, KeyBinding enabledKeybinding = null)
+    catch (Exception ex)
     {
-        EventAreaConfiguration config = this.ModuleSettings.AddDrawer(name, this._eventCategories, enabledKeybinding: enabledKeybinding);
-        this.AddArea(config);
-
-        return config;
+        this.Logger.Warn(ex, "Could not handle reminder left click.");
     }
+}
 
-    /// <summary>
-    ///     Adds a new area.
-    /// </summary>
-    /// <param name="configuration">The configuration of the new area.</param>
-    private void AddArea(EventAreaConfiguration configuration)
+private void EventNotification_RightMouseButtonPressed(object sender, MouseEventArgs e)
+{
+    try
     {
-        if (!this.ModuleSettings.EventAreaNames.Value.Contains(configuration.Name))
+        var notification = sender as EventNotification;
+        switch (this.ModuleSettings.ReminderRightClickAction.Value)
         {
-            this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value) { configuration.Name };
-        }
-
-        this.ModuleSettings.UpdateDrawerLocalization(configuration, this.TranslationService);
-
-        EventArea area = new EventArea(
-            configuration,
-            this.IconService,
-            this.TranslationService,
-            this.EventStateService,
-            this.WorldbossService,
-            this.MapchestService,
-            this.PointOfInterestService,
-            this.AccountService,
-            this.ChatService,
-            this.MapUtil,
-            this.GetFlurlClient(),
-            () => this.GetJsonSerializer(),
-            this.MODULE_API_URL,
-            () => this.NowUTC,
-            () => this.Version,
-            () => this.BlishHUDAPIService.AccessToken,
-            () => this.ModuleSettings.EventAreaNames.Value.ToArray().ToList(),
-            () => this.ModuleSettings.ReminderDisabledForEvents.Value.ToArray().ToList(),
-            this.ContentsManager)
-        { Parent = GameService.Graphics.SpriteScreen };
-
-        area.CopyToAreaClicked += this.EventArea_CopyToAreaClicked;
-        area.MoveToAreaClicked += this.EventArea_MoveToAreaClicked;
-        area.EnableReminderClicked += this.EventArea_EnableReminderClicked;
-        area.DisableReminderClicked += this.EventArea_DisableReminderClicked;
-        area.Disposed += this.EventArea_Disposed;
-
-        _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
-    }
-
-    private void EventArea_DisableReminderClicked(object sender, string e)
-    {
-        this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value) { e };
-    }
-
-    private void EventArea_EnableReminderClicked(object sender, string e)
-    {
-        this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value.Where(k => k != e));
-    }
-
-    private void EventArea_MoveToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
-    {
-        var sourceArea = sender as EventArea;
-        var destArea = this._areas.First(a => a.Key == e.DestinationArea).Value;
-
-        sourceArea.DisableEvent(e.EventSettingKey);
-        destArea.EnableEvent(e.EventSettingKey);
-    }
-
-    private void EventArea_CopyToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
-    {
-        var sourceArea = sender as EventArea;
-        var destArea = this._areas.First(a => a.Key == e.DestinationArea).Value;
-
-        destArea.EnableEvent(e.EventSettingKey);
-    }
-
-    private void EventArea_Disposed(object sender, EventArgs e)
-    {
-        var area = sender as EventArea;
-        area.CopyToAreaClicked -= this.EventArea_CopyToAreaClicked;
-        area.MoveToAreaClicked -= this.EventArea_MoveToAreaClicked;
-        area.EnableReminderClicked -= this.EventArea_EnableReminderClicked;
-        area.DisableReminderClicked -= this.EventArea_DisableReminderClicked;
-        area.Disposed -= this.EventArea_Disposed;
-    }
-
-    /// <summary>
-    ///     Removes the specified area.
-    /// </summary>
-    /// <param name="configuration">The configuration of the area which should be removed.</param>
-    private void RemoveArea(EventAreaConfiguration configuration)
-    {
-        this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value.Where(areaName => areaName != configuration.Name));
-
-        this._areas[configuration.Name]?.Dispose();
-        _ = this._areas.TryRemove(configuration.Name, out _);
-
-        this.ModuleSettings.RemoveDrawer(configuration.Name);
-    }
-
-    protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings, this.Version);
-
-    protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
-    {
-        settingWindow.SavesSize = true;
-        settingWindow.CanResize = true;
-        settingWindow.RebuildViewAfterResize = true;
-        settingWindow.UnloadOnRebuild = false;
-        settingWindow.MinSize = settingWindow.Size;
-        settingWindow.MaxSize = new Point(settingWindow.Width * 2, settingWindow.Height * 3);
-        settingWindow.RebuildDelay = 500;
-        // Reorder Icon: 605018
-
-        this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("156736.png"),
-            () => new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.MetricsService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            this.TranslationService.GetTranslation("generalSettingsView-title", "General")));
-
-        //this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconService = this.IconService, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
-        AreaSettingsView areaSettingsView = new AreaSettingsView(
-            () => this._areas.Values.Select(area => area.Configuration),
-            () => this._eventCategories,
-            this.ModuleSettings,
-            this.AccountService,
-            this.Gw2ApiManager,
-            this.IconService,
-            this.TranslationService,
-            this.SettingEventService,
-            this.EventStateService)
-        { DefaultColor = this.ModuleSettings.DefaultGW2Color };
-        areaSettingsView.AddArea += (s, e) =>
-        {
-            e.AreaConfiguration = this.AddArea(e.Name);
-            if (e.AreaConfiguration != null)
-            {
-                EventArea newArea = this._areas.Values.Where(x => x.Configuration.Name == e.Name).First();
-                this.SetAreaEvents(newArea);
-            }
-        };
-
-        areaSettingsView.RemoveArea += (s, e) =>
-        {
-            this.RemoveArea(e);
-        };
-
-        areaSettingsView.SyncEnabledEventsToReminders += (s, e) =>
-        {
-            this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(e.DisabledEventKeys.Value);
-            return Task.CompletedTask;
-        };
-
-        areaSettingsView.SyncEnabledEventsFromReminders += (s, e) =>
-        {
-            e.DisabledEventKeys.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value);
-            return Task.CompletedTask;
-        };
-
-        areaSettingsView.SyncEnabledEventsToOtherAreas += (s, e) =>
-        {
-            if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");
-
-            foreach (EventArea area in this._areas.Values)
-            {
-                if (area.Configuration.Name == e.Name) continue;
-
-                area.Configuration.DisabledEventKeys.Value = new List<string>(e.DisabledEventKeys.Value);
-            }
-
-            return Task.CompletedTask;
-        };
-
-        this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("605018.png"),
-            () => areaSettingsView,
-            this.TranslationService.GetTranslation("areaSettingsView-title", "Event Areas")));
-
-        var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, () => this._areas.Keys.ToList(), this.AccountService, this.AudioService, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
-        reminderSettingsView.SyncEnabledEventsToAreas += (s) =>
-        {
-            if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");
-
-            foreach (EventArea area in this._areas.Values)
-            {
-                area.Configuration.DisabledEventKeys.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value);
-            }
-
-            return Task.CompletedTask;
-        };
-
-        this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("1466345.png"),
-            () => reminderSettingsView,
-            this.TranslationService.GetTranslation("reminderSettingsView-title", "Reminders")));
-
-        this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("759448.png"),
-            () => new DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            this.TranslationService.GetTranslation("dynamicEventsSettingsView-title", "Dynamic Events")));
-
-        this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("3126786.png"),
-            () => new EventTimersSettingsView(this.ModuleSettings, this.GetAllEvents, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.AccountService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            this.TranslationService.GetTranslation("eventTimersSettingsView-title", "Event Timers")));
-
-        this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("156680.png"),
-            () => new SelfHostingEventsView(this.ModuleSettings, this.SelfHostingEventService, this.Gw2ApiManager, this.IconService, this.TranslationService, this.AccountService, this.ChatService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            this.TranslationService.GetTranslation("selfHostingEventsSettingsView-title", "Self Hosting Events")));
-
-        this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("156764.png"),
-            () => new UI.Views.EventTableBlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            "Estreya BlishHUD"));
-
-        this.SettingsWindow.Tabs.Add(new Tab(
-            this.IconService.GetIcon("157097.png"),
-            () => new HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
-            this.TranslationService.GetTranslation("helpView-title", "Help")));
-    }
-
-    protected override string GetDirectoryName() => "events";
-
-    protected override void ConfigureServices(ServiceConfigurations configurations)
-    {
-        configurations.BlishHUDAPI.Enabled = true;
-        configurations.Account.Enabled = true;
-        configurations.Account.AwaitLoading = true;
-        configurations.Worldbosses.Enabled = true;
-        configurations.Mapchests.Enabled = true;
-        configurations.PointOfInterests.Enabled = true;
-        configurations.Audio.Enabled = true;
-    }
-
-    /// <summary>
-    ///     Handles the event of a login on the api backend.
-    /// </summary>
-    /// <param name="sender">The sender of the event.</param>
-    /// <param name="e">The empty event arguments.</param>
-    private void BlishHUDAPIService_NewLogin(object sender, EventArgs e)
-    {
-        this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
-    }
-
-    /// <summary>
-    ///     Handles the event of a refreshed login on the api backend.
-    /// </summary>
-    /// <param name="sender">The sender of the event.</param>
-    /// <param name="e">The empty event arguments.</param>
-    private void BlishHUDAPIService_RefreshedLogin(object sender, EventArgs e)
-    {
-        this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
-    }
-
-    /// <summary>
-    ///     Handles the event of a logout from the api backend.
-    /// </summary>
-    /// <param name="sender">The sender of the event.</param>
-    /// <param name="e">The empty event arguments.</param>
-    private void BlishHUDAPIService_LoggedOut(object sender, EventArgs e)
-    {
-        this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
-    }
-
-    protected override Collection<ManagedService> GetAdditionalServices(string directoryPath)
-    {
-        Collection<ManagedService> additionalServices = new Collection<ManagedService>();
-
-        this.EventStateService = new EventStateService(new ServiceConfiguration
-        {
-            AwaitLoading = false,
-            Enabled = true,
-            SaveInterval = TimeSpan.FromSeconds(30)
-        }, directoryPath, () => this.NowUTC, () => this.GetJsonSerializer());
-
-        this.DynamicEventService = new DynamicEventService(new APIServiceConfiguration
-        {
-            AwaitLoading = false,
-            Enabled = true,
-            SaveInterval = Timeout.InfiniteTimeSpan
-        }, this.Gw2ApiManager, this.GetFlurlClient(), this.MODULE_API_URL, directoryPath);
-
-        this.SelfHostingEventService = new SelfHostingEventService(new APIServiceConfiguration
-        {
-            AwaitLoading = true,
-            Enabled = true,
-            SaveInterval = Timeout.InfiniteTimeSpan,
-            UpdateInterval = TimeSpan.FromMinutes(5)
-        }, this.Gw2ApiManager, this.GetFlurlClient(), this.MODULE_API_URL, this.AccountService, this.BlishHUDAPIService);
-
-        additionalServices.Add(this.EventStateService);
-        additionalServices.Add(this.DynamicEventService);
-        additionalServices.Add(this.SelfHostingEventService);
-
-        return additionalServices;
-    }
-
-    protected override AsyncTexture2D GetEmblem()
-    {
-        return this.IconService.GetIcon(this.IsPrerelease ? "textures/emblem_demo.png" : "102392.png");
-    }
-
-    protected override AsyncTexture2D GetCornerIcon()
-    {
-        return this.IconService.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
-    }
-
-    protected override AsyncTexture2D GetErrorCornerIcon()
-    {
-        return this.IconService.GetIcon($"textures/event_boss_grey_error.png");
-    }
-
-    private BitmapFont _defaultFont;
-
-    protected override BitmapFont Font
-    {
-        get
-        {
-            if (this._defaultFont == null)
-            {
-                using var defaultFontStream = this.ContentsManager.GetFileStream("fonts\\Anonymous.ttf");
-
-                // Default size 16 is same as loaded size 18
-                this._defaultFont = defaultFontStream is not null ? FontUtils.FromTrueTypeFont(defaultFontStream.ToByteArray(), 18, 256, 256).ToBitmapFont() : GameService.Content.DefaultFont16;
-            }
-
-            return this._defaultFont;
+            case Models.Reminders.EventReminderRightClickAction.Dismiss:
+                notification?.Dispose();
+                break;
         }
     }
-
-    protected override List<WizardView> GetWizardViews()
+    catch (Exception ex)
     {
-        return new List<WizardView>
+        this.Logger.Warn(ex, "Could not handle reminder right click.");
+    }
+}
+
+/// <summary>
+///     Adds all saved areas.
+/// </summary>
+private void AddAllAreas()
+{
+    if (this.ModuleSettings.EventAreaNames.Value.Count == 0)
+    {
+        this.AddArea("Main", new KeyBinding(ModifierKeys.Alt, Keys.E));
+    }
+    else
+    {
+        foreach (string areaName in this.ModuleSettings.EventAreaNames.Value)
+        {
+            this.AddArea(areaName);
+        }
+    }
+}
+
+/// <summary>
+///     Adds a new area
+/// </summary>
+/// <param name="name">The name of the new area</param>
+/// <returns>The created area configuration.</returns>
+private EventAreaConfiguration AddArea(string name, KeyBinding enabledKeybinding = null)
+{
+    EventAreaConfiguration config = this.ModuleSettings.AddDrawer(name, this._eventCategories, enabledKeybinding: enabledKeybinding);
+    this.AddArea(config);
+
+    return config;
+}
+
+/// <summary>
+///     Adds a new area.
+/// </summary>
+/// <param name="configuration">The configuration of the new area.</param>
+private void AddArea(EventAreaConfiguration configuration)
+{
+    if (!this.ModuleSettings.EventAreaNames.Value.Contains(configuration.Name))
+    {
+        this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value) { configuration.Name };
+    }
+
+    this.ModuleSettings.UpdateDrawerLocalization(configuration, this.TranslationService);
+
+    EventArea area = new EventArea(
+        configuration,
+        this.IconService,
+        this.TranslationService,
+        this.EventStateService,
+        this.WorldbossService,
+        this.MapchestService,
+        this.PointOfInterestService,
+        this.AccountService,
+        this.ChatService,
+        this.MapUtil,
+        this.GetFlurlClient(),
+        () => this.GetJsonSerializer(),
+        this.MODULE_API_URL,
+        () => this.NowUTC,
+        () => this.Version,
+        () => this.BlishHUDAPIService.AccessToken,
+        () => this.ModuleSettings.EventAreaNames.Value.ToArray().ToList(),
+        () => this.ModuleSettings.ReminderDisabledForEvents.Value.ToArray().ToList(),
+        this.ContentsManager)
+    { Parent = GameService.Graphics.SpriteScreen };
+
+    area.CopyToAreaClicked += this.EventArea_CopyToAreaClicked;
+    area.MoveToAreaClicked += this.EventArea_MoveToAreaClicked;
+    area.EnableReminderClicked += this.EventArea_EnableReminderClicked;
+    area.DisableReminderClicked += this.EventArea_DisableReminderClicked;
+    area.CompactModeToggled += this.EventArea_CompactModeToggled;
+    area.Disposed += this.EventArea_Disposed;
+
+    _ = this._areas.AddOrUpdate(configuration.Name, area, (name, prev) => area);
+}
+
+private async Task EventArea_CompactModeToggled(object sender)
+{
+    var sourceArea = sender as EventArea;
+
+    sourceArea.IsTogglingCompactMode = true;
+    try
+    {
+        // Only clear these so it does not trigger setting changed events.
+        sourceArea.Configuration.DisabledCompletionActionForEvents.Value.Clear();
+        sourceArea.Configuration.DisabledEventKeys.Value.Clear();
+        sourceArea.Configuration.EventOrder.Value.Clear();
+
+        GameService.Settings.Save(); // Force save
+
+        await this.SetAreaEventsAsync(sourceArea);
+    }
+    finally
+    {
+        sourceArea.IsTogglingCompactMode = false;
+    }
+
+    this._lastCheckDrawerSettings = _checkDrawerSettingInterval.TotalMilliseconds;
+}
+
+private void EventArea_DisableReminderClicked(object sender, string e)
+{
+    this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value) { e };
+}
+
+private void EventArea_EnableReminderClicked(object sender, string e)
+{
+    this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value.Where(k => k != e));
+}
+
+private void EventArea_MoveToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
+{
+    var sourceArea = sender as EventArea;
+    var destArea = this._areas.First(a => a.Key == e.DestinationArea).Value;
+
+    sourceArea.DisableEvent(e.EventSettingKey);
+    destArea.EnableEvent(e.EventSettingKey);
+}
+
+private void EventArea_CopyToAreaClicked(object sender, (string EventSettingKey, string DestinationArea) e)
+{
+    var sourceArea = sender as EventArea;
+    var destArea = this._areas.First(a => a.Key == e.DestinationArea).Value;
+
+    destArea.EnableEvent(e.EventSettingKey);
+}
+
+private void EventArea_Disposed(object sender, EventArgs e)
+{
+    var area = sender as EventArea;
+    area.CopyToAreaClicked -= this.EventArea_CopyToAreaClicked;
+    area.MoveToAreaClicked -= this.EventArea_MoveToAreaClicked;
+    area.EnableReminderClicked -= this.EventArea_EnableReminderClicked;
+    area.DisableReminderClicked -= this.EventArea_DisableReminderClicked;
+    area.CompactModeToggled -= this.EventArea_CompactModeToggled;
+    area.Disposed -= this.EventArea_Disposed;
+}
+
+/// <summary>
+///     Removes the specified area.
+/// </summary>
+/// <param name="configuration">The configuration of the area which should be removed.</param>
+private void RemoveArea(EventAreaConfiguration configuration)
+{
+    this.ModuleSettings.EventAreaNames.Value = new List<string>(this.ModuleSettings.EventAreaNames.Value.Where(areaName => areaName != configuration.Name));
+
+    this._areas[configuration.Name]?.Dispose();
+    _ = this._areas.TryRemove(configuration.Name, out _);
+
+    this.ModuleSettings.RemoveDrawer(configuration.Name);
+}
+
+protected override BaseModuleSettings DefineModuleSettings(SettingCollection settings) => new ModuleSettings(settings, this.Version);
+
+protected override void OnSettingWindowBuild(TabbedWindow settingWindow)
+{
+    settingWindow.SavesSize = true;
+    settingWindow.CanResize = true;
+    settingWindow.RebuildViewAfterResize = true;
+    settingWindow.UnloadOnRebuild = false;
+    settingWindow.MinSize = settingWindow.Size;
+    settingWindow.MaxSize = new Point(settingWindow.Width * 2, settingWindow.Height * 3);
+    settingWindow.RebuildDelay = 500;
+    // Reorder Icon: 605018
+
+    this.SettingsWindow.Tabs.Add(new Tab(
+        this.IconService.GetIcon("156736.png"),
+        () => new GeneralSettingsView(this.ModuleSettings, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.MetricsService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+        this.TranslationService.GetTranslation("generalSettingsView-title", "General")));
+
+    //this.SettingsWindow.Tabs.Add(new Tab(this.IconService.GetIcon("156740.png"), () => new UI.Views.Settings.GraphicsSettingsView() { APIManager = this.Gw2ApiManager, IconService = this.IconService, DefaultColor = this.ModuleSettings.DefaultGW2Color }, "Graphic Settings"));
+    AreaSettingsView areaSettingsView = new AreaSettingsView(
+        () => this._areas.Values.Select(area => area.Configuration),
+        (config) => !config.CompactMode.Value ? this._eventCategories : this._eventCategoriesCompact,
+        this.ModuleSettings,
+        this.AccountService,
+        this.Gw2ApiManager,
+        this.IconService,
+        this.TranslationService,
+        this.SettingEventService,
+        this.EventStateService)
+    { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+    areaSettingsView.AddArea += (s, e) =>
+    {
+        e.AreaConfiguration = this.AddArea(e.Name);
+        if (e.AreaConfiguration != null)
+        {
+            EventArea newArea = this._areas.Values.Where(x => x.Configuration.Name == e.Name).First();
+            _ = this.SetAreaEventsAsync(newArea);
+        }
+    };
+
+    areaSettingsView.RemoveArea += (s, e) =>
+    {
+        this.RemoveArea(e);
+    };
+
+    areaSettingsView.SyncEnabledEventsToReminders += (s, e) =>
+    {
+        this.ModuleSettings.ReminderDisabledForEvents.Value = new List<string>(e.DisabledEventKeys.Value);
+        return Task.CompletedTask;
+    };
+
+    areaSettingsView.SyncEnabledEventsFromReminders += (s, e) =>
+    {
+        e.DisabledEventKeys.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value);
+        return Task.CompletedTask;
+    };
+
+    areaSettingsView.SyncEnabledEventsToOtherAreas += (s, e) =>
+    {
+        if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");
+
+        foreach (EventArea area in this._areas.Values)
+        {
+            // Don't sync to same area or areas that have compact mode enabled.
+            if (area.Configuration.Name == e.Name || area.Configuration.CompactMode.Value) continue;
+
+            area.Configuration.DisabledEventKeys.Value = new List<string>(e.DisabledEventKeys.Value);
+        }
+
+        return Task.CompletedTask;
+    };
+
+    this.SettingsWindow.Tabs.Add(new Tab(
+        this.IconService.GetIcon("605018.png"),
+        () => areaSettingsView,
+        this.TranslationService.GetTranslation("areaSettingsView-title", "Event Areas")));
+
+    var reminderSettingsView = new ReminderSettingsView(this.ModuleSettings, () => this._eventCategories, () => this._areas.Keys.ToList(), this.AccountService, this.AudioService, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color };
+    reminderSettingsView.SyncEnabledEventsToAreas += (s) =>
+    {
+        if (this._areas == null) throw new ArgumentNullException(nameof(this._areas), "Areas are not available.");
+
+        foreach (EventArea area in this._areas.Values)
+        {
+            area.Configuration.DisabledEventKeys.Value = new List<string>(this.ModuleSettings.ReminderDisabledForEvents.Value);
+        }
+
+        return Task.CompletedTask;
+    };
+
+    this.SettingsWindow.Tabs.Add(new Tab(
+        this.IconService.GetIcon("1466345.png"),
+        () => reminderSettingsView,
+        this.TranslationService.GetTranslation("reminderSettingsView-title", "Reminders")));
+
+    this.SettingsWindow.Tabs.Add(new Tab(
+        this.IconService.GetIcon("759448.png"),
+        () => new DynamicEventsSettingsView(this.DynamicEventService, this.ModuleSettings, this.GetFlurlClient(), this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+        this.TranslationService.GetTranslation("dynamicEventsSettingsView-title", "Dynamic Events")));
+
+    this.SettingsWindow.Tabs.Add(new Tab(
+        this.IconService.GetIcon("3126786.png"),
+        () => new EventTimersSettingsView(this.ModuleSettings, this.GetAllEvents, this.Gw2ApiManager, this.IconService, this.TranslationService, this.SettingEventService, this.AccountService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+        this.TranslationService.GetTranslation("eventTimersSettingsView-title", "Event Timers")));
+
+    this.SettingsWindow.Tabs.Add(new Tab(
+        this.IconService.GetIcon("156680.png"),
+        () => new SelfHostingEventsView(this.ModuleSettings, this.SelfHostingEventService, this.Gw2ApiManager, this.IconService, this.TranslationService, this.AccountService, this.ChatService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+        this.TranslationService.GetTranslation("selfHostingEventsSettingsView-title", "Self Hosting Events")));
+
+    this.SettingsWindow.Tabs.Add(new Tab(
+        this.IconService.GetIcon("156764.png"),
+        () => new UI.Views.EventTableBlishHUDAPIView(this.Gw2ApiManager, this.IconService, this.TranslationService, this.BlishHUDAPIService, this.GetFlurlClient()) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+        "Estreya BlishHUD"));
+
+    this.SettingsWindow.Tabs.Add(new Tab(
+        this.IconService.GetIcon("157097.png"),
+        () => new HelpView(() => this._eventCategories, this.MODULE_API_URL, this.Gw2ApiManager, this.IconService, this.TranslationService) { DefaultColor = this.ModuleSettings.DefaultGW2Color },
+        this.TranslationService.GetTranslation("helpView-title", "Help")));
+}
+
+protected override string GetDirectoryName() => "events";
+
+protected override void ConfigureServices(ServiceConfigurations configurations)
+{
+    configurations.BlishHUDAPI.Enabled = true;
+    configurations.Account.Enabled = true;
+    configurations.Account.AwaitLoading = true;
+    configurations.Worldbosses.Enabled = true;
+    configurations.Mapchests.Enabled = true;
+    configurations.PointOfInterests.Enabled = true;
+    configurations.Audio.Enabled = true;
+}
+
+/// <summary>
+///     Handles the event of a login on the api backend.
+/// </summary>
+/// <param name="sender">The sender of the event.</param>
+/// <param name="e">The empty event arguments.</param>
+private void BlishHUDAPIService_NewLogin(object sender, EventArgs e)
+{
+    this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
+}
+
+/// <summary>
+///     Handles the event of a refreshed login on the api backend.
+/// </summary>
+/// <param name="sender">The sender of the event.</param>
+/// <param name="e">The empty event arguments.</param>
+private void BlishHUDAPIService_RefreshedLogin(object sender, EventArgs e)
+{
+    this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
+}
+
+/// <summary>
+///     Handles the event of a logout from the api backend.
+/// </summary>
+/// <param name="sender">The sender of the event.</param>
+/// <param name="e">The empty event arguments.</param>
+private void BlishHUDAPIService_LoggedOut(object sender, EventArgs e)
+{
+    this._lastEventUpdate.Value = _updateEventsInterval.TotalMilliseconds;
+}
+
+protected override Collection<ManagedService> GetAdditionalServices(string directoryPath)
+{
+    Collection<ManagedService> additionalServices = new Collection<ManagedService>();
+
+    this.EventStateService = new EventStateService(new ServiceConfiguration
+    {
+        AwaitLoading = false,
+        Enabled = true,
+        SaveInterval = TimeSpan.FromSeconds(30)
+    }, directoryPath, () => this.NowUTC, () => this.GetJsonSerializer());
+
+    this.DynamicEventService = new DynamicEventService(new APIServiceConfiguration
+    {
+        AwaitLoading = false,
+        Enabled = true,
+        SaveInterval = Timeout.InfiniteTimeSpan
+    }, this.Gw2ApiManager, this.GetFlurlClient(), this.MODULE_API_URL, directoryPath);
+
+    this.SelfHostingEventService = new SelfHostingEventService(new APIServiceConfiguration
+    {
+        AwaitLoading = true,
+        Enabled = true,
+        SaveInterval = Timeout.InfiniteTimeSpan,
+        UpdateInterval = TimeSpan.FromMinutes(5)
+    }, this.Gw2ApiManager, this.GetFlurlClient(), this.MODULE_API_URL, this.AccountService, this.BlishHUDAPIService);
+
+    additionalServices.Add(this.EventStateService);
+    additionalServices.Add(this.DynamicEventService);
+    additionalServices.Add(this.SelfHostingEventService);
+
+    return additionalServices;
+}
+
+protected override AsyncTexture2D GetEmblem()
+{
+    return this.IconService.GetIcon(this.IsPrerelease ? "textures/emblem_demo.png" : "102392.png");
+}
+
+protected override AsyncTexture2D GetCornerIcon()
+{
+    return this.IconService.GetIcon($"textures/event_boss_grey{(this.IsPrerelease ? "_demo" : "")}.png");
+}
+
+protected override AsyncTexture2D GetErrorCornerIcon()
+{
+    return this.IconService.GetIcon($"textures/event_boss_grey_error.png");
+}
+
+private BitmapFont _defaultFont;
+
+protected override BitmapFont Font
+{
+    get
+    {
+        if (this._defaultFont == null)
+        {
+            using var defaultFontStream = this.ContentsManager.GetFileStream("fonts\\Anonymous.ttf");
+
+            // Default size 16 is same as loaded size 18
+            this._defaultFont = defaultFontStream is not null ? FontUtils.FromTrueTypeFont(defaultFontStream.ToByteArray(), 18, 256, 256).ToBitmapFont() : GameService.Content.DefaultFont16;
+        }
+
+        return this._defaultFont;
+    }
+}
+
+protected override List<WizardView> GetWizardViews()
+{
+    return new List<WizardView>
         {
             new WizardWelcomeView(this.Gw2ApiManager, this.IconService, this.TranslationService),
             new WizardAreasView(this._areas.Values.Select(area => area.Configuration).ToList(), this.Gw2ApiManager, this.IconService, this.TranslationService),
             new WizardRemindersView(this.ModuleSettings, this.AudioService,  this.Gw2ApiManager, this.IconService, this.TranslationService)
         };
-    }
+}
 
-    private void UnloadContext()
+private void UnloadContext()
+{
+    this._eventTableContextHandle?.Expire();
+    this.Logger.Info("Event Table context expired.");
+
+    if (this._contextManager != null)
     {
-        this._eventTableContextHandle?.Expire();
-        this.Logger.Info("Event Table context expired.");
-
-        if (this._contextManager != null)
-        {
-            this._contextManager.Dispose();
-            this._contextManager.ReloadEvents -= this.ContextManager_ReloadEvents;
-            this._contextManager = null;
-        }
-
-        this._eventTableContext = null;
-        this._eventTableContextHandle = null;
+        this._contextManager.Dispose();
+        this._contextManager.ReloadEvents -= this.ContextManager_ReloadEvents;
+        this._contextManager = null;
     }
 
-    protected override void Unload()
+    this._eventTableContext = null;
+    this._eventTableContextHandle = null;
+}
+
+protected override void Unload()
+{
+    this.Logger.Debug("Unload module.");
+
+    this.Logger.Debug("Unload events.");
+
+    using (this._eventCategoryLock.Lock())
     {
-        this.Logger.Debug("Unload module.");
-
-        this.Logger.Debug("Unload events.");
-
-        using (this._eventCategoryLock.Lock())
+        foreach (EventCategory ec in this._eventCategories)
         {
-            foreach (EventCategory ec in this._eventCategories)
-            {
-                ec.Events.ForEach(ev => this.RemoveEventHooks(ev));
-            }
-
-            this._eventCategories?.Clear();
+            ec.Events.ForEach(ev => this.RemoveEventHooks(ev));
         }
 
-        if (this.DynamicEventHandler != null)
-        {
-            this.DynamicEventHandler.FoundLostEntities -= this.DynamicEventHandler_FoundLostEntities;
-            this.DynamicEventHandler.Dispose();
-            this.DynamicEventHandler = null;
-        }
-
-        if (this.EventTimerHandler != null)
-        {
-            this.EventTimerHandler.FoundLostEntities -= this.EventTimerHandler_FoundLostEntities;
-            this.EventTimerHandler.Dispose();
-            this.EventTimerHandler = null;
-        }
-
-        if (this.BlishHUDAPIService != null)
-        {
-            this.BlishHUDAPIService.NewLogin -= this.BlishHUDAPIService_NewLogin;
-            this.BlishHUDAPIService.LoggedOut -= this.BlishHUDAPIService_LoggedOut;
-        }
-
-        this.Logger.Debug("Unloaded events.");
-
-        this.UnloadContext();
-
-        this.MapUtil?.Dispose();
-        this.MapUtil = null;
-
-        this.Logger.Debug("Unload drawer.");
-
-        if (this._areas != null)
-        {
-            foreach (EventArea area in this._areas.Values)
-            {
-                area?.Dispose();
-            }
-
-            this._areas?.Clear();
-        }
-
-        this.Logger.Debug("Unloaded drawer.");
-
-        this.Logger.Debug("Unload base.");
-
-        base.Unload();
-
-        this.Logger.Debug("Unloaded base.");
+        this._eventCategories?.Clear();
     }
 
-    protected override int CornerIconPriority => 1_289_351_278;
+    if (this.DynamicEventHandler != null)
+    {
+        this.DynamicEventHandler.FoundLostEntities -= this.DynamicEventHandler_FoundLostEntities;
+        this.DynamicEventHandler.Dispose();
+        this.DynamicEventHandler = null;
+    }
 
-    #region Services
+    if (this.EventTimerHandler != null)
+    {
+        this.EventTimerHandler.FoundLostEntities -= this.EventTimerHandler_FoundLostEntities;
+        this.EventTimerHandler.Dispose();
+        this.EventTimerHandler = null;
+    }
 
-    public EventStateService EventStateService { get; private set; }
-    public DynamicEventService DynamicEventService { get; private set; }
-    public EventTimerHandler EventTimerHandler { get; private set; }
+    if (this.BlishHUDAPIService != null)
+    {
+        this.BlishHUDAPIService.NewLogin -= this.BlishHUDAPIService_NewLogin;
+        this.BlishHUDAPIService.LoggedOut -= this.BlishHUDAPIService_LoggedOut;
+    }
 
-    public SelfHostingEventService SelfHostingEventService { get; private set; }
+    this.Logger.Debug("Unloaded events.");
+
+    this.UnloadContext();
+
+    this.MapUtil?.Dispose();
+    this.MapUtil = null;
+
+    this.Logger.Debug("Unload drawer.");
+
+    if (this._areas != null)
+    {
+        foreach (EventArea area in this._areas.Values)
+        {
+            area?.Dispose();
+        }
+
+        this._areas?.Clear();
+    }
+
+    this.Logger.Debug("Unloaded drawer.");
+
+    this.Logger.Debug("Unload base.");
+
+    base.Unload();
+
+    this.Logger.Debug("Unloaded base.");
+}
+
+protected override int CornerIconPriority => 1_289_351_278;
+
+#region Services
+
+public EventStateService EventStateService { get; private set; }
+public DynamicEventService DynamicEventService { get; private set; }
+public EventTimerHandler EventTimerHandler { get; private set; }
+
+public SelfHostingEventService SelfHostingEventService { get; private set; }
 
     #endregion
 }

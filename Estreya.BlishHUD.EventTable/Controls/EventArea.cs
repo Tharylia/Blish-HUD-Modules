@@ -6,6 +6,7 @@ using Blish_HUD.ArcDps.Models;
 using Blish_HUD.Controls;
 using Blish_HUD.Input;
 using Blish_HUD.Modules.Managers;
+using Estreya.BlishHUD.Shared.Threading.Events;
 using Flurl.Http;
 using Gw2Sharp.Models;
 using Microsoft.Xna.Framework;
@@ -52,7 +53,7 @@ public class EventArea : RenderTarget2DControl
     private const int MIN_HEIGHT = 1;
     private readonly Logger _logger = Logger.GetLogger<EventArea>();
 
-    private static TimeSpan _updateEventOccurencesInterval = TimeSpan.FromMinutes(15);
+    private static TimeSpan _updateFillersInterval = TimeSpan.FromMinutes(15);
 
     private static TimeSpan _checkForNewEventsInterval = TimeSpan.FromMilliseconds(1000);
 
@@ -69,6 +70,8 @@ public class EventArea : RenderTarget2DControl
     private string _apiRootUrl;
     private readonly Func<JsonSerializer> _getSerializer;
 
+    private Task _updateFillerTask;
+    private bool _receiving;
     private bool _clearing;
     private readonly ConcurrentDictionary<string, List<(Instant Occurence, Event Event)>> _controlEvents = new ConcurrentDictionary<string, List<(Instant Occurence, Event Event)>>();
 
@@ -88,7 +91,9 @@ public class EventArea : RenderTarget2DControl
 
     private Event _lastActiveEvent;
     private double _lastCheckForNewEventsUpdate;
-    private readonly AsyncRef<double> _lastEventOccurencesUpdate = new AsyncRef<double>(0);
+
+    private readonly AsyncRef<double> _lastFillerUpdate = new AsyncRef<double>(0);
+
     //private MouseEventType _lastMouseEventType;
     private MapchestService _mapchestService;
     private MapUtil _mapUtil;
@@ -103,10 +108,14 @@ public class EventArea : RenderTarget2DControl
     private TranslationService _translationService;
     private WorldbossService _worldbossService;
 
+    public bool IsTogglingCompactMode { get; set; }
+
     public event EventHandler<(string EventSettingKey, string DestinationArea)> MoveToAreaClicked;
     public event EventHandler<(string EventSettingKey, string DestinationArea)> CopyToAreaClicked;
     public event EventHandler<string> EnableReminderClicked;
     public event EventHandler<string> DisableReminderClicked;
+
+    public event AsyncEventHandler CompactModeToggled;
 
     public EventArea(
         EventAreaConfiguration configuration, IconService iconService, TranslationService translationService,
@@ -136,6 +145,7 @@ public class EventArea : RenderTarget2DControl
         this.Configuration.FontFace.SettingChanged += this.FontFace_SettingChanged;
         this.Configuration.CustomFontPath.SettingChanged += this.CustomFontPath_SettingChanged;
         GameService.Gw2Mumble.CurrentMap.MapChanged += this.CurrentMap_MapChanged;
+        this.Configuration.CompactMode.SettingChanged += this.CompactMode_SettingChanged;
 
         this.Click += this.OnLeftMouseButtonPressed;
         this.MouseLeft += this.OnMouseLeft;
@@ -188,12 +198,19 @@ public class EventArea : RenderTarget2DControl
         }
     }
 
+    private void CompactMode_SettingChanged(object sender, ValueChangedEventArgs<bool> e)
+    {
+        _ = this.CompactModeToggled?.Invoke(this);
+    }
+
     /// <summary>
     ///     Defines the x offset at which the event bars should be drawn.
     /// </summary>
     private int DrawXOffset
     {
-        get => this.Configuration.ShowCategoryNames.Value ? this._drawXOffset : 0;
+        get => this.Configuration.ShowCategoryNames.Value
+            ? this._drawXOffset
+            : 0;
         set => this._drawXOffset = value;
     }
 
@@ -202,7 +219,9 @@ public class EventArea : RenderTarget2DControl
     /// </summary>
     private int DrawYOffset
     {
-        get => this.Configuration.ShowTopTimeline.Value ? this._drawYOffset : 0;
+        get => this.Configuration.ShowTopTimeline.Value
+            ? this._drawYOffset
+            : 0;
         set => this._drawYOffset = value;
     }
 
@@ -264,7 +283,9 @@ public class EventArea : RenderTarget2DControl
 
         int scrollDistance = GameService.Input.Mouse.State.ScrollWheelValue;
 
-        int scrollValue = this.Configuration.HistorySplitScrollingSpeed.Value * (scrollDistance >= 0 ? 1 : -1);
+        int scrollValue = this.Configuration.HistorySplitScrollingSpeed.Value * (scrollDistance >= 0
+            ? 1
+            : -1);
 
         (float Min, float Max)? range = this.Configuration.HistorySplit.GetRange();
 
@@ -382,11 +403,18 @@ public class EventArea : RenderTarget2DControl
         this.ReAddEvents();
     }
 
-    public void UpdateAllEvents(List<EventCategory> allEvents)
+    public async Task UpdateAllEventsAsync(List<EventCategory> allEvents)
     {
         this._logger.Debug($"Receiving new events..");
+
+        await this._updateFillerTask;
+        this._lastCheckForNewEventsUpdate = double.MinValue;
+        this._lastFillerUpdate.Value = double.MinValue;
+
+        this.SkipDraw = true;
         using (this._eventLock.Lock())
         {
+            this._receiving = true;
             this._allEvents.Clear();
 
             var serializer = this._getSerializer();
@@ -397,9 +425,12 @@ public class EventArea : RenderTarget2DControl
 
             this._allEvents.ForEach(ec => ec.Load(this._getNowAction, this._translationService));
             // Events should have occurences calculated already
+            this._receiving = false;
         }
 
-        this.ReAddEvents();
+        // This sets the _lastXX to the correct values again.
+        this.ReAddEvents(false);
+        this.SkipDraw = false;
         this._logger.Debug($"Finished Receiving new events..");
     }
 
@@ -541,39 +572,42 @@ public class EventArea : RenderTarget2DControl
 
     private BitmapFont GetFont()
     {
-        var font = _fonts.GetOrAdd(this.Configuration.FontSize.Value, fontSize =>
-        {
-            //GameService.Content.GetFont(FontFace.Menomonia, fontSize, ContentService.FontStyle.Regular)
-            try
+        var font = _fonts.GetOrAdd(
+            this.Configuration.FontSize.Value,
+            fontSize =>
             {
-                switch (this.Configuration.FontFace.Value)
+                //GameService.Content.GetFont(FontFace.Menomonia, fontSize, ContentService.FontStyle.Regular)
+                try
                 {
-                    case Shared.Models.FontFace.Custom:
-                        var path = this.Configuration.CustomFontPath.Value;
-                        switch (Path.GetExtension(path))
-                        {
-                            case ".ttf":
-                                var customTTFFontStream = FileUtil.ReadStream(path);
-                                var customTTFFont = FontUtils.FromTrueTypeFont(customTTFFontStream?.ToByteArray(), (int)fontSize, 256, 256);
-                                customTTFFontStream.Dispose();
-                                return customTTFFont.ToBitmapFont();
-                            case ".fnt":
-                                return FontUtils.FromBMFont(path).ToBitmapFont();
-                            default:
-                                return null;
-                        }
-                    default:
-                        var fontStream = this._contentsManager.GetFileStream($"fonts\\{this.Configuration.FontFace.Value.ToString()}.ttf");
-                        var ttfFont = FontUtils.FromTrueTypeFont(fontStream?.ToByteArray(), (int)fontSize, 256, 256);
-                        fontStream.Dispose();
-                        return ttfFont.ToBitmapFont();
+                    switch (this.Configuration.FontFace.Value)
+                    {
+                        case Shared.Models.FontFace.Custom:
+                            var path = this.Configuration.CustomFontPath.Value;
+                            switch (Path.GetExtension(path))
+                            {
+                                case ".ttf":
+                                    var customTTFFontStream = FileUtil.ReadStream(path);
+                                    var customTTFFont = FontUtils.FromTrueTypeFont(customTTFFontStream?.ToByteArray(), (int)fontSize, 256, 256);
+                                    customTTFFontStream.Dispose();
+                                    return customTTFFont.ToBitmapFont();
+                                case ".fnt":
+                                    return FontUtils.FromBMFont(path).ToBitmapFont();
+                                default:
+                                    return null;
+                            }
+                        default:
+                            var fontStream = this._contentsManager.GetFileStream($"fonts\\{this.Configuration.FontFace.Value.ToString()}.ttf");
+                            var ttfFont = FontUtils.FromTrueTypeFont(fontStream?.ToByteArray(), (int)fontSize, 256, 256);
+                            fontStream.Dispose();
+                            return ttfFont.ToBitmapFont();
+                    }
+                }
+                catch (Exception)
+                {
+                    return null;
                 }
             }
-            catch (Exception)
-            {
-                return null;
-            }
-        });
+        );
 
         //this._logger.Warn($"Invalid font: Font Fact: {this.Configuration.FontFace.Value} - Path: {this.Configuration.CustomFontPath.Value}");
         font ??= this._defaultFont;
@@ -581,18 +615,23 @@ public class EventArea : RenderTarget2DControl
         return font;
     }
 
-    private void ReAddEvents()
+    private void ReAddEvents(bool setSkipDraw = true)
     {
+        if (setSkipDraw)
+            this.SkipDraw = true;
         this._clearing = true;
         //using IDisposable suspendCtx = this.SuspendLayoutContext();
 
         this.ClearEventControls();
+        if (setSkipDraw)
+            this.SkipDraw = false;
         this._clearing = false;
 
         this._eventCategoryOrdering = null;
-        this._lastEventOccurencesUpdate.Value = _updateEventOccurencesInterval.TotalMilliseconds;
-        this._lastCheckForNewEventsUpdate = 0;
+        this._lastFillerUpdate.Value = _updateFillersInterval.TotalMilliseconds;
+        this._lastCheckForNewEventsUpdate = double.MinValue;
         this.CheckForNewEventsForScreen(); // Needed to avoid complete area flashing
+        this._lastCheckForNewEventsUpdate = 0;
     }
 
     private (Instant Now, Instant Min, Instant Max) GetTimes()
@@ -607,15 +646,17 @@ public class EventArea : RenderTarget2DControl
 
     private float GetTimeSpanRatio()
     {
-        int historySplit = this._tempHistorySplit != -1 ? this._tempHistorySplit : this.Configuration.HistorySplit.Value;
+        int historySplit = this._tempHistorySplit != -1
+            ? this._tempHistorySplit
+            : this.Configuration.HistorySplit.Value;
 
         float ratio = 0.5f + ((historySplit / 100f) - 0.5f);
         return ratio;
     }
 
-    private async Task UpdateEventOccurences()
+    private async Task UpdateFillersAsync()
     {
-        if (this._clearing) return;
+        if (this._clearing || this._receiving) return;
 
         (Instant Now, Instant Min, Instant Max) times = this.GetTimes();
 
@@ -651,7 +692,9 @@ public class EventArea : RenderTarget2DControl
 
             _logger.Info("Load fillers...");
 
-            IFlurlRequest flurlRequest = this._flurlClient.Request(this._apiRootUrl, "fillers");
+            IFlurlRequest flurlRequest = !this.Configuration.CompactMode.Value
+                ? this._flurlClient.Request(this._apiRootUrl, "fillers")
+                : this._flurlClient.Request(this._apiRootUrl, "compact", "fillers");
 
             string accessToken = this._getAccessToken();
             if (!string.IsNullOrWhiteSpace(accessToken))
@@ -671,27 +714,35 @@ public class EventArea : RenderTarget2DControl
             IEnumerable<string> eventKeys = activeEvents.Select(a => a.SettingKey).Distinct();
             _logger.Debug($"Fetch fillers with active keys: {string.Join(", ", eventKeys.ToArray())}");
 
-            HttpResponseMessage response = await flurlRequest.PostJsonAsync(new OnlineFillerRequest
-            {
-                Module = new OnlineFillerRequest.OnlineFillerRequestModule { Version = this._getVersion().ToString() },
-                Times = new OnlineFillerRequest.OnlineFillerRequestTimes
+            HttpResponseMessage response = await flurlRequest.PostJsonAsync(
+                new OnlineFillerRequest
                 {
-                    Now_UTC_ISO = now.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture),
-                    Min_UTC_ISO = min.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture),
-                    Max_UTC_ISO = max.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture)
-                },
-                EventKeys = activeEvents.Select(a => a.SettingKey).ToArray()
-            });
+                    Module = new OnlineFillerRequest.OnlineFillerRequestModule { Version = this._getVersion().ToString() },
+                    Times = new OnlineFillerRequest.OnlineFillerRequestTimes
+                    {
+                        Now_UTC_ISO = now.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture),
+                        Min_UTC_ISO = min.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture),
+                        Max_UTC_ISO = max.InUtc().ToString("yyyy'-'MM'-'dd'T'HH':'mm':'ss'Z'", CultureInfo.InvariantCulture)
+                    },
+                    EventKeys = activeEvents.Select(a => a.SettingKey).ToArray()
+                }
+            );
 
             var fillers = await response.GetJsonAsync<Dictionary<string, OnlineFillerEvent[]>>(this._getSerializer());
 
             var fillerList = fillers.ToList();
             // Keep filler events from contexts
-            ConcurrentDictionary<string, List<Models.Event>> parsedFillers = new ConcurrentDictionary<string, List<Models.Event>>(activeEvents.Where(ev => ev.Filler).GroupBy(ev =>
-            {
-                ev.Category.TryGetTarget(out var ec);
-                return ec.Key;
-            }).ToDictionary(group => group.Key, group => group.Where(ev => ev.Filler).ToList()).ToList());
+            ConcurrentDictionary<string, List<Models.Event>> parsedFillers = new ConcurrentDictionary<string, List<Models.Event>>(
+                activeEvents.Where(ev => ev.Filler)
+                    .GroupBy(ev =>
+                        {
+                            ev.Category.TryGetTarget(out var ec);
+                            return ec.Key;
+                        }
+                    )
+                    .ToDictionary(group => group.Key, group => group.Where(ev => ev.Filler).ToList())
+                    .ToList()
+            );
 
             for (int i = 0; i < fillerList.Count; i++)
             {
@@ -763,7 +814,7 @@ public class EventArea : RenderTarget2DControl
 
     private void UpdateEventsOnScreen(SpriteBatch spriteBatch)
     {
-        if (this._clearing)
+        if (this._clearing || this._receiving)
         {
             return;
         }
@@ -797,7 +848,9 @@ public class EventArea : RenderTarget2DControl
 
             if (this.Configuration.ShowCategoryNames.Value && controlEventPairs.First().Event.Model.Category.TryGetTarget(out EventCategory eventCategory))
             {
-                Microsoft.Xna.Framework.Color color = this.Configuration.CategoryNameColor.Value.Id == 1 ? Microsoft.Xna.Framework.Color.Black : this.Configuration.CategoryNameColor.Value.Cloth.ToXnaColor();
+                Microsoft.Xna.Framework.Color color = this.Configuration.CategoryNameColor.Value.Id == 1
+                    ? Microsoft.Xna.Framework.Color.Black
+                    : this.Configuration.CategoryNameColor.Value.Cloth.ToXnaColor();
                 spriteBatch.DrawString(this.GetFont(), eventCategory.Name, new Vector2(0, y), color);
             }
 
@@ -824,7 +877,9 @@ public class EventArea : RenderTarget2DControl
                 {
                     // We are good to render
                     float x = (float)controlEvent.Event.Model.CalculateXPosition(controlEvent.Occurence, times.Min, this.PixelPerMinute);
-                    x = (x < 0 ? 0 : x) + this.DrawXOffset;
+                    x = (x < 0
+                        ? 0
+                        : x) + this.DrawXOffset;
                     RectangleF renderRect = new RectangleF(x, y, width, this.Configuration.EventHeight.Value);
                     controlEvent.Event.Render(spriteBatch, renderRect);
                     if (renderRect.ToBounds(this.AbsoluteBounds).Contains(GameService.Input.Mouse.Position))
@@ -845,7 +900,9 @@ public class EventArea : RenderTarget2DControl
             y += this.Configuration.EventHeight.Value;
         }
 
-        this._heightFromLastDraw = y == 0 ? MIN_HEIGHT : y;
+        this._heightFromLastDraw = y == 0
+            ? MIN_HEIGHT
+            : y;
 
         if (this._activeEvent != null && this._lastActiveEvent?.Model?.Key != this._activeEvent.Model.Key)
         {
@@ -861,7 +918,9 @@ public class EventArea : RenderTarget2DControl
 
             if (!isFiller)
             {
-                this.Tooltip = this.Configuration.ShowTooltips.Value ? this._activeEvent?.BuildTooltip() : null;
+                this.Tooltip = this.Configuration.ShowTooltips.Value
+                    ? this._activeEvent?.BuildTooltip()
+                    : null;
                 this.Menu = this._activeEvent?.BuildContextMenu(this._getAreaNames, this.Configuration.Name, this._getDisabledReminderKeys);
             }
 
@@ -882,7 +941,7 @@ public class EventArea : RenderTarget2DControl
 
     private void CheckForNewEventsForScreen()
     {
-        if (this._clearing)
+        if (this._clearing || this._receiving)
         {
             return;
         }
@@ -953,7 +1012,8 @@ public class EventArea : RenderTarget2DControl
                         continue;
                     }
 
-                    Event newEventControl = new Event(ev,
+                    Event newEventControl = new Event(
+                        ev,
                         this._iconService,
                         this._translationService,
                         this._getNowAction,
@@ -966,11 +1026,15 @@ public class EventArea : RenderTarget2DControl
                         {
                             Microsoft.Xna.Framework.Color defaultTextColor = Microsoft.Xna.Framework.Color.Black;
                             Microsoft.Xna.Framework.Color color = ev.Filler
-                                ? this.Configuration.FillerTextColor.Value.Id == 1 ? defaultTextColor : this.Configuration.FillerTextColor.Value.Cloth.ToXnaColor()
+                                ? this.Configuration.FillerTextColor.Value.Id == 1
+                                    ? defaultTextColor
+                                    : this.Configuration.FillerTextColor.Value.Cloth.ToXnaColor()
                                 : this.Configuration.TextColor.Value.Id == 1
                                     ? defaultTextColor
                                     : this.Configuration.TextColor.Value.Cloth.ToXnaColor();
-                            float alpha = ev.Filler ? this.Configuration.FillerTextOpacity.Value : this.Configuration.EventTextOpacity.Value;
+                            float alpha = ev.Filler
+                                ? this.Configuration.FillerTextOpacity.Value
+                                : this.Configuration.EventTextOpacity.Value;
 
                             if (this.Configuration.CompletionAction.Value is EventCompletedAction.ChangeOpacity or EventCompletedAction.CrossoutAndChangeOpacity && this._eventStateService.Contains(this.Configuration.Name, ev.SettingKey, EventStateService.EventStates.Completed))
                             {
@@ -988,10 +1052,7 @@ public class EventArea : RenderTarget2DControl
                         {
                             if (ev.Filler)
                             {
-                                return new[]
-                                {
-                                    Microsoft.Xna.Framework.Color.Transparent
-                                };
+                                return new[] { Microsoft.Xna.Framework.Color.Transparent };
                             }
 
                             float alpha = this.Configuration.EventBackgroundOpacity.Value;
@@ -1015,26 +1076,27 @@ public class EventArea : RenderTarget2DControl
                             if (!string.IsNullOrWhiteSpace(ev.BackgroundColorCode))
                             {
                                 System.Drawing.Color tempColor = ColorTranslator.FromHtml(ev.BackgroundColorCode);
-                                return new[]
-                                {
-                                    new Microsoft.Xna.Framework.Color(tempColor.R, tempColor.G, tempColor.B) * alpha
-                                };
+                                return new[] { new Microsoft.Xna.Framework.Color(tempColor.R, tempColor.G, tempColor.B) * alpha };
                             }
 
-                            return new[]
-                            {
-                                Microsoft.Xna.Framework.Color.White * alpha
-                            };
+                            return new[] { Microsoft.Xna.Framework.Color.White * alpha };
                         },
-                        () => ev.Filler ? this.Configuration.DrawShadowsForFiller.Value : this.Configuration.DrawShadows.Value,
+                        () => ev.Filler
+                            ? this.Configuration.DrawShadowsForFiller.Value
+                            : this.Configuration.DrawShadows.Value,
                         () =>
                         {
                             return ev.Filler
-                                ? (this.Configuration.FillerShadowColor.Value.Id == 1 ? Microsoft.Xna.Framework.Color.Black : this.Configuration.FillerShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.FillerShadowOpacity.Value
-                                : (this.Configuration.ShadowColor.Value.Id == 1 ? Microsoft.Xna.Framework.Color.Black : this.Configuration.ShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.ShadowOpacity.Value;
+                                ? (this.Configuration.FillerShadowColor.Value.Id == 1
+                                    ? Microsoft.Xna.Framework.Color.Black
+                                    : this.Configuration.FillerShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.FillerShadowOpacity.Value
+                                : (this.Configuration.ShadowColor.Value.Id == 1
+                                    ? Microsoft.Xna.Framework.Color.Black
+                                    : this.Configuration.ShadowColor.Value.Cloth.ToXnaColor()) * this.Configuration.ShadowOpacity.Value;
                         },
                         () => this.Configuration.EventAbsoluteTimeFormatString.Value,
-                        () => (this.Configuration.EventTimespanDaysFormatString.Value, this.Configuration.EventTimespanHoursFormatString.Value, this.Configuration.EventTimespanMinutesFormatString.Value));
+                        () => (this.Configuration.EventTimespanDaysFormatString.Value, this.Configuration.EventTimespanHoursFormatString.Value, this.Configuration.EventTimespanMinutesFormatString.Value)
+                    );
 
                     this.AddEventHooks(newEventControl);
 
@@ -1082,7 +1144,13 @@ public class EventArea : RenderTarget2DControl
                             catch (Exception ex)
                             {
                                 this._logger.Warn(ex, $"Could not paste waypoint into chat. Event: {currentEvent.Model.SettingKey}");
-                                ScreenNotification.ShowNotification(new[] { "Waypoint could not be pasted in chat.", "See log for more information." }, ScreenNotification.NotificationType.Error, duration: 5);
+                                ScreenNotification.ShowNotification(new[]
+                                    {
+                                        "Waypoint could not be pasted in chat.",
+                                        "See log for more information."
+                                    },
+                                    ScreenNotification.NotificationType.Error,
+                                    duration: 5);
                             }
                         }
                         else
@@ -1091,9 +1159,9 @@ public class EventArea : RenderTarget2DControl
 
                             ScreenNotification.ShowNotification(new[]
                             {
-                            currentEvent.Model.Name,
-                            "Copied to clipboard!"
-                        });
+                                currentEvent.Model.Name,
+                                "Copied to clipboard!"
+                            });
                         }
                     }
 
@@ -1180,10 +1248,7 @@ public class EventArea : RenderTarget2DControl
 
         if (this.Configuration.HideInPvE_Competetive.Value)
         {
-            MapType[] pveCompetetiveMapTypes =
-            {
-                MapType.Instance
-            };
+            MapType[] pveCompetetiveMapTypes = { MapType.Instance };
 
             show &= !(!GameService.Gw2Mumble.CurrentMap.IsCompetitiveMode && pveCompetetiveMapTypes.Any(type => type == GameService.Gw2Mumble.CurrentMap.Type) && MapInfo.MAP_IDS_PVE_COMPETETIVE.Contains(GameService.Gw2Mumble.CurrentMap.Id));
         }
@@ -1218,7 +1283,7 @@ public class EventArea : RenderTarget2DControl
 
     protected override void InternalUpdate(GameTime gameTime)
     {
-        _ = UpdateUtil.UpdateAsync(this.UpdateEventOccurences, gameTime, _updateEventOccurencesInterval.TotalMilliseconds, this._lastEventOccurencesUpdate);
+        this._updateFillerTask = UpdateUtil.UpdateAsync(this.UpdateFillersAsync, gameTime, _updateFillersInterval.TotalMilliseconds, this._lastFillerUpdate).Unwrap();
         UpdateUtil.Update(this.CheckForNewEventsForScreen, gameTime, _checkForNewEventsInterval.TotalMilliseconds, ref this._lastCheckForNewEventsUpdate);
         this.ReportNewHeight(this._heightFromLastDraw);
     }
@@ -1258,7 +1323,9 @@ public class EventArea : RenderTarget2DControl
 
         var timeSteps = (int)Math.Floor((times.Max - times.Min).TotalMinutes) / timeInterval;
 
-        var timeStepLineHeight = this.Configuration.TopTimelineLinesOverWholeHeight.Value ? this.Height : rect.Height;
+        var timeStepLineHeight = this.Configuration.TopTimelineLinesOverWholeHeight.Value
+            ? this.Height
+            : rect.Height;
 
         var lineColor = (this.Configuration.TopTimelineLineColor.Value.Id == 1
             ? Microsoft.Xna.Framework.Color.Black
@@ -1270,7 +1337,7 @@ public class EventArea : RenderTarget2DControl
         List<Duration> stepTimes = new List<Duration>();
 
         // Round up to next step
-        var minUtc = times.Min.ToDateTimeUtc();
+        var minUtc = times.Min.InUtc();
         int minutes = (int)Math.Ceiling(minUtc.Minute / (double)timeInterval) * timeInterval;
         DateTime first = new DateTime(minUtc.Year, minUtc.Month, minUtc.Day, minUtc.Hour, 0, 0, DateTimeKind.Utc).AddMinutes(minutes);
 
@@ -1282,6 +1349,7 @@ public class EventArea : RenderTarget2DControl
         for (int i = 0; i < stepTimes.Count; i++)
         {
             var stepTime = stepTimes[i];
+
             var x = (float)((this.PixelPerMinute * stepTime.TotalMinutes) + this.DrawXOffset);
             var timeStepRect = new RectangleF(x, 0, 2, timeStepLineHeight);
             var time = times.Min.Plus(stepTime).InZone(DateTimeZoneProviders.Tzdb.GetSystemDefault());

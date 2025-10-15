@@ -46,7 +46,12 @@ public abstract class RenderTarget2DControl : Control
     ///     If only one draw in the control lifetime is needed, an interval of <see cref="Timeout.InfiniteTimeSpan" /> can be
     ///     used.
     /// </summary>
-    public TimeSpan DrawInterval { get; set; } = TimeSpan.FromMilliseconds(500);
+    protected TimeSpan DrawInterval { get; set; } = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>
+    ///     Specifies if the draw should be skipped as long as this flag is active.
+    /// </summary>
+    protected bool SkipDraw { get; set; } = false;
 
     /// <summary>
     ///     Gets or sets the size of the control. Setting the value recreates the render target.
@@ -115,7 +120,7 @@ public abstract class RenderTarget2DControl : Control
             {
                 if (this._renderTarget != null)
                 {
-                    if (this._renderTargetIsEmpty || (this.DrawInterval != Timeout.InfiniteTimeSpan && this._lastDraw >= this.DrawInterval))
+                    if (!this.SkipDraw && (this._renderTargetIsEmpty || (this.DrawInterval != Timeout.InfiniteTimeSpan && this._lastDraw >= this.DrawInterval)))
                     {
                         spriteBatch.GraphicsDevice.SetRenderTarget(this._renderTarget);
 
