@@ -407,12 +407,13 @@ public class EventArea : RenderTarget2DControl
     {
         this._logger.Debug($"Receiving new events..");
 
-        await this._updateFillerTask;
+        await (this._updateFillerTask ?? Task.CompletedTask);
+
         this._lastCheckForNewEventsUpdate = double.MinValue;
         this._lastFillerUpdate.Value = double.MinValue;
 
         this.SkipDraw = true;
-        using (this._eventLock.Lock())
+        using (await this._eventLock.LockAsync())
         {
             this._receiving = true;
             this._allEvents.Clear();
