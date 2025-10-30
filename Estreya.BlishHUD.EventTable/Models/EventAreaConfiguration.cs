@@ -64,6 +64,9 @@ public class EventAreaConfiguration : DrawerConfiguration
 
     public SettingEntry<bool> ShowCategoryNames { get; set; }
     public SettingEntry<Color> CategoryNameColor { get; set; }
+    public SettingEntry<float> CategoryNameOpacity { get; set; }
+    public SettingEntry<Color> CategoryNameBackgroundColor {get;set;}
+    public SettingEntry<float> CategoryNameBackgroundOpacity { get; set; }
 
     public SettingEntry<bool> EnableColorGradients { get; set; }
 
@@ -136,6 +139,9 @@ public class EventAreaConfiguration : DrawerConfiguration
         other.HideInPvP.Value = this.HideInPvP.Value;
         other.ShowCategoryNames.Value = this.ShowCategoryNames.Value;
         other.CategoryNameColor.Value = this.CategoryNameColor.Value;
+        other.CategoryNameOpacity.Value = this.CategoryNameOpacity.Value;
+        other.CategoryNameBackgroundColor.Value = this.CategoryNameBackgroundColor.Value;
+        other.CategoryNameBackgroundOpacity.Value = this.CategoryNameBackgroundOpacity.Value;
         other.EnableColorGradients.Value = this.EnableColorGradients.Value;
         other.EventAbsoluteTimeFormatString.Value = this.EventAbsoluteTimeFormatString.Value;
         other.EventTimespanDaysFormatString.Value = this.EventTimespanDaysFormatString.Value;

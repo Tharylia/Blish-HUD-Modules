@@ -835,8 +835,15 @@ public class EventArea : RenderTarget2DControl
             {
                 if (controlEventPairs.Count > 0 && controlEventPairs.First().Event.Model.Category.TryGetTarget(out EventCategory eventCategory))
                 {
-                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).Width + 5, this._drawXOffset);
+                    this._drawXOffset = Math.Max((int)this.GetFont().MeasureString(eventCategory.Name).Width + 10, this._drawXOffset);
                 }
+            }
+            
+            // Only draw background if color is selected.
+            if (this.Configuration.CategoryNameBackgroundColor.Value.Id != 1)
+            {
+                spriteBatch.Draw(Textures.Pixel,new RectangleF(0,0, this._drawXOffset, this._heightFromLastDraw),
+                    this.Configuration.CategoryNameBackgroundColor.Value.Cloth.ToXnaColor() * this.Configuration.CategoryNameBackgroundOpacity.Value);
             }
         }
 
@@ -852,7 +859,9 @@ public class EventArea : RenderTarget2DControl
                 Microsoft.Xna.Framework.Color color = this.Configuration.CategoryNameColor.Value.Id == 1
                     ? Microsoft.Xna.Framework.Color.Black
                     : this.Configuration.CategoryNameColor.Value.Cloth.ToXnaColor();
-                spriteBatch.DrawString(this.GetFont(), eventCategory.Name, new Vector2(0, y), color);
+                var textHeight = (int)this.GetFont().MeasureString(eventCategory.Name).Height;
+                var yOffset = this.Configuration.EventHeight.Value / 2 - textHeight / 2;
+                spriteBatch.DrawString(this.GetFont(), eventCategory.Name, new Vector2(5, y + yOffset), color * this.Configuration.CategoryNameOpacity.Value);
             }
 
             List<(Instant Occurence, Event Event)> toDelete = new List<(Instant Occurence, Event Event)>();

@@ -416,7 +416,11 @@ public class ModuleSettings : BaseModuleSettings
         SettingEntry<bool> showCategoryNames = this.DrawerSettings.DefineSetting($"{name}-showCategoryNames", false, () => "Show Category Names", () => "Defines if the category names should be shown before the event bars.");
 
         SettingEntry<Color> categoryNameColor = this.DrawerSettings.DefineSetting($"{name}-categoryNameColor", this.DefaultGW2Color, () => "Category Name Color", () => "Defines the color of the category names.");
-
+        SettingEntry<float> categoryNameOpacity = this.DrawerSettings.DefineSetting($"{name}-categoryNameOpacity", 1f, () => "Category Name Opacity", () => "Defines the opacity of the category names.");
+        categoryNameOpacity.SetRange(0.1f,1f);
+        SettingEntry<Color> categoryNameBackgroundColor = this.DrawerSettings.DefineSetting($"{name}-categoryNameBackgroundColor", this.DefaultGW2Color, () => "Category Name Background Color", () => "Defines the background color of the category names.");
+        SettingEntry<float> categoryNameBackgroundOpacity = this.DrawerSettings.DefineSetting($"{name}-categoryNameBackgroundOpacity", 1f, () => "Category Name Background Opacity", () => "Defines the opacity of the category names background.");
+        categoryNameBackgroundOpacity.SetRange(0.1f,1f);
         SettingEntry<bool> enableColorGradients = this.DrawerSettings.DefineSetting($"{name}-enableColorGradients", false, () => "Enable Color Gradients", () => "Defines if supported events should have a smoother color gradient from and to the next event.");
 
         SettingEntry<string> eventTimespanDaysFormatString = this.DrawerSettings.DefineSetting($"{name}-eventTimespanDaysFormatString", "DD\\.hh\\:mm\\:ss", () => "Days Format String", () => "Defines the format strings for timespans over 1 day.");
@@ -499,6 +503,9 @@ public class ModuleSettings : BaseModuleSettings
             HideInWvW = hideInWvW,
             ShowCategoryNames = showCategoryNames,
             CategoryNameColor = categoryNameColor,
+            CategoryNameOpacity = categoryNameOpacity,
+            CategoryNameBackgroundColor = categoryNameBackgroundColor,
+            CategoryNameBackgroundOpacity = categoryNameBackgroundOpacity,
             EnableColorGradients = enableColorGradients,
             EventTimespanDaysFormatString = eventTimespanDaysFormatString,
             EventTimespanHoursFormatString = eventTimespanHoursFormatString,
@@ -579,6 +586,9 @@ public class ModuleSettings : BaseModuleSettings
         this.DrawerSettings.UndefineSetting($"{name}-hideInPvP");
         this.DrawerSettings.UndefineSetting($"{name}-showCategoryNames");
         this.DrawerSettings.UndefineSetting($"{name}-categoryNameColor");
+        this.DrawerSettings.UndefineSetting($"{name}-categoryNameOpacity");
+        this.DrawerSettings.UndefineSetting($"{name}-categoryNameBackgroundColor");
+        this.DrawerSettings.UndefineSetting($"{name}-categoryNameBackgroundOpacity");
         this.DrawerSettings.UndefineSetting($"{name}-enableColorGradients");
         this.DrawerSettings.UndefineSetting($"{name}-eventTimespanDaysFormatString");
         this.DrawerSettings.UndefineSetting($"{name}-eventTimespanHoursFormatString");

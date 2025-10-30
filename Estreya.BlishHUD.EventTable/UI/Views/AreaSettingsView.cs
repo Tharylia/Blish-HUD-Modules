@@ -551,6 +551,9 @@ public class AreaSettingsView : BaseSettingsView
         this.RenderEmptyLine(groupPanel);
 
         this.RenderColorSetting(groupPanel, areaConfiguration.CategoryNameColor);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.CategoryNameOpacity);
+        this.RenderColorSetting(groupPanel, areaConfiguration.CategoryNameBackgroundColor);
+        this.RenderFloatSetting(groupPanel, areaConfiguration.CategoryNameBackgroundOpacity);
 
         this.RenderEmptyLine(groupPanel);
 
