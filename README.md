@@ -1,30 +1,25 @@
-# <p align="center">Estreya BlishHUD Modules</p>
+# Repository Information
 
-#### <p align="center">Welcome to the BlishHUD Modules repository by Estreya!</p>
+This GitHub repository is not used for source code development.
 
-This repository houses a collection of modules for BlishHUD, a comprehensive and customizable Guild Wars 2 overlay. These modules are designed to enhance your gaming experience by providing additional features, functionality, and customization options within the BlishHUD framework.
+Its purpose is to provide a familiar and accessible place for:
 
-#### What is BlishHUD?
-BlishHUD is a popular add-on for Guild Wars 2 that extends the game's interface with a wide range of features and customization options. Developed by the community, it offers users the ability to tailor their interface to suit their preferences, improve their gameplay experience, and access additional tools and information not available in the base game.
+- Bug reports
+- Feature requests
+- General feedback and discussions
 
-#### Features
-- **Enhanced HUD Functionality**: Each module in this repository adds unique features and functionality to BlishHUD, expanding its capabilities beyond the base game interface.
-- **Customization Options**: All modules offer extensive customization options, allowing users to personalize their gaming experience according to their preferences.
-- **Open Source**: Developed by Estreya in an open source manner, these modules are created with input from the Guild Wars 2 community, ensuring they meet the needs and desires of players.
+## Source Code
 
-#### Installation
-To use these modules with BlishHUD, follow these steps:
-- **Download Blish HUD**: If you haven't already, download and install Blish HUD from the official website.
-- **Install**:
-  - **Manual**: Clone or download this repository to your local machine. Build the module in release mode and copy the modules you want to use from the build folder into this folder: `%USERPROFILE%\Documents\Guild Wars 2\addons\blishhud\modules`.
-  - **Automatic**: Launch BlishHUD, navigate to the module repository and download the modules you needs.
-- **Enable Modules**: Launch BlishHUD, navigate to the modules section and enable the modules you installed.
-- **Customize**: Configure the settings of each enabled module to suit your preferences using the BlishHUD interface.
+The actual source code is hosted in a public GitLab repository [here](https://gitlab.estreya.de/blish-hud/modules).
 
-#### Support
-If you encounter any issues or have questions about using these modules, please refer to the documentation available [here](https://blishhud.com/modules/) or open an issue.
+While the repository itself is publicly visible, GitLab account registration is restricted and external users cannot create accounts. Because of this, GitHub is used as the primary platform for community feedback and issue tracking.
 
-#### License
-This repository is licensed under the GPL-3.0 License. See the LICENSE file for more information.
+## Reporting Issues
 
-**Thank you for using the Estreya BlishHUD Modules! We hope you enjoy the enhanced Guild Wars 2 experience it provides.**
+If you encounter a bug, have an idea for a new feature, or would like to provide feedback, please open an issue in this repository.
+
+When creating an issue, please include as much relevant information as possible to help us understand and address your request.
+
+## Contributing
+
+Code contributions are currently managed through the GitLab repository and are not accepted through GitHub pull requests.
